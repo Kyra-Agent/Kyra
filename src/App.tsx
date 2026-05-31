@@ -12,18 +12,24 @@ import { HeroConsole } from "./components/HeroConsole";
 import { SecuritySection } from "./components/SecuritySection";
 import { TemplatePicker } from "./components/TemplatePicker";
 import { WalletApprovalModal } from "./components/WalletApprovalModal";
+import { appConfig } from "./config/appConfig";
 import { Dashboard } from "./pages/Dashboard";
 import { PublicAgent } from "./pages/PublicAgent";
 import { kyraDataService } from "./services/kyraDataService";
+import {
+  fetchSupabaseTemplates,
+  type SupabaseConnectionStatus,
+} from "./services/supabaseKyraRepository";
+import type { DataProvider } from "./types/api";
 
-const agentTemplates = kyraDataService.listTemplates();
+const fallbackAgentTemplates = kyraDataService.listTemplates();
 const demoScenarios = kyraDataService.listScenarios();
 
 function getTemplateIdFromAgentPath(pathname: string) {
   const match = pathname.match(/^\/agents\/([a-z-]+)-demo$/);
   const templateId = match?.[1];
 
-  if (templateId && agentTemplates.some((template) => template.id === templateId)) {
+  if (templateId && fallbackAgentTemplates.some((template) => template.id === templateId)) {
     return templateId;
   }
 
@@ -49,6 +55,12 @@ function App() {
     return window.localStorage.getItem("kyra-theme") === "light" ? "light" : "dark";
   });
   const [selectedId, setSelectedId] = useState(getInitialTemplateId);
+  const [agentTemplates, setAgentTemplates] = useState(fallbackAgentTemplates);
+  const [templateCatalogSource, setTemplateCatalogSource] = useState<DataProvider>("mock");
+  const [templateCatalogStatus, setTemplateCatalogStatus] = useState<SupabaseConnectionStatus>(
+    appConfig.supabase.configured ? "checking" : "not-configured",
+  );
+  const [templateCatalogError, setTemplateCatalogError] = useState<string | null>(null);
   const [selectedScenarioId, setSelectedScenarioId] = useState("swap");
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [approvalApproved, setApprovalApproved] = useState(false);
@@ -70,8 +82,11 @@ function App() {
   });
 
   const selectedTemplate = useMemo(
-    () => agentTemplates.find((template) => template.id === selectedId) ?? agentTemplates[0],
-    [selectedId],
+    () =>
+      agentTemplates.find((template) => template.id === selectedId) ??
+      agentTemplates[0] ??
+      fallbackAgentTemplates[0],
+    [agentTemplates, selectedId],
   );
 
   const selectedScenario = useMemo(
@@ -84,6 +99,49 @@ function App() {
     document.documentElement.dataset.theme = theme;
     window.localStorage.setItem("kyra-theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    if (appConfig.dataProvider !== "supabase" || !appConfig.supabase.configured) {
+      setTemplateCatalogStatus("not-configured");
+      return;
+    }
+
+    let active = true;
+
+    async function loadTemplateCatalog() {
+      setTemplateCatalogStatus("checking");
+
+      const result = await fetchSupabaseTemplates();
+
+      if (!active) {
+        return;
+      }
+
+      if (result.ok && result.templates.length > 0) {
+        setAgentTemplates(result.templates);
+        setTemplateCatalogSource("supabase");
+        setTemplateCatalogStatus("connected");
+        setTemplateCatalogError(null);
+        setSelectedId((currentId) =>
+          result.templates.some((template) => template.id === currentId)
+            ? currentId
+            : result.templates[0].id,
+        );
+        return;
+      }
+
+      setAgentTemplates(fallbackAgentTemplates);
+      setTemplateCatalogSource("mock");
+      setTemplateCatalogStatus(result.status === "not-configured" ? "not-configured" : "error");
+      setTemplateCatalogError(result.error ?? "Supabase returned an empty template catalog.");
+    }
+
+    void loadTemplateCatalog();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function toggleTheme() {
     setTheme((value) => (value === "dark" ? "light" : "dark"));
@@ -194,6 +252,10 @@ function App() {
       {route === "dashboard" ? (
         <Dashboard
           selectedTemplate={selectedTemplate}
+          templates={agentTemplates}
+          templateCatalogSource={templateCatalogSource}
+          templateCatalogStatus={templateCatalogStatus}
+          templateCatalogError={templateCatalogError}
           onBackHome={() => navigate("home")}
           onOpenAgent={() => navigate("agent")}
         />
@@ -257,6 +319,9 @@ function App() {
               templates={agentTemplates}
               selectedId={selectedId}
               onSelect={setSelectedId}
+              catalogSource={templateCatalogSource}
+              catalogStatus={templateCatalogStatus}
+              catalogError={templateCatalogError}
             />
             <DeployPanel
               templates={agentTemplates}

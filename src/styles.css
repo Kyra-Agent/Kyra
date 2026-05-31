@@ -851,6 +851,19 @@ h2 {
   gap: 0.8rem;
 }
 
+.catalog-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.9rem;
+}
+
+.catalog-status-row small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .template-card {
   min-height: 232px;
   padding: 1rem;
@@ -2205,6 +2218,16 @@ h2 {
   border-color: rgba(94, 162, 255, 0.26);
   background: rgba(94, 162, 255, 0.08);
   color: var(--blue);
+}
+
+.readiness-error {
+  border-color: rgba(255, 111, 125, 0.3);
+  background: rgba(255, 111, 125, 0.08);
+  color: #ff8c98;
+}
+
+.readiness-error-note {
+  color: #ffb0b8;
 }
 
 .backend-contract-line {

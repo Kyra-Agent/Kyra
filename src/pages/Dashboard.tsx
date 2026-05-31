@@ -19,11 +19,19 @@ import { appConfig } from "../config/appConfig";
 import { coreModules } from "../data/modules";
 import { kyraDataService } from "../services/kyraDataService";
 import { kyraRepositoryRuntime } from "../services/repositoryFactory";
-import { getSupabaseAdapterStatus } from "../services/supabaseKyraRepository";
+import {
+  getSupabaseAdapterStatus,
+  type SupabaseConnectionStatus,
+} from "../services/supabaseKyraRepository";
+import type { DataProvider } from "../types/api";
 import type { DemoApprovalRequest } from "../types/backend";
 
 interface DashboardProps {
   selectedTemplate: AgentTemplate;
+  templates: AgentTemplate[];
+  templateCatalogSource: DataProvider;
+  templateCatalogStatus: SupabaseConnectionStatus;
+  templateCatalogError: string | null;
   onBackHome: () => void;
   onOpenAgent: () => void;
 }
@@ -44,8 +52,36 @@ function formatRuntimeValue(value: string) {
   return value.replace(/-/g, " ");
 }
 
-export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: DashboardProps) {
-  const agentTemplates = kyraDataService.listTemplates();
+function getReadinessTone(status: SupabaseConnectionStatus) {
+  if (status === "connected") {
+    return "ready";
+  }
+
+  return status === "error" ? "error" : "standby";
+}
+
+function getCatalogValue(status: SupabaseConnectionStatus, source: DataProvider, templateCount: number) {
+  if (status === "connected") {
+    return `${templateCount} from ${source}`;
+  }
+
+  if (status === "error") {
+    return "mock fallback";
+  }
+
+  return status === "checking" ? "checking" : "local";
+}
+
+export function Dashboard({
+  selectedTemplate,
+  templates,
+  templateCatalogSource,
+  templateCatalogStatus,
+  templateCatalogError,
+  onBackHome,
+  onOpenAgent,
+}: DashboardProps) {
+  const agentTemplates = templates;
   const agentRecord = kyraDataService.getAgentInstance(selectedTemplate.id);
   const visibleRequests = kyraDataService.listPriorityApprovalRequests(selectedTemplate.id, 3);
   const walletPolicies = kyraDataService.listWalletPolicies();
@@ -54,15 +90,15 @@ export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: Dashboa
   const supabaseStatus = getSupabaseAdapterStatus();
   const readinessRows = [
     {
-      label: "Active provider",
+      label: "Demo records",
       value: kyraRepositoryRuntime.activeProvider,
       tone: "ready",
       icon: Database,
     },
     {
-      label: "Requested provider",
-      value: kyraRepositoryRuntime.requestedProvider,
-      tone: kyraRepositoryRuntime.requestedProvider === "supabase" ? "standby" : "ready",
+      label: "Template catalog",
+      value: getCatalogValue(templateCatalogStatus, templateCatalogSource, agentTemplates.length),
+      tone: getReadinessTone(templateCatalogStatus),
       icon: Server,
     },
     {
@@ -255,11 +291,16 @@ export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: Dashboa
               <span>{formatRuntimeValue(appConfig.mode)}</span>
             </div>
             <div className="readiness-summary">
-              <span className="readiness-chip readiness-ready">
+              <span className={`readiness-chip readiness-${getReadinessTone(templateCatalogStatus)}`}>
                 <ShieldCheck size={14} />
-                demo safe
+                {templateCatalogStatus === "connected" ? "Supabase read connected" : "demo safe"}
               </span>
               <p>{kyraRepositoryRuntime.note}</p>
+              {templateCatalogError ? (
+                <p className="readiness-error-note">
+                  Supabase catalog query failed. Kyra is using local template fallback for this session.
+                </p>
+              ) : null}
             </div>
             <div className="readiness-grid">
               {readinessRows.map((item) => {
@@ -278,7 +319,7 @@ export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: Dashboa
             </div>
             <div className="backend-contract-line">
               <span>{supabaseStatus.tables.length} Supabase tables mapped</span>
-              <span>public profile view planned</span>
+              <span>{agentTemplates.length} templates loaded</span>
               <span>onchain execution disabled</span>
             </div>
           </section>

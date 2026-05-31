@@ -1,10 +1,15 @@
 import { CheckCircle2, Clock3, LockKeyhole, Sparkles } from "lucide-react";
+import type { DataProvider } from "../types/api";
 import type { AgentTemplate } from "../types/agent";
+import type { SupabaseConnectionStatus } from "../services/supabaseKyraRepository";
 
 interface TemplatePickerProps {
   templates: AgentTemplate[];
   selectedId: string;
   onSelect: (templateId: string) => void;
+  catalogSource: DataProvider;
+  catalogStatus: SupabaseConnectionStatus;
+  catalogError: string | null;
 }
 
 const statusLabel = {
@@ -19,7 +24,34 @@ const statusIcon = {
   "coming-soon": Clock3,
 };
 
-export function TemplatePicker({ templates, selectedId, onSelect }: TemplatePickerProps) {
+function getCatalogTone(status: SupabaseConnectionStatus) {
+  if (status === "connected") {
+    return "ready";
+  }
+
+  return status === "error" ? "error" : "standby";
+}
+
+function getCatalogLabel(source: DataProvider, status: SupabaseConnectionStatus) {
+  if (status === "connected") {
+    return `Catalog: ${source}`;
+  }
+
+  if (status === "error") {
+    return "Catalog: mock fallback";
+  }
+
+  return status === "checking" ? "Catalog: checking" : "Catalog: local";
+}
+
+export function TemplatePicker({
+  templates,
+  selectedId,
+  onSelect,
+  catalogSource,
+  catalogStatus,
+  catalogError,
+}: TemplatePickerProps) {
   return (
     <section className="section" id="templates">
       <div className="section-heading">
@@ -29,6 +61,12 @@ export function TemplatePicker({ templates, selectedId, onSelect }: TemplatePick
           Templates stay clear and use-case driven, while the Kyra module system handles
           the deeper agent behavior underneath.
         </p>
+        <div className="catalog-status-row">
+          <span className={`readiness-chip readiness-${getCatalogTone(catalogStatus)}`}>
+            {getCatalogLabel(catalogSource, catalogStatus)}
+          </span>
+          {catalogError ? <small>Supabase unavailable. Local template fallback is active.</small> : null}
+        </div>
       </div>
 
       <div className="template-grid">
