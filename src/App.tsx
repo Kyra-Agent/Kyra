@@ -186,8 +186,8 @@ function App() {
           Frontend demo
         </span>
         <p>
-          No real transactions, wallet keys, or Telegram bot tokens are used. Onchain
-          execution is simulated until the backend and security review are ready.
+          No real transactions, wallet keys, or Telegram bot tokens. Onchain execution is
+          simulated until the backend and security review are complete.
         </p>
       </div>
 
@@ -210,13 +210,12 @@ function App() {
               <div className="hero-copy">
                 <span className="demo-badge hero-badge">
                   <Terminal size={15} />
-                  KYRA demo is live locally
+                  Static demo environment
                 </span>
                 <h1>Deploy Base agents that actually do things onchain.</h1>
                 <p className="hero-subtitle">
-                  Kyra lets you launch Telegram-native AI agents that monitor wallets,
-                  prepare onchain actions, and route every transaction through wallet
-                  approval.
+                  Launch Telegram-native AI agents that read wallet context, prepare Base
+                  actions, and keep every transaction behind wallet approval.
                 </p>
 
                 <div className="hero-actions">

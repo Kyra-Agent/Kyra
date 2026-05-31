@@ -20,8 +20,8 @@ export function ActionConsole() {
         <p className="eyebrow">Onchain Actions</p>
         <h2>Chat intent becomes a wallet-approved action.</h2>
         <p>
-          MVP actions stay controlled. Advanced automation comes later after limits,
-          policies, and security checks are proven.
+          MVP actions stay controlled: read wallet context, prepare Base transactions,
+          and wait for explicit approval before anything can move onchain.
         </p>
       </div>
 

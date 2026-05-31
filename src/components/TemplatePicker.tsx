@@ -24,10 +24,10 @@ export function TemplatePicker({ templates, selectedId, onSelect }: TemplatePick
     <section className="section" id="templates">
       <div className="section-heading">
         <p className="eyebrow">Agent Templates</p>
-        <h2>Choose the agent users understand first.</h2>
+        <h2>Start from an agent users can understand.</h2>
         <p>
-          Templates stay clear and use-case driven. The coded Kyra modules run underneath
-          the experience.
+          Templates stay clear and use-case driven, while the Kyra module system handles
+          the deeper agent behavior underneath.
         </p>
       </div>
 

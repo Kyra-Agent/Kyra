@@ -4,7 +4,7 @@ export const faqs: FAQItem[] = [
   {
     question: "What is Kyra?",
     answer:
-      "Kyra is a Base-native onchain agent console. It lets users deploy Telegram-native agents that can monitor wallets, understand commands, and prepare real onchain actions for wallet approval.",
+      "Kyra is a Base-native onchain agent console. It lets users deploy Telegram-native agents that read wallet context, understand commands, and prepare onchain actions for wallet approval.",
   },
   {
     question: "Is this demo executing real transactions?",
@@ -29,7 +29,7 @@ export const faqs: FAQItem[] = [
   {
     question: "What is Base MCP?",
     answer:
-      "Base MCP is the action layer Kyra is designed around. It lets AI agents prepare Base ecosystem actions while keeping final approval in the user's wallet.",
+      "Base MCP is the action layer Kyra is designed around. Kyra uses that model to prepare Base ecosystem actions while keeping final approval in the user's wallet.",
   },
   {
     question: "Can project teams use Kyra?",

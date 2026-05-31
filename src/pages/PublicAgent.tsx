@@ -33,7 +33,7 @@ const capabilityRows = [
   },
   {
     title: "Base action layer",
-    summary: "Prepare wallet-approved actions through the Base MCP concept.",
+    summary: "Prepare Base actions through a Base MCP-style route.",
     icon: Radio,
   },
   {
@@ -92,7 +92,7 @@ export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: P
           <h1>{agentRecord.displayName}</h1>
           <p>
             A share-ready preview for a deployed Kyra agent. It shows the public identity,
-            available commands, safety policy, and backend-shaped records before the live
+            available commands, safety policy, and backend-shaped records before live
             Telegram and Base MCP integrations are connected.
           </p>
 

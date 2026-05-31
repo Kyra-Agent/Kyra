@@ -12,10 +12,10 @@ export function CoreModules() {
     <section className="section modules-section">
       <div className="section-heading">
         <p className="eyebrow">Kyra Core</p>
-        <h2>The coded roster runs behind the templates.</h2>
+        <h2>Internal modules power every template.</h2>
         <p>
-          Users choose clear templates. Kyra still gets a strong identity through its
-          internal module system.
+          Users choose simple agent templates. Kyra keeps its identity through a focused
+          roster of research, data, execution, and security modules.
         </p>
       </div>
 

@@ -139,11 +139,10 @@ export function DeployPanel({ templates, selectedTemplate, onSelectTemplate }: D
     <section className="section deploy-section" id="deploy">
       <div className="section-heading">
         <p className="eyebrow">Deploy Flow</p>
-        <h2>Deploy wizard, still demo safe.</h2>
+        <h2>Deploy flow, demo-safe by design.</h2>
         <p>
-          The frontend now shows the actual product flow: choose a template, configure
-          the agent, link Telegram, set wallet approval policy, and publish the demo
-          instance.
+          Choose a template, configure the agent, link Telegram, set the wallet approval
+          policy, and publish a simulated instance with dashboard and public preview.
         </p>
       </div>
 
@@ -176,7 +175,7 @@ export function DeployPanel({ templates, selectedTemplate, onSelectTemplate }: D
               <div className="wizard-screen">
                 <span className="wizard-kicker">Step 01</span>
                 <h3>Choose template</h3>
-                <p>Start from a clear use case. Kyra modules run underneath the selected template.</p>
+                <p>Start from a clear use case. Kyra modules run behind the selected template.</p>
 
                 <div className="field template-menu-field">
                   <span>Agent template</span>
@@ -228,7 +227,7 @@ export function DeployPanel({ templates, selectedTemplate, onSelectTemplate }: D
               <div className="wizard-screen">
                 <span className="wizard-kicker">Step 02</span>
                 <h3>Configure agent</h3>
-                <p>Set the visible identity and confirm the enabled demo actions.</p>
+                <p>Set the visible identity and confirm which demo actions are enabled.</p>
 
                 <label className="field">
                   <span>Agent name</span>
@@ -257,7 +256,7 @@ export function DeployPanel({ templates, selectedTemplate, onSelectTemplate }: D
               <div className="wizard-screen">
                 <span className="wizard-kicker">Step 03</span>
                 <h3>Connect Telegram</h3>
-                <p>This is simulated for now. No real BotFather token is required in this frontend demo.</p>
+                <p>No real BotFather token is required while the product is in frontend demo mode.</p>
 
                 <label className="field">
                   <span>Telegram bot token</span>
@@ -304,7 +303,7 @@ export function DeployPanel({ templates, selectedTemplate, onSelectTemplate }: D
               <div className="wizard-screen">
                 <span className="wizard-kicker">Step 05</span>
                 <h3>Publish demo agent</h3>
-                <p>Compile the profile and publish a demo instance with dashboard and public agent preview.</p>
+                <p>Compile the profile and publish a demo instance with a dashboard and public agent preview.</p>
 
                 <div className="wizard-review-grid">
                   <span>

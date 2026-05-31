@@ -15,7 +15,7 @@ export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
       <div className="dashboard-header">
         <div>
           <p className="eyebrow">Agent Output</p>
-          <h2>Telegram agent, Kyra console, approval workflow.</h2>
+          <h2>One agent output across Telegram, console, and approvals.</h2>
         </div>
         <span className="demo-badge">
           <CircleDot size={14} />
@@ -75,7 +75,7 @@ export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
             </span>
           </div>
           <p className="muted">
-            Kyra prepares the action. Your wallet approves and pays network fees.
+            Kyra prepares the action. The connected wallet approves and pays network fees.
           </p>
         </div>
 
