@@ -11,10 +11,17 @@ import {
 } from "lucide-react";
 import type { AgentTemplate } from "../types/agent";
 import { kyraDataService } from "../services/kyraDataService";
+import {
+  saveSupabaseDemoDeployment,
+  type DeployPersistenceResult,
+  type DeployPersistenceStatus,
+} from "../services/supabaseDeployService";
+import type { KyraAuthSession } from "../services/supabaseAuthService";
 
 interface DeployPanelProps {
   templates: AgentTemplate[];
   selectedTemplate: AgentTemplate;
+  authSession: KyraAuthSession | null;
   onSelectTemplate: (templateId: string) => void;
   onOpenAgent: () => void;
 }
@@ -27,6 +34,7 @@ const deployLogs = [
   "sync Base MCP endpoint",
   "enable wallet approval gate",
   "publish demo dashboard",
+  "persist backend records",
 ];
 
 const wizardSteps = [
@@ -60,6 +68,7 @@ const wizardSteps = [
 export function DeployPanel({
   templates,
   selectedTemplate,
+  authSession,
   onSelectTemplate,
   onOpenAgent,
 }: DeployPanelProps) {
@@ -70,6 +79,11 @@ export function DeployPanel({
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
   const [deployed, setDeployed] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [persistStatus, setPersistStatus] = useState<DeployPersistenceStatus>("skipped");
+  const [persistMessage, setPersistMessage] = useState(
+    "Sign in from the dashboard to persist deployments.",
+  );
+  const [persistedRecord, setPersistedRecord] = useState<DeployPersistenceResult | null>(null);
 
   const backendTables = useMemo(() => kyraDataService.listBackendTables(), []);
   const agentRecord = useMemo(
@@ -99,10 +113,12 @@ export function DeployPanel({
       "telegram.webhook=simulated",
       "base_mcp.endpoint=https://mcp.base.org/",
       "wallet.policy=approval_required",
+      `supabase.session=${authSession ? "active" : "missing"}`,
+      `db.write=${authSession ? "supabase_ready" : "mock_only"}`,
       "security.no_private_keys=true",
       "demo.transactions=disabled",
     ],
-    [agentName, agentRecord, backendTableNames, selectedActions, selectedTemplate],
+    [agentName, agentRecord, authSession, backendTableNames, selectedActions, selectedTemplate],
   );
 
   const activeLogCount = deploying
@@ -117,12 +133,24 @@ export function DeployPanel({
     setDeploying(true);
     setDeployed(false);
     setActiveLogStep(0);
+    setPersistStatus("skipped");
+    setPersistMessage(authSession ? "Preparing Supabase persistence." : "Demo will run locally until you sign in.");
+    setPersistedRecord(null);
 
     deployLogs.forEach((_, index) => {
       window.setTimeout(() => {
         setActiveLogStep(index + 1);
         if (index === deployLogs.length - 1) {
-          window.setTimeout(() => {
+          window.setTimeout(async () => {
+            const result = await saveSupabaseDemoDeployment({
+              session: authSession,
+              template: selectedTemplate,
+              agentName,
+              selectedActions,
+            });
+            setPersistStatus(result.status);
+            setPersistMessage(result.message);
+            setPersistedRecord(result);
             setDeploying(false);
             setDeployed(true);
           }, 700);
@@ -343,12 +371,18 @@ export function DeployPanel({
                   </span>
                   <span>
                     Records
-                    <strong>{backendTables.length} mock tables</strong>
+                    <strong>{authSession ? "Supabase write ready" : `${backendTables.length} mock tables`}</strong>
                   </span>
                   <span>
                     Public route
                     <strong>{agentRecord.publicPath}</strong>
                   </span>
+                </div>
+                <div className={`deploy-persist-note persist-${authSession ? "ready" : "standby"}`}>
+                  <ShieldCheck size={15} />
+                  {authSession
+                    ? "Session active. This demo deploy will persist to Supabase."
+                    : "No active session. This demo deploy will stay local until auth is connected."}
                 </div>
               </div>
             ) : null}
@@ -385,7 +419,11 @@ export function DeployPanel({
                   <CheckCircle2 size={16} />
                   Agent deployed
                 </span>
-                <strong>demo</strong>
+                <strong>{persistStatus === "saved" ? "supabase" : "demo"}</strong>
+              </div>
+              <div className={`deploy-persist-note persist-${persistStatus}`}>
+                <ShieldCheck size={15} />
+                {persistMessage}
               </div>
               <div className="receipt-grid">
                 <span>
@@ -406,7 +444,11 @@ export function DeployPanel({
                 </span>
                 <span>
                   Record
-                  <strong>{agentRecord.id}</strong>
+                  <strong>{persistedRecord?.agentId ?? agentRecord.id}</strong>
+                </span>
+                <span>
+                  Workspace
+                  <strong>{persistedRecord?.workspaceId ?? "local demo"}</strong>
                 </span>
               </div>
               <div className="receipt-actions">

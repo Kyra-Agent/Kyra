@@ -1254,6 +1254,43 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.deploy-persist-note {
+  display: flex;
+  align-items: center;
+  gap: 0.52rem;
+  margin-top: 0.75rem;
+  padding: 0.68rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.deploy-persist-note svg {
+  flex: 0 0 auto;
+}
+
+.persist-ready,
+.persist-saved {
+  border-color: rgba(138, 230, 177, 0.28);
+  background: rgba(138, 230, 177, 0.08);
+  color: var(--green);
+}
+
+.persist-standby,
+.persist-skipped {
+  border-color: rgba(248, 198, 111, 0.28);
+  background: rgba(248, 198, 111, 0.08);
+  color: var(--amber);
+}
+
+.persist-error {
+  border-color: rgba(255, 111, 125, 0.3);
+  background: rgba(255, 111, 125, 0.08);
+  color: #ff8c98;
+}
+
 .wizard-controls {
   position: relative;
   z-index: 1;

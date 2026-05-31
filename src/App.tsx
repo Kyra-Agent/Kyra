@@ -297,11 +297,11 @@ function App() {
       <div className="demo-disclaimer" role="note" aria-label="Kyra demo disclaimer">
         <span>
           <ShieldCheck size={15} />
-          Frontend demo
+          {appConfig.dataProvider === "supabase" ? "Backend-connected demo" : "Frontend demo"}
         </span>
         <p>
-          No real transactions, wallet keys, or Telegram bot tokens. Onchain execution is
-          simulated until the backend and security review are complete.
+          No real transactions, wallet keys, or Telegram bot tokens. Deploy records can persist
+          to Supabase after sign-in, while onchain execution stays simulated.
         </p>
       </div>
 
@@ -386,6 +386,7 @@ function App() {
             <DeployPanel
               templates={agentTemplates}
               selectedTemplate={selectedTemplate}
+              authSession={authSession}
               onSelectTemplate={setSelectedId}
               onOpenAgent={() => navigate("agent")}
             />
