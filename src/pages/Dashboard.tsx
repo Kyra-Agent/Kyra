@@ -18,6 +18,7 @@ import { coreModules } from "../data/modules";
 interface DashboardProps {
   selectedTemplate: AgentTemplate;
   onBackHome: () => void;
+  onOpenAgent: () => void;
 }
 
 const queue = [
@@ -47,7 +48,7 @@ const wallets = [
   { label: "Policy", value: "Approval required", status: "active" },
 ];
 
-export function Dashboard({ selectedTemplate, onBackHome }: DashboardProps) {
+export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: DashboardProps) {
   return (
     <main className="dashboard-page">
       <aside className="dashboard-sidebar">
@@ -94,10 +95,10 @@ export function Dashboard({ selectedTemplate, onBackHome }: DashboardProps) {
             <h1>Kyra {selectedTemplate.name}</h1>
             <p>{selectedTemplate.role}</p>
           </div>
-          <a className="button button-primary" href="#approvals">
-            Review Queue
+          <button className="button button-primary" type="button" onClick={onOpenAgent}>
+            Open Public Agent
             <ExternalLink size={16} />
-          </a>
+          </button>
         </div>
 
         <section className="dashboard-kpi-grid" id="overview">

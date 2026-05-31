@@ -7,6 +7,7 @@ interface HeaderProps {
   onToggleTheme: () => void;
   onOpenDashboard: () => void;
   onOpenHome: () => void;
+  onOpenAgent: () => void;
   onOpenSection: (sectionId: string) => void;
 }
 
@@ -15,6 +16,7 @@ export function Header({
   onToggleTheme,
   onOpenDashboard,
   onOpenHome,
+  onOpenAgent,
   onOpenSection,
 }: HeaderProps) {
   return (
@@ -38,6 +40,9 @@ export function Header({
         </button>
         <button type="button" onClick={onOpenDashboard}>
           Dashboard
+        </button>
+        <button type="button" onClick={onOpenAgent}>
+          Agent
         </button>
       </nav>
 

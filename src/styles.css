@@ -1908,6 +1908,207 @@ h2 {
   background: rgba(94, 162, 255, 0.09);
 }
 
+.public-agent-page {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 2.2rem 0 4rem;
+}
+
+.agent-profile-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: 1rem;
+  align-items: stretch;
+  margin-bottom: 1rem;
+}
+
+.agent-profile-copy,
+.agent-identity-card,
+.public-panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.agent-profile-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 380px;
+  padding: 1.25rem;
+}
+
+.profile-back {
+  margin-bottom: 1rem;
+}
+
+.agent-profile-copy h1 {
+  margin: 1rem 0 0.75rem;
+  font-size: 4rem;
+  line-height: 0.98;
+}
+
+.agent-profile-copy p,
+.public-panel p {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.profile-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 1.25rem;
+}
+
+.agent-identity-card {
+  display: grid;
+  align-content: space-between;
+  gap: 1rem;
+  min-height: 380px;
+  padding: 1rem;
+  background:
+    linear-gradient(180deg, rgba(94, 162, 255, 0.09), transparent 48%),
+    var(--panel);
+}
+
+.agent-identity-card .agent-card-header {
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.agent-identity-card .agent-card-header div {
+  min-width: 0;
+}
+
+.agent-identity-card .agent-card-header strong,
+.agent-identity-card .agent-card-header small {
+  display: block;
+}
+
+.agent-identity-card .agent-card-header strong {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.agent-identity-card .agent-card-header small {
+  margin-top: 0.25rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.profile-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.profile-status-grid span {
+  display: grid;
+  gap: 0.25rem;
+  min-height: 88px;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.profile-status-grid strong {
+  color: var(--text);
+  font-size: 0.94rem;
+}
+
+.public-agent-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.public-panel {
+  min-width: 0;
+  padding: 1rem;
+}
+
+.public-summary,
+.security-profile-panel {
+  grid-column: span 2;
+}
+
+.capability-list,
+.command-demo-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.capability-list div,
+.command-demo-list div,
+.profile-safety-grid span {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.capability-list div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.68rem;
+  padding: 0.78rem;
+}
+
+.capability-list svg,
+.command-demo-list svg,
+.profile-safety-grid svg {
+  color: var(--blue);
+}
+
+.capability-list strong {
+  display: block;
+  color: var(--text);
+}
+
+.capability-list small,
+.command-demo-list small {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.command-demo-list div {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.72rem;
+}
+
+.command-demo-list code {
+  color: var(--text);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  overflow-wrap: anywhere;
+}
+
+.profile-safety-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 0.9rem;
+}
+
+.profile-safety-grid span {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 52px;
+  padding: 0.72rem;
+  color: var(--text);
+  font-weight: 800;
+}
+
 @keyframes gridDrift {
   from {
     background-position: 0 0;
@@ -2286,6 +2487,36 @@ h2 {
     grid-template-columns: 1fr;
     width: calc(100% - 24px);
     padding-top: 1.25rem;
+  }
+
+  .public-agent-page {
+    width: calc(100% - 24px);
+    padding-top: 1.25rem;
+  }
+
+  .agent-profile-hero,
+  .public-agent-grid,
+  .profile-status-grid,
+  .profile-safety-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-profile-copy,
+  .agent-identity-card {
+    min-height: auto;
+  }
+
+  .agent-profile-copy h1 {
+    font-size: 2.65rem;
+  }
+
+  .profile-cta-row .button {
+    width: 100%;
+  }
+
+  .public-summary,
+  .security-profile-panel {
+    grid-column: auto;
   }
 
   .dashboard-sidebar {

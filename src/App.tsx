@@ -15,6 +15,7 @@ import { WalletApprovalModal } from "./components/WalletApprovalModal";
 import { demoScenarios } from "./data/demoScenarios";
 import { agentTemplates } from "./data/templates";
 import { Dashboard } from "./pages/Dashboard";
+import { PublicAgent } from "./pages/PublicAgent";
 
 function App() {
   const [theme, setTheme] = useState<"dark" | "light">(() => {
@@ -29,12 +30,20 @@ function App() {
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [approvalApproved, setApprovalApproved] = useState(false);
   const [approvalClosing, setApprovalClosing] = useState(false);
-  const [route, setRoute] = useState<"home" | "dashboard">(() => {
+  const [route, setRoute] = useState<"home" | "dashboard" | "agent">(() => {
     if (typeof window === "undefined") {
       return "home";
     }
 
-    return window.location.pathname === "/dashboard" ? "dashboard" : "home";
+    if (window.location.pathname === "/dashboard") {
+      return "dashboard";
+    }
+
+    if (window.location.pathname.startsWith("/agents/")) {
+      return "agent";
+    }
+
+    return "home";
   });
 
   const selectedTemplate = useMemo(
@@ -57,9 +66,33 @@ function App() {
     setTheme((value) => (value === "dark" ? "light" : "dark"));
   }
 
-  function navigate(nextRoute: "home" | "dashboard") {
+  useEffect(() => {
+    function syncRouteFromLocation() {
+      if (window.location.pathname === "/dashboard") {
+        setRoute("dashboard");
+        return;
+      }
+
+      if (window.location.pathname.startsWith("/agents/")) {
+        setRoute("agent");
+        return;
+      }
+
+      setRoute("home");
+    }
+
+    window.addEventListener("popstate", syncRouteFromLocation);
+    return () => window.removeEventListener("popstate", syncRouteFromLocation);
+  }, []);
+
+  function navigate(nextRoute: "home" | "dashboard" | "agent") {
     setRoute(nextRoute);
-    const path = nextRoute === "dashboard" ? "/dashboard" : "/";
+    const path =
+      nextRoute === "dashboard"
+        ? "/dashboard"
+        : nextRoute === "agent"
+          ? "/agents/operator-demo"
+          : "/";
     window.history.pushState({}, "", path);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -120,11 +153,22 @@ function App() {
         onToggleTheme={toggleTheme}
         onOpenDashboard={() => navigate("dashboard")}
         onOpenHome={() => navigate("home")}
+        onOpenAgent={() => navigate("agent")}
         onOpenSection={openHomeSection}
       />
 
       {route === "dashboard" ? (
-        <Dashboard selectedTemplate={selectedTemplate} onBackHome={() => navigate("home")} />
+        <Dashboard
+          selectedTemplate={selectedTemplate}
+          onBackHome={() => navigate("home")}
+          onOpenAgent={() => navigate("agent")}
+        />
+      ) : route === "agent" ? (
+        <PublicAgent
+          selectedTemplate={selectedTemplate}
+          onBackDashboard={() => navigate("dashboard")}
+          onBackHome={() => navigate("home")}
+        />
       ) : (
         <>
           <main>
