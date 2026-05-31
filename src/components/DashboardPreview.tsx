@@ -1,14 +1,14 @@
 import { Activity, ArrowRight, CircleDot, Clock, ExternalLink } from "lucide-react";
 import type { AgentTemplate } from "../types/agent";
-import { getDemoAgentInstance } from "../data/demoBackend";
-import { dashboardLogs } from "../data/demoLogs";
+import { kyraDataService } from "../services/kyraDataService";
 
 interface DashboardPreviewProps {
   selectedTemplate: AgentTemplate;
 }
 
 export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
-  const agentRecord = getDemoAgentInstance(selectedTemplate.id);
+  const agentRecord = kyraDataService.getAgentInstance(selectedTemplate.id);
+  const dashboardLogs = kyraDataService.listActivityLines();
 
   return (
     <section className="section dashboard-section">

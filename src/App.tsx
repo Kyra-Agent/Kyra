@@ -12,10 +12,12 @@ import { HeroConsole } from "./components/HeroConsole";
 import { SecuritySection } from "./components/SecuritySection";
 import { TemplatePicker } from "./components/TemplatePicker";
 import { WalletApprovalModal } from "./components/WalletApprovalModal";
-import { demoScenarios } from "./data/demoScenarios";
-import { agentTemplates } from "./data/templates";
 import { Dashboard } from "./pages/Dashboard";
 import { PublicAgent } from "./pages/PublicAgent";
+import { kyraDataService } from "./services/kyraDataService";
+
+const agentTemplates = kyraDataService.listTemplates();
+const demoScenarios = kyraDataService.listScenarios();
 
 function getTemplateIdFromAgentPath(pathname: string) {
   const match = pathname.match(/^\/agents\/([a-z-]+)-demo$/);

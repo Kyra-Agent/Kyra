@@ -11,17 +11,8 @@ import {
   WalletCards,
 } from "lucide-react";
 import type { AgentTemplate } from "../types/agent";
-import { agentTemplates } from "../data/templates";
 import { coreModules } from "../data/modules";
-import {
-  demoActivityLogs,
-  demoApprovalRequests,
-  demoBackendTables,
-  demoWalletPolicies,
-  demoWorkspace,
-  formatActivityLog,
-  getDemoAgentInstance,
-} from "../data/demoBackend";
+import { kyraDataService } from "../services/kyraDataService";
 import type { DemoApprovalRequest } from "../types/backend";
 
 interface DashboardProps {
@@ -43,15 +34,13 @@ function formatQueueStatus(status: DemoApprovalRequest["status"]) {
 }
 
 export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: DashboardProps) {
-  const agentRecord = getDemoAgentInstance(selectedTemplate.id);
-  const matchingRequests = demoApprovalRequests.filter(
-    (request) => request.templateId === selectedTemplate.id,
-  );
-  const visibleRequests = [
-    ...matchingRequests,
-    ...demoApprovalRequests.filter((request) => request.templateId !== selectedTemplate.id),
-  ].slice(0, 3);
-  const activityLines = demoActivityLogs.map(formatActivityLog).concat([
+  const agentTemplates = kyraDataService.listTemplates();
+  const agentRecord = kyraDataService.getAgentInstance(selectedTemplate.id);
+  const visibleRequests = kyraDataService.listPriorityApprovalRequests(selectedTemplate.id, 3);
+  const walletPolicies = kyraDataService.listWalletPolicies();
+  const backendTables = kyraDataService.listBackendTables();
+  const workspace = kyraDataService.getWorkspace();
+  const activityLines = kyraDataService.listActivityLines([
     "[12:05:07] dashboard route opened",
     "[12:05:08] approval policy visible",
     "[12:05:09] demo mode remains active",
@@ -64,7 +53,7 @@ export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: Dashboa
           <span className="agent-orb">K</span>
           <div>
             <strong>Kyra Console</strong>
-            <small>{demoWorkspace.name}</small>
+            <small>{workspace.name}</small>
           </div>
         </div>
 
@@ -180,7 +169,7 @@ export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: Dashboa
               <span>safe mode</span>
             </div>
             <div className="wallet-policy-list">
-              {demoWalletPolicies.map((policy) => (
+              {walletPolicies.map((policy) => (
                 <article key={policy.id}>
                   <span>{policy.label}</span>
                   <strong>{policy.value}</strong>
@@ -196,7 +185,7 @@ export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: Dashboa
               <span>frontend mock</span>
             </div>
             <div className="backend-table-list">
-              {demoBackendTables.map((table) => (
+              {backendTables.map((table) => (
                 <article key={table.name}>
                   <span>{table.name}</span>
                   <strong>{table.records} records</strong>

@@ -17,12 +17,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import type { AgentTemplate } from "../types/agent";
-import {
-  demoApprovalRequests,
-  demoBackendTables,
-  demoWalletPolicies,
-  getDemoAgentInstance,
-} from "../data/demoBackend";
+import { kyraDataService } from "../services/kyraDataService";
 
 interface PublicAgentProps {
   selectedTemplate: AgentTemplate;
@@ -50,14 +45,10 @@ const capabilityRows = [
 
 export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: PublicAgentProps) {
   const [copied, setCopied] = useState(false);
-  const agentRecord = getDemoAgentInstance(selectedTemplate.id);
-  const approvalPolicy = demoWalletPolicies.find(
-    (policy) => policy.id === agentRecord.approvalPolicyId,
-  );
-  const commandRows = [
-    ...demoApprovalRequests.filter((request) => request.templateId === selectedTemplate.id),
-    ...demoApprovalRequests.filter((request) => request.templateId !== selectedTemplate.id),
-  ].slice(0, 4);
+  const agentRecord = kyraDataService.getAgentInstance(selectedTemplate.id);
+  const approvalPolicy = kyraDataService.getApprovalPolicyForAgent(agentRecord);
+  const commandRows = kyraDataService.listPriorityApprovalRequests(selectedTemplate.id, 4);
+  const backendTables = kyraDataService.listBackendTables();
 
   function copyProfileLink() {
     const origin = typeof window === "undefined" ? "https://kyra-agent.demo" : window.location.origin;
@@ -160,7 +151,7 @@ export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: P
       <section className="public-proof-strip" aria-label="Kyra public agent facts">
         <span>
           <Database size={16} />
-          {demoBackendTables.length} mock tables
+          {backendTables.length} mock tables
         </span>
         <span>
           <LockKeyhole size={16} />

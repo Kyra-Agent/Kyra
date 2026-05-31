@@ -185,7 +185,3 @@ export const demoBackendTables: DemoBackendTable[] = [
     purpose: "Replayable server-style logs for the dashboard stream.",
   },
 ];
-
-export function formatActivityLog(log: DemoActivityLog) {
-  return `[${log.timestamp}] ${log.source}: ${log.message}`;
-}

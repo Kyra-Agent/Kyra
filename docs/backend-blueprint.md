@@ -2,6 +2,16 @@
 
 This is the backend plan for the next phase. The current product is still frontend-only, but the UI now uses backend-shaped mock records so the transition to Supabase can be direct.
 
+The frontend is prepared with a thin service layer:
+
+- `src/config/appConfig.ts` defines the current runtime mode and integration state.
+- `src/types/api.ts` and `src/lib/apiResponse.ts` define and unwrap API-style responses.
+- `src/services/kyraRepository.ts` defines the repository contract.
+- `src/services/mockKyraRepository.ts` implements that contract with local mock records.
+- `src/services/kyraDataService.ts` is what UI components read from today.
+
+A future Supabase adapter should implement the same repository contract, then replace the mock repository behind `kyraDataService`.
+
 ## Goal
 
 Build a demo backend that can persist agent deployments, dashboard logs, wallet policies, and approval records without enabling live onchain execution yet.

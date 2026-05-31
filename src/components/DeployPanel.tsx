@@ -10,7 +10,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import type { AgentTemplate } from "../types/agent";
-import { demoBackendTables, getDemoAgentInstance } from "../data/demoBackend";
+import { kyraDataService } from "../services/kyraDataService";
 
 interface DeployPanelProps {
   templates: AgentTemplate[];
@@ -64,8 +64,9 @@ export function DeployPanel({ templates, selectedTemplate, onSelectTemplate }: D
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
   const [deployed, setDeployed] = useState(false);
 
+  const backendTables = useMemo(() => kyraDataService.listBackendTables(), []);
   const agentRecord = useMemo(
-    () => getDemoAgentInstance(selectedTemplate.id),
+    () => kyraDataService.getAgentInstance(selectedTemplate.id),
     [selectedTemplate.id],
   );
 
@@ -74,8 +75,8 @@ export function DeployPanel({ templates, selectedTemplate, onSelectTemplate }: D
     [selectedTemplate.actions],
   );
   const backendTableNames = useMemo(
-    () => demoBackendTables.map((table) => table.name).join(","),
-    [],
+    () => backendTables.map((table) => table.name).join(","),
+    [backendTables],
   );
 
   const terminalLines = useMemo(
@@ -324,7 +325,7 @@ export function DeployPanel({ templates, selectedTemplate, onSelectTemplate }: D
                   </span>
                   <span>
                     Records
-                    <strong>{demoBackendTables.length} mock tables</strong>
+                    <strong>{backendTables.length} mock tables</strong>
                   </span>
                   <span>
                     Public route
