@@ -1,12 +1,26 @@
+function readEnv(key: string) {
+  return import.meta.env[key] || "";
+}
+
+const requestedDataProvider = readEnv("VITE_KYRA_DATA_PROVIDER") === "supabase" ? "supabase" : "mock";
+const supabaseUrl = readEnv("VITE_SUPABASE_URL");
+const supabaseAnonKey = readEnv("VITE_SUPABASE_ANON_KEY");
+const supabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+
 export const appConfig = {
   appName: "Kyra Agent",
-  mode: "frontend-demo",
-  dataProvider: "mock",
+  mode: requestedDataProvider === "supabase" ? "backend-demo" : "frontend-demo",
+  dataProvider: requestedDataProvider,
   network: "Base",
   publishTarget: "netlify",
+  supabase: {
+    url: supabaseUrl,
+    hasAnonKey: Boolean(supabaseAnonKey),
+    configured: supabaseConfigured,
+  },
   integrations: {
-    auth: "demo",
-    database: "mock",
+    auth: requestedDataProvider === "supabase" && supabaseConfigured ? "supabase" : "demo",
+    database: requestedDataProvider === "supabase" && supabaseConfigured ? "supabase" : "mock",
     telegram: "simulated",
     baseMcp: "simulated",
     walletExecution: "disabled",

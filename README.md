@@ -29,6 +29,8 @@ The app is still frontend-only, but the mock data is shaped like the backend rec
 - `src/config`, `src/lib`, and `src/services` provide the demo service layer that currently reads mock data and can later swap to Supabase.
 - The dashboard reads through the service layer instead of one-off local arrays, so it can be swapped for Supabase data in the next phase.
 - `docs/backend-blueprint.md` outlines the Supabase/Auth/logs/approval plan for the demo backend phase.
+- `supabase/schema.sql` and `supabase/seed.sql` provide the first Supabase-ready backend skeleton.
+- `docs/backend-demo-skeleton.md` explains how the demo backend should be enabled safely.
 
 ## Local Development
 

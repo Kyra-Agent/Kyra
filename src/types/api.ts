@@ -1,6 +1,4 @@
-import type { appConfig } from "../config/appConfig";
-
-export type DataProvider = typeof appConfig.dataProvider | "supabase";
+export type DataProvider = "mock" | "supabase";
 
 export interface ApiError {
   code: string;

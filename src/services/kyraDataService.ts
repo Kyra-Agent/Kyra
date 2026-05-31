@@ -1,8 +1,8 @@
-import { mockKyraRepository } from "./mockKyraRepository";
 import type { DemoAgentInstance, DemoApprovalRequest, DemoActivityLog } from "../types/backend";
 import { unwrapApiResponse } from "../lib/apiResponse";
+import { getKyraRepository } from "./repositoryFactory";
 
-const repository = mockKyraRepository;
+const repository = getKyraRepository();
 
 function formatActivityLog(log: DemoActivityLog) {
   return `[${log.timestamp}] ${log.source}: ${log.message}`;

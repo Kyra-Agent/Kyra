@@ -1,4 +1,3 @@
-import { appConfig } from "../config/appConfig";
 import {
   demoActivityLogs,
   demoAgentInstances,
@@ -14,7 +13,7 @@ import { createApiError, createApiSuccess } from "../lib/apiResponse";
 import type { KyraRepository } from "./kyraRepository";
 
 export const mockKyraRepository: KyraRepository = {
-  source: appConfig.dataProvider,
+  source: "mock",
 
   getWorkspace() {
     return createApiSuccess(demoWorkspace, this.source);

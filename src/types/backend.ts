@@ -1,4 +1,4 @@
-export type DemoBackendMode = "frontend-demo";
+export type DemoBackendMode = "frontend-demo" | "backend-demo";
 export type DemoRecordStatus = "mocked" | "active" | "queued" | "read-only" | "review";
 
 export interface DemoWorkspaceRecord {
@@ -6,7 +6,7 @@ export interface DemoWorkspaceRecord {
   name: string;
   owner: string;
   mode: DemoBackendMode;
-  authProvider: "demo";
+  authProvider: "demo" | "supabase";
 }
 
 export interface DemoAgentInstance {

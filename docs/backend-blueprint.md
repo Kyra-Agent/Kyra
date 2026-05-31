@@ -2,6 +2,12 @@
 
 This is the backend plan for the next phase. The current product is still frontend-only, but the UI now uses backend-shaped mock records so the transition to Supabase can be direct.
 
+Concrete starter files now live in:
+
+- `supabase/schema.sql` for the initial tables, indexes, RLS policies, and public profile view.
+- `supabase/seed.sql` for the Kyra template seed records.
+- `docs/backend-demo-skeleton.md` for the implementation checklist and safe demo defaults.
+
 The frontend is prepared with a thin service layer:
 
 - `src/config/appConfig.ts` defines the current runtime mode and integration state.
