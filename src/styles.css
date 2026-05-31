@@ -911,7 +911,7 @@ h2 {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.045);
+  background: #101720;
   color: var(--text);
   cursor: pointer;
   text-align: left;
@@ -951,7 +951,7 @@ h2 {
   top: calc(100% + 0.4rem);
   left: 0;
   right: 0;
-  z-index: 12;
+  z-index: 60;
   display: grid;
   gap: 0.35rem;
   max-height: 330px;
@@ -959,7 +959,7 @@ h2 {
   padding: 0.45rem;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
-  background: rgba(7, 12, 18, 0.98);
+  background: #070c12;
   box-shadow: var(--shadow);
   backdrop-filter: blur(18px);
 }
@@ -979,7 +979,7 @@ h2 {
 .template-menu button:hover,
 .template-menu button.is-selected {
   border-color: var(--line-strong);
-  background: rgba(94, 162, 255, 0.1);
+  background: #102035;
 }
 
 .mini-label-inline {
@@ -1081,6 +1081,8 @@ h2 {
 }
 
 .wizard-body {
+  position: relative;
+  z-index: 2;
   flex: 1 1 auto;
   min-height: 370px;
   padding: 1rem;
@@ -1142,10 +1144,21 @@ h2 {
 }
 
 .wizard-controls {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 0.42fr 0.58fr;
   gap: 0.6rem;
   margin-top: 1rem;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.wizard-panel.is-menu-open .wizard-controls {
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-4px);
 }
 
 .wizard-controls .button {

@@ -110,6 +110,8 @@ export function DeployPanel({ templates, selectedTemplate, onSelectTemplate }: D
   }
 
   function goNext() {
+    setTemplateMenuOpen(false);
+
     if (atDeployStep) {
       runDeploySimulation();
       return;
@@ -131,7 +133,7 @@ export function DeployPanel({ templates, selectedTemplate, onSelectTemplate }: D
       </div>
 
       <div className="deploy-layout">
-        <div className="config-panel wizard-panel">
+        <div className={`config-panel wizard-panel ${templateMenuOpen ? "is-menu-open" : ""}`}>
           <div className="panel-title">
             <span>deploy.wizard</span>
             <span className="demo-badge compact">Simulated</span>
@@ -143,7 +145,10 @@ export function DeployPanel({ templates, selectedTemplate, onSelectTemplate }: D
                 className={index === wizardStep ? "is-active" : index < wizardStep ? "is-complete" : ""}
                 key={step.id}
                 type="button"
-                onClick={() => setWizardStep(index)}
+                onClick={() => {
+                  setTemplateMenuOpen(false);
+                  setWizardStep(index);
+                }}
               >
                 <span>{index + 1}</span>
                 <strong>{step.title}</strong>
@@ -313,7 +318,10 @@ export function DeployPanel({ templates, selectedTemplate, onSelectTemplate }: D
               className="button button-ghost"
               type="button"
               disabled={atFirstStep || deploying}
-              onClick={() => setWizardStep((step) => Math.max(step - 1, 0))}
+              onClick={() => {
+                setTemplateMenuOpen(false);
+                setWizardStep((step) => Math.max(step - 1, 0));
+              }}
             >
               Back
             </button>
