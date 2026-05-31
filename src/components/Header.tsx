@@ -70,14 +70,22 @@ export function Header({
         >
           X
         </a>
-        <button className="button button-primary button-small" type="button" onClick={onOpenHome}>
+        <button
+          className="button button-primary button-small"
+          type="button"
+          onClick={() => onOpenSection("deploy")}
+        >
           <Rocket size={16} />
           Launch Demo
         </button>
-        <a className="button button-ghost button-small hide-on-mobile" href="#security">
+        <button
+          className="button button-ghost button-small hide-on-mobile"
+          type="button"
+          onClick={() => onOpenSection("security")}
+        >
           <ShieldCheck size={16} />
           Safety
-        </a>
+        </button>
       </div>
     </header>
   );

@@ -16,6 +16,7 @@ interface DeployPanelProps {
   templates: AgentTemplate[];
   selectedTemplate: AgentTemplate;
   onSelectTemplate: (templateId: string) => void;
+  onOpenAgent: () => void;
 }
 
 const deployLogs = [
@@ -56,13 +57,19 @@ const wizardSteps = [
   },
 ];
 
-export function DeployPanel({ templates, selectedTemplate, onSelectTemplate }: DeployPanelProps) {
+export function DeployPanel({
+  templates,
+  selectedTemplate,
+  onSelectTemplate,
+  onOpenAgent,
+}: DeployPanelProps) {
   const [agentName, setAgentName] = useState("Kyra Operator");
   const [deploying, setDeploying] = useState(false);
   const [activeLogStep, setActiveLogStep] = useState(0);
   const [wizardStep, setWizardStep] = useState(0);
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
   const [deployed, setDeployed] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const backendTables = useMemo(() => kyraDataService.listBackendTables(), []);
   const agentRecord = useMemo(
@@ -133,6 +140,18 @@ export function DeployPanel({ templates, selectedTemplate, onSelectTemplate }: D
     }
 
     setWizardStep((step) => Math.min(step + 1, wizardSteps.length - 1));
+  }
+
+  function copyDemoLink() {
+    const origin = typeof window === "undefined" ? "https://kyra-agent.demo" : window.location.origin;
+    const demoLink = `${origin}${agentRecord.publicPath}`;
+
+    if (navigator.clipboard) {
+      void navigator.clipboard.writeText(demoLink);
+    }
+
+    setCopiedLink(true);
+    window.setTimeout(() => setCopiedLink(false), 1500);
   }
 
   return (
@@ -391,13 +410,13 @@ export function DeployPanel({ templates, selectedTemplate, onSelectTemplate }: D
                 </span>
               </div>
               <div className="receipt-actions">
-                <button type="button">
+                <button type="button" onClick={copyDemoLink}>
                   <Copy size={14} />
-                  Copy demo link
+                  {copiedLink ? "Copied" : "Copy demo link"}
                 </button>
-                <button type="button">
+                <button type="button" onClick={onOpenAgent}>
                   <ExternalLink size={14} />
-                  Open console
+                  Open public agent
                 </button>
               </div>
             </div>

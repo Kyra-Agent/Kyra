@@ -123,6 +123,33 @@ button {
   background: rgba(255, 255, 255, 0.82);
 }
 
+:root[data-theme="light"] .button-ghost,
+:root[data-theme="light"] .theme-toggle,
+:root[data-theme="light"] .icon-link,
+:root[data-theme="light"] .trust-row span,
+:root[data-theme="light"] .chip,
+:root[data-theme="light"] .guarantee-strip span {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+:root[data-theme="light"] .site-header .demo-badge,
+:root[data-theme="light"] .demo-disclaimer .demo-badge,
+:root[data-theme="light"] .hero-badge,
+:root[data-theme="light"] .dashboard-topbar .demo-badge,
+:root[data-theme="light"] .agent-profile-copy .demo-badge {
+  border-color: rgba(47, 125, 246, 0.22);
+  background: rgba(47, 125, 246, 0.1);
+  color: #1c4f86;
+}
+
+:root[data-theme="light"] .chip-active,
+:root[data-theme="light"] .status-mvp,
+:root[data-theme="light"] .module-online {
+  border-color: rgba(27, 139, 79, 0.28);
+  background: rgba(27, 139, 79, 0.1);
+  color: #12643a;
+}
+
 :root[data-theme="light"] .grid-layer {
   opacity: 0.28;
 }
@@ -2199,6 +2226,20 @@ h2 {
   flex-wrap: wrap;
   gap: 0.7rem;
   margin-top: 1.25rem;
+}
+
+.demo-action-note {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  margin-top: 0.85rem;
+  padding: 0.56rem 0.68rem;
+  border: 1px solid rgba(138, 230, 177, 0.28);
+  border-radius: var(--radius);
+  background: rgba(138, 230, 177, 0.08);
+  color: var(--green);
+  font-size: 0.82rem;
+  font-weight: 800;
 }
 
 .agent-identity-card {

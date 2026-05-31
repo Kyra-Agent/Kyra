@@ -45,6 +45,7 @@ const capabilityRows = [
 
 export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: PublicAgentProps) {
   const [copied, setCopied] = useState(false);
+  const [telegramPrimed, setTelegramPrimed] = useState(false);
   const agentRecord = kyraDataService.getAgentInstance(selectedTemplate.id);
   const approvalPolicy = kyraDataService.getApprovalPolicyForAgent(agentRecord);
   const commandRows = kyraDataService.listPriorityApprovalRequests(selectedTemplate.id, 4);
@@ -97,7 +98,11 @@ export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: P
           </p>
 
           <div className="profile-cta-row">
-            <button className="button button-primary" type="button">
+            <button
+              className="button button-primary"
+              type="button"
+              onClick={() => setTelegramPrimed(true)}
+            >
               Open Telegram Demo
               <ExternalLink size={16} />
             </button>
@@ -109,6 +114,11 @@ export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: P
               {copied ? "Copied" : "Copy Profile"}
             </button>
           </div>
+          {telegramPrimed ? (
+            <span className="demo-action-note">
+              Telegram launch is simulated. No live bot token is connected in this demo.
+            </span>
+          ) : null}
         </div>
 
         <div className="agent-identity-card">

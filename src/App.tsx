@@ -262,6 +262,7 @@ function App() {
               templates={agentTemplates}
               selectedTemplate={selectedTemplate}
               onSelectTemplate={setSelectedId}
+              onOpenAgent={() => navigate("agent")}
             />
             <DashboardPreview selectedTemplate={selectedTemplate} />
             <ActionConsole />
