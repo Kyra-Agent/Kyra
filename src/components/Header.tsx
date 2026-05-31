@@ -7,9 +7,16 @@ interface HeaderProps {
   onToggleTheme: () => void;
   onOpenDashboard: () => void;
   onOpenHome: () => void;
+  onOpenSection: (sectionId: string) => void;
 }
 
-export function Header({ theme, onToggleTheme, onOpenDashboard, onOpenHome }: HeaderProps) {
+export function Header({
+  theme,
+  onToggleTheme,
+  onOpenDashboard,
+  onOpenHome,
+  onOpenSection,
+}: HeaderProps) {
   return (
     <header className="site-header">
       <button className="logo-link logo-button" type="button" onClick={onOpenHome} aria-label="Kyra Agent home">
@@ -17,10 +24,18 @@ export function Header({ theme, onToggleTheme, onOpenDashboard, onOpenHome }: He
       </button>
 
       <nav className="site-nav" aria-label="Primary navigation">
-        <a href="#templates">Templates</a>
-        <a href="#actions">Actions</a>
-        <a href="#security">Security</a>
-        <a href="#faq">FAQ</a>
+        <button type="button" onClick={() => onOpenSection("templates")}>
+          Templates
+        </button>
+        <button type="button" onClick={() => onOpenSection("actions")}>
+          Actions
+        </button>
+        <button type="button" onClick={() => onOpenSection("security")}>
+          Security
+        </button>
+        <button type="button" onClick={() => onOpenSection("faq")}>
+          FAQ
+        </button>
         <button type="button" onClick={onOpenDashboard}>
           Dashboard
         </button>

@@ -64,6 +64,14 @@ function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function openHomeSection(sectionId: string) {
+    setRoute("home");
+    window.history.pushState({}, "", `/#${sectionId}`);
+    window.setTimeout(() => {
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 40);
+  }
+
   function selectScenario(scenarioId: string) {
     const scenario = demoScenarios.find((item) => item.id === scenarioId);
 
@@ -112,6 +120,7 @@ function App() {
         onToggleTheme={toggleTheme}
         onOpenDashboard={() => navigate("dashboard")}
         onOpenHome={() => navigate("home")}
+        onOpenSection={openHomeSection}
       />
 
       {route === "dashboard" ? (
