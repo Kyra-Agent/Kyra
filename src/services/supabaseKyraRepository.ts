@@ -111,6 +111,13 @@ function sortTemplates(templates: AgentTemplate[]) {
   });
 }
 
+function sanitizeSupabaseError(message: string) {
+  return message
+    .replace(/sb_publishable_[A-Za-z0-9_-]+/g, "sb_publishable_[hidden]")
+    .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "jwt_[hidden]")
+    .slice(0, 220);
+}
+
 async function fetchSupabaseJson<T>(query: string): Promise<T> {
   if (!appConfig.supabase.configured) {
     throw new Error("Supabase URL or publishable key is missing.");
@@ -158,7 +165,10 @@ export async function fetchSupabaseTemplates(): Promise<SupabaseTemplateCatalogR
       ok: false,
       status: "error",
       templates: [],
-      error: error instanceof Error ? error.message : "Supabase request failed.",
+      error:
+        error instanceof Error
+          ? sanitizeSupabaseError(error.message)
+          : "Supabase request failed.",
       checkedAt,
     };
   }

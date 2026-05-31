@@ -298,7 +298,7 @@ export function Dashboard({
               <p>{kyraRepositoryRuntime.note}</p>
               {templateCatalogError ? (
                 <p className="readiness-error-note">
-                  Supabase catalog query failed. Kyra is using local template fallback for this session.
+                  Supabase catalog query failed: {templateCatalogError}
                 </p>
               ) : null}
             </div>

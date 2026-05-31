@@ -65,7 +65,9 @@ export function TemplatePicker({
           <span className={`readiness-chip readiness-${getCatalogTone(catalogStatus)}`}>
             {getCatalogLabel(catalogSource, catalogStatus)}
           </span>
-          {catalogError ? <small>Supabase unavailable. Local template fallback is active.</small> : null}
+          {catalogError ? (
+            <small>Fallback reason: {catalogError}</small>
+          ) : null}
         </div>
       </div>
 
