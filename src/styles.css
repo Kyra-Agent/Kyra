@@ -1021,6 +1021,137 @@ h2 {
   gap: 0.5rem;
 }
 
+.wizard-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.wizard-stepper {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
+
+.wizard-stepper button {
+  display: grid;
+  gap: 0.35rem;
+  min-height: 72px;
+  padding: 0.62rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--muted);
+  cursor: pointer;
+  text-align: left;
+}
+
+.wizard-stepper button span {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.72rem;
+}
+
+.wizard-stepper button strong {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.wizard-stepper button.is-active {
+  border-color: var(--line-strong);
+  background: rgba(94, 162, 255, 0.09);
+}
+
+.wizard-stepper button.is-active span,
+.wizard-stepper button.is-active strong {
+  color: var(--text);
+}
+
+.wizard-stepper button.is-complete span {
+  border-color: rgba(138, 230, 177, 0.35);
+  background: rgba(138, 230, 177, 0.1);
+  color: var(--green);
+}
+
+.wizard-body {
+  flex: 1 1 auto;
+  min-height: 370px;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.wizard-screen {
+  animation: lineIn 180ms ease both;
+}
+
+.wizard-kicker {
+  color: var(--green);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.wizard-screen h3 {
+  margin: 0.5rem 0 0.55rem;
+  color: var(--text);
+  font-size: 1.45rem;
+  line-height: 1.2;
+}
+
+.wizard-screen p {
+  margin-bottom: 1rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.connection-grid.single-row {
+  grid-template-columns: 1fr;
+}
+
+.wizard-review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.wizard-review-grid span {
+  display: grid;
+  gap: 0.3rem;
+  min-height: 78px;
+  padding: 0.72rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.wizard-review-grid strong {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.wizard-controls {
+  display: grid;
+  grid-template-columns: 0.42fr 0.58fr;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.wizard-controls .button {
+  width: 100%;
+}
+
 .deploy-button {
   width: 100%;
   margin-top: 1rem;
@@ -2456,6 +2587,23 @@ h2 {
     grid-template-columns: 1fr;
   }
 
+  .wizard-stepper {
+    gap: 0.38rem;
+  }
+
+  .wizard-stepper button {
+    min-height: 62px;
+    padding: 0.55rem;
+  }
+
+  .wizard-body {
+    min-height: auto;
+  }
+
+  .wizard-review-grid {
+    grid-template-columns: 1fr;
+  }
+
   .receipt-grid,
   .approval-detail-grid {
     grid-template-columns: 1fr;
@@ -2591,6 +2739,29 @@ h2 {
 
   .theme-toggle span {
     display: none;
+  }
+
+  .wizard-stepper {
+    grid-template-columns: 1fr;
+  }
+
+  .wizard-stepper button {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    min-height: 48px;
+  }
+
+  .wizard-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .template-menu button {
+    grid-template-columns: 1fr;
+  }
+
+  .mini-label-inline {
+    justify-content: flex-start;
+    width: fit-content;
   }
 
   h1 {
