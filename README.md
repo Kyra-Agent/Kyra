@@ -27,6 +27,7 @@ The app is still frontend-only, but the mock data is shaped like the backend rec
 - `src/types/backend.ts` defines workspace, agent instance, approval request, wallet policy, activity log, and table summary types.
 - `src/data/demoBackend.ts` seeds the frontend with mock records for dashboard, public agent preview, and deploy flow.
 - The dashboard reads from those records instead of one-off local arrays, so it can be swapped for Supabase data in the next phase.
+- `docs/backend-blueprint.md` outlines the Supabase/Auth/logs/approval plan for the demo backend phase.
 
 ## Local Development
 

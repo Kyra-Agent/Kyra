@@ -1,17 +1,28 @@
+import { useState } from "react";
 import {
+  Activity,
   ArrowLeft,
   Bot,
   CheckCircle2,
+  Copy,
+  Database,
   ExternalLink,
+  LockKeyhole,
   MessageSquareText,
   Radio,
+  Route,
   ShieldCheck,
+  Sparkles,
   Terminal,
   WalletCards,
 } from "lucide-react";
 import type { AgentTemplate } from "../types/agent";
-import { getDemoAgentInstance } from "../data/demoBackend";
-import { demoScenarios } from "../data/demoScenarios";
+import {
+  demoApprovalRequests,
+  demoBackendTables,
+  demoWalletPolicies,
+  getDemoAgentInstance,
+} from "../data/demoBackend";
 
 interface PublicAgentProps {
   selectedTemplate: AgentTemplate;
@@ -38,7 +49,27 @@ const capabilityRows = [
 ];
 
 export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: PublicAgentProps) {
+  const [copied, setCopied] = useState(false);
   const agentRecord = getDemoAgentInstance(selectedTemplate.id);
+  const approvalPolicy = demoWalletPolicies.find(
+    (policy) => policy.id === agentRecord.approvalPolicyId,
+  );
+  const commandRows = [
+    ...demoApprovalRequests.filter((request) => request.templateId === selectedTemplate.id),
+    ...demoApprovalRequests.filter((request) => request.templateId !== selectedTemplate.id),
+  ].slice(0, 4);
+
+  function copyProfileLink() {
+    const origin = typeof window === "undefined" ? "https://kyra-agent.demo" : window.location.origin;
+    const profileUrl = `${origin}${agentRecord.publicPath}`;
+
+    if (navigator.clipboard) {
+      void navigator.clipboard.writeText(profileUrl);
+    }
+
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  }
 
   return (
     <main className="public-agent-page">
@@ -53,11 +84,25 @@ export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: P
             <Bot size={14} />
             Public agent preview
           </span>
+          <div className="public-status-line" aria-label="Agent public status">
+            <span>
+              <Activity size={15} />
+              {agentRecord.status}
+            </span>
+            <span>
+              <Radio size={15} />
+              {agentRecord.network}
+            </span>
+            <span>
+              <ShieldCheck size={15} />
+              wallet approval
+            </span>
+          </div>
           <h1>{agentRecord.displayName}</h1>
           <p>
-            A public-facing preview of the deployed agent instance. This page shows what
-            users, communities, or project members would see before opening the agent in
-            Telegram.
+            A share-ready preview for a deployed Kyra agent. It shows the public identity,
+            available commands, safety policy, and backend-shaped records before the live
+            Telegram and Base MCP integrations are connected.
           </p>
 
           <div className="profile-cta-row">
@@ -68,11 +113,23 @@ export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: P
             <button className="button button-ghost" type="button" onClick={onBackHome}>
               View Website
             </button>
+            <button className="button button-ghost" type="button" onClick={copyProfileLink}>
+              <Copy size={16} />
+              {copied ? "Copied" : "Copy Profile"}
+            </button>
           </div>
         </div>
 
         <div className="agent-identity-card">
-          <div className="agent-card-header">
+          <div className="identity-signal">
+            <div className="identity-core">
+              <span>KYRA</span>
+              <strong>{selectedTemplate.name}</strong>
+              <small>{agentRecord.handle}</small>
+            </div>
+            <span className="identity-ring" />
+          </div>
+          <div className="agent-card-header public-agent-handle">
             <span className="agent-orb">K</span>
             <div>
               <strong>{agentRecord.handle}</strong>
@@ -93,11 +150,26 @@ export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: P
               <strong>{agentRecord.mode}</strong>
             </span>
             <span>
-              Route
+              Public route
               <strong>{agentRecord.publicPath}</strong>
             </span>
           </div>
         </div>
+      </section>
+
+      <section className="public-proof-strip" aria-label="Kyra public agent facts">
+        <span>
+          <Database size={16} />
+          {demoBackendTables.length} mock tables
+        </span>
+        <span>
+          <LockKeyhole size={16} />
+          {approvalPolicy?.value ?? "Approval required"}
+        </span>
+        <span>
+          <Route size={16} />
+          {agentRecord.baseMcpStatus} Base MCP route
+        </span>
       </section>
 
       <section className="public-agent-grid">
@@ -142,16 +214,44 @@ export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: P
         <article className="public-panel">
           <div className="panel-title">
             <span>try.commands</span>
-            <span>simulated</span>
+            <span>{commandRows.length} examples</span>
           </div>
-          <div className="command-demo-list">
-            {demoScenarios.map((scenario) => (
-              <div key={scenario.id}>
+          <div className="command-demo-list public-command-list">
+            {commandRows.map((request) => (
+              <div key={request.id}>
                 <MessageSquareText size={16} />
-                <code>{scenario.command}</code>
-                <small>{scenario.approvalRequired ? "wallet approval" : "read-only"}</small>
+                <span>
+                  <code>{request.command}</code>
+                  <small>{request.route}</small>
+                </span>
+                <em>{request.requiresWallet ? "approval" : request.risk}</em>
               </div>
             ))}
+          </div>
+        </article>
+
+        <article className="public-panel public-record-panel">
+          <div className="panel-title">
+            <span>agent.record</span>
+            <span>{agentRecord.id}</span>
+          </div>
+          <div className="record-fact-grid">
+            <span>
+              Workspace
+              <strong>{agentRecord.workspaceId}</strong>
+            </span>
+            <span>
+              Telegram
+              <strong>{agentRecord.telegramStatus}</strong>
+            </span>
+            <span>
+              Base MCP
+              <strong>{agentRecord.baseMcpStatus}</strong>
+            </span>
+            <span>
+              Last sync
+              <strong>{agentRecord.lastSyncAt.slice(0, 16).replace("T", " ")}</strong>
+            </span>
           </div>
         </article>
 
@@ -172,6 +272,10 @@ export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: P
             <span>
               <Terminal size={17} />
               Demo mode only
+            </span>
+            <span>
+              <Sparkles size={17} />
+              Public preview
             </span>
           </div>
           <p>

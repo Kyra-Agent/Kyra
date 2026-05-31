@@ -2119,6 +2119,33 @@ h2 {
   margin-bottom: 1rem;
 }
 
+.public-status-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.public-status-line span,
+.public-proof-strip span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--muted);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.public-status-line span {
+  min-height: 34px;
+  padding: 0.45rem 0.62rem;
+}
+
 .agent-profile-copy h1 {
   margin: 1rem 0 0.75rem;
   font-size: 4rem;
@@ -2139,6 +2166,8 @@ h2 {
 }
 
 .agent-identity-card {
+  position: relative;
+  overflow: hidden;
   display: grid;
   align-content: space-between;
   gap: 1rem;
@@ -2147,6 +2176,71 @@ h2 {
   background:
     linear-gradient(180deg, rgba(94, 162, 255, 0.09), transparent 48%),
     var(--panel);
+}
+
+.agent-identity-card::before {
+  content: "";
+  position: absolute;
+  inset: -40% 10% auto;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(94, 162, 255, 0.18), transparent 68%);
+  pointer-events: none;
+}
+
+.identity-signal {
+  position: relative;
+  display: grid;
+  min-height: 188px;
+  place-items: center;
+  border: 1px solid rgba(94, 162, 255, 0.22);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(94, 162, 255, 0.12), transparent 44%),
+    rgba(255, 255, 255, 0.025);
+}
+
+.identity-core {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 138px;
+  height: 138px;
+  border: 1px solid rgba(138, 230, 177, 0.28);
+  border-radius: 50%;
+  background: rgba(3, 8, 14, 0.6);
+  box-shadow:
+    0 0 0 10px rgba(94, 162, 255, 0.05),
+    0 0 44px rgba(94, 162, 255, 0.18);
+}
+
+.identity-core span,
+.identity-core small {
+  color: var(--muted);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.identity-core strong {
+  color: var(--text);
+  font-size: 1.14rem;
+}
+
+.identity-ring {
+  position: absolute;
+  width: 210px;
+  height: 210px;
+  border: 1px solid rgba(94, 162, 255, 0.18);
+  border-top-color: rgba(138, 230, 177, 0.48);
+  border-radius: 50%;
+  animation: slowRotate 14s linear infinite;
+}
+
+.public-agent-handle {
+  position: relative;
+  z-index: 1;
 }
 
 .agent-identity-card .agent-card-header {
@@ -2198,6 +2292,23 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.public-proof-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.public-proof-strip span {
+  min-height: 54px;
+  justify-content: center;
+  padding: 0.72rem;
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
 .public-agent-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2210,6 +2321,7 @@ h2 {
 }
 
 .public-summary,
+.public-record-panel,
 .security-profile-panel {
   grid-column: span 2;
 }
@@ -2268,9 +2380,52 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.public-command-list div {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.public-command-list span {
+  min-width: 0;
+}
+
+.public-command-list em {
+  min-width: 5.8rem;
+  padding: 0.32rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--green);
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 900;
+  text-align: center;
+}
+
+.record-fact-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.record-fact-grid span {
+  display: grid;
+  gap: 0.25rem;
+  min-height: 84px;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.record-fact-grid strong {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
 .profile-safety-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.65rem;
   margin-bottom: 0.9rem;
 }
@@ -2291,6 +2446,12 @@ h2 {
   }
   to {
     background-position: 0 144px;
+  }
+}
+
+@keyframes slowRotate {
+  to {
+    transform: rotate(360deg);
   }
 }
 
@@ -2689,8 +2850,10 @@ h2 {
 
   .agent-profile-hero,
   .public-agent-grid,
+  .public-proof-strip,
   .profile-status-grid,
-  .profile-safety-grid {
+  .profile-safety-grid,
+  .record-fact-grid {
     grid-template-columns: 1fr;
   }
 
@@ -2708,6 +2871,7 @@ h2 {
   }
 
   .public-summary,
+  .public-record-panel,
   .security-profile-panel {
     grid-column: auto;
   }
@@ -2831,6 +2995,15 @@ h2 {
 
   .approval-flow svg {
     display: none;
+  }
+
+  .public-command-list div {
+    grid-template-columns: auto 1fr;
+  }
+
+  .public-command-list em {
+    grid-column: 2;
+    justify-self: start;
   }
 }
 
