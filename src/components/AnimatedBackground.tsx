@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-const nodeCount = 18;
+const nodeCount = 12;
 const signals = ["BASE", "MCP", "NIRA", "NYX", "TX", "APPROVE", "KYRA"];
 
 export function AnimatedBackground() {
@@ -8,7 +8,7 @@ export function AnimatedBackground() {
     <div className="animated-bg" aria-hidden="true">
       <div className="grid-layer" />
       <div className="signal-layer">
-        {Array.from({ length: 10 }, (_, index) => (
+        {Array.from({ length: 7 }, (_, index) => (
           <span key={index} />
         ))}
       </div>
