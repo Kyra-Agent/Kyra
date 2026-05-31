@@ -2078,6 +2078,102 @@ h2 {
   gap: 0.55rem;
 }
 
+.auth-session-panel {
+  background:
+    linear-gradient(135deg, rgba(138, 230, 177, 0.07), transparent 46%),
+    var(--panel);
+}
+
+.auth-session-summary {
+  display: grid;
+  gap: 0.65rem;
+  margin-bottom: 0.9rem;
+}
+
+.auth-session-summary p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.auth-form-grid {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.auth-form-grid .field {
+  margin-bottom: 0;
+}
+
+.auth-session-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.78rem;
+  border: 1px solid rgba(138, 230, 177, 0.24);
+  border-radius: var(--radius);
+  background: rgba(138, 230, 177, 0.07);
+}
+
+.auth-avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(138, 230, 177, 0.28);
+  border-radius: 50%;
+  color: var(--green);
+}
+
+.auth-session-card strong,
+.auth-session-card small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.auth-session-card small,
+.auth-session-card em {
+  color: var(--muted);
+}
+
+.auth-session-card em {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.74rem;
+  font-style: normal;
+}
+
+.auth-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+}
+
+.auth-actions .button {
+  flex: 1 1 9rem;
+}
+
+.auth-safety-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+}
+
+.auth-safety-line span {
+  display: inline-flex;
+  min-height: 28px;
+  padding: 0.34rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.spin-icon {
+  animation: spin 900ms linear infinite;
+}
+
 .queue-item {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -2842,6 +2938,12 @@ h2 {
   100% {
     transform: scale(1);
     box-shadow: 0 32px 120px rgba(0, 0, 0, 0.62);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 

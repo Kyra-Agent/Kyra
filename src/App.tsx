@@ -17,6 +17,12 @@ import { Dashboard } from "./pages/Dashboard";
 import { PublicAgent } from "./pages/PublicAgent";
 import { kyraDataService } from "./services/kyraDataService";
 import {
+  getCurrentAuthUser,
+  loadStoredAuthSession,
+  type KyraAuthSession,
+  type KyraAuthStatus,
+} from "./services/supabaseAuthService";
+import {
   fetchSupabaseTemplates,
   type SupabaseConnectionStatus,
 } from "./services/supabaseKyraRepository";
@@ -61,6 +67,17 @@ function App() {
     appConfig.supabase.configured ? "checking" : "not-configured",
   );
   const [templateCatalogError, setTemplateCatalogError] = useState<string | null>(null);
+  const [authSession, setAuthSession] = useState<KyraAuthSession | null>(() => loadStoredAuthSession());
+  const [authStatus, setAuthStatus] = useState<KyraAuthStatus>(() =>
+    loadStoredAuthSession() ? "signed-in" : appConfig.supabase.configured ? "signed-out" : "not-configured",
+  );
+  const [authMessage, setAuthMessage] = useState(() =>
+    loadStoredAuthSession()
+      ? "Stored Supabase session loaded."
+      : appConfig.supabase.configured
+        ? "Sign in to create a Supabase session for RLS-backed records."
+        : "Supabase auth is not configured.",
+  );
   const [selectedScenarioId, setSelectedScenarioId] = useState("swap");
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [approvalApproved, setApprovalApproved] = useState(false);
@@ -142,6 +159,45 @@ function App() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    const storedSession = loadStoredAuthSession();
+
+    if (!storedSession) {
+      return;
+    }
+
+    const sessionToValidate = storedSession;
+    let active = true;
+
+    async function validateStoredSession() {
+      const result = await getCurrentAuthUser(sessionToValidate);
+
+      if (!active) {
+        return;
+      }
+
+      setAuthSession(result.session);
+      setAuthStatus(result.status);
+      setAuthMessage(result.message);
+    }
+
+    void validateStoredSession();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function updateAuthSession(
+    session: KyraAuthSession | null,
+    status: KyraAuthStatus,
+    message: string,
+  ) {
+    setAuthSession(session);
+    setAuthStatus(status);
+    setAuthMessage(message);
+  }
 
   function toggleTheme() {
     setTheme((value) => (value === "dark" ? "light" : "dark"));
@@ -256,6 +312,10 @@ function App() {
           templateCatalogSource={templateCatalogSource}
           templateCatalogStatus={templateCatalogStatus}
           templateCatalogError={templateCatalogError}
+          authSession={authSession}
+          authStatus={authStatus}
+          authMessage={authMessage}
+          onAuthSessionChange={updateAuthSession}
           onBackHome={() => navigate("home")}
           onOpenAgent={() => navigate("agent")}
         />

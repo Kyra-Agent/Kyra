@@ -14,11 +14,13 @@ import {
   Terminal,
   WalletCards,
 } from "lucide-react";
+import { AuthSessionPanel } from "../components/AuthSessionPanel";
 import type { AgentTemplate } from "../types/agent";
 import { appConfig } from "../config/appConfig";
 import { coreModules } from "../data/modules";
 import { kyraDataService } from "../services/kyraDataService";
 import { kyraRepositoryRuntime } from "../services/repositoryFactory";
+import type { KyraAuthSession, KyraAuthStatus } from "../services/supabaseAuthService";
 import {
   getSupabaseAdapterStatus,
   type SupabaseConnectionStatus,
@@ -32,6 +34,14 @@ interface DashboardProps {
   templateCatalogSource: DataProvider;
   templateCatalogStatus: SupabaseConnectionStatus;
   templateCatalogError: string | null;
+  authSession: KyraAuthSession | null;
+  authStatus: KyraAuthStatus;
+  authMessage: string;
+  onAuthSessionChange: (
+    session: KyraAuthSession | null,
+    status: KyraAuthStatus,
+    message: string,
+  ) => void;
   onBackHome: () => void;
   onOpenAgent: () => void;
 }
@@ -78,6 +88,10 @@ export function Dashboard({
   templateCatalogSource,
   templateCatalogStatus,
   templateCatalogError,
+  authSession,
+  authStatus,
+  authMessage,
+  onAuthSessionChange,
   onBackHome,
   onOpenAgent,
 }: DashboardProps) {
@@ -109,8 +123,8 @@ export function Dashboard({
     },
     {
       label: "Auth",
-      value: appConfig.integrations.auth,
-      tone: appConfig.integrations.auth === "supabase" ? "ready" : "standby",
+      value: authSession ? "session active" : appConfig.integrations.auth,
+      tone: authSession ? "ready" : "standby",
       icon: KeyRound,
     },
     {
@@ -147,6 +161,10 @@ export function Dashboard({
           <a className="is-active" href="#overview">
             <Activity size={16} />
             Overview
+          </a>
+          <a href="#auth">
+            <KeyRound size={16} />
+            Auth
           </a>
           <a href="#approvals">
             <WalletCards size={16} />
@@ -252,6 +270,13 @@ export function Dashboard({
               ))}
             </div>
           </section>
+
+          <AuthSessionPanel
+            session={authSession}
+            status={authStatus}
+            message={authMessage}
+            onSessionChange={onAuthSessionChange}
+          />
 
           <section className="dashboard-panel">
             <div className="panel-title">
