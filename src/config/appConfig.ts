@@ -21,6 +21,7 @@ export const appConfig = {
   integrations: {
     auth: requestedDataProvider === "supabase" && supabaseConfigured ? "supabase" : "demo",
     database: requestedDataProvider === "supabase" && supabaseConfigured ? "supabase" : "mock",
+    deployApi: "edge scaffolded",
     telegram: "simulated",
     baseMcp: "simulated",
     walletExecution: "disabled",

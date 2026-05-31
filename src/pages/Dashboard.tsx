@@ -252,6 +252,12 @@ export function Dashboard({
       icon: Server,
     },
     {
+      label: "Deploy API",
+      value: appConfig.integrations.deployApi,
+      tone: "ready",
+      icon: Terminal,
+    },
+    {
       label: "Execution",
       value: appConfig.integrations.walletExecution,
       tone: "locked",
@@ -478,6 +484,7 @@ export function Dashboard({
                   : "dashboard fallback ready"}
               </span>
               <span>max {demoAgentLimits.maxAgentsPerWorkspace} demo agents</span>
+              <span>deploy-agent scaffolded</span>
               <span>onchain execution disabled</span>
             </div>
           </section>

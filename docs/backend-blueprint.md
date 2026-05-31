@@ -1,11 +1,12 @@
 # Kyra Agent Backend Blueprint
 
-This is the backend plan for the next phase. The current product is still frontend-only, but the UI now uses backend-shaped mock records so the transition to Supabase can be direct.
+This is the backend plan for Kyra Agent. The product is still demo-only, but Supabase now powers the template catalog, auth sessions, dashboard records, public agent profiles, and persisted demo deploy receipts when configured.
 
 Concrete starter files now live in:
 
 - `supabase/schema.sql` for the initial tables, indexes, RLS policies, and public profile view.
 - `supabase/seed.sql` for the Kyra template seed records.
+- `supabase/functions/deploy-agent` for the server-side deploy endpoint scaffold.
 - `docs/backend-demo-skeleton.md` for the implementation checklist and safe demo defaults.
 
 The frontend is prepared with a thin service layer:
@@ -16,7 +17,7 @@ The frontend is prepared with a thin service layer:
 - `src/services/mockKyraRepository.ts` implements that contract with local mock records.
 - `src/services/kyraDataService.ts` is what UI components read from today.
 
-A future Supabase adapter should implement the same repository contract, then replace the mock repository behind `kyraDataService`.
+Supabase-specific services now sit beside the mock repository. The mock path remains as a safe fallback for local preview and failed network requests.
 
 ## Goal
 

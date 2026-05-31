@@ -1,14 +1,18 @@
 # Backend Demo Skeleton
 
-Kyra is still safe frontend demo mode. This skeleton prepares the backend phase without enabling live onchain execution.
+Kyra is still safe demo mode. The Supabase demo backend is now partially connected without enabling live onchain execution.
 
 ## What Exists Now
 
 - `supabase/schema.sql` defines the first database shape.
 - `supabase/seed.sql` seeds Kyra agent templates.
+- `supabase/functions/deploy-agent` scaffolds the future server-side deploy write path.
 - `src/types/database.ts` mirrors the Supabase table rows in TypeScript.
-- `src/services/repositoryFactory.ts` keeps the active UI on mock records.
-- `src/services/supabaseKyraRepository.ts` exposes the planned Supabase adapter status and table list.
+- `src/services/repositoryFactory.ts` keeps mock fallback data available.
+- `src/services/supabaseKyraRepository.ts` reads the Supabase template catalog.
+- `src/services/supabaseDashboardService.ts` reads signed-in dashboard records.
+- `src/services/supabasePublicAgentService.ts` reads public agent profiles.
+- `src/services/supabaseDeployService.ts` persists demo deployment receipts through RLS-backed client writes.
 - `.env.example` includes the provider and Supabase env names.
 
 ## Tables
@@ -46,17 +50,31 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-The UI will still use mock records until the async Supabase data adapter is implemented. That is intentional: we are preparing the backend safely before changing product behavior.
+The UI can run against Supabase when `VITE_KYRA_DATA_PROVIDER=supabase`. It still falls back to mock records when Supabase is unavailable.
+
+## Edge Function Scaffold
+
+`supabase/functions/deploy-agent` is the intended server-side deployment boundary for the next backend step. It validates the user session, enforces the 2-agent demo quota, writes the same demo records, and returns a receipt.
+
+The function needs server-only secrets:
+
+```bash
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+KYRA_DEMO_AGENT_LIMIT=2
+```
+
+Do not place `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` or any `VITE_` variable. It belongs only in Supabase Function secrets.
 
 ## Next Implementation Step
 
-The next code phase should add a real async backend gateway:
+The next code phase should move deployment writes from the frontend service to the Edge Function after it is deployed:
 
-1. Install the Supabase client.
-2. Create auth/session state.
-3. Replace deploy wizard receipt creation with an insert into `agent_instances`.
-4. Create default `wallet_policies`.
-5. Create `activity_logs` for deploy and approval events.
-6. Read dashboard/public agent data from Supabase.
+1. Deploy `deploy-agent` to Supabase.
+2. Add a frontend API client that calls the function with the active Supabase access token.
+3. Keep the current direct RLS-backed write path as fallback.
+4. Verify dashboard/public profile reads after the function receipt.
+5. Keep live onchain execution disabled.
 
 Keep live onchain execution disabled until wallet approval, rate limits, Telegram token storage, and security review are complete.

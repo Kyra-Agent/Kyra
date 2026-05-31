@@ -1,35 +1,37 @@
 # KYRA-AGENT
 
-Kyra Agent is a frontend demo for a Base-native onchain agent console.
+Kyra Agent is a backend-connected demo for a Base-native onchain agent console.
 
 It shows the intended product flow: choose an agent template, configure a Telegram-native agent, connect a wallet or Base Account, prepare onchain actions through a Base MCP-style layer, and require wallet approval before anything is executed.
 
 ## Demo Status
 
-This repository is currently frontend-only.
+This repository is still demo-only, but the Phase 2 Supabase path is active.
 
 - No real transactions are executed.
 - No wallet keys, seed phrases, or private keys are stored.
 - No real Telegram bot token is required.
-- Base MCP, Telegram, auth, database, and execution logs are represented as demo UI.
+- Supabase can provide auth, template catalog, dashboard records, public agent profiles, and persisted demo receipts.
+- Base MCP, Telegram, and wallet execution are still simulated.
 - Every onchain action is framed as wallet-approved, never custodial.
+- `supabase/functions/deploy-agent` is scaffolded as the future server-side deploy boundary. It is not wired as the default frontend deploy path yet.
 
 ## Routes
 
 - `/` - main landing and demo console.
 - `/dashboard` - private operator dashboard preview.
-- `/agents/operator-demo` - public agent profile preview.
+- `/agents/:agent-slug` - public agent profile preview.
 
 ## Demo Data Shape
 
-The app is still frontend-only, but the mock data is shaped like the backend records Kyra will need later:
+The app can run in mock mode or Supabase-backed demo mode:
 
 - `src/types/backend.ts` defines workspace, agent instance, approval request, wallet policy, activity log, and table summary types.
-- `src/data/demoBackend.ts` seeds the frontend with mock records for dashboard, public agent preview, and deploy flow.
-- `src/config`, `src/lib`, and `src/services` provide the demo service layer that currently reads mock data and can later swap to Supabase.
-- The dashboard reads through the service layer instead of one-off local arrays, so it can be swapped for Supabase data in the next phase.
+- `src/data/demoBackend.ts` keeps local fallback records for dashboard, public agent preview, and deploy flow.
+- `src/services` reads Supabase templates, auth sessions, dashboard records, public agent profiles, and persisted demo deploy receipts when configured.
 - `docs/backend-blueprint.md` outlines the Supabase/Auth/logs/approval plan for the demo backend phase.
-- `supabase/schema.sql` and `supabase/seed.sql` provide the first Supabase-ready backend skeleton.
+- `supabase/schema.sql` and `supabase/seed.sql` provide the Supabase demo schema and template catalog.
+- `supabase/functions/deploy-agent` contains the server-side deploy function scaffold for the next backend step.
 - `docs/backend-demo-skeleton.md` explains how the demo backend should be enabled safely.
 
 ## Local Development
@@ -72,7 +74,7 @@ When this is ready to publish:
 ## Roadmap
 
 - Phase 1: Frontend demo, responsive UI, dashboard preview, public agent route.
-- Phase 2: Demo backend with auth, database records, and server-side logs.
+- Phase 2: Demo backend with Supabase auth, database records, deploy receipts, and Edge Function scaffold.
 - Phase 3: Telegram bot integration and Base MCP action preparation.
 - Phase 4: Live wallet-approved execution with full security hardening.
 
