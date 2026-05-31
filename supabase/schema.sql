@@ -229,4 +229,13 @@ join public.agent_templates templates on templates.id = agents.template_id
 where agents.status = 'online'
   and agents.mode = 'demo';
 
+grant usage on schema public to anon, authenticated;
+grant select on public.agent_templates to anon, authenticated;
 grant select on public.public_agent_profiles to anon, authenticated;
+grant all on public.workspaces to authenticated;
+grant all on public.agent_instances to authenticated;
+grant all on public.wallet_policies to authenticated;
+grant all on public.approval_requests to authenticated;
+grant select, insert on public.activity_logs to authenticated;
+grant all on public.telegram_sessions to authenticated;
+grant execute on function public.owns_workspace(uuid) to authenticated;
