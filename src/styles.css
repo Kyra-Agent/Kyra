@@ -443,6 +443,12 @@ button {
   padding: 0.46rem 0.62rem;
 }
 
+.site-header .demo-badge {
+  min-height: 38px;
+  padding: 0 0.72rem;
+  white-space: nowrap;
+}
+
 .demo-badge.compact {
   padding: 0.35rem 0.5rem;
 }
