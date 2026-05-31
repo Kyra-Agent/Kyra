@@ -184,6 +184,12 @@ for all
 using (public.owns_workspace(workspace_id))
 with check (public.owns_workspace(workspace_id));
 
+drop policy if exists "Online demo agent instances are public readable" on public.agent_instances;
+create policy "Online demo agent instances are public readable"
+on public.agent_instances
+for select
+using (status = 'online' and mode = 'demo');
+
 drop policy if exists "Workspace owners can manage wallet policies" on public.wallet_policies;
 create policy "Workspace owners can manage wallet policies"
 on public.wallet_policies
@@ -231,7 +237,9 @@ with check (
   )
 );
 
-create or replace view public.public_agent_profiles as
+create or replace view public.public_agent_profiles
+with (security_invoker = true)
+as
 select
   agents.public_slug,
   agents.display_name,
@@ -258,6 +266,19 @@ where agents.status = 'online'
 
 grant usage on schema public to anon, authenticated;
 grant select on public.agent_templates to anon, authenticated;
+grant select (
+  public_slug,
+  display_name,
+  handle,
+  status,
+  mode,
+  network,
+  telegram_status,
+  base_mcp_status,
+  created_at,
+  last_sync_at,
+  template_id
+) on public.agent_instances to anon, authenticated;
 grant select on public.public_agent_profiles to anon, authenticated;
 grant all on public.workspaces to authenticated;
 grant all on public.agent_instances to authenticated;
