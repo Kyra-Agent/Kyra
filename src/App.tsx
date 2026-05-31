@@ -14,6 +14,7 @@ import { TemplatePicker } from "./components/TemplatePicker";
 import { WalletApprovalModal } from "./components/WalletApprovalModal";
 import { demoScenarios } from "./data/demoScenarios";
 import { agentTemplates } from "./data/templates";
+import { Dashboard } from "./pages/Dashboard";
 
 function App() {
   const [theme, setTheme] = useState<"dark" | "light">(() => {
@@ -28,6 +29,13 @@ function App() {
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [approvalApproved, setApprovalApproved] = useState(false);
   const [approvalClosing, setApprovalClosing] = useState(false);
+  const [route, setRoute] = useState<"home" | "dashboard">(() => {
+    if (typeof window === "undefined") {
+      return "home";
+    }
+
+    return window.location.pathname === "/dashboard" ? "dashboard" : "home";
+  });
 
   const selectedTemplate = useMemo(
     () => agentTemplates.find((template) => template.id === selectedId) ?? agentTemplates[0],
@@ -47,6 +55,13 @@ function App() {
 
   function toggleTheme() {
     setTheme((value) => (value === "dark" ? "light" : "dark"));
+  }
+
+  function navigate(nextRoute: "home" | "dashboard") {
+    setRoute(nextRoute);
+    const path = nextRoute === "dashboard" ? "/dashboard" : "/";
+    window.history.pushState({}, "", path);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function selectScenario(scenarioId: string) {
@@ -92,69 +107,86 @@ function App() {
   return (
     <div className="app" id="top">
       <AnimatedBackground />
-      <Header theme={theme} onToggleTheme={toggleTheme} />
+      <Header
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onOpenDashboard={() => navigate("dashboard")}
+        onOpenHome={() => navigate("home")}
+      />
 
-      <main>
-        <section className="hero-section">
-          <div className="hero-copy">
-            <span className="demo-badge hero-badge">
-              <Terminal size={15} />
-              KYRA demo is live locally
-            </span>
-            <h1>
-              Deploy Base agents that actually do things onchain.
-            </h1>
-            <p className="hero-subtitle">
-              Kyra lets you launch Telegram-native AI agents that monitor wallets,
-              prepare onchain actions, and route every transaction through wallet
-              approval.
-            </p>
+      {route === "dashboard" ? (
+        <Dashboard selectedTemplate={selectedTemplate} onBackHome={() => navigate("home")} />
+      ) : (
+        <>
+          <main>
+            <section className="hero-section">
+              <div className="hero-copy">
+                <span className="demo-badge hero-badge">
+                  <Terminal size={15} />
+                  KYRA demo is live locally
+                </span>
+                <h1>Deploy Base agents that actually do things onchain.</h1>
+                <p className="hero-subtitle">
+                  Kyra lets you launch Telegram-native AI agents that monitor wallets,
+                  prepare onchain actions, and route every transaction through wallet
+                  approval.
+                </p>
 
-            <div className="hero-actions">
-              <a className="button button-primary" href="#deploy">
-                Deploy Agent
-                <ArrowRight size={17} />
-              </a>
-              <a className="button button-ghost" href="#security">
-                <ShieldCheck size={17} />
-                View Safety Model
-              </a>
-            </div>
+                <div className="hero-actions">
+                  <a className="button button-primary" href="#deploy">
+                    Deploy Agent
+                    <ArrowRight size={17} />
+                  </a>
+                  <button
+                    className="button button-ghost"
+                    type="button"
+                    onClick={() => navigate("dashboard")}
+                  >
+                    Open Dashboard
+                    <ArrowRight size={17} />
+                  </button>
+                  <a className="button button-ghost" href="#security">
+                    <ShieldCheck size={17} />
+                    View Safety Model
+                  </a>
+                </div>
 
-            <div className="trust-row" aria-label="Kyra trust model">
-              <span>No seed phrases</span>
-              <span>No custody</span>
-              <span>Wallet approval required</span>
-            </div>
-          </div>
+                <div className="trust-row" aria-label="Kyra trust model">
+                  <span>No seed phrases</span>
+                  <span>No custody</span>
+                  <span>Wallet approval required</span>
+                </div>
+              </div>
 
-          <HeroConsole
-            selectedTemplate={selectedTemplate}
-            scenarios={demoScenarios}
-            selectedScenario={selectedScenario}
-            onSelectScenario={selectScenario}
-            onRequestApproval={requestApproval}
-          />
-        </section>
+              <HeroConsole
+                selectedTemplate={selectedTemplate}
+                scenarios={demoScenarios}
+                selectedScenario={selectedScenario}
+                onSelectScenario={selectScenario}
+                onRequestApproval={requestApproval}
+              />
+            </section>
 
-        <TemplatePicker
-          templates={agentTemplates}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-        />
-        <DeployPanel
-          templates={agentTemplates}
-          selectedTemplate={selectedTemplate}
-          onSelectTemplate={setSelectedId}
-        />
-        <DashboardPreview selectedTemplate={selectedTemplate} />
-        <ActionConsole />
-        <CoreModules />
-        <SecuritySection />
-        <FAQSection />
-      </main>
+            <TemplatePicker
+              templates={agentTemplates}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+            />
+            <DeployPanel
+              templates={agentTemplates}
+              selectedTemplate={selectedTemplate}
+              onSelectTemplate={setSelectedId}
+            />
+            <DashboardPreview selectedTemplate={selectedTemplate} />
+            <ActionConsole />
+            <CoreModules />
+            <SecuritySection />
+            <FAQSection />
+          </main>
 
-      <Footer />
+          <Footer />
+        </>
+      )}
       <WalletApprovalModal
         scenario={selectedScenario}
         open={approvalOpen}

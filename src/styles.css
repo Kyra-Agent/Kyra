@@ -74,6 +74,10 @@ a {
   text-decoration: none;
 }
 
+button {
+  font: inherit;
+}
+
 .app {
   position: relative;
   min-height: 100vh;
@@ -243,6 +247,14 @@ a {
   flex: 0 1 auto;
 }
 
+.logo-button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
 .brand-mark {
   display: inline-flex;
   align-items: center;
@@ -288,11 +300,17 @@ a {
   font-size: 0.9rem;
 }
 
-.site-nav a {
+.site-nav a,
+.site-nav button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
   transition: color 180ms ease;
 }
 
-.site-nav a:hover {
+.site-nav a:hover,
+.site-nav button:hover {
   color: var(--text);
 }
 
@@ -1627,6 +1645,269 @@ h2 {
   transform: none;
 }
 
+.dashboard-page {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 1rem;
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 2.2rem 0 4rem;
+}
+
+.dashboard-sidebar,
+.dashboard-panel,
+.dashboard-kpi-grid article {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.dashboard-sidebar {
+  position: sticky;
+  top: 88px;
+  align-self: start;
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.sidebar-brand strong,
+.dashboard-topbar h1 {
+  display: block;
+  color: var(--text);
+}
+
+.sidebar-brand small,
+.dashboard-topbar p {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--muted);
+}
+
+.dashboard-nav {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.dashboard-nav a,
+.dashboard-back {
+  justify-content: flex-start;
+}
+
+.dashboard-nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 40px;
+  padding: 0.65rem 0.72rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.dashboard-nav a:hover,
+.dashboard-nav a.is-active {
+  border-color: var(--line-strong);
+  background: rgba(94, 162, 255, 0.08);
+  color: var(--text);
+}
+
+.dashboard-main {
+  min-width: 0;
+}
+
+.dashboard-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.dashboard-topbar h1 {
+  margin: 0.78rem 0 0;
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.dashboard-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.dashboard-kpi-grid article {
+  display: grid;
+  gap: 0.35rem;
+  min-height: 124px;
+  padding: 1rem;
+}
+
+.dashboard-kpi-grid span,
+.wallet-policy-list span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.dashboard-kpi-grid strong {
+  color: var(--text);
+  font-size: 1.02rem;
+}
+
+.dashboard-kpi-grid small,
+.wallet-policy-list small,
+.queue-item small,
+.dashboard-module-grid small,
+.mini-template-list small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.dashboard-content-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.dashboard-panel {
+  min-width: 0;
+  padding: 1rem;
+}
+
+.agent-overview-panel,
+.dashboard-panel#logs {
+  grid-column: span 2;
+}
+
+.agent-overview-panel p {
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.dashboard-action-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 1rem;
+}
+
+.queue-list,
+.wallet-policy-list,
+.mini-template-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.queue-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.72rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.queue-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--blue);
+}
+
+.queue-item strong,
+.wallet-policy-list strong {
+  display: block;
+  color: var(--text);
+}
+
+.queue-item em {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-style: normal;
+}
+
+.queue-pending .queue-icon {
+  color: var(--amber);
+}
+
+.queue-ok .queue-icon {
+  color: var(--green);
+}
+
+.wallet-policy-list article {
+  display: grid;
+  gap: 0.28rem;
+  padding: 0.72rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.dashboard-log-box {
+  max-height: 280px;
+  overflow: auto;
+  padding: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.18);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+.dashboard-log-box p {
+  margin: 0 0 0.55rem;
+  color: #c7d7ee;
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.dashboard-module-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.dashboard-module-grid article,
+.mini-template-list article {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.72rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.dashboard-module-grid strong,
+.mini-template-list strong {
+  color: var(--blue);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+.dashboard-module-grid span {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.mini-template-list article.is-active {
+  border-color: var(--line-strong);
+  background: rgba(94, 162, 255, 0.09);
+}
+
 @keyframes gridDrift {
   from {
     background-position: 0 0;
@@ -1999,6 +2280,39 @@ h2 {
   .site-footer {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .dashboard-page {
+    grid-template-columns: 1fr;
+    width: calc(100% - 24px);
+    padding-top: 1.25rem;
+  }
+
+  .dashboard-sidebar {
+    position: static;
+  }
+
+  .dashboard-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-topbar {
+    flex-direction: column;
+  }
+
+  .dashboard-topbar h1 {
+    font-size: 2.35rem;
+  }
+
+  .dashboard-kpi-grid,
+  .dashboard-content-grid,
+  .dashboard-module-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-overview-panel,
+  .dashboard-panel#logs {
+    grid-column: auto;
   }
 }
 
