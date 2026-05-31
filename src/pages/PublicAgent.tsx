@@ -10,6 +10,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import type { AgentTemplate } from "../types/agent";
+import { getDemoAgentInstance } from "../data/demoBackend";
 import { demoScenarios } from "../data/demoScenarios";
 
 interface PublicAgentProps {
@@ -37,6 +38,8 @@ const capabilityRows = [
 ];
 
 export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: PublicAgentProps) {
+  const agentRecord = getDemoAgentInstance(selectedTemplate.id);
+
   return (
     <main className="public-agent-page">
       <section className="agent-profile-hero">
@@ -50,7 +53,7 @@ export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: P
             <Bot size={14} />
             Public agent preview
           </span>
-          <h1>Kyra {selectedTemplate.name}</h1>
+          <h1>{agentRecord.displayName}</h1>
           <p>
             A public-facing preview of the deployed agent instance. This page shows what
             users, communities, or project members would see before opening the agent in
@@ -72,26 +75,26 @@ export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: P
           <div className="agent-card-header">
             <span className="agent-orb">K</span>
             <div>
-              <strong>@kyra_{selectedTemplate.id}_demo</strong>
+              <strong>{agentRecord.handle}</strong>
               <small>{selectedTemplate.role}</small>
             </div>
           </div>
           <div className="profile-status-grid">
             <span>
               Status
-              <strong>Online</strong>
+              <strong>{agentRecord.status}</strong>
             </span>
             <span>
               Network
-              <strong>Base</strong>
+              <strong>{agentRecord.network}</strong>
             </span>
             <span>
               Mode
-              <strong>Demo</strong>
+              <strong>{agentRecord.mode}</strong>
             </span>
             <span>
-              Wallet
-              <strong>Approval required</strong>
+              Route
+              <strong>{agentRecord.publicPath}</strong>
             </span>
           </div>
         </div>

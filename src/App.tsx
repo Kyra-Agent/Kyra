@@ -17,6 +17,27 @@ import { agentTemplates } from "./data/templates";
 import { Dashboard } from "./pages/Dashboard";
 import { PublicAgent } from "./pages/PublicAgent";
 
+function getTemplateIdFromAgentPath(pathname: string) {
+  const match = pathname.match(/^\/agents\/([a-z-]+)-demo$/);
+  const templateId = match?.[1];
+
+  if (templateId && agentTemplates.some((template) => template.id === templateId)) {
+    return templateId;
+  }
+
+  return "operator";
+}
+
+function getInitialTemplateId() {
+  if (typeof window === "undefined") {
+    return "operator";
+  }
+
+  return window.location.pathname.startsWith("/agents/")
+    ? getTemplateIdFromAgentPath(window.location.pathname)
+    : "operator";
+}
+
 function App() {
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     if (typeof window === "undefined") {
@@ -25,7 +46,7 @@ function App() {
 
     return window.localStorage.getItem("kyra-theme") === "light" ? "light" : "dark";
   });
-  const [selectedId, setSelectedId] = useState("operator");
+  const [selectedId, setSelectedId] = useState(getInitialTemplateId);
   const [selectedScenarioId, setSelectedScenarioId] = useState("swap");
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [approvalApproved, setApprovalApproved] = useState(false);
@@ -74,6 +95,7 @@ function App() {
       }
 
       if (window.location.pathname.startsWith("/agents/")) {
+        setSelectedId(getTemplateIdFromAgentPath(window.location.pathname));
         setRoute("agent");
         return;
       }
@@ -91,7 +113,7 @@ function App() {
       nextRoute === "dashboard"
         ? "/dashboard"
         : nextRoute === "agent"
-          ? "/agents/operator-demo"
+          ? `/agents/${selectedTemplate.id}-demo`
           : "/";
     window.history.pushState({}, "", path);
     window.scrollTo({ top: 0, behavior: "smooth" });

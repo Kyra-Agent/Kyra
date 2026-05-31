@@ -20,6 +20,14 @@ This repository is currently frontend-only.
 - `/dashboard` - private operator dashboard preview.
 - `/agents/operator-demo` - public agent profile preview.
 
+## Demo Data Shape
+
+The app is still frontend-only, but the mock data is shaped like the backend records Kyra will need later:
+
+- `src/types/backend.ts` defines workspace, agent instance, approval request, wallet policy, activity log, and table summary types.
+- `src/data/demoBackend.ts` seeds the frontend with mock records for dashboard, public agent preview, and deploy flow.
+- The dashboard reads from those records instead of one-off local arrays, so it can be swapped for Supabase data in the next phase.
+
 ## Local Development
 
 ```bash

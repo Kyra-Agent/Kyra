@@ -1408,6 +1408,7 @@ h2 {
 .metric-grid strong {
   color: var(--text);
   font-size: 0.88rem;
+  overflow-wrap: anywhere;
 }
 
 .approval-card {
@@ -1905,7 +1906,8 @@ h2 {
 }
 
 .dashboard-kpi-grid span,
-.wallet-policy-list span {
+.wallet-policy-list span,
+.backend-table-list span {
   color: var(--muted);
   font-size: 0.78rem;
 }
@@ -1913,10 +1915,12 @@ h2 {
 .dashboard-kpi-grid strong {
   color: var(--text);
   font-size: 1.02rem;
+  overflow-wrap: anywhere;
 }
 
 .dashboard-kpi-grid small,
 .wallet-policy-list small,
+.backend-table-list small,
 .queue-item small,
 .dashboard-module-grid small,
 .mini-template-list small {
@@ -1954,6 +1958,7 @@ h2 {
 
 .queue-list,
 .wallet-policy-list,
+.backend-table-list,
 .mini-template-list {
   display: grid;
   gap: 0.55rem;
@@ -1981,9 +1986,11 @@ h2 {
 }
 
 .queue-item strong,
-.wallet-policy-list strong {
+.wallet-policy-list strong,
+.backend-table-list strong {
   display: block;
   color: var(--text);
+  overflow-wrap: anywhere;
 }
 
 .queue-item em {
@@ -2007,6 +2014,24 @@ h2 {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: rgba(255, 255, 255, 0.035);
+}
+
+.backend-table-list article {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.7fr) minmax(5rem, 0.32fr) 1fr;
+  align-items: start;
+  gap: 0.65rem;
+  padding: 0.72rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.backend-table-list span {
+  color: var(--blue);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .dashboard-log-box {
@@ -2170,6 +2195,7 @@ h2 {
 .profile-status-grid strong {
   color: var(--text);
   font-size: 0.94rem;
+  overflow-wrap: anywhere;
 }
 
 .public-agent-grid {
@@ -2705,6 +2731,10 @@ h2 {
   .dashboard-kpi-grid,
   .dashboard-content-grid,
   .dashboard-module-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .backend-table-list article {
     grid-template-columns: 1fr;
   }
 

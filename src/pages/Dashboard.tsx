@@ -12,8 +12,17 @@ import {
 } from "lucide-react";
 import type { AgentTemplate } from "../types/agent";
 import { agentTemplates } from "../data/templates";
-import { dashboardLogs } from "../data/demoLogs";
 import { coreModules } from "../data/modules";
+import {
+  demoActivityLogs,
+  demoApprovalRequests,
+  demoBackendTables,
+  demoWalletPolicies,
+  demoWorkspace,
+  formatActivityLog,
+  getDemoAgentInstance,
+} from "../data/demoBackend";
+import type { DemoApprovalRequest } from "../types/backend";
 
 interface DashboardProps {
   selectedTemplate: AgentTemplate;
@@ -21,34 +30,33 @@ interface DashboardProps {
   onOpenAgent: () => void;
 }
 
-const queue = [
-  {
-    title: "Swap prepared",
-    meta: "10 USDC -> ETH",
-    status: "waiting approval",
-    tone: "pending",
-  },
-  {
-    title: "Holder verification",
-    meta: "wallet proof ready",
-    status: "read-only",
-    tone: "ok",
-  },
-  {
-    title: "Launch scan",
-    meta: "3 signals flagged",
-    status: "review",
-    tone: "review",
-  },
-];
+function getQueueTone(request: DemoApprovalRequest) {
+  if (request.status === "waiting_wallet") {
+    return "pending";
+  }
 
-const wallets = [
-  { label: "Base Account", value: "0x8a...91c", status: "demo connected" },
-  { label: "Daily limit", value: "100 USDC", status: "simulated" },
-  { label: "Policy", value: "Approval required", status: "active" },
-];
+  return request.status === "read_only_ready" ? "ok" : "review";
+}
+
+function formatQueueStatus(status: DemoApprovalRequest["status"]) {
+  return status.replace(/_/g, " ");
+}
 
 export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: DashboardProps) {
+  const agentRecord = getDemoAgentInstance(selectedTemplate.id);
+  const matchingRequests = demoApprovalRequests.filter(
+    (request) => request.templateId === selectedTemplate.id,
+  );
+  const visibleRequests = [
+    ...matchingRequests,
+    ...demoApprovalRequests.filter((request) => request.templateId !== selectedTemplate.id),
+  ].slice(0, 3);
+  const activityLines = demoActivityLogs.map(formatActivityLog).concat([
+    "[12:05:07] dashboard route opened",
+    "[12:05:08] approval policy visible",
+    "[12:05:09] demo mode remains active",
+  ]);
+
   return (
     <main className="dashboard-page">
       <aside className="dashboard-sidebar">
@@ -56,7 +64,7 @@ export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: Dashboa
           <span className="agent-orb">K</span>
           <div>
             <strong>Kyra Console</strong>
-            <small>Demo workspace</small>
+            <small>{demoWorkspace.name}</small>
           </div>
         </div>
 
@@ -92,7 +100,7 @@ export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: Dashboa
               <Bot size={14} />
               Agent online
             </span>
-            <h1>Kyra {selectedTemplate.name}</h1>
+            <h1>{agentRecord.displayName}</h1>
             <p>{selectedTemplate.role}</p>
           </div>
           <button className="button button-primary" type="button" onClick={onOpenAgent}>
@@ -110,7 +118,7 @@ export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: Dashboa
           <article>
             <span>Platform</span>
             <strong>Telegram</strong>
-            <small>@kyra_{selectedTemplate.id}_demo</small>
+            <small>{agentRecord.handle}</small>
           </article>
           <article>
             <span>Wallet</span>
@@ -128,7 +136,7 @@ export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: Dashboa
           <section className="dashboard-panel agent-overview-panel">
             <div className="panel-title">
               <span>agent.instance</span>
-              <span>demo</span>
+              <span>{agentRecord.id}</span>
             </div>
             <p>{selectedTemplate.summary}</p>
             <div className="dashboard-action-chips">
@@ -144,19 +152,23 @@ export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: Dashboa
           <section className="dashboard-panel" id="approvals">
             <div className="panel-title">
               <span>approval.queue</span>
-              <span>{queue.length} items</span>
+              <span>{visibleRequests.length} items</span>
             </div>
             <div className="queue-list">
-              {queue.map((item) => (
-                <article className={`queue-item queue-${item.tone}`} key={item.title}>
+              {visibleRequests.map((item) => (
+                <article className={`queue-item queue-${getQueueTone(item)}`} key={item.id}>
                   <span className="queue-icon">
-                    {item.tone === "pending" ? <Clock3 size={16} /> : <ShieldCheck size={16} />}
+                    {getQueueTone(item) === "pending" ? (
+                      <Clock3 size={16} />
+                    ) : (
+                      <ShieldCheck size={16} />
+                    )}
                   </span>
                   <div>
                     <strong>{item.title}</strong>
-                    <small>{item.meta}</small>
+                    <small>{item.command}</small>
                   </div>
-                  <em>{item.status}</em>
+                  <em>{formatQueueStatus(item.status)}</em>
                 </article>
               ))}
             </div>
@@ -168,11 +180,27 @@ export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: Dashboa
               <span>safe mode</span>
             </div>
             <div className="wallet-policy-list">
-              {wallets.map((wallet) => (
-                <article key={wallet.label}>
-                  <span>{wallet.label}</span>
-                  <strong>{wallet.value}</strong>
-                  <small>{wallet.status}</small>
+              {demoWalletPolicies.map((policy) => (
+                <article key={policy.id}>
+                  <span>{policy.label}</span>
+                  <strong>{policy.value}</strong>
+                  <small>{policy.status}: {policy.description}</small>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="dashboard-panel backend-shape-panel">
+            <div className="panel-title">
+              <span>backend.records</span>
+              <span>frontend mock</span>
+            </div>
+            <div className="backend-table-list">
+              {demoBackendTables.map((table) => (
+                <article key={table.name}>
+                  <span>{table.name}</span>
+                  <strong>{table.records} records</strong>
+                  <small>{table.purpose}</small>
                 </article>
               ))}
             </div>
@@ -184,11 +212,7 @@ export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: Dashboa
               <span>live replay</span>
             </div>
             <div className="dashboard-log-box">
-              {dashboardLogs.concat([
-                "[12:05:07] dashboard route opened",
-                "[12:05:08] approval policy visible",
-                "[12:05:09] demo mode remains active",
-              ]).map((log) => (
+              {activityLines.map((log) => (
                 <p key={log}>{log}</p>
               ))}
             </div>

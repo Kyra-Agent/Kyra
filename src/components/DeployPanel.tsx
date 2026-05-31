@@ -10,6 +10,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import type { AgentTemplate } from "../types/agent";
+import { demoBackendTables, getDemoAgentInstance } from "../data/demoBackend";
 
 interface DeployPanelProps {
   templates: AgentTemplate[];
@@ -19,6 +20,7 @@ interface DeployPanelProps {
 
 const deployLogs = [
   "compile agent profile",
+  "prepare demo backend records",
   "load Kyra core modules",
   "link Telegram interface",
   "sync Base MCP endpoint",
@@ -62,16 +64,28 @@ export function DeployPanel({ templates, selectedTemplate, onSelectTemplate }: D
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
   const [deployed, setDeployed] = useState(false);
 
+  const agentRecord = useMemo(
+    () => getDemoAgentInstance(selectedTemplate.id),
+    [selectedTemplate.id],
+  );
+
   const selectedActions = useMemo(
     () => selectedTemplate.actions.slice(0, 5),
     [selectedTemplate.actions],
+  );
+  const backendTableNames = useMemo(
+    () => demoBackendTables.map((table) => table.name).join(","),
+    [],
   );
 
   const terminalLines = useMemo(
     () => [
       `kyra deploy --template ${selectedTemplate.id} --agent "${agentName || "Unnamed Agent"}"`,
+      `agent.instance=${agentRecord.id}`,
+      `agent.public_route=${agentRecord.publicPath}`,
       `profile.template=${selectedTemplate.name}`,
       "profile.mode=demo",
+      `db.prepare=${backendTableNames}`,
       `modules.load=${selectedTemplate.modules.join(",")}`,
       `actions.enable=${selectedActions.join(",")}`,
       "telegram.webhook=simulated",
@@ -80,7 +94,7 @@ export function DeployPanel({ templates, selectedTemplate, onSelectTemplate }: D
       "security.no_private_keys=true",
       "demo.transactions=disabled",
     ],
-    [agentName, selectedActions, selectedTemplate],
+    [agentName, agentRecord, backendTableNames, selectedActions, selectedTemplate],
   );
 
   const activeLogCount = deploying
@@ -308,6 +322,14 @@ export function DeployPanel({ templates, selectedTemplate, onSelectTemplate }: D
                     Wallet
                     <strong>approval required</strong>
                   </span>
+                  <span>
+                    Records
+                    <strong>{demoBackendTables.length} mock tables</strong>
+                  </span>
+                  <span>
+                    Public route
+                    <strong>{agentRecord.publicPath}</strong>
+                  </span>
                 </div>
               </div>
             ) : null}
@@ -349,11 +371,11 @@ export function DeployPanel({ templates, selectedTemplate, onSelectTemplate }: D
               <div className="receipt-grid">
                 <span>
                   Telegram
-                  <strong>@kyra_{selectedTemplate.id}_demo</strong>
+                  <strong>{agentRecord.handle}</strong>
                 </span>
                 <span>
                   Console
-                  <strong>kyra.app/agents/{selectedTemplate.id}-demo</strong>
+                  <strong>kyra.app{agentRecord.publicPath}</strong>
                 </span>
                 <span>
                   Template
@@ -362,6 +384,10 @@ export function DeployPanel({ templates, selectedTemplate, onSelectTemplate }: D
                 <span>
                   Wallet
                   <strong>approval required</strong>
+                </span>
+                <span>
+                  Record
+                  <strong>{agentRecord.id}</strong>
                 </span>
               </div>
               <div className="receipt-actions">

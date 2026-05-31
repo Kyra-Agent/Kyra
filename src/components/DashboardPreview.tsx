@@ -1,5 +1,6 @@
 import { Activity, ArrowRight, CircleDot, Clock, ExternalLink } from "lucide-react";
 import type { AgentTemplate } from "../types/agent";
+import { getDemoAgentInstance } from "../data/demoBackend";
 import { dashboardLogs } from "../data/demoLogs";
 
 interface DashboardPreviewProps {
@@ -7,6 +8,8 @@ interface DashboardPreviewProps {
 }
 
 export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
+  const agentRecord = getDemoAgentInstance(selectedTemplate.id);
+
   return (
     <section className="section dashboard-section">
       <div className="dashboard-header">
@@ -25,7 +28,7 @@ export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
           <div className="agent-card-header">
             <span className="agent-orb">K</span>
             <div>
-              <strong>Kyra {selectedTemplate.name}</strong>
+              <strong>{agentRecord.displayName}</strong>
               <small>{selectedTemplate.role}</small>
             </div>
           </div>
@@ -41,7 +44,7 @@ export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
             </span>
             <span>
               Platform
-              <strong>Telegram</strong>
+              <strong>{agentRecord.handle}</strong>
             </span>
             <span>
               Approval
