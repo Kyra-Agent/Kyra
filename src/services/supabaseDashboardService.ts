@@ -69,7 +69,7 @@ function mapAgent(row: AgentInstanceRow): DemoAgentInstance {
     templateId: row.template_id,
     displayName: row.display_name,
     handle: row.handle,
-    publicPath: `/agents/${row.template_id}-demo`,
+    publicPath: `/agents/${row.public_slug}`,
     status: row.status,
     mode: "backend-demo",
     network: "Base",

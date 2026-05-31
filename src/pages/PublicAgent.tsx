@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Activity,
   ArrowLeft,
@@ -18,9 +18,15 @@ import {
 } from "lucide-react";
 import type { AgentTemplate } from "../types/agent";
 import { kyraDataService } from "../services/kyraDataService";
+import {
+  fetchPublicAgentProfile,
+  type PublicAgentProfile,
+  type PublicAgentProfileStatus,
+} from "../services/supabasePublicAgentService";
 
 interface PublicAgentProps {
   selectedTemplate: AgentTemplate;
+  agentSlug: string;
   onBackDashboard: () => void;
   onBackHome: () => void;
 }
@@ -43,13 +49,61 @@ const capabilityRows = [
   },
 ];
 
-export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: PublicAgentProps) {
+function getPublicStatusLabel(status: PublicAgentProfileStatus) {
+  if (status === "connected") {
+    return "Supabase public profile";
+  }
+
+  if (status === "loading") {
+    return "Loading public profile";
+  }
+
+  return "Public agent preview";
+}
+
+export function PublicAgent({
+  selectedTemplate,
+  agentSlug,
+  onBackDashboard,
+  onBackHome,
+}: PublicAgentProps) {
   const [copied, setCopied] = useState(false);
   const [telegramPrimed, setTelegramPrimed] = useState(false);
-  const agentRecord = kyraDataService.getAgentInstance(selectedTemplate.id);
+  const [publicStatus, setPublicStatus] = useState<PublicAgentProfileStatus>("loading");
+  const [publicProfile, setPublicProfile] = useState<PublicAgentProfile | null>(null);
+  const [publicError, setPublicError] = useState<string | null>(null);
+  const fallbackAgentRecord = kyraDataService.getAgentInstance(selectedTemplate.id);
+  const agentRecord = publicProfile?.agent ?? fallbackAgentRecord;
+  const activeTemplate = publicProfile?.template ?? selectedTemplate;
   const approvalPolicy = kyraDataService.getApprovalPolicyForAgent(agentRecord);
-  const commandRows = kyraDataService.listPriorityApprovalRequests(selectedTemplate.id, 4);
-  const backendTables = kyraDataService.listBackendTables();
+  const commandRows = kyraDataService.listPriorityApprovalRequests(activeTemplate.id, 4);
+  const backendTables = publicProfile?.backendTables ?? kyraDataService.listBackendTables();
+  const backendSource = publicProfile ? "supabase profile" : "mock tables";
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadPublicProfile() {
+      setPublicStatus("loading");
+      setPublicError(null);
+
+      const result = await fetchPublicAgentProfile(agentSlug, selectedTemplate.id);
+
+      if (!active) {
+        return;
+      }
+
+      setPublicStatus(result.status);
+      setPublicProfile(result.ok ? result.profile : null);
+      setPublicError(result.error);
+    }
+
+    void loadPublicProfile();
+
+    return () => {
+      active = false;
+    };
+  }, [agentSlug, selectedTemplate.id]);
 
   function copyProfileLink() {
     const origin = typeof window === "undefined" ? "https://kyra-agent.demo" : window.location.origin;
@@ -74,7 +128,7 @@ export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: P
 
           <span className="demo-badge">
             <Bot size={14} />
-            Public agent preview
+            {getPublicStatusLabel(publicStatus)}
           </span>
           <div className="public-status-line" aria-label="Agent public status">
             <span>
@@ -96,6 +150,11 @@ export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: P
             available commands, safety policy, and backend-shaped records before live
             Telegram and Base MCP integrations are connected.
           </p>
+          {publicError ? (
+            <span className="demo-action-note public-profile-note">
+              Supabase profile fallback: {publicError}
+            </span>
+          ) : null}
 
           <div className="profile-cta-row">
             <button
@@ -125,7 +184,7 @@ export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: P
           <div className="identity-signal">
             <div className="identity-core">
               <span>KYRA</span>
-              <strong>{selectedTemplate.name}</strong>
+              <strong>{activeTemplate.name}</strong>
               <small>{agentRecord.handle}</small>
             </div>
             <span className="identity-ring" />
@@ -134,7 +193,7 @@ export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: P
             <span className="agent-orb">K</span>
             <div>
               <strong>{agentRecord.handle}</strong>
-              <small>{selectedTemplate.role}</small>
+              <small>{activeTemplate.role}</small>
             </div>
           </div>
           <div className="profile-status-grid">
@@ -161,7 +220,7 @@ export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: P
       <section className="public-proof-strip" aria-label="Kyra public agent facts">
         <span>
           <Database size={16} />
-          {backendTables.length} mock tables
+          {backendTables.length} {backendSource}
         </span>
         <span>
           <LockKeyhole size={16} />
@@ -177,11 +236,11 @@ export function PublicAgent({ selectedTemplate, onBackDashboard, onBackHome }: P
         <article className="public-panel public-summary">
           <div className="panel-title">
             <span>agent.summary</span>
-            <span>{selectedTemplate.status}</span>
+            <span>{activeTemplate.status}</span>
           </div>
-          <p>{selectedTemplate.summary}</p>
+          <p>{activeTemplate.summary}</p>
           <div className="dashboard-action-chips">
-            {selectedTemplate.actions.map((action) => (
+            {activeTemplate.actions.map((action) => (
               <span className="chip chip-active" key={action}>
                 <CheckCircle2 size={13} />
                 {action}

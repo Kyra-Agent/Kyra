@@ -32,6 +32,20 @@ export function getJsonHeaders(session: KyraAuthSession, prefer?: string) {
   return headers;
 }
 
+export function getPublicJsonHeaders() {
+  const apiKey = getSupabaseApiKey();
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    apikey: apiKey,
+  };
+
+  if (apiKey && !apiKey.startsWith("sb_")) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
+
+  return headers;
+}
+
 export function sanitizeSupabaseMessage(message: string) {
   return message
     .replace(/sb_publishable_[A-Za-z0-9_-]+/g, "sb_publishable_[hidden]")
@@ -52,6 +66,14 @@ export async function parseSupabaseResponse<T>(response: Response): Promise<T> {
 export async function selectRows<T>(session: KyraAuthSession, path: string): Promise<T[]> {
   const response = await fetch(getRestUrl(path), {
     headers: getJsonHeaders(session),
+  });
+
+  return parseSupabaseResponse<T[]>(response);
+}
+
+export async function selectPublicRows<T>(path: string): Promise<T[]> {
+  const response = await fetch(getRestUrl(path), {
+    headers: getPublicJsonHeaders(),
   });
 
   return parseSupabaseResponse<T[]>(response);

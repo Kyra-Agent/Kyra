@@ -220,6 +220,7 @@ select
   templates.id as template_id,
   templates.name as template_name,
   templates.role as template_role,
+  templates.status as template_status,
   templates.summary as template_summary,
   templates.best_for as template_best_for,
   templates.actions as template_actions,

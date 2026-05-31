@@ -31,9 +31,18 @@ import type { DataProvider } from "./types/api";
 const fallbackAgentTemplates = kyraDataService.listTemplates();
 const demoScenarios = kyraDataService.listScenarios();
 
-function getTemplateIdFromAgentPath(pathname: string) {
-  const match = pathname.match(/^\/agents\/([a-z-]+)-demo$/);
-  const templateId = match?.[1];
+function getAgentSlugFromPath(pathname: string) {
+  return pathname.match(/^\/agents\/([^/]+)$/)?.[1] ?? null;
+}
+
+function getTemplateIdFromAgentSlug(agentSlug: string | null) {
+  if (!agentSlug) {
+    return "operator";
+  }
+
+  const templateId = agentSlug.endsWith("-demo")
+    ? agentSlug.replace(/-demo$/, "")
+    : fallbackAgentTemplates.find((template) => agentSlug.startsWith(`${template.id}-`))?.id;
 
   if (templateId && fallbackAgentTemplates.some((template) => template.id === templateId)) {
     return templateId;
@@ -48,8 +57,16 @@ function getInitialTemplateId() {
   }
 
   return window.location.pathname.startsWith("/agents/")
-    ? getTemplateIdFromAgentPath(window.location.pathname)
+    ? getTemplateIdFromAgentSlug(getAgentSlugFromPath(window.location.pathname))
     : "operator";
+}
+
+function getInitialAgentSlug() {
+  if (typeof window === "undefined") {
+    return "operator-demo";
+  }
+
+  return getAgentSlugFromPath(window.location.pathname) ?? "operator-demo";
 }
 
 function App() {
@@ -61,6 +78,7 @@ function App() {
     return window.localStorage.getItem("kyra-theme") === "light" ? "light" : "dark";
   });
   const [selectedId, setSelectedId] = useState(getInitialTemplateId);
+  const [agentSlug, setAgentSlug] = useState(getInitialAgentSlug);
   const [agentTemplates, setAgentTemplates] = useState(fallbackAgentTemplates);
   const [templateCatalogSource, setTemplateCatalogSource] = useState<DataProvider>("mock");
   const [templateCatalogStatus, setTemplateCatalogStatus] = useState<SupabaseConnectionStatus>(
@@ -211,7 +229,9 @@ function App() {
       }
 
       if (window.location.pathname.startsWith("/agents/")) {
-        setSelectedId(getTemplateIdFromAgentPath(window.location.pathname));
+        const nextAgentSlug = getAgentSlugFromPath(window.location.pathname);
+        setAgentSlug(nextAgentSlug ?? "operator-demo");
+        setSelectedId(getTemplateIdFromAgentSlug(nextAgentSlug));
         setRoute("agent");
         return;
       }
@@ -223,11 +243,16 @@ function App() {
     return () => window.removeEventListener("popstate", syncRouteFromLocation);
   }, []);
 
-  function navigate(nextRoute: "home" | "dashboard" | "agent", templateId?: string) {
-    const nextTemplateId = templateId ?? selectedTemplate.id;
+  function navigate(
+    nextRoute: "home" | "dashboard" | "agent",
+    target?: { templateId?: string; publicPath?: string },
+  ) {
+    const targetSlug = target?.publicPath?.replace(/^\/agents\//, "");
+    const nextTemplateId = target?.templateId ?? selectedTemplate.id;
 
     if (nextRoute === "agent") {
       setSelectedId(nextTemplateId);
+      setAgentSlug(targetSlug ?? `${nextTemplateId}-demo`);
     }
 
     setRoute(nextRoute);
@@ -235,7 +260,7 @@ function App() {
       nextRoute === "dashboard"
         ? "/dashboard"
         : nextRoute === "agent"
-          ? `/agents/${nextTemplateId}-demo`
+          ? `/agents/${targetSlug ?? `${nextTemplateId}-demo`}`
           : "/";
     window.history.pushState({}, "", path);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -323,11 +348,12 @@ function App() {
           authMessage={authMessage}
           onAuthSessionChange={updateAuthSession}
           onBackHome={() => navigate("home")}
-          onOpenAgent={(templateId) => navigate("agent", templateId)}
+          onOpenAgent={(target) => navigate("agent", target)}
         />
       ) : route === "agent" ? (
         <PublicAgent
           selectedTemplate={selectedTemplate}
+          agentSlug={agentSlug}
           onBackDashboard={() => navigate("dashboard")}
           onBackHome={() => navigate("home")}
         />

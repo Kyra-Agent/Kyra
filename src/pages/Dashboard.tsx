@@ -49,7 +49,7 @@ interface DashboardProps {
     message: string,
   ) => void;
   onBackHome: () => void;
-  onOpenAgent: (templateId?: string) => void;
+  onOpenAgent: (target?: { templateId?: string; publicPath?: string }) => void;
 }
 
 function getQueueTone(request: DemoApprovalRequest) {
@@ -303,7 +303,12 @@ export function Dashboard({
           <button
             className="button button-primary"
             type="button"
-            onClick={() => onOpenAgent(agentRecord.templateId)}
+            onClick={() =>
+              onOpenAgent({
+                templateId: agentRecord.templateId,
+                publicPath: agentRecord.publicPath,
+              })
+            }
           >
             Open Public Agent
             <ExternalLink size={16} />
