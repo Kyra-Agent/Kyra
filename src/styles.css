@@ -453,6 +453,42 @@ button {
   padding: 0.35rem 0.5rem;
 }
 
+.demo-disclaimer {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: calc(100% - 32px);
+  max-width: 1180px;
+  min-height: 50px;
+  margin: 0 auto 0.75rem;
+  padding: 0.72rem 0.85rem;
+  border: 1px solid rgba(248, 198, 111, 0.22);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(90deg, rgba(248, 198, 111, 0.08), transparent 48%),
+    rgba(255, 255, 255, 0.035);
+  color: var(--muted);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.16);
+}
+
+.demo-disclaimer span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+  color: var(--amber);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.demo-disclaimer p {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
 main {
   width: calc(100% - 32px);
   max-width: 1180px;
@@ -2691,6 +2727,7 @@ h2 {
 
   main,
   .site-header,
+  .demo-disclaimer,
   .site-footer {
     width: calc(100% - 24px);
   }
@@ -2946,6 +2983,12 @@ h2 {
 
   .theme-toggle span {
     display: none;
+  }
+
+  .demo-disclaimer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.42rem;
   }
 
   .wizard-stepper {

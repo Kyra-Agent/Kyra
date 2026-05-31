@@ -1,0 +1,34 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#05070A"/>
+  <path d="M0 0H1200V630H0V0Z" fill="url(#bg)"/>
+  <g opacity="0.38">
+    <path d="M80 108H1120" stroke="#5EA2FF" stroke-opacity="0.2"/>
+    <path d="M80 184H1120" stroke="#5EA2FF" stroke-opacity="0.14"/>
+    <path d="M80 260H1120" stroke="#5EA2FF" stroke-opacity="0.14"/>
+    <path d="M80 336H1120" stroke="#5EA2FF" stroke-opacity="0.14"/>
+    <path d="M80 412H1120" stroke="#5EA2FF" stroke-opacity="0.14"/>
+    <path d="M80 488H1120" stroke="#5EA2FF" stroke-opacity="0.14"/>
+  </g>
+  <rect x="72" y="72" width="1056" height="486" rx="28" fill="#0B1018" fill-opacity="0.86" stroke="#5EA2FF" stroke-opacity="0.28"/>
+  <rect x="96" y="96" width="158" height="42" rx="21" fill="#102035" stroke="#8AE6B1" stroke-opacity="0.32"/>
+  <text x="122" y="123" fill="#8AE6B1" font-family="Consolas, monospace" font-size="18" font-weight="700">DEMO MODE</text>
+  <text x="96" y="220" fill="#EEF5FF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="72" font-weight="800">Kyra Agent</text>
+  <text x="96" y="292" fill="#EEF5FF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="44" font-weight="700">Base Onchain Agent Console</text>
+  <text x="96" y="368" fill="#9DAFC6" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28">Deploy Telegram-native AI agents that prepare</text>
+  <text x="96" y="408" fill="#9DAFC6" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28">wallet-approved Base actions in a safe frontend demo.</text>
+  <g transform="translate(820 156)">
+    <circle cx="132" cy="132" r="126" fill="#07111F" stroke="#5EA2FF" stroke-opacity="0.36"/>
+    <circle cx="132" cy="132" r="82" fill="#05070A" stroke="#8AE6B1" stroke-opacity="0.34"/>
+    <text x="132" y="120" text-anchor="middle" fill="#5EA2FF" font-family="Consolas, monospace" font-size="34" font-weight="800">KYRA</text>
+    <text x="132" y="159" text-anchor="middle" fill="#EEF5FF" font-family="Consolas, monospace" font-size="22" font-weight="700">BASE</text>
+    <path d="M132 18V42M132 222V246M18 132H42M222 132H246" stroke="#8AE6B1" stroke-opacity="0.62" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <text x="96" y="504" fill="#8AE6B1" font-family="Consolas, monospace" font-size="24" font-weight="700">No seed phrases. No custody. Wallet approval required.</text>
+  <defs>
+    <radialGradient id="bg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(954 74) rotate(130) scale(760 540)">
+      <stop stop-color="#173A71"/>
+      <stop offset="0.45" stop-color="#07111F"/>
+      <stop offset="1" stop-color="#05070A"/>
+    </radialGradient>
+  </defs>
+</svg>

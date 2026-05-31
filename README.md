@@ -52,7 +52,9 @@ When this is ready to publish:
 
 - Build command: `npm run build`
 - Publish directory: `dist`
-- SPA fallback: `public/_redirects` is already included.
+- Static config: `netlify.toml` is included.
+- SPA fallback: `public/_redirects` and Netlify redirects are included.
+- Social preview: `public/og-card.svg` is wired into the page metadata.
 
 ## Product Flow
 
