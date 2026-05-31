@@ -4,15 +4,22 @@ import {
   Bot,
   CheckCircle2,
   Clock3,
+  Database,
   ExternalLink,
+  KeyRound,
+  LockKeyhole,
+  Server,
   Radio,
   ShieldCheck,
   Terminal,
   WalletCards,
 } from "lucide-react";
 import type { AgentTemplate } from "../types/agent";
+import { appConfig } from "../config/appConfig";
 import { coreModules } from "../data/modules";
 import { kyraDataService } from "../services/kyraDataService";
+import { kyraRepositoryRuntime } from "../services/repositoryFactory";
+import { getSupabaseAdapterStatus } from "../services/supabaseKyraRepository";
 import type { DemoApprovalRequest } from "../types/backend";
 
 interface DashboardProps {
@@ -33,6 +40,10 @@ function formatQueueStatus(status: DemoApprovalRequest["status"]) {
   return status.replace(/_/g, " ");
 }
 
+function formatRuntimeValue(value: string) {
+  return value.replace(/-/g, " ");
+}
+
 export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: DashboardProps) {
   const agentTemplates = kyraDataService.listTemplates();
   const agentRecord = kyraDataService.getAgentInstance(selectedTemplate.id);
@@ -40,6 +51,45 @@ export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: Dashboa
   const walletPolicies = kyraDataService.listWalletPolicies();
   const backendTables = kyraDataService.listBackendTables();
   const workspace = kyraDataService.getWorkspace();
+  const supabaseStatus = getSupabaseAdapterStatus();
+  const readinessRows = [
+    {
+      label: "Active provider",
+      value: kyraRepositoryRuntime.activeProvider,
+      tone: "ready",
+      icon: Database,
+    },
+    {
+      label: "Requested provider",
+      value: kyraRepositoryRuntime.requestedProvider,
+      tone: kyraRepositoryRuntime.requestedProvider === "supabase" ? "standby" : "ready",
+      icon: Server,
+    },
+    {
+      label: "Supabase env",
+      value: supabaseStatus.configured ? "configured" : "waiting",
+      tone: supabaseStatus.configured ? "ready" : "standby",
+      icon: Database,
+    },
+    {
+      label: "Auth",
+      value: appConfig.integrations.auth,
+      tone: appConfig.integrations.auth === "supabase" ? "ready" : "standby",
+      icon: KeyRound,
+    },
+    {
+      label: "Database",
+      value: appConfig.integrations.database,
+      tone: appConfig.integrations.database === "supabase" ? "ready" : "standby",
+      icon: Server,
+    },
+    {
+      label: "Execution",
+      value: appConfig.integrations.walletExecution,
+      tone: "locked",
+      icon: LockKeyhole,
+    },
+  ];
   const activityLines = kyraDataService.listActivityLines([
     "[12:05:07] dashboard route opened",
     "[12:05:08] approval policy visible",
@@ -73,6 +123,10 @@ export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: Dashboa
           <a href="#modules">
             <Radio size={16} />
             Modules
+          </a>
+          <a href="#backend">
+            <Server size={16} />
+            Backend
           </a>
         </nav>
 
@@ -192,6 +246,40 @@ export function Dashboard({ selectedTemplate, onBackHome, onOpenAgent }: Dashboa
                   <small>{table.purpose}</small>
                 </article>
               ))}
+            </div>
+          </section>
+
+          <section className="dashboard-panel backend-readiness-panel" id="backend">
+            <div className="panel-title">
+              <span>backend.readiness</span>
+              <span>{formatRuntimeValue(appConfig.mode)}</span>
+            </div>
+            <div className="readiness-summary">
+              <span className="readiness-chip readiness-ready">
+                <ShieldCheck size={14} />
+                demo safe
+              </span>
+              <p>{kyraRepositoryRuntime.note}</p>
+            </div>
+            <div className="readiness-grid">
+              {readinessRows.map((item) => {
+                const Icon = item.icon;
+
+                return (
+                  <article className={`readiness-item readiness-${item.tone}`} key={item.label}>
+                    <Icon size={16} />
+                    <span>
+                      <small>{item.label}</small>
+                      <strong>{formatRuntimeValue(item.value)}</strong>
+                    </span>
+                  </article>
+                );
+              })}
+            </div>
+            <div className="backend-contract-line">
+              <span>{supabaseStatus.tables.length} Supabase tables mapped</span>
+              <span>public profile view planned</span>
+              <span>onchain execution disabled</span>
             </div>
           </section>
 
