@@ -16,7 +16,7 @@ export const kyraRepositoryRuntime: KyraRepositoryRuntime = {
   supabaseConfigured: appConfig.supabase.configured,
   note:
     appConfig.dataProvider === "supabase"
-      ? "Supabase is used for the read-only template catalog when available. Dashboard records and deploy simulations stay on mock data until auth is connected."
+      ? "Supabase powers the template catalog, signed-in dashboard records, and persisted demo deploy receipts. Onchain execution stays simulated."
       : "Frontend demo uses local mock data shaped like the planned Supabase records.",
 };
 

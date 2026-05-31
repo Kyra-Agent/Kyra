@@ -223,13 +223,19 @@ function App() {
     return () => window.removeEventListener("popstate", syncRouteFromLocation);
   }, []);
 
-  function navigate(nextRoute: "home" | "dashboard" | "agent") {
+  function navigate(nextRoute: "home" | "dashboard" | "agent", templateId?: string) {
+    const nextTemplateId = templateId ?? selectedTemplate.id;
+
+    if (nextRoute === "agent") {
+      setSelectedId(nextTemplateId);
+    }
+
     setRoute(nextRoute);
     const path =
       nextRoute === "dashboard"
         ? "/dashboard"
         : nextRoute === "agent"
-          ? `/agents/${selectedTemplate.id}-demo`
+          ? `/agents/${nextTemplateId}-demo`
           : "/";
     window.history.pushState({}, "", path);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -317,7 +323,7 @@ function App() {
           authMessage={authMessage}
           onAuthSessionChange={updateAuthSession}
           onBackHome={() => navigate("home")}
-          onOpenAgent={() => navigate("agent")}
+          onOpenAgent={(templateId) => navigate("agent", templateId)}
         />
       ) : route === "agent" ? (
         <PublicAgent

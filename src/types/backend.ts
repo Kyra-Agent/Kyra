@@ -35,7 +35,7 @@ export interface DemoApprovalRequest {
   command: string;
   route: string;
   risk: "normal" | "review" | "read-only";
-  status: "waiting_wallet" | "read_only_ready" | "review_required";
+  status: "waiting_wallet" | "read_only_ready" | "review_required" | "approved" | "rejected";
   feePayer: "connected_wallet";
   requiresWallet: boolean;
   createdAt: string;

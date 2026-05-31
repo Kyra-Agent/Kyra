@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   ArrowLeft,
@@ -20,13 +21,18 @@ import { appConfig } from "../config/appConfig";
 import { coreModules } from "../data/modules";
 import { kyraDataService } from "../services/kyraDataService";
 import { kyraRepositoryRuntime } from "../services/repositoryFactory";
+import {
+  fetchSupabaseDashboardData,
+  type SupabaseDashboardData,
+  type SupabaseDashboardStatus,
+} from "../services/supabaseDashboardService";
 import type { KyraAuthSession, KyraAuthStatus } from "../services/supabaseAuthService";
 import {
   getSupabaseAdapterStatus,
   type SupabaseConnectionStatus,
 } from "../services/supabaseKyraRepository";
 import type { DataProvider } from "../types/api";
-import type { DemoApprovalRequest } from "../types/backend";
+import type { DemoActivityLog, DemoApprovalRequest } from "../types/backend";
 
 interface DashboardProps {
   selectedTemplate: AgentTemplate;
@@ -43,7 +49,7 @@ interface DashboardProps {
     message: string,
   ) => void;
   onBackHome: () => void;
-  onOpenAgent: () => void;
+  onOpenAgent: (templateId?: string) => void;
 }
 
 function getQueueTone(request: DemoApprovalRequest) {
@@ -51,7 +57,7 @@ function getQueueTone(request: DemoApprovalRequest) {
     return "pending";
   }
 
-  return request.status === "read_only_ready" ? "ok" : "review";
+  return request.status === "read_only_ready" || request.status === "approved" ? "ok" : "review";
 }
 
 function formatQueueStatus(status: DemoApprovalRequest["status"]) {
@@ -68,6 +74,38 @@ function getReadinessTone(status: SupabaseConnectionStatus) {
   }
 
   return status === "error" ? "error" : "standby";
+}
+
+function getDashboardReadinessTone(status: SupabaseDashboardStatus) {
+  if (status === "connected") {
+    return "ready";
+  }
+
+  if (status === "error") {
+    return "error";
+  }
+
+  return status === "loading" ? "locked" : "standby";
+}
+
+function getDashboardReadinessLabel(status: SupabaseDashboardStatus) {
+  if (status === "connected") {
+    return "supabase live";
+  }
+
+  if (status === "loading") {
+    return "syncing";
+  }
+
+  if (status === "error") {
+    return "mock fallback";
+  }
+
+  return status === "not-configured" ? "not configured" : "mock fallback";
+}
+
+function formatActivityLog(log: DemoActivityLog) {
+  return `[${log.timestamp}] ${log.source}: ${log.message}`;
 }
 
 function getCatalogValue(status: SupabaseConnectionStatus, source: DataProvider, templateCount: number) {
@@ -96,17 +134,84 @@ export function Dashboard({
   onOpenAgent,
 }: DashboardProps) {
   const agentTemplates = templates;
-  const agentRecord = kyraDataService.getAgentInstance(selectedTemplate.id);
-  const visibleRequests = kyraDataService.listPriorityApprovalRequests(selectedTemplate.id, 3);
-  const walletPolicies = kyraDataService.listWalletPolicies();
-  const backendTables = kyraDataService.listBackendTables();
-  const workspace = kyraDataService.getWorkspace();
+  const [dashboardStatus, setDashboardStatus] = useState<SupabaseDashboardStatus>(
+    authSession ? "loading" : "empty",
+  );
+  const [dashboardData, setDashboardData] = useState<SupabaseDashboardData | null>(null);
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
   const supabaseStatus = getSupabaseAdapterStatus();
+
+  useEffect(() => {
+    if (!authSession) {
+      setDashboardStatus(appConfig.supabase.configured ? "empty" : "not-configured");
+      setDashboardData(null);
+      setDashboardError(null);
+      return;
+    }
+
+    let active = true;
+
+    async function loadDashboardRecords() {
+      setDashboardStatus("loading");
+      setDashboardError(null);
+
+      const result = await fetchSupabaseDashboardData(authSession);
+
+      if (!active) {
+        return;
+      }
+
+      setDashboardStatus(result.status);
+      setDashboardData(result.ok ? result.data : null);
+      setDashboardError(result.error);
+    }
+
+    void loadDashboardRecords();
+
+    return () => {
+      active = false;
+    };
+  }, [authSession]);
+
+  const fallbackAgentRecord = kyraDataService.getAgentInstance(selectedTemplate.id);
+  const agentRecord = dashboardData?.latestAgent ?? fallbackAgentRecord;
+  const activeTemplate = useMemo(
+    () =>
+      agentTemplates.find((template) => template.id === agentRecord.templateId) ??
+      selectedTemplate,
+    [agentTemplates, agentRecord.templateId, selectedTemplate],
+  );
+  const visibleRequests = useMemo(() => {
+    if (dashboardData?.approvalRequests.length) {
+      return [
+        ...dashboardData.approvalRequests.filter(
+          (request) => request.templateId === agentRecord.templateId,
+        ),
+        ...dashboardData.approvalRequests.filter(
+          (request) => request.templateId !== agentRecord.templateId,
+        ),
+      ].slice(0, 3);
+    }
+
+    return kyraDataService.listPriorityApprovalRequests(activeTemplate.id, 3);
+  }, [activeTemplate.id, agentRecord.templateId, dashboardData]);
+  const walletPolicies =
+    dashboardData?.walletPolicies.length ? dashboardData.walletPolicies : kyraDataService.listWalletPolicies();
+  const backendTables =
+    dashboardData?.backendTables.length ? dashboardData.backendTables : kyraDataService.listBackendTables();
+  const workspace = dashboardData?.workspace ?? kyraDataService.getWorkspace();
+  const activityLines = dashboardData?.activityLogs.length
+    ? dashboardData.activityLogs.map(formatActivityLog)
+    : kyraDataService.listActivityLines([
+        "[12:05:07] dashboard route opened",
+        "[12:05:08] approval policy visible",
+        "[12:05:09] demo mode remains active",
+      ]);
   const readinessRows = [
     {
-      label: "Demo records",
-      value: kyraRepositoryRuntime.activeProvider,
-      tone: "ready",
+      label: "Dashboard data",
+      value: getDashboardReadinessLabel(dashboardStatus),
+      tone: getDashboardReadinessTone(dashboardStatus),
       icon: Database,
     },
     {
@@ -140,11 +245,6 @@ export function Dashboard({
       icon: LockKeyhole,
     },
   ];
-  const activityLines = kyraDataService.listActivityLines([
-    "[12:05:07] dashboard route opened",
-    "[12:05:08] approval policy visible",
-    "[12:05:09] demo mode remains active",
-  ]);
 
   return (
     <main className="dashboard-page">
@@ -195,12 +295,16 @@ export function Dashboard({
           <div>
             <span className="demo-badge compact">
               <Bot size={14} />
-              Agent online
+              {dashboardStatus === "connected" ? "Supabase agent" : "Agent online"}
             </span>
             <h1>{agentRecord.displayName}</h1>
-            <p>{selectedTemplate.role}</p>
+            <p>{activeTemplate.role}</p>
           </div>
-          <button className="button button-primary" type="button" onClick={onOpenAgent}>
+          <button
+            className="button button-primary"
+            type="button"
+            onClick={() => onOpenAgent(agentRecord.templateId)}
+          >
             Open Public Agent
             <ExternalLink size={16} />
           </button>
@@ -209,8 +313,8 @@ export function Dashboard({
         <section className="dashboard-kpi-grid" id="overview">
           <article>
             <span>Template</span>
-            <strong>{selectedTemplate.name}</strong>
-            <small>{selectedTemplate.status}</small>
+            <strong>{activeTemplate.name}</strong>
+            <small>{activeTemplate.status}</small>
           </article>
           <article>
             <span>Platform</span>
@@ -235,9 +339,9 @@ export function Dashboard({
               <span>agent.instance</span>
               <span>{agentRecord.id}</span>
             </div>
-            <p>{selectedTemplate.summary}</p>
+            <p>{activeTemplate.summary}</p>
             <div className="dashboard-action-chips">
-              {selectedTemplate.actions.map((action) => (
+              {activeTemplate.actions.map((action) => (
                 <span className="chip chip-active" key={action}>
                   <CheckCircle2 size={13} />
                   {action}
@@ -297,7 +401,7 @@ export function Dashboard({
           <section className="dashboard-panel backend-shape-panel">
             <div className="panel-title">
               <span>backend.records</span>
-              <span>frontend mock</span>
+              <span>{dashboardStatus === "connected" ? "supabase" : "frontend mock"}</span>
             </div>
             <div className="backend-table-list">
               {backendTables.map((table) => (
@@ -316,14 +420,19 @@ export function Dashboard({
               <span>{formatRuntimeValue(appConfig.mode)}</span>
             </div>
             <div className="readiness-summary">
-              <span className={`readiness-chip readiness-${getReadinessTone(templateCatalogStatus)}`}>
+              <span className={`readiness-chip readiness-${getDashboardReadinessTone(dashboardStatus)}`}>
                 <ShieldCheck size={14} />
-                {templateCatalogStatus === "connected" ? "Supabase read connected" : "demo safe"}
+                {dashboardStatus === "connected" ? "Supabase records connected" : "demo safe"}
               </span>
               <p>{kyraRepositoryRuntime.note}</p>
               {templateCatalogError ? (
                 <p className="readiness-error-note">
                   Supabase catalog query failed: {templateCatalogError}
+                </p>
+              ) : null}
+              {dashboardError && authSession ? (
+                <p className="readiness-error-note">
+                  Supabase dashboard query: {dashboardError}
                 </p>
               ) : null}
             </div>
@@ -345,6 +454,11 @@ export function Dashboard({
             <div className="backend-contract-line">
               <span>{supabaseStatus.tables.length} Supabase tables mapped</span>
               <span>{agentTemplates.length} templates loaded</span>
+              <span>
+                {dashboardData?.agentInstances.length
+                  ? `${dashboardData.agentInstances.length} Supabase agents`
+                  : "dashboard fallback ready"}
+              </span>
               <span>onchain execution disabled</span>
             </div>
           </section>
@@ -385,7 +499,7 @@ export function Dashboard({
             <div className="mini-template-list">
               {agentTemplates.map((template) => (
                 <article
-                  className={template.id === selectedTemplate.id ? "is-active" : ""}
+                  className={template.id === activeTemplate.id ? "is-active" : ""}
                   key={template.id}
                 >
                   <strong>{template.name}</strong>

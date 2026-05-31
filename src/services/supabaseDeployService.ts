@@ -1,11 +1,20 @@
 import { appConfig } from "../config/appConfig";
 import { demoScenarios } from "../data/demoScenarios";
 import type { AgentTemplate } from "../types/agent";
-import type { KyraDatabase, KyraTableName } from "../types/database";
+import type { KyraTableName } from "../types/database";
+import {
+  insertRow,
+  insertRows,
+  patchRow,
+  sanitizeSupabaseMessage,
+  selectRows,
+  type SupabaseTableInsert,
+  type SupabaseTableRow,
+} from "./supabaseRestClient";
 import type { KyraAuthSession } from "./supabaseAuthService";
 
-type TableRow<TName extends KyraTableName> = KyraDatabase["public"]["Tables"][TName]["Row"];
-type TableInsert<TName extends KyraTableName> = KyraDatabase["public"]["Tables"][TName]["Insert"];
+type TableRow<TName extends KyraTableName> = SupabaseTableRow<TName>;
+type TableInsert<TName extends KyraTableName> = SupabaseTableInsert<TName>;
 
 type WorkspaceRow = TableRow<"workspaces">;
 type AgentInstanceRow = TableRow<"agent_instances">;
@@ -26,106 +35,6 @@ export interface DeployPersistenceResult {
   workspaceId: string | null;
   agentId: string | null;
   publicSlug: string | null;
-}
-
-function getSupabaseApiKey() {
-  return import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-}
-
-function getRestUrl(path: string) {
-  return `${appConfig.supabase.url.replace(/\/$/, "")}/rest/v1/${path.replace(/^\//, "")}`;
-}
-
-function getJsonHeaders(session: KyraAuthSession, prefer?: string) {
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    "Content-Type": "application/json",
-    apikey: getSupabaseApiKey(),
-    Authorization: `Bearer ${session.accessToken}`,
-  };
-
-  if (prefer) {
-    headers.Prefer = prefer;
-  }
-
-  return headers;
-}
-
-function sanitizeMessage(message: string) {
-  return message
-    .replace(/sb_publishable_[A-Za-z0-9_-]+/g, "sb_publishable_[hidden]")
-    .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "jwt_[hidden]")
-    .slice(0, 240);
-}
-
-async function parseSupabaseResponse<T>(response: Response): Promise<T> {
-  const text = await response.text();
-
-  if (!response.ok) {
-    throw new Error(text || `Supabase request failed with ${response.status}.`);
-  }
-
-  return text ? (JSON.parse(text) as T) : ([] as T);
-}
-
-async function selectRows<T>(session: KyraAuthSession, path: string): Promise<T[]> {
-  const response = await fetch(getRestUrl(path), {
-    headers: getJsonHeaders(session),
-  });
-
-  return parseSupabaseResponse<T[]>(response);
-}
-
-async function insertRow<TName extends KyraTableName>(
-  session: KyraAuthSession,
-  tableName: TName,
-  payload: TableInsert<TName>,
-): Promise<TableRow<TName>> {
-  const response = await fetch(getRestUrl(tableName), {
-    method: "POST",
-    headers: getJsonHeaders(session, "return=representation"),
-    body: JSON.stringify(payload),
-  });
-  const rows = await parseSupabaseResponse<TableRow<TName>[]>(response);
-
-  if (!rows[0]) {
-    throw new Error(`Supabase did not return a ${tableName} row.`);
-  }
-
-  return rows[0];
-}
-
-async function insertRows<TName extends KyraTableName>(
-  session: KyraAuthSession,
-  tableName: TName,
-  payload: TableInsert<TName>[],
-) {
-  if (payload.length === 0) {
-    return;
-  }
-
-  const response = await fetch(getRestUrl(tableName), {
-    method: "POST",
-    headers: getJsonHeaders(session),
-    body: JSON.stringify(payload),
-  });
-
-  await parseSupabaseResponse(response);
-}
-
-async function patchRow<TName extends KyraTableName>(
-  session: KyraAuthSession,
-  tableName: TName,
-  id: string,
-  payload: KyraDatabase["public"]["Tables"][TName]["Update"],
-) {
-  const response = await fetch(getRestUrl(`${tableName}?id=eq.${encodeURIComponent(id)}`), {
-    method: "PATCH",
-    headers: getJsonHeaders(session),
-    body: JSON.stringify(payload),
-  });
-
-  await parseSupabaseResponse(response);
 }
 
 async function ensureWorkspace(session: KyraAuthSession): Promise<WorkspaceRow> {
@@ -319,7 +228,7 @@ export async function saveSupabaseDemoDeployment({
       status: "error",
       message:
         error instanceof Error
-          ? sanitizeMessage(error.message)
+          ? sanitizeSupabaseMessage(error.message)
           : "Supabase deployment persistence failed.",
       workspaceId: null,
       agentId: null,
