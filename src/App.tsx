@@ -420,7 +420,7 @@ function App() {
               selectedTemplate={selectedTemplate}
               authSession={authSession}
               onSelectTemplate={setSelectedId}
-              onOpenAgent={() => navigate("agent")}
+              onOpenAgent={(target) => navigate("agent", target)}
             />
             <DashboardPreview selectedTemplate={selectedTemplate} />
             <ActionConsole />

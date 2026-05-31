@@ -1,4 +1,5 @@
 import { appConfig } from "../config/appConfig";
+import { demoAgentLimits } from "../config/demoLimits";
 import { demoScenarios } from "../data/demoScenarios";
 import type { AgentTemplate } from "../types/agent";
 import type { KyraTableName } from "../types/database";
@@ -19,6 +20,7 @@ type TableInsert<TName extends KyraTableName> = SupabaseTableInsert<TName>;
 type WorkspaceRow = TableRow<"workspaces">;
 type AgentInstanceRow = TableRow<"agent_instances">;
 type WalletPolicyRow = TableRow<"wallet_policies">;
+type AgentCountRow = Pick<AgentInstanceRow, "id">;
 
 export type DeployPersistenceStatus = "skipped" | "saved" | "error";
 
@@ -37,14 +39,47 @@ export interface DeployPersistenceResult {
   publicSlug: string | null;
 }
 
-async function ensureWorkspace(session: KyraAuthSession): Promise<WorkspaceRow> {
+export interface DemoAgentQuota {
+  used: number;
+  limit: number;
+  remaining: number;
+  reached: boolean;
+  source: "supabase" | "local";
+  message: string;
+}
+
+function createQuota(used: number, source: DemoAgentQuota["source"]): DemoAgentQuota {
+  const limit = demoAgentLimits.maxAgentsPerWorkspace;
+  const normalizedUsed = Math.max(0, used);
+  const remaining = Math.max(0, limit - normalizedUsed);
+
+  return {
+    used: normalizedUsed,
+    limit,
+    remaining,
+    reached: normalizedUsed >= limit,
+    source,
+    message:
+      normalizedUsed >= limit
+        ? `Demo agent limit reached (${normalizedUsed}/${limit}).`
+        : `${remaining} demo agent slot${remaining === 1 ? "" : "s"} available.`,
+  };
+}
+
+async function getExistingWorkspace(session: KyraAuthSession): Promise<WorkspaceRow | null> {
   const existing = await selectRows<WorkspaceRow>(
     session,
     "workspaces?select=id,owner_user_id,name,mode,created_at&mode=eq.demo&order=created_at.asc&limit=1",
   );
 
-  if (existing[0]) {
-    return existing[0];
+  return existing[0] ?? null;
+}
+
+async function ensureWorkspace(session: KyraAuthSession): Promise<WorkspaceRow> {
+  const existing = await getExistingWorkspace(session);
+
+  if (existing) {
+    return existing;
   }
 
   return insertRow(session, "workspaces", {
@@ -52,6 +87,36 @@ async function ensureWorkspace(session: KyraAuthSession): Promise<WorkspaceRow> 
     name: "Kyra demo workspace",
     mode: "demo",
   });
+}
+
+async function getQuotaForWorkspace(
+  session: KyraAuthSession,
+  workspaceId: string,
+): Promise<DemoAgentQuota> {
+  const rows = await selectRows<AgentCountRow>(
+    session,
+    `agent_instances?select=id&workspace_id=eq.${encodeURIComponent(workspaceId)}&limit=${
+      demoAgentLimits.maxAgentsPerWorkspace + 1
+    }`,
+  );
+
+  return createQuota(rows.length, "supabase");
+}
+
+export async function fetchSupabaseDemoAgentQuota(
+  session: KyraAuthSession | null,
+): Promise<DemoAgentQuota> {
+  if (!session || !appConfig.supabase.configured) {
+    return createQuota(0, "local");
+  }
+
+  const workspace = await getExistingWorkspace(session);
+
+  if (!workspace) {
+    return createQuota(0, "supabase");
+  }
+
+  return getQuotaForWorkspace(session, workspace.id);
 }
 
 function createPublicSlug(templateId: string, session: KyraAuthSession) {
@@ -207,6 +272,18 @@ export async function saveSupabaseDemoDeployment({
 
   try {
     const workspace = await ensureWorkspace(session);
+    const quota = await getQuotaForWorkspace(session, workspace.id);
+
+    if (quota.reached) {
+      return {
+        status: "error",
+        message: `${quota.message} Max ${quota.limit} agents per demo workspace.`,
+        workspaceId: workspace.id,
+        agentId: null,
+        publicSlug: null,
+      };
+    }
+
     const agent = await createAgent(session, workspace, template, agentName);
     const policy = await createWalletPolicy(session, workspace.id, agent.id, selectedActions);
     await patchRow(session, "agent_instances", agent.id, {

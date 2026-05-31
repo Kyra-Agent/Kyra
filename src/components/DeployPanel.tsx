@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Bot,
   CheckCircle2,
@@ -9,10 +9,13 @@ import {
   ShieldCheck,
   WalletCards,
 } from "lucide-react";
+import { demoAgentLimits } from "../config/demoLimits";
 import type { AgentTemplate } from "../types/agent";
 import { kyraDataService } from "../services/kyraDataService";
 import {
+  fetchSupabaseDemoAgentQuota,
   saveSupabaseDemoDeployment,
+  type DemoAgentQuota,
   type DeployPersistenceResult,
   type DeployPersistenceStatus,
 } from "../services/supabaseDeployService";
@@ -23,7 +26,7 @@ interface DeployPanelProps {
   selectedTemplate: AgentTemplate;
   authSession: KyraAuthSession | null;
   onSelectTemplate: (templateId: string) => void;
-  onOpenAgent: () => void;
+  onOpenAgent: (target?: { templateId?: string; publicPath?: string }) => void;
 }
 
 const deployLogs = [
@@ -84,6 +87,15 @@ export function DeployPanel({
     "Sign in from the dashboard to persist deployments.",
   );
   const [persistedRecord, setPersistedRecord] = useState<DeployPersistenceResult | null>(null);
+  const [agentQuota, setAgentQuota] = useState<DemoAgentQuota>({
+    used: 0,
+    limit: demoAgentLimits.maxAgentsPerWorkspace,
+    remaining: demoAgentLimits.maxAgentsPerWorkspace,
+    reached: false,
+    source: "local",
+    message: `${demoAgentLimits.maxAgentsPerWorkspace} demo agent slots available.`,
+  });
+  const [quotaLoading, setQuotaLoading] = useState(false);
 
   const backendTables = useMemo(() => kyraDataService.listBackendTables(), []);
   const agentRecord = useMemo(
@@ -113,12 +125,23 @@ export function DeployPanel({
       "telegram.webhook=simulated",
       "base_mcp.endpoint=https://mcp.base.org/",
       "wallet.policy=approval_required",
+      `agent.quota=${authSession ? `${agentQuota.used}/${agentQuota.limit}` : `0/${agentQuota.limit}`}`,
+      "quota.guard=max_2_demo_agents",
       `supabase.session=${authSession ? "active" : "missing"}`,
       `db.write=${authSession ? "supabase_ready" : "mock_only"}`,
       "security.no_private_keys=true",
       "demo.transactions=disabled",
     ],
-    [agentName, agentRecord, authSession, backendTableNames, selectedActions, selectedTemplate],
+    [
+      agentName,
+      agentQuota.limit,
+      agentQuota.used,
+      agentRecord,
+      authSession,
+      backendTableNames,
+      selectedActions,
+      selectedTemplate,
+    ],
   );
 
   const activeLogCount = deploying
@@ -128,6 +151,51 @@ export function DeployPanel({
   const progress = Math.round((Math.min(activeLogStep, deployLogs.length) / deployLogs.length) * 100);
   const atFirstStep = wizardStep === 0;
   const atDeployStep = wizardStep === wizardSteps.length - 1;
+  const quotaBlocksDeploy = Boolean(authSession && agentQuota.reached);
+  const activePublicPath = persistedRecord?.publicSlug
+    ? `/agents/${persistedRecord.publicSlug}`
+    : agentRecord.publicPath;
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadQuota() {
+      setQuotaLoading(Boolean(authSession));
+
+      try {
+        const quota = await fetchSupabaseDemoAgentQuota(authSession);
+
+        if (!active) {
+          return;
+        }
+
+        setAgentQuota(quota);
+      } catch {
+        if (!active) {
+          return;
+        }
+
+        setAgentQuota({
+          used: 0,
+          limit: demoAgentLimits.maxAgentsPerWorkspace,
+          remaining: demoAgentLimits.maxAgentsPerWorkspace,
+          reached: false,
+          source: "local",
+          message: "Quota check unavailable. Supabase deploy guard will still validate.",
+        });
+      } finally {
+        if (active) {
+          setQuotaLoading(false);
+        }
+      }
+    }
+
+    void loadQuota();
+
+    return () => {
+      active = false;
+    };
+  }, [authSession, deployed]);
 
   function runDeploySimulation() {
     setDeploying(true);
@@ -163,6 +231,22 @@ export function DeployPanel({
     setTemplateMenuOpen(false);
 
     if (atDeployStep) {
+      if (quotaBlocksDeploy) {
+        const message = `${agentQuota.message} Max ${agentQuota.limit} agents per demo workspace.`;
+
+        setDeployed(true);
+        setPersistStatus("error");
+        setPersistMessage(message);
+        setPersistedRecord({
+          status: "error",
+          message,
+          workspaceId: null,
+          agentId: null,
+          publicSlug: null,
+        });
+        return;
+      }
+
       runDeploySimulation();
       return;
     }
@@ -172,7 +256,7 @@ export function DeployPanel({
 
   function copyDemoLink() {
     const origin = typeof window === "undefined" ? "https://kyra-agent.demo" : window.location.origin;
-    const demoLink = `${origin}${agentRecord.publicPath}`;
+    const demoLink = `${origin}${activePublicPath}`;
 
     if (navigator.clipboard) {
       void navigator.clipboard.writeText(demoLink);
@@ -374,13 +458,23 @@ export function DeployPanel({
                     <strong>{authSession ? "Supabase write ready" : `${backendTables.length} mock tables`}</strong>
                   </span>
                   <span>
+                    Agent limit
+                    <strong>{quotaLoading ? "checking" : `${agentQuota.used}/${agentQuota.limit}`}</strong>
+                  </span>
+                  <span>
                     Public route
-                    <strong>{agentRecord.publicPath}</strong>
+                    <strong>{activePublicPath}</strong>
                   </span>
                 </div>
-                <div className={`deploy-persist-note persist-${authSession ? "ready" : "standby"}`}>
+                <div
+                  className={`deploy-persist-note persist-${
+                    quotaBlocksDeploy ? "error" : authSession ? "ready" : "standby"
+                  }`}
+                >
                   <ShieldCheck size={15} />
-                  {authSession
+                  {quotaBlocksDeploy
+                    ? `${agentQuota.message} Max ${agentQuota.limit} agents per demo workspace.`
+                    : authSession
                     ? "Session active. This demo deploy will persist to Supabase."
                     : "No active session. This demo deploy will stay local until auth is connected."}
                 </div>
@@ -400,11 +494,20 @@ export function DeployPanel({
             >
               Back
             </button>
-            <button className="button button-primary" type="button" disabled={deploying} onClick={goNext}>
+            <button
+              className="button button-primary"
+              type="button"
+              disabled={deploying || (atDeployStep && quotaBlocksDeploy)}
+              onClick={goNext}
+            >
               {atDeployStep ? (
                 <>
                   <Play size={17} />
-                  {deploying ? "Deploying demo..." : "Deploy demo agent"}
+                  {deploying
+                    ? "Deploying demo..."
+                    : quotaBlocksDeploy
+                      ? "Limit reached"
+                      : "Deploy demo agent"}
                 </>
               ) : (
                 "Continue"
@@ -416,51 +519,63 @@ export function DeployPanel({
             <div className="deploy-receipt">
               <div className="receipt-top">
                 <span>
-                  <CheckCircle2 size={16} />
-                  Agent deployed
+                  {persistStatus === "error" ? <ShieldCheck size={16} /> : <CheckCircle2 size={16} />}
+                  {persistStatus === "error" ? "Deploy blocked" : "Agent deployed"}
                 </span>
-                <strong>{persistStatus === "saved" ? "supabase" : "demo"}</strong>
+                <strong>{persistStatus === "saved" ? "supabase" : persistStatus === "error" ? "guard" : "demo"}</strong>
               </div>
               <div className={`deploy-persist-note persist-${persistStatus}`}>
                 <ShieldCheck size={15} />
                 {persistMessage}
               </div>
-              <div className="receipt-grid">
-                <span>
-                  Telegram
-                  <strong>{agentRecord.handle}</strong>
-                </span>
-                <span>
-                  Console
-                  <strong>kyra.app{agentRecord.publicPath}</strong>
-                </span>
-                <span>
-                  Template
-                  <strong>{selectedTemplate.name}</strong>
-                </span>
-                <span>
-                  Wallet
-                  <strong>approval required</strong>
-                </span>
-                <span>
-                  Record
-                  <strong>{persistedRecord?.agentId ?? agentRecord.id}</strong>
-                </span>
-                <span>
-                  Workspace
-                  <strong>{persistedRecord?.workspaceId ?? "local demo"}</strong>
-                </span>
-              </div>
-              <div className="receipt-actions">
-                <button type="button" onClick={copyDemoLink}>
-                  <Copy size={14} />
-                  {copiedLink ? "Copied" : "Copy demo link"}
-                </button>
-                <button type="button" onClick={onOpenAgent}>
-                  <ExternalLink size={14} />
-                  Open public agent
-                </button>
-              </div>
+              {persistStatus !== "error" ? (
+                <>
+                  <div className="receipt-grid">
+                    <span>
+                      Telegram
+                      <strong>{agentRecord.handle}</strong>
+                    </span>
+                    <span>
+                      Console
+                      <strong>kyra.app{activePublicPath}</strong>
+                    </span>
+                    <span>
+                      Template
+                      <strong>{selectedTemplate.name}</strong>
+                    </span>
+                    <span>
+                      Wallet
+                      <strong>approval required</strong>
+                    </span>
+                    <span>
+                      Record
+                      <strong>{persistedRecord?.agentId ?? agentRecord.id}</strong>
+                    </span>
+                    <span>
+                      Workspace
+                      <strong>{persistedRecord?.workspaceId ?? "local demo"}</strong>
+                    </span>
+                  </div>
+                  <div className="receipt-actions">
+                    <button type="button" onClick={copyDemoLink}>
+                      <Copy size={14} />
+                      {copiedLink ? "Copied" : "Copy demo link"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onOpenAgent({
+                          templateId: selectedTemplate.id,
+                          publicPath: activePublicPath,
+                        })
+                      }
+                    >
+                      <ExternalLink size={14} />
+                      Open public agent
+                    </button>
+                  </div>
+                </>
+              ) : null}
             </div>
           ) : null}
         </div>

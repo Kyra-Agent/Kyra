@@ -115,6 +115,32 @@ create index if not exists wallet_policies_workspace_id_idx on public.wallet_pol
 create index if not exists approval_requests_agent_id_idx on public.approval_requests(agent_id);
 create index if not exists activity_logs_agent_id_created_at_idx on public.activity_logs(agent_id, created_at desc);
 
+create or replace function public.enforce_demo_agent_limit()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.mode = 'demo' and (
+    select count(*)
+    from public.agent_instances
+    where workspace_id = new.workspace_id
+      and mode = 'demo'
+  ) >= 2 then
+    raise exception 'Demo agent limit reached (2/2).';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists enforce_demo_agent_limit_on_insert on public.agent_instances;
+create trigger enforce_demo_agent_limit_on_insert
+before insert on public.agent_instances
+for each row
+execute function public.enforce_demo_agent_limit();
+
 create or replace function public.owns_workspace(target_workspace_id uuid)
 returns boolean
 language sql

@@ -18,6 +18,7 @@ import {
 import { AuthSessionPanel } from "../components/AuthSessionPanel";
 import type { AgentTemplate } from "../types/agent";
 import { appConfig } from "../config/appConfig";
+import { demoAgentLimits } from "../config/demoLimits";
 import { coreModules } from "../data/modules";
 import { kyraDataService } from "../services/kyraDataService";
 import { kyraRepositoryRuntime } from "../services/repositoryFactory";
@@ -219,6 +220,18 @@ export function Dashboard({
       value: getCatalogValue(templateCatalogStatus, templateCatalogSource, agentTemplates.length),
       tone: getReadinessTone(templateCatalogStatus),
       icon: Server,
+    },
+    {
+      label: "Agent limit",
+      value:
+        dashboardStatus === "connected"
+          ? `${dashboardData?.agentInstances.length ?? 0}/${demoAgentLimits.maxAgentsPerWorkspace}`
+          : `max ${demoAgentLimits.maxAgentsPerWorkspace}`,
+      tone:
+        dashboardData && dashboardData.agentInstances.length >= demoAgentLimits.maxAgentsPerWorkspace
+          ? "error"
+          : "ready",
+      icon: ShieldCheck,
     },
     {
       label: "Supabase env",
@@ -464,6 +477,7 @@ export function Dashboard({
                   ? `${dashboardData.agentInstances.length} Supabase agents`
                   : "dashboard fallback ready"}
               </span>
+              <span>max {demoAgentLimits.maxAgentsPerWorkspace} demo agents</span>
               <span>onchain execution disabled</span>
             </div>
           </section>
