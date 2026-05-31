@@ -12,7 +12,7 @@ export function Footer() {
           <Github size={15} />
           GitHub
         </a>
-        <a href="https://x.com/KyraAgent" target="_blank" rel="noreferrer">
+        <a href="https://x.com/Kyra_Agent" target="_blank" rel="noreferrer">
           X
           Social
         </a>

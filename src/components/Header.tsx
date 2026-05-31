@@ -63,7 +63,7 @@ export function Header({
         </a>
         <a
           className="x-link icon-link"
-          href="https://x.com/KyraAgent"
+          href="https://x.com/Kyra_Agent"
           target="_blank"
           rel="noreferrer"
           aria-label="Kyra Agent on X"
