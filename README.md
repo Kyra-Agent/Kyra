@@ -51,7 +51,7 @@ Kyra is in the backend-connected demo phase.
 - Supabase email/password auth for demo workspace ownership.
 - Demo agent quota guard, currently `3` agents per workspace.
 - Dashboard records for agents, approvals, wallet policies, backend tables, and logs.
-- Admin reset action with confirmation for signed-in demo workspace records.
+- Admin-only reset action with confirmation for signed-in demo workspace records.
 - Public agent profile route for deployed demo agents.
 - Explicit expired/unavailable state for stale public agent routes.
 - Session refresh guard before dashboard fetch, deploy, and reset operations.
@@ -137,6 +137,7 @@ VITE_BASE_MCP_URL=https://mcp.base.org/
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 VITE_KYRA_DEPLOY_FUNCTION_URL=
+VITE_KYRA_ADMIN_USER_IDS=
 VITE_DEMO_MODE=true
 ```
 
@@ -147,7 +148,12 @@ VITE_KYRA_DATA_PROVIDER=supabase
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-or-publishable-key
 VITE_KYRA_DEPLOY_FUNCTION_URL=https://your-project.supabase.co/functions/v1/deploy-agent
+VITE_KYRA_ADMIN_USER_IDS=your-supabase-auth-user-id
 ```
+
+`VITE_KYRA_ADMIN_USER_IDS` accepts a comma-separated list of Supabase auth user IDs. It controls
+frontend visibility for the internal Admin actions panel. User IDs are not secrets, and this
+visibility guard does not replace backend authorization or RLS.
 
 Edge Function secrets must be configured in Supabase, not exposed through `VITE_` variables:
 

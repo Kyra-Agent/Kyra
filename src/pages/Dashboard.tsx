@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { AuthSessionPanel } from "../components/AuthSessionPanel";
 import type { AgentTemplate } from "../types/agent";
-import { appConfig } from "../config/appConfig";
+import { appConfig, isKyraAdminUser } from "../config/appConfig";
 import { demoAgentLimits } from "../config/demoLimits";
 import { coreModules } from "../data/modules";
 import { kyraRepositoryRuntime } from "../services/repositoryFactory";
@@ -208,6 +208,7 @@ export function Dashboard({
     "Admin actions are scoped to this signed-in demo workspace.",
   );
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const isAdmin = isKyraAdminUser(authSession?.user.id);
   const [deployFunctionStatus, setDeployFunctionStatus] = useState<DeployFunctionHealthStatus>(
     appConfig.functions.deployAgentConfigured ? "checking" : "not-configured",
   );
@@ -460,7 +461,7 @@ export function Dashboard({
   }
 
   function handleOpenResetConfirmation() {
-    if (!authSession || isAdminActionRunning) {
+    if (!isAdmin || !authSession || isAdminActionRunning) {
       return;
     }
 
@@ -476,7 +477,7 @@ export function Dashboard({
   }
 
   async function handleConfirmResetDemoWorkspace() {
-    if (!authSession || isAdminActionRunning) {
+    if (!isAdmin || !authSession || isAdminActionRunning) {
       return;
     }
 
@@ -508,7 +509,7 @@ export function Dashboard({
   }
 
   function handleRefreshDashboardRecords() {
-    if (!authSession || isAdminActionRunning) {
+    if (!isAdmin || !authSession || isAdminActionRunning) {
       return;
     }
 
@@ -555,10 +556,12 @@ export function Dashboard({
             <Server size={16} />
             Readiness
           </a>
-          <a href="#admin-actions">
-            <Trash2 size={16} />
-            Admin
-          </a>
+          {isAdmin ? (
+            <a href="#admin-actions">
+              <Trash2 size={16} />
+              Admin
+            </a>
+          ) : null}
         </nav>
 
         <button className="button button-ghost dashboard-back" type="button" onClick={onBackHome}>
@@ -741,7 +744,8 @@ export function Dashboard({
             </div>
           </section>
 
-          <section className="dashboard-panel admin-actions-panel" id="admin-actions">
+          {isAdmin ? (
+            <section className="dashboard-panel admin-actions-panel" id="admin-actions">
             <div className="panel-title">
               <span>Admin actions</span>
               <span>{authSession ? "workspace owner" : "locked"}</span>
@@ -876,7 +880,8 @@ export function Dashboard({
                 </div>
               </details>
             ) : null}
-          </section>
+            </section>
+          ) : null}
 
           <section className="dashboard-panel backend-readiness-panel" id="backend">
             <div className="panel-title">
@@ -966,7 +971,7 @@ export function Dashboard({
         </div>
       </section>
 
-      {resetConfirmOpen ? (
+      {resetConfirmOpen && isAdmin ? (
         <div className="modal-backdrop" role="presentation">
           <section
             aria-labelledby="reset-demo-workspace-title"
