@@ -39,7 +39,7 @@ Kyra is in the backend-connected demo phase.
 - **Scout** - recon and launch monitor.
 - **Steward** - project and community agent.
 - **Executor** - rule-based action agent.
-- **Launcher** - token launch agent, currently planned.
+- **Strategist** - market and campaign intelligence agent.
 - **Custom** - user-defined agent modules and safety limits.
 
 ## Features

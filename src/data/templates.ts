@@ -50,16 +50,17 @@ export const agentTemplates: AgentTemplate[] = [
     terminalSeed: "set dca 25 USDC into ETH daily",
   },
   {
-    id: "launcher",
-    name: "Launcher",
-    role: "Token launch agent",
-    status: "coming-soon",
+    id: "strategist",
+    name: "Strategist",
+    role: "Market and campaign intelligence agent",
+    status: "mvp",
     summary:
-      "A launch-focused agent for Bankr-style token deployment, launch checklists, token metadata, and post-launch monitoring.",
-    bestFor: "Founders and creators preparing a Base token launch.",
-    actions: ["bankr launch", "token metadata", "launch checklist", "post-launch monitor"],
-    modules: ["NIRA-01", "ASTRA-03", "NOVA-04", "NYX-05"],
-    terminalSeed: "prepare token launch checklist",
+      "A planning agent that turns token, market, and community context into launch narratives, campaign plans, and decision-ready briefs.",
+    bestFor:
+      "Projects and operators who need sharper positioning, launch messaging, and market-aware plans before pushing announcements or onchain actions.",
+    actions: ["market brief", "campaign plan", "narrative map", "launch copy", "community pulse"],
+    modules: ["ASTRA-03", "NOVA-04", "VEXA-02"],
+    terminalSeed: "draft market-aware campaign plan",
   },
   {
     id: "custom",

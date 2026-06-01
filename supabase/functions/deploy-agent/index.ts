@@ -97,13 +97,13 @@ const scenarios: Record<string, DemoScenario> = {
     risk: "read-only",
     approvalRequired: false,
   },
-  launcher: {
-    id: "launch",
-    title: "Launch prep",
-    command: "prepare token launch checklist",
-    route: "Bankr-style launch checklist + post-launch monitor",
+  strategist: {
+    id: "strategy",
+    title: "Strategy brief",
+    command: "draft market-aware campaign plan",
+    route: "Market brief + narrative map + campaign plan",
     risk: "review",
-    approvalRequired: true,
+    approvalRequired: false,
   },
 };
 

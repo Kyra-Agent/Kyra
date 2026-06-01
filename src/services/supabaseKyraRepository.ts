@@ -1,4 +1,5 @@
 import { appConfig } from "../config/appConfig";
+import { agentTemplates as fallbackAgentTemplates } from "../data/templates";
 import type { AgentTemplate } from "../types/agent";
 import type { KyraDatabase, KyraTableName } from "../types/database";
 
@@ -44,7 +45,8 @@ export type SupabaseTableRow<TName extends KyraTableName> = KyraDatabase["public
 
 type SupabaseTemplateRow = SupabaseTableRow<"agent_templates">;
 
-const templateOrder = ["operator", "scout", "steward", "executor", "launcher", "custom"];
+const templateOrder = ["operator", "scout", "steward", "executor", "strategist", "custom"];
+const obsoleteTemplateIds = new Set(["launcher"]);
 
 function getSupabaseApiKey() {
   return import.meta.env.VITE_SUPABASE_ANON_KEY || "";
@@ -111,6 +113,18 @@ function sortTemplates(templates: AgentTemplate[]) {
   });
 }
 
+function normalizeTemplateCatalog(templates: AgentTemplate[]) {
+  const activeTemplates = templates.filter((template) => !obsoleteTemplateIds.has(template.id));
+
+  if (activeTemplates.some((template) => template.id === "strategist")) {
+    return activeTemplates;
+  }
+
+  const strategistFallback = fallbackAgentTemplates.find((template) => template.id === "strategist");
+
+  return strategistFallback ? [...activeTemplates, strategistFallback] : activeTemplates;
+}
+
 function sanitizeSupabaseError(message: string) {
   return message
     .replace(/sb_publishable_[A-Za-z0-9_-]+/g, "sb_publishable_[hidden]")
@@ -156,7 +170,7 @@ export async function fetchSupabaseTemplates(): Promise<SupabaseTemplateCatalogR
     return {
       ok: true,
       status: "connected",
-      templates: sortTemplates(rows.map(mapTemplateRow)),
+      templates: sortTemplates(normalizeTemplateCatalog(rows.map(mapTemplateRow))),
       error: null,
       checkedAt,
     };

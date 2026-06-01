@@ -1,4 +1,4 @@
-import { ArrowRightLeft, Coins, History, Radio, Send, ShieldCheck, Users } from "lucide-react";
+import { ArrowRightLeft, Coins, FileText, History, Radio, Send, Users } from "lucide-react";
 import { actions } from "../data/actions";
 
 const actionIcons = {
@@ -10,7 +10,7 @@ const actionIcons = {
   "holder-verify": Users,
   "launch-monitor": Radio,
   dca: History,
-  "bankr-launch": ShieldCheck,
+  "campaign-plan": FileText,
 };
 
 export function ActionConsole() {

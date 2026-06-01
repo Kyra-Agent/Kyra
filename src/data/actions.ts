@@ -50,9 +50,9 @@ export const actions: ActionDefinition[] = [
     tier: "later",
   },
   {
-    id: "bankr-launch",
-    name: "Bankr Launch",
-    summary: "Prepare token launch flows, metadata, and post-launch monitoring.",
-    tier: "later",
+    id: "campaign-plan",
+    name: "Campaign Plan",
+    summary: "Turn market, token, and community context into launch messaging and decision-ready campaign steps.",
+    tier: "demo",
   },
 ];

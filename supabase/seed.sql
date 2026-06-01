@@ -54,15 +54,15 @@ insert into public.agent_templates (
   'set dca 25 USDC into ETH daily'
 ),
 (
-  'launcher',
-  'Launcher',
-  'Token launch agent',
-  'coming-soon',
-  'A launch-focused agent for Bankr-style token deployment, launch checklists, token metadata, and post-launch monitoring.',
-  'Founders and creators preparing a Base token launch.',
-  '["bankr launch", "token metadata", "launch checklist", "post-launch monitor"]'::jsonb,
-  '["NIRA-01", "ASTRA-03", "NOVA-04", "NYX-05"]'::jsonb,
-  'prepare token launch checklist'
+  'strategist',
+  'Strategist',
+  'Market and campaign intelligence agent',
+  'mvp',
+  'A planning agent that turns token, market, and community context into launch narratives, campaign plans, and decision-ready briefs.',
+  'Projects and operators who need sharper positioning, launch messaging, and market-aware plans before pushing announcements or onchain actions.',
+  '["market brief", "campaign plan", "narrative map", "launch copy", "community pulse"]'::jsonb,
+  '["ASTRA-03", "NOVA-04", "VEXA-02"]'::jsonb,
+  'draft market-aware campaign plan'
 ),
 (
   'custom',
@@ -84,3 +84,11 @@ on conflict (id) do update set
   actions = excluded.actions,
   modules = excluded.modules,
   terminal_seed = excluded.terminal_seed;
+
+delete from public.agent_templates
+where id = 'launcher'
+  and not exists (
+    select 1
+    from public.agent_instances
+    where template_id = 'launcher'
+  );

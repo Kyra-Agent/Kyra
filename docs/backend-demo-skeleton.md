@@ -21,7 +21,7 @@ Kyra is still safe demo mode. The Supabase demo backend is now partially connect
 The demo backend is built around these records:
 
 - `workspaces`: account scope owned by a Supabase user.
-- `agent_templates`: Operator, Scout, Steward, Executor, Launcher, and Custom.
+- `agent_templates`: Operator, Scout, Steward, Executor, Strategist, and Custom.
 - `agent_instances`: deployed demo agents and public slugs.
 - `wallet_policies`: wallet approval rules without custody.
 - `approval_requests`: command, route, risk, status, and optional future tx fields.
