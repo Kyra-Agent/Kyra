@@ -1,3 +1,3 @@
 export const demoAgentLimits = {
-  maxAgentsPerWorkspace: 2,
+  maxAgentsPerWorkspace: 3,
 } as const;

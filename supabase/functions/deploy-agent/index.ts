@@ -128,8 +128,8 @@ function getEnv(key: string) {
 }
 
 function getDemoLimit() {
-  const value = Number(Deno.env.get("KYRA_DEMO_AGENT_LIMIT") ?? "2");
-  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 2;
+  const value = Number(Deno.env.get("KYRA_DEMO_AGENT_LIMIT") ?? "3");
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 3;
 }
 
 function getHealthPayload() {
@@ -340,7 +340,7 @@ async function insertAgent(
 
   if (error || !data) {
     if (error?.message?.toLowerCase().includes("demo agent limit")) {
-      throw new HttpError(409, "quota_exceeded", "Demo agent limit reached (2/2).");
+      throw new HttpError(409, "quota_exceeded", "Demo agent limit reached.");
     }
 
     throw error ?? new Error("Agent creation failed.");

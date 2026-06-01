@@ -70,7 +70,7 @@ The function needs server-only secrets:
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-KYRA_DEMO_AGENT_LIMIT=2
+KYRA_DEMO_AGENT_LIMIT=3
 ```
 
 Do not place `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` or any `VITE_` variable. It belongs only in Supabase Function secrets.

@@ -20,7 +20,7 @@ Set these in Supabase before deploying the function:
 
 ```bash
 supabase secrets set SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-supabase secrets set KYRA_DEMO_AGENT_LIMIT=2
+supabase secrets set KYRA_DEMO_AGENT_LIMIT=3
 ```
 
 `SUPABASE_URL` and `SUPABASE_ANON_KEY` are normally available in Supabase Functions, but they are also listed in `supabase/functions/.env.example` for local testing.

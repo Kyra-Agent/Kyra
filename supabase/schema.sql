@@ -127,8 +127,8 @@ begin
     from public.agent_instances
     where workspace_id = new.workspace_id
       and mode = 'demo'
-  ) >= 2 then
-    raise exception 'Demo agent limit reached (2/2).';
+  ) >= 3 then
+    raise exception 'Demo agent limit reached (3/3).';
   end if;
 
   return new;
