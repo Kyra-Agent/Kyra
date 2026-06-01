@@ -63,7 +63,7 @@ function mapWorkspace(row: WorkspaceRow, session: KyraAuthSession): DemoWorkspac
   return {
     id: row.id,
     name: row.name,
-    owner: session.user.email || "Signed-in user",
+    owner: "Signed-in account",
     mode: "backend-demo",
     authProvider: "supabase",
   };

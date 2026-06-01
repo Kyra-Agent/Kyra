@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { AuthSessionPanel } from "../components/AuthSessionPanel";
 import type { AgentTemplate } from "../types/agent";
-import { appConfig, isKyraAdminUser } from "../config/appConfig";
+import { appConfig } from "../config/appConfig";
 import { demoAgentLimits } from "../config/demoLimits";
 import { coreModules } from "../data/modules";
 import { kyraRepositoryRuntime } from "../services/repositoryFactory";
@@ -208,7 +208,7 @@ export function Dashboard({
     "Admin actions are scoped to this signed-in demo workspace.",
   );
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
-  const isAdmin = isKyraAdminUser(authSession?.user.id);
+  const isAdmin = authSession?.user.app_metadata?.role === "admin";
   const [deployFunctionStatus, setDeployFunctionStatus] = useState<DeployFunctionHealthStatus>(
     appConfig.functions.deployAgentConfigured ? "checking" : "not-configured",
   );
@@ -325,7 +325,7 @@ export function Dashboard({
       ? {
           id: "no-demo-workspace",
           name: "No demo workspace",
-          owner: authSession.user.email || "Signed-in user",
+          owner: "Signed-in account",
           mode: "backend-demo" as const,
           authProvider: "supabase" as const,
         }

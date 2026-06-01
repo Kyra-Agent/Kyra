@@ -137,7 +137,6 @@ VITE_BASE_MCP_URL=https://mcp.base.org/
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 VITE_KYRA_DEPLOY_FUNCTION_URL=
-VITE_KYRA_ADMIN_USER_IDS=
 VITE_DEMO_MODE=true
 ```
 
@@ -148,12 +147,12 @@ VITE_KYRA_DATA_PROVIDER=supabase
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-or-publishable-key
 VITE_KYRA_DEPLOY_FUNCTION_URL=https://your-project.supabase.co/functions/v1/deploy-agent
-VITE_KYRA_ADMIN_USER_IDS=your-supabase-auth-user-id
 ```
 
-`VITE_KYRA_ADMIN_USER_IDS` accepts a comma-separated list of Supabase auth user IDs. It controls
-frontend visibility for the internal Admin actions panel. User IDs are not secrets, and this
-visibility guard does not replace backend authorization or RLS.
+Demo UI gating for the internal Admin actions panel uses the Supabase user's
+`app_metadata.role`. Only users with the `admin` role see that panel. Live admin endpoints must
+still validate the role server-side; frontend visibility does not replace backend authorization
+or RLS.
 
 Edge Function secrets must be configured in Supabase, not exposed through `VITE_` variables:
 

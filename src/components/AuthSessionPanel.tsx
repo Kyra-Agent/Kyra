@@ -30,10 +30,6 @@ function formatSessionExpiry(session: KyraAuthSession) {
   return `${minutes}m left`;
 }
 
-function shortenUserId(id: string) {
-  return `${id.slice(0, 8)}...${id.slice(-4)}`;
-}
-
 function getStatusTone(status: KyraAuthStatus) {
   if (status === "signed-in") {
     return "ready";
@@ -100,6 +96,8 @@ export function AuthSessionPanel({
     setBusyAction("signout");
     const result = await signOutAuthSession(session);
     clearStoredAuthSession();
+    setEmail("");
+    setPassword("");
     applyResult(result);
     setBusyAction(null);
   }
@@ -125,8 +123,8 @@ export function AuthSessionPanel({
             <UserRound size={18} />
           </span>
           <div>
-            <strong>{session.user.email ?? "Signed-in user"}</strong>
-            <small>{shortenUserId(session.user.id)}</small>
+            <strong>Signed-in account</strong>
+            <small>Account session active</small>
           </div>
           <em>{formatSessionExpiry(session)}</em>
         </div>

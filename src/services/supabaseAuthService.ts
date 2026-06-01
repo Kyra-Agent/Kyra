@@ -14,6 +14,9 @@ export type KyraAuthStatus =
 export interface KyraAuthUser {
   id: string;
   email: string | null;
+  app_metadata?: {
+    role?: string;
+  };
 }
 
 export interface KyraAuthSession {
@@ -33,6 +36,7 @@ export interface KyraAuthResult {
 interface SupabaseAuthUserResponse {
   id: string;
   email?: string | null;
+  app_metadata?: Record<string, unknown>;
 }
 
 interface SupabaseAuthTokenResponse {
@@ -85,6 +89,12 @@ function getAuthErrorMessage(payload: SupabaseAuthTokenResponse, fallback: strin
   );
 }
 
+function getSafeAppMetadata(user: SupabaseAuthUserResponse) {
+  const role = user.app_metadata?.role;
+
+  return typeof role === "string" ? { role } : {};
+}
+
 function parseSession(payload: SupabaseAuthTokenResponse): KyraAuthSession | null {
   if (!payload.access_token || !payload.refresh_token || !payload.user) {
     return null;
@@ -99,6 +109,7 @@ function parseSession(payload: SupabaseAuthTokenResponse): KyraAuthSession | nul
     user: {
       id: payload.user.id,
       email: payload.user.email ?? null,
+      app_metadata: getSafeAppMetadata(payload.user),
     },
   };
 }
@@ -273,6 +284,7 @@ export async function getCurrentAuthUser(session: KyraAuthSession): Promise<Kyra
       user: {
         id: payload.id,
         email: payload.email ?? session.user.email,
+        app_metadata: getSafeAppMetadata(payload),
       },
     };
 
