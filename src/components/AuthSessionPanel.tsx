@@ -107,7 +107,7 @@ export function AuthSessionPanel({
   return (
     <section className="dashboard-panel auth-session-panel" id="auth">
       <div className="panel-title">
-        <span>supabase.auth</span>
+        <span>account.session</span>
         <span>{session ? "session active" : "session required"}</span>
       </div>
 
@@ -125,7 +125,7 @@ export function AuthSessionPanel({
             <UserRound size={18} />
           </span>
           <div>
-            <strong>{session.user.email ?? "Supabase user"}</strong>
+            <strong>{session.user.email ?? "Signed-in user"}</strong>
             <small>{shortenUserId(session.user.id)}</small>
           </div>
           <em>{formatSessionExpiry(session)}</em>
@@ -196,8 +196,8 @@ export function AuthSessionPanel({
 
       <div className="auth-safety-line">
         <span>No wallet access</span>
-        <span>RLS-ready JWT</span>
-        <span>Demo workspace next</span>
+        <span>Account-scoped demo records</span>
+        <span>Session refresh supported</span>
       </div>
     </section>
   );

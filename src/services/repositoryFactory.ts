@@ -16,8 +16,8 @@ export const kyraRepositoryRuntime: KyraRepositoryRuntime = {
   supabaseConfigured: appConfig.supabase.configured,
   note:
     appConfig.dataProvider === "supabase"
-      ? "Supabase powers the template catalog, signed-in dashboard records, and persisted demo deploy receipts. Onchain execution stays simulated."
-      : "Frontend demo uses local mock data shaped like the planned Supabase records.",
+      ? "Signed-in demo records can persist through the Kyra backend. Onchain execution stays simulated."
+      : "Local demo records stay in the browser until an account session is connected.",
 };
 
 export function getKyraRepository(): KyraRepository {

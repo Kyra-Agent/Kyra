@@ -43,7 +43,7 @@ const deployLogs = [
   "prepare demo backend records",
   "load Kyra core modules",
   "link Telegram interface",
-  "sync Base MCP endpoint",
+  "sync simulated Base action route",
   "enable wallet approval gate",
   "publish demo dashboard",
   "persist backend records",
@@ -117,11 +117,6 @@ export function DeployPanel({
     () => selectedTemplate.actions.slice(0, 5),
     [selectedTemplate.actions],
   );
-  const backendTableNames = useMemo(
-    () => backendTables.map((table) => table.name).join(","),
-    [backendTables],
-  );
-
   const terminalLines = useMemo(
     () => [
       `kyra deploy --template ${selectedTemplate.id} --agent "${agentName || "Unnamed Agent"}"`,
@@ -129,17 +124,17 @@ export function DeployPanel({
       `agent.public_route=${agentRecord.publicPath}`,
       `profile.template=${selectedTemplate.name}`,
       "profile.mode=demo",
-      `db.prepare=${backendTableNames}`,
+      `demo.record_groups=${backendTables.length}`,
       `modules.load=${selectedTemplate.modules.join(",")}`,
       `actions.enable=${selectedActions.join(",")}`,
       "telegram.webhook=simulated",
-      "base_mcp.endpoint=https://mcp.base.org/",
+      "base.actions=simulated",
       "wallet.policy=approval_required",
       `agent.quota=${authSession ? `${agentQuota.used}/${agentQuota.limit}` : `0/${agentQuota.limit}`}`,
       `quota.guard=max_${agentQuota.limit}_demo_agents`,
-      `supabase.session=${authSession ? "active" : "missing"}`,
-      `deploy.api=${authSession ? "edge_function_preferred" : "mock_only"}`,
-      `db.write=${authSession ? "edge_or_rls_fallback" : "mock_only"}`,
+      `account.session=${authSession ? "active" : "missing"}`,
+      `deploy.api=${authSession ? "backend_preferred" : "local_preview"}`,
+      `demo.persistence=${authSession ? "active" : "local_preview"}`,
       "security.no_private_keys=true",
       "demo.transactions=disabled",
     ],
@@ -149,7 +144,7 @@ export function DeployPanel({
       agentQuota.used,
       agentRecord,
       authSession,
-      backendTableNames,
+      backendTables.length,
       selectedActions,
       selectedTemplate,
     ],
@@ -168,13 +163,11 @@ export function DeployPanel({
     : agentRecord.publicPath;
   const activeTelegramHandle = persistedRecord?.telegramHandle ?? agentRecord.handle;
   const receiptSourceLabel =
-    persistedRecord?.source === "edge-function"
-      ? "edge"
-      : persistedRecord?.source === "supabase-rest"
-        ? "supabase"
+    persistedRecord?.source === "edge-function" || persistedRecord?.source === "supabase-rest"
+      ? "Backend"
         : persistStatus === "error"
-          ? "guard"
-          : "demo";
+          ? "Guard"
+          : "Demo";
 
   function syncFreshAuthSession(
     currentSession: KyraAuthSession,
@@ -249,7 +242,7 @@ export function DeployPanel({
           remaining: demoAgentLimits.maxAgentsPerWorkspace,
           reached: false,
           source: "local",
-          message: "Quota check unavailable. Supabase deploy guard will still validate.",
+          message: "Quota check unavailable. The backend deploy guard will still validate.",
         });
       } finally {
         if (active) {
@@ -270,7 +263,7 @@ export function DeployPanel({
     setDeployed(false);
     setActiveLogStep(0);
     setPersistStatus("skipped");
-    setPersistMessage(authSession ? "Preparing Supabase persistence." : "Demo will run locally until you sign in.");
+    setPersistMessage(authSession ? "Preparing demo persistence." : "Demo will run locally until you sign in.");
     setPersistedRecord(null);
 
     deployLogs.forEach((_, index) => {
@@ -281,7 +274,7 @@ export function DeployPanel({
             let deploySession = authSession;
 
             if (authSession) {
-              setPersistMessage("Checking Supabase session before deploy...");
+              setPersistMessage("Checking account session before deploy...");
 
               const freshAuth = await ensureFreshAuthSession(authSession);
 
@@ -381,7 +374,7 @@ export function DeployPanel({
       <div className="deploy-layout">
         <div className={`config-panel wizard-panel ${templateMenuOpen ? "is-menu-open" : ""}`}>
           <div className="panel-title">
-            <span>deploy.wizard</span>
+            <span>Demo deploy wizard</span>
             <span className="demo-badge compact">Simulated</span>
           </div>
 
@@ -556,7 +549,7 @@ export function DeployPanel({
                   </span>
                   <span>
                     Records
-                    <strong>{authSession ? "Edge Function preferred" : `${backendTables.length} mock tables`}</strong>
+                    <strong>{authSession ? "Demo persistence active" : "Local preview only"}</strong>
                   </span>
                   <span>
                     Agent limit
@@ -576,8 +569,8 @@ export function DeployPanel({
                   {quotaBlocksDeploy
                     ? `${agentQuota.message} Max ${agentQuota.limit} agents per demo workspace.`
                     : authSession
-                    ? "Session active. Kyra will try deploy-agent first, then use the safe RLS fallback if needed."
-                    : "No active session. This demo deploy will stay local until auth is connected."}
+                    ? "Account session active. Kyra will persist this demo through the connected backend."
+                    : "No active account session. This demo deploy will stay local until you sign in."}
                 </div>
               </div>
             ) : null}
@@ -683,7 +676,7 @@ export function DeployPanel({
 
         <div className="deployment-terminal">
           <div className="terminal-heading">
-            <span>deploy.log</span>
+            <span>Deploy progress</span>
             <span>{progress}%</span>
           </div>
 

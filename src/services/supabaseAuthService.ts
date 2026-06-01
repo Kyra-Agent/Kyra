@@ -118,7 +118,7 @@ function makeResult(
 
 async function requestAuth(path: string, body: Record<string, unknown>) {
   if (!appConfig.supabase.configured) {
-    return makeResult("not-configured", "Supabase environment variables are missing.");
+    return makeResult("not-configured", "Backend environment is not configured.");
   }
 
   try {
@@ -130,7 +130,7 @@ async function requestAuth(path: string, body: Record<string, unknown>) {
     const payload = (await response.json()) as SupabaseAuthTokenResponse;
 
     if (!response.ok) {
-      return makeResult("error", getAuthErrorMessage(payload, "Supabase auth request failed."));
+      return makeResult("error", getAuthErrorMessage(payload, "Account session request failed."));
     }
 
     const session = parseSession(payload);
@@ -148,7 +148,7 @@ async function requestAuth(path: string, body: Record<string, unknown>) {
   } catch (error) {
     return makeResult(
       "error",
-      error instanceof Error ? sanitizeAuthMessage(error.message) : "Supabase auth request failed.",
+      error instanceof Error ? sanitizeAuthMessage(error.message) : "Account session request failed.",
     );
   }
 }
@@ -228,11 +228,11 @@ export async function ensureFreshAuthSession(
   session: KyraAuthSession | null,
 ): Promise<KyraAuthResult> {
   if (!session) {
-    return makeResult("signed-out", "Sign in before using Supabase-backed demo records.");
+    return makeResult("signed-out", "Sign in before using persisted demo records.");
   }
 
   if (!appConfig.supabase.configured) {
-    return makeResult("not-configured", "Supabase environment variables are missing.");
+    return makeResult("not-configured", "Backend environment is not configured.");
   }
 
   if (!shouldRefreshAuthSession(session)) {
@@ -249,13 +249,13 @@ export async function ensureFreshAuthSession(
 
   return makeResult(
     "error",
-    `Session expired and refresh failed. Sign in again before using Supabase records. ${result.message}`,
+    `Session expired and refresh failed. Sign in again before using persisted demo records. ${result.message}`,
   );
 }
 
 export async function getCurrentAuthUser(session: KyraAuthSession): Promise<KyraAuthResult> {
   if (!appConfig.supabase.configured) {
-    return makeResult("not-configured", "Supabase environment variables are missing.");
+    return makeResult("not-configured", "Backend environment is not configured.");
   }
 
   try {

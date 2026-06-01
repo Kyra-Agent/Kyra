@@ -5,7 +5,15 @@ import { getKyraRepository } from "./repositoryFactory";
 const repository = getKyraRepository();
 
 function formatActivityLog(log: DemoActivityLog) {
-  return `[${log.timestamp}] ${log.source}: ${log.message}`;
+  const sourceLabel =
+    {
+      agent_instances: "agent",
+      telegram_sessions: "telegram",
+      base_mcp_routes: "base action",
+      approval_requests: "approval",
+    }[log.source] ?? "demo";
+
+  return `[${log.timestamp}] ${sourceLabel}: ${log.message}`;
 }
 
 function sortRequestsByTemplate(templateId: string, requests: DemoApprovalRequest[]) {

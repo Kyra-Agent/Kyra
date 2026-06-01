@@ -63,7 +63,7 @@ function mapWorkspace(row: WorkspaceRow, session: KyraAuthSession): DemoWorkspac
   return {
     id: row.id,
     name: row.name,
-    owner: session.user.email || "Supabase user",
+    owner: session.user.email || "Signed-in user",
     mode: "backend-demo",
     authProvider: "supabase",
   };
@@ -127,7 +127,7 @@ function mapWalletPolicy(row: WalletPolicyRow): DemoWalletPolicy[] {
       label: row.wallet_label,
       value: row.wallet_address ? shortenAddress(row.wallet_address) : "Demo connected",
       status: row.status === "active" ? "active" : "simulated",
-      description: "Supabase policy record, no real funds touched.",
+      description: "Persisted demo policy record, no real funds touched.",
     },
     {
       id: `${row.id}_limit`,
@@ -205,7 +205,7 @@ export async function fetchSupabaseDashboardData(
       ok: false,
       status: "empty",
       data: null,
-      error: "Sign in to read Supabase dashboard records.",
+      error: "Sign in to load demo workspace records.",
     };
   }
 
@@ -214,7 +214,7 @@ export async function fetchSupabaseDashboardData(
       ok: false,
       status: "not-configured",
       data: null,
-      error: "Supabase environment variables are not configured.",
+      error: "Backend environment is not configured.",
     };
   }
 
@@ -230,7 +230,7 @@ export async function fetchSupabaseDashboardData(
         ok: false,
         status: "empty",
         data: null,
-        error: "No Supabase demo workspace exists yet. Deploy a demo agent first.",
+        error: "No demo workspace exists yet. Deploy a demo agent first.",
       };
     }
 
@@ -298,7 +298,7 @@ export async function fetchSupabaseDashboardData(
       error:
         error instanceof Error
           ? sanitizeSupabaseMessage(error.message)
-          : "Supabase dashboard query failed.",
+          : "Demo workspace query failed.",
     };
   }
 }
@@ -318,7 +318,7 @@ export async function resetSupabaseDemoWorkspace(
   if (!appConfig.supabase.configured) {
     return {
       ok: false,
-      message: "Supabase environment variables are not configured.",
+      message: "Backend environment is not configured.",
       deletedWorkspaceId: null,
     };
   }

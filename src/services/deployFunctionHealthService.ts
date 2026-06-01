@@ -23,18 +23,18 @@ export interface DeployFunctionHealthResult {
 export function getDeployFunctionHealthLabel(status: DeployFunctionHealthStatus) {
   switch (status) {
     case "ready":
-      return "edge ready";
+      return "ready";
     case "missing-secret":
-      return "missing secret";
+      return "configuration required";
     case "unavailable":
-      return "fallback active";
+      return "fallback ready";
     case "error":
-      return "health error";
+      return "health check unavailable";
     case "checking":
       return "checking";
     case "not-configured":
     default:
-      return "edge scaffolded";
+      return "fallback ready";
   }
 }
 

@@ -5,7 +5,7 @@ export function Footer() {
     <footer className="site-footer">
       <div>
         <strong>KYRA-AGENT</strong>
-        <p>Base-native onchain agent console. Frontend demo only.</p>
+        <p>Base-native onchain agent console. Backend-connected demo.</p>
       </div>
       <div className="footer-links">
         <a href="https://github.com/Kyra-Agent/Kyra" target="_blank" rel="noreferrer">
@@ -18,7 +18,7 @@ export function Footer() {
         </a>
         <span>
           <Terminal size={15} />
-          Base MCP-ready model
+          Approval-first workflow
         </span>
       </div>
     </footer>

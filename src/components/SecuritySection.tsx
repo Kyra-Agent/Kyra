@@ -6,7 +6,7 @@ const guarantees = [
   "No custody",
   "Wallet approval required",
   "Demo mode executes no real transactions",
-  "Secrets stay out of GitHub",
+  "No credentials stored",
 ];
 
 export function SecuritySection() {
@@ -36,7 +36,7 @@ export function SecuritySection() {
         <article>
           <ShieldCheck size={22} />
           <strong>Risk guard</strong>
-          <p>NYX-05 checks risky tokens, suspicious approvals, slippage, and unsafe flows.</p>
+          <p>Kyra checks risky tokens, suspicious approvals, slippage, and unsafe flows.</p>
         </article>
       </div>
 

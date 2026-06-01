@@ -92,10 +92,10 @@ function App() {
   );
   const [authMessage, setAuthMessage] = useState(() =>
     loadStoredAuthSession()
-      ? "Stored Supabase session loaded."
+      ? "Stored account session loaded."
       : appConfig.supabase.configured
-        ? "Sign in to create a Supabase session for RLS-backed records."
-        : "Supabase auth is not configured.",
+        ? "Sign in to load account-scoped demo records."
+        : "Account session is not configured.",
   );
   const [selectedScenarioId, setSelectedScenarioId] = useState("swap");
   const [approvalOpen, setApprovalOpen] = useState(false);
@@ -170,7 +170,7 @@ function App() {
       setAgentTemplates(fallbackAgentTemplates);
       setTemplateCatalogSource("mock");
       setTemplateCatalogStatus(result.status === "not-configured" ? "not-configured" : "error");
-      setTemplateCatalogError(result.error ?? "Supabase returned an empty template catalog.");
+      setTemplateCatalogError(result.error ?? "Connected catalog returned no templates.");
     }
 
     void loadTemplateCatalog();
@@ -345,11 +345,11 @@ function App() {
       <div className="demo-disclaimer" role="note" aria-label="Kyra demo disclaimer">
         <span>
           <ShieldCheck size={15} />
-          {appConfig.dataProvider === "supabase" ? "Backend-connected demo" : "Frontend demo"}
+          BACKEND-CONNECTED DEMO
         </span>
         <p>
-          No real transactions, wallet keys, or Telegram bot tokens. Deploy records can persist
-          to Supabase after sign-in, while onchain execution stays simulated.
+          No real transactions, wallet keys, or Telegram bot tokens. Demo records can persist
+          after sign-in, while onchain execution stays simulated.
         </p>
       </div>
 
@@ -381,7 +381,7 @@ function App() {
               <div className="hero-copy">
                 <span className="demo-badge hero-badge">
                   <Terminal size={15} />
-                  Static demo environment
+                  Backend-connected demo
                 </span>
                 <h1>Deploy Base agents with approval-first onchain workflows.</h1>
                 <p className="hero-subtitle">
@@ -428,7 +428,6 @@ function App() {
               templates={agentTemplates}
               selectedId={selectedId}
               onSelect={setSelectedId}
-              catalogSource={templateCatalogSource}
               catalogStatus={templateCatalogStatus}
               catalogError={templateCatalogError}
             />

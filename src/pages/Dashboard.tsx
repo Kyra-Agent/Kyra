@@ -101,7 +101,7 @@ function getDashboardReadinessTone(status: SupabaseDashboardStatus) {
 
 function getDashboardReadinessLabel(status: SupabaseDashboardStatus) {
   if (status === "connected") {
-    return "supabase live";
+    return "active";
   }
 
   if (status === "loading") {
@@ -109,23 +109,33 @@ function getDashboardReadinessLabel(status: SupabaseDashboardStatus) {
   }
 
   if (status === "error") {
-    return "mock fallback";
+    return "fallback ready";
   }
 
   return status === "not-configured" ? "not configured" : "no records";
 }
 
 function formatActivityLog(log: DemoActivityLog) {
-  return `[${log.timestamp}] ${log.source}: ${log.message}`;
+  const sourceLabel =
+    {
+      agent_instances: "agent",
+      telegram_sessions: "telegram",
+      base_mcp_routes: "base action",
+      approval_requests: "approval",
+      wallet_policies: "wallet policy",
+      activity_logs: "activity",
+    }[log.source] ?? "backend";
+
+  return `[${log.timestamp}] ${sourceLabel}: ${log.message}`;
 }
 
-function getCatalogValue(status: SupabaseConnectionStatus, source: DataProvider, templateCount: number) {
+function getCatalogValue(status: SupabaseConnectionStatus, templateCount: number) {
   if (status === "connected") {
-    return `${templateCount} from ${source}`;
+    return `${templateCount} connected templates`;
   }
 
   if (status === "error") {
-    return "mock fallback";
+    return "local fallback";
   }
 
   return status === "checking" ? "checking" : "local";
@@ -314,37 +324,37 @@ export function Dashboard({
       ? {
           id: "no-demo-workspace",
           name: "No demo workspace",
-          owner: authSession.user.email || "Supabase user",
+          owner: authSession.user.email || "Signed-in user",
           mode: "backend-demo" as const,
           authProvider: "supabase" as const,
         }
       : {
           id: "signed-out-preview",
           name: "Signed-out preview",
-          owner: "No Supabase session",
+          owner: "No account session",
           mode: "backend-demo" as const,
           authProvider: "supabase" as const,
         });
   const activityLines = dashboardData?.activityLogs.length
     ? dashboardData.activityLogs.map(formatActivityLog)
     : dashboardStatus === "loading"
-        ? ["[--:--:--] dashboard: loading Supabase workspace records"]
+        ? ["[--:--:--] dashboard: loading demo workspace records"]
         : authSession
           ? ["[--:--:--] dashboard: no deployed demo agent records"]
           : [
-              "[--:--:--] auth: sign in to load Supabase dashboard records",
-              "[--:--:--] dashboard: no mock agent or public route shown while signed out",
+              "[--:--:--] account: sign in to load demo workspace records",
+              "[--:--:--] dashboard: no sample agent or public route shown while signed out",
             ];
   const readinessRows = [
     {
-      label: "Dashboard data",
+      label: "Demo records",
       value: getDashboardReadinessLabel(dashboardStatus),
       tone: getDashboardReadinessTone(dashboardStatus),
       icon: Database,
     },
     {
       label: "Template catalog",
-      value: getCatalogValue(templateCatalogStatus, templateCatalogSource, agentTemplates.length),
+      value: getCatalogValue(templateCatalogStatus, agentTemplates.length),
       tone: getReadinessTone(templateCatalogStatus),
       icon: Server,
     },
@@ -361,20 +371,20 @@ export function Dashboard({
       icon: ShieldCheck,
     },
     {
-      label: "Supabase env",
+      label: "Backend environment",
       value: supabaseStatus.configured ? "configured" : "waiting",
       tone: supabaseStatus.configured ? "ready" : "standby",
       icon: Database,
     },
     {
-      label: "Auth",
-      value: authSession ? "session active" : appConfig.integrations.auth,
+      label: "Account session",
+      value: authSession ? "active" : "sign in required",
       tone: authSession ? "ready" : "standby",
       icon: KeyRound,
     },
     {
       label: "Database",
-      value: appConfig.integrations.database,
+      value: appConfig.integrations.database === "supabase" ? "connected" : "local preview",
       tone: appConfig.integrations.database === "supabase" ? "ready" : "standby",
       icon: Server,
     },
@@ -471,7 +481,7 @@ export function Dashboard({
     }
 
     setAdminActionStatus("running");
-    setAdminActionMessage("Checking Supabase session before reset...");
+    setAdminActionMessage("Checking account session before reset...");
 
     const freshAuth = await ensureFreshAuthSession(authSession);
 
@@ -503,7 +513,7 @@ export function Dashboard({
     }
 
     setAdminActionStatus("idle");
-    setAdminActionMessage("Refreshing Supabase dashboard records...");
+    setAdminActionMessage("Refreshing demo workspace records...");
     setDashboardReloadKey((key) => key + 1);
   }
 
@@ -527,7 +537,7 @@ export function Dashboard({
           </a>
           <a href="#auth">
             <KeyRound size={16} />
-            Auth
+            Account
           </a>
           <a href="#approvals">
             <WalletCards size={16} />
@@ -543,7 +553,7 @@ export function Dashboard({
           </a>
           <a href="#backend">
             <Server size={16} />
-            Backend
+            Readiness
           </a>
           <a href="#admin-actions">
             <Trash2 size={16} />
@@ -566,8 +576,8 @@ export function Dashboard({
                 ? "Signed-out preview"
                 : agentRecord
                 ? dashboardStatus === "connected"
-                  ? "Supabase agent"
-                  : "Agent online"
+                  ? "Persisted demo agent"
+                  : "Demo agent ready"
                 : dashboardStatus === "loading"
                   ? "Syncing workspace"
                   : "No demo agent"}
@@ -581,10 +591,10 @@ export function Dashboard({
             </h1>
             <p>
               {!authSession
-                ? "Dashboard records are hidden until a Supabase session is active. Sign in to load quota, deployed agents, approvals, and public routes."
+                ? "Dashboard records are hidden until an account session is active. Sign in to load quota, deployed agents, approvals, and public routes."
                 : agentRecord
                 ? activeTemplate.role
-                : "Deploy a demo agent to create Supabase dashboard records."}
+                : "Deploy a demo agent to create persisted dashboard records."}
             </p>
           </div>
           {agentRecord ? (
@@ -635,7 +645,7 @@ export function Dashboard({
         <div className="dashboard-content-grid">
           <section className="dashboard-panel agent-overview-panel">
             <div className="panel-title">
-              <span>agent.instance</span>
+              <span>Agent overview</span>
               <span>{agentRecord ? agentRecord.id : "empty"}</span>
             </div>
             {agentRecord ? (
@@ -655,13 +665,13 @@ export function Dashboard({
                 <Database size={20} />
                 <strong>
                   {authSession
-                    ? "No Supabase demo agent records."
+                    ? "No persisted demo agent records."
                     : "Dashboard records locked until sign-in."}
                 </strong>
                 <p>
                   {authSession
                     ? "This signed-in workspace is clean. Deploy a demo agent from the home flow to create the dashboard, approval queue, wallet policy, logs, and public agent route."
-                    : "Sign in to load RLS-backed demo workspace records. No mock agent, wallet queue, or public route is shown while signed out."}
+                    : "Sign in to load account-scoped demo workspace records. No sample agent, wallet queue, or public route is shown while signed out."}
                 </p>
               </div>
             )}
@@ -669,7 +679,7 @@ export function Dashboard({
 
           <section className="dashboard-panel" id="approvals">
             <div className="panel-title">
-              <span>approval.queue</span>
+              <span>Approval queue</span>
               <span>{visibleRequests.length} items</span>
             </div>
             <div className="queue-list">
@@ -709,7 +719,7 @@ export function Dashboard({
 
           <section className="dashboard-panel">
             <div className="panel-title">
-              <span>wallet.policy</span>
+              <span>Wallet policy</span>
               <span>safe mode</span>
             </div>
             <div className="wallet-policy-list">
@@ -731,33 +741,9 @@ export function Dashboard({
             </div>
           </section>
 
-          <section className="dashboard-panel backend-shape-panel">
-            <div className="panel-title">
-              <span>backend.records</span>
-              <span>{authSession ? "supabase" : "signed-out"}</span>
-            </div>
-            <div className="backend-table-list">
-              {backendTables.length ? (
-                backendTables.map((table) => (
-                  <article key={table.name}>
-                    <span>{table.name}</span>
-                    <strong>{table.records} records</strong>
-                    <small>{table.purpose}</small>
-                  </article>
-                ))
-              ) : (
-                <div className="dashboard-empty-state compact">
-                  <Database size={18} />
-                  <strong>No backend records yet.</strong>
-                  <p>Reset or a fresh sign-in leaves this dashboard clean until the next deploy.</p>
-                </div>
-              )}
-            </div>
-          </section>
-
           <section className="dashboard-panel admin-actions-panel" id="admin-actions">
             <div className="panel-title">
-              <span>admin.actions</span>
+              <span>Admin actions</span>
               <span>{authSession ? "workspace owner" : "locked"}</span>
             </div>
             <p className="admin-actions-copy">
@@ -774,7 +760,7 @@ export function Dashboard({
               </article>
               <article>
                 <span>Scope</span>
-                <strong>{workspace.mode}</strong>
+                <strong>{authSession ? "Signed-in demo workspace" : "Account session required"}</strong>
               </article>
             </div>
             <div className="admin-action-grid">
@@ -801,34 +787,108 @@ export function Dashboard({
               <ShieldCheck size={15} />
               <span>{adminActionMessage}</span>
             </div>
+            {authSession ? (
+              <details className="backend-diagnostics">
+                <summary>
+                  <span>
+                    <Server size={16} />
+                    Backend Diagnostics
+                  </span>
+                  <small>Technical details</small>
+                </summary>
+                <div className="backend-diagnostics-content">
+                  <div className="diagnostic-note-grid">
+                    <p>
+                      Provider: <strong>{templateCatalogSource}</strong>
+                    </p>
+                    <p>
+                      Runtime: <strong>{formatRuntimeValue(appConfig.mode)}</strong>
+                    </p>
+                    <p>
+                      Function health: <strong>{deployFunctionMessage || "checking"}</strong>
+                    </p>
+                  </div>
+                  {templateCatalogError ? (
+                    <p className="readiness-error-note">
+                      Supabase catalog query failed: {templateCatalogError}
+                    </p>
+                  ) : null}
+                  {dashboardError ? (
+                    <p className="readiness-error-note">
+                      Supabase dashboard query: {dashboardError}
+                    </p>
+                  ) : null}
+                  <div className="deploy-readiness-checklist" aria-label="Deploy agent diagnostics checklist">
+                    <div className="deploy-checklist-title">
+                      <span>deploy-agent checklist</span>
+                      <strong>{getDeployFunctionHealthLabel(deployFunctionStatus)}</strong>
+                    </div>
+                    <div className="deploy-checklist-grid">
+                      {deployChecklist.map((item) => {
+                        const StatusIcon =
+                          item.state === "complete"
+                            ? CheckCircle2
+                            : item.state === "blocked"
+                              ? LockKeyhole
+                              : Clock3;
+
+                        return (
+                          <article className={`deploy-check-item deploy-check-${item.state}`} key={item.label}>
+                            <StatusIcon size={15} />
+                            <span>
+                              <strong>{item.label}</strong>
+                              <small>{item.detail}</small>
+                            </span>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="backend-table-list">
+                    {backendTables.length ? (
+                      backendTables.map((table) => (
+                        <article key={table.name}>
+                          <span>{table.name}</span>
+                          <strong>{table.records} records</strong>
+                          <small>{table.purpose}</small>
+                        </article>
+                      ))
+                    ) : (
+                      <div className="dashboard-empty-state compact">
+                        <Database size={18} />
+                        <strong>No backend records yet.</strong>
+                        <p>A fresh account session stays clean until the next demo deploy.</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="backend-contract-line">
+                    <span>{supabaseStatus.tables.length} Supabase tables mapped</span>
+                    <span>{agentTemplates.length} templates loaded</span>
+                    <span>
+                      {dashboardAgentCount
+                        ? `${dashboardAgentCount} Supabase agents`
+                        : "no Supabase agents"}
+                    </span>
+                    <span>max {demoAgentLimits.maxAgentsPerWorkspace} demo agents</span>
+                    <span>deploy-agent {getDeployFunctionHealthLabel(deployFunctionStatus)}</span>
+                    <span>onchain execution disabled</span>
+                  </div>
+                </div>
+              </details>
+            ) : null}
           </section>
 
           <section className="dashboard-panel backend-readiness-panel" id="backend">
             <div className="panel-title">
-              <span>backend.readiness</span>
-              <span>{formatRuntimeValue(appConfig.mode)}</span>
+              <span>Demo readiness</span>
+              <span>{authSession ? "account connected" : "preview mode"}</span>
             </div>
             <div className="readiness-summary">
               <span className={`readiness-chip readiness-${getDashboardReadinessTone(dashboardStatus)}`}>
                 <ShieldCheck size={14} />
-                {dashboardStatus === "connected" ? "Supabase records connected" : "demo safe"}
+                {dashboardStatus === "connected" ? "Demo persistence active" : "demo safe"}
               </span>
               <p>{kyraRepositoryRuntime.note}</p>
-              {templateCatalogError ? (
-                <p className="readiness-error-note">
-                  Supabase catalog query failed: {templateCatalogError}
-                </p>
-              ) : null}
-              {dashboardError && authSession ? (
-                <p className="readiness-error-note">
-                  Supabase dashboard query: {dashboardError}
-                </p>
-              ) : null}
-              {deployFunctionStatus !== "ready" && deployFunctionStatus !== "not-configured" ? (
-                <p className="readiness-error-note">
-                  Deploy function: {deployFunctionMessage}
-                </p>
-              ) : null}
             </div>
             <div className="readiness-grid">
               {readinessRows.map((item) => {
@@ -845,50 +905,23 @@ export function Dashboard({
                 );
               })}
             </div>
-            <div className="deploy-readiness-checklist" aria-label="Deploy agent readiness checklist">
-              <div className="deploy-checklist-title">
-                <span>deploy-agent checklist</span>
-                <strong>{getDeployFunctionHealthLabel(deployFunctionStatus)}</strong>
-              </div>
-              <div className="deploy-checklist-grid">
-                {deployChecklist.map((item) => {
-                  const StatusIcon =
-                    item.state === "complete"
-                      ? CheckCircle2
-                      : item.state === "blocked"
-                        ? LockKeyhole
-                        : Clock3;
-
-                  return (
-                    <article className={`deploy-check-item deploy-check-${item.state}`} key={item.label}>
-                      <StatusIcon size={15} />
-                      <span>
-                        <strong>{item.label}</strong>
-                        <small>{item.detail}</small>
-                      </span>
-                    </article>
-                  );
-                })}
-              </div>
-            </div>
             <div className="backend-contract-line">
-              <span>{supabaseStatus.tables.length} Supabase tables mapped</span>
-              <span>{agentTemplates.length} templates loaded</span>
+              <span>{agentTemplates.length} connected templates</span>
               <span>
                 {dashboardAgentCount
-                  ? `${dashboardAgentCount} Supabase agents`
-                  : "no Supabase agents"}
+                  ? `${dashboardAgentCount} persisted demo agents`
+                  : "no persisted demo agents"}
               </span>
               <span>max {demoAgentLimits.maxAgentsPerWorkspace} demo agents</span>
-              <span>deploy-agent {getDeployFunctionHealthLabel(deployFunctionStatus)}</span>
+              <span>approval-first workflows</span>
               <span>onchain execution disabled</span>
             </div>
           </section>
 
           <section className="dashboard-panel" id="logs">
             <div className="panel-title">
-              <span>activity.stream</span>
-              <span>live replay</span>
+              <span>Activity log</span>
+              <span>demo replay</span>
             </div>
             <div className="dashboard-log-box">
               {activityLines.map((log) => (
@@ -899,8 +932,8 @@ export function Dashboard({
 
           <section className="dashboard-panel" id="modules">
             <div className="panel-title">
-              <span>kyra.modules</span>
-              <span>core online</span>
+              <span>Kyra modules</span>
+              <span>core ready</span>
             </div>
             <div className="dashboard-module-grid">
               {coreModules.map((module) => (
@@ -915,7 +948,7 @@ export function Dashboard({
 
           <section className="dashboard-panel template-switch-panel">
             <div className="panel-title">
-              <span>available.templates</span>
+              <span>Available templates</span>
               <span>{agentTemplates.length}</span>
             </div>
             <div className="mini-template-list">

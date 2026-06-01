@@ -9,7 +9,7 @@ export const faqs: FAQItem[] = [
   {
     question: "Is this demo executing real transactions?",
     answer:
-      "No. This frontend is demo mode. It simulates deployment, Base MCP routing, approval requests, and action logs without touching real funds.",
+      "No. Kyra is currently a backend-connected demo. It simulates deployment, approval requests, and Base action workflows without touching real funds.",
   },
   {
     question: "Does Kyra control my wallet?",
@@ -27,9 +27,9 @@ export const faqs: FAQItem[] = [
       "Telegram gives Kyra a fast command interface for personal and community agents. The product output is still an agent instance: Telegram interface, Kyra dashboard, and wallet approval workflow.",
   },
   {
-    question: "What is Base MCP?",
+    question: "What is the Base action layer?",
     answer:
-      "Base MCP is the action layer Kyra is designed around. Kyra uses that model to prepare Base ecosystem actions while keeping final approval in the user's wallet.",
+      "It is the approval-first workflow Kyra uses to prepare Base ecosystem actions while keeping the final decision in the user's wallet.",
   },
   {
     question: "Can project teams use Kyra?",
@@ -37,8 +37,8 @@ export const faqs: FAQItem[] = [
       "Yes. Project-facing agents can answer token questions, verify holders, monitor launches, and keep admin actions separated from public user actions.",
   },
   {
-    question: "Is it safe to push this project to GitHub?",
+    question: "Can I save a demo agent?",
     answer:
-      "Yes, as long as secrets stay out of the repository. Use .env for real tokens and keys, commit only .env.example, and never store private keys or seed phrases.",
+      "Yes. Signed-in users can persist demo records for dashboard and public preview testing. Telegram connections, wallet transactions, and onchain execution remain simulated.",
   },
 ];

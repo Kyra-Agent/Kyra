@@ -2460,6 +2460,68 @@ h2 {
   color: #ffb0b8;
 }
 
+.backend-diagnostics {
+  margin-top: 0.85rem;
+  border: 1px solid rgba(94, 162, 255, 0.22);
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.backend-diagnostics summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  min-height: 44px;
+  padding: 0.72rem;
+  color: var(--text);
+  cursor: pointer;
+  list-style: none;
+}
+
+.backend-diagnostics summary::-webkit-details-marker {
+  display: none;
+}
+
+.backend-diagnostics summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.48rem;
+  font-weight: 800;
+}
+
+.backend-diagnostics summary small {
+  color: var(--muted);
+}
+
+.backend-diagnostics summary::after {
+  color: var(--blue);
+  content: "+";
+  font-weight: 900;
+}
+
+.backend-diagnostics[open] summary::after {
+  content: "-";
+}
+
+.backend-diagnostics-content {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0 0.72rem 0.72rem;
+}
+
+.diagnostic-note-grid {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.diagnostic-note-grid p {
+  margin: 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
 .reset-confirm-modal {
   background:
     linear-gradient(180deg, rgba(255, 111, 125, 0.1), transparent 42%),

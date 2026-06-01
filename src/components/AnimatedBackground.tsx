@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 
 const nodeCount = 12;
-const signals = ["BASE", "MCP", "NIRA", "NYX", "TX", "APPROVE", "KYRA"];
+const signals = ["BASE", "ACTION", "NIRA", "NYX", "TX", "APPROVE", "KYRA"];
 
 export function AnimatedBackground() {
   return (

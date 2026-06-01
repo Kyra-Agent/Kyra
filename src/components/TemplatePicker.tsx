@@ -1,5 +1,4 @@
 import { CheckCircle2, Clock3, LockKeyhole, Sparkles } from "lucide-react";
-import type { DataProvider } from "../types/api";
 import type { AgentTemplate } from "../types/agent";
 import type { SupabaseConnectionStatus } from "../services/supabaseKyraRepository";
 
@@ -7,7 +6,6 @@ interface TemplatePickerProps {
   templates: AgentTemplate[];
   selectedId: string;
   onSelect: (templateId: string) => void;
-  catalogSource: DataProvider;
   catalogStatus: SupabaseConnectionStatus;
   catalogError: string | null;
 }
@@ -32,23 +30,22 @@ function getCatalogTone(status: SupabaseConnectionStatus) {
   return status === "error" ? "error" : "standby";
 }
 
-function getCatalogLabel(source: DataProvider, status: SupabaseConnectionStatus) {
+function getCatalogLabel(status: SupabaseConnectionStatus) {
   if (status === "connected") {
-    return `Catalog: ${source}`;
+    return "Catalog: Connected";
   }
 
   if (status === "error") {
-    return "Catalog: mock fallback";
+    return "Catalog: Local fallback";
   }
 
-  return status === "checking" ? "Catalog: checking" : "Catalog: local";
+  return status === "checking" ? "Catalog: Checking" : "Catalog: Local";
 }
 
 export function TemplatePicker({
   templates,
   selectedId,
   onSelect,
-  catalogSource,
   catalogStatus,
   catalogError,
 }: TemplatePickerProps) {
@@ -63,10 +60,10 @@ export function TemplatePicker({
         </p>
         <div className="catalog-status-row">
           <span className={`readiness-chip readiness-${getCatalogTone(catalogStatus)}`}>
-            {getCatalogLabel(catalogSource, catalogStatus)}
+            {getCatalogLabel(catalogStatus)}
           </span>
           {catalogError ? (
-            <small>Fallback reason: {catalogError}</small>
+            <small>Connected catalog unavailable. Local demo catalog loaded.</small>
           ) : null}
         </div>
       </div>

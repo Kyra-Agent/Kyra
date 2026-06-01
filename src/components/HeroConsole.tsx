@@ -37,7 +37,7 @@ export function HeroConsole({
       "NIRA-01  routing intent",
       "NOVA-04  wallet data module synced",
       "NYX-05   risk guard active",
-      "BASE-MCP approval layer connected",
+      "BASE ACTION approval layer connected",
       `telegram> ${selectedScenario.command}`,
       ...selectedScenario.lines,
     ],
@@ -123,7 +123,7 @@ export function HeroConsole({
           </span>
           <span>
             <Radio size={15} />
-            Base MCP
+            Base actions
           </span>
         </div>
       </div>

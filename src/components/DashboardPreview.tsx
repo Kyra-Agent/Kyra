@@ -19,7 +19,7 @@ export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
         </div>
         <span className="demo-badge">
           <CircleDot size={14} />
-          Agent online
+          Demo agent preview
         </span>
       </div>
 

@@ -343,7 +343,7 @@ async function saveViaDeployFunction({
 
   return {
     status: "saved",
-    message: payload.message ?? "Demo deployment persisted through deploy-agent Edge Function.",
+    message: "Demo deployment persisted by the Kyra backend.",
     workspaceId: payload.workspaceId ?? null,
     agentId: payload.agentId ?? null,
     publicSlug: payload.publicSlug ?? null,
@@ -357,13 +357,11 @@ async function saveViaSupabaseRestFallback({
   template,
   agentName,
   selectedActions,
-  fallbackReason,
 }: {
   session: KyraAuthSession;
   template: AgentTemplate;
   agentName: string;
   selectedActions: string[];
-  fallbackReason?: string;
 }): Promise<DeployPersistenceResult> {
   const workspace = await ensureWorkspace(session);
   const quota = await getQuotaForWorkspace(session, workspace.id);
@@ -391,9 +389,7 @@ async function saveViaSupabaseRestFallback({
 
   return {
     status: "saved",
-    message: fallbackReason
-      ? `Deploy-agent function unavailable; persisted through Supabase RLS fallback.`
-      : "Demo deployment persisted to Supabase.",
+    message: "Demo deployment persisted by the Kyra backend.",
     workspaceId: workspace.id,
     agentId: agent.id,
     publicSlug: agent.public_slug,
@@ -423,7 +419,7 @@ export async function saveSupabaseDemoDeployment({
   if (!appConfig.supabase.configured) {
     return {
       status: "skipped",
-      message: "Supabase is not configured, so this deploy stayed local.",
+      message: "Backend persistence is not configured, so this deploy stayed local.",
       workspaceId: null,
       agentId: null,
       publicSlug: null,
@@ -444,7 +440,7 @@ export async function saveSupabaseDemoDeployment({
       if (error instanceof DeployFunctionError && !error.fallbackAllowed) {
         return {
           status: "error",
-          message: error.message,
+          message: "Demo persistence is temporarily unavailable.",
           workspaceId: null,
           agentId: null,
           publicSlug: null,
@@ -453,23 +449,17 @@ export async function saveSupabaseDemoDeployment({
         };
       }
 
-      const fallbackReason = error instanceof Error ? sanitizeSupabaseMessage(error.message) : undefined;
-
       return await saveViaSupabaseRestFallback({
         session,
         template,
         agentName,
         selectedActions,
-        fallbackReason,
       });
     }
-  } catch (error) {
+  } catch {
     return {
       status: "error",
-      message:
-        error instanceof Error
-          ? sanitizeSupabaseMessage(error.message)
-          : "Supabase deployment persistence failed.",
+      message: "Demo persistence failed.",
       workspaceId: null,
       agentId: null,
       publicSlug: null,

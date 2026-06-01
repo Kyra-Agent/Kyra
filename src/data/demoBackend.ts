@@ -114,7 +114,7 @@ export const demoActivityLogs: DemoActivityLog[] = [
     timestamp: "12:04:21",
     source: "base_mcp_routes",
     level: "notice",
-    message: "Base MCP endpoint registered",
+    message: "Base action route prepared",
   },
   {
     id: "log_command_received",

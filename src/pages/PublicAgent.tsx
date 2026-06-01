@@ -39,7 +39,7 @@ const capabilityRows = [
   },
   {
     title: "Base action layer",
-    summary: "Prepare Base actions through a Base MCP-style route.",
+    summary: "Prepare Base actions through an approval-first workflow.",
     icon: Radio,
   },
   {
@@ -51,7 +51,7 @@ const capabilityRows = [
 
 function getPublicStatusLabel(status: PublicAgentProfileStatus) {
   if (status === "connected") {
-    return "Supabase public profile";
+    return "Persisted demo profile";
   }
 
   if (status === "loading") {
@@ -63,6 +63,10 @@ function getPublicStatusLabel(status: PublicAgentProfileStatus) {
 
 function isDemoPreviewSlug(agentSlug: string) {
   return agentSlug.endsWith("-demo");
+}
+
+function formatDemoRouteStatus(status: string) {
+  return status === "mocked" ? "simulated" : status;
 }
 
 export function PublicAgent({
@@ -83,9 +87,7 @@ export function PublicAgent({
   const activeTemplate = publicProfile?.template ?? (canUseMockPreview ? selectedTemplate : null);
   const approvalPolicy = agentRecord ? kyraDataService.getApprovalPolicyForAgent(agentRecord) : null;
   const commandRows = activeTemplate ? kyraDataService.listPriorityApprovalRequests(activeTemplate.id, 4) : [];
-  const backendTables =
-    publicProfile?.backendTables ?? (canUseMockPreview ? kyraDataService.listBackendTables() : []);
-  const backendSource = publicProfile ? "supabase profile" : "mock tables";
+  const profileSource = publicProfile ? "Persisted demo profile" : "Local demo preview";
 
   useEffect(() => {
     let active = true;
@@ -130,7 +132,7 @@ export function PublicAgent({
           <h1>{loading ? "Checking agent route..." : "Demo agent unavailable."}</h1>
           <p>
             {loading
-              ? "Kyra is checking whether this route maps to an active Supabase demo agent."
+              ? "Kyra is checking whether this route maps to an active demo agent."
               : "This public agent route does not map to an active demo record. The demo workspace may have been reset, the record may have expired, or the agent was never deployed."}
           </p>
           {!loading ? (
@@ -160,7 +162,7 @@ export function PublicAgent({
           </div>
           {publicError && !loading ? (
             <span className="demo-action-note public-profile-note">
-              Supabase profile status: {publicError}
+              No active demo profile is available for this route.
             </span>
           ) : null}
         </section>
@@ -213,12 +215,12 @@ export function PublicAgent({
           <h1>{visibleAgentRecord.displayName}</h1>
           <p>
             A share-ready preview for a deployed Kyra agent. It shows the public identity,
-            available commands, safety policy, and backend-shaped records before live
-            Telegram and Base MCP integrations are connected.
+            available commands, and safety policy before live Telegram and Base action
+            integrations are connected.
           </p>
           {publicError ? (
             <span className="demo-action-note public-profile-note">
-              Supabase profile fallback: {publicError}
+              Connected profile unavailable. Showing the local demo preview.
             </span>
           ) : null}
 
@@ -275,7 +277,7 @@ export function PublicAgent({
             </span>
             <span>
               Mode
-              <strong>{visibleAgentRecord.mode}</strong>
+              <strong>Demo</strong>
             </span>
             <span>
               Public route
@@ -288,7 +290,7 @@ export function PublicAgent({
       <section className="public-proof-strip" aria-label="Kyra public agent facts">
         <span>
           <Database size={16} />
-          {backendTables.length} {backendSource}
+          {profileSource}
         </span>
         <span>
           <LockKeyhole size={16} />
@@ -296,14 +298,14 @@ export function PublicAgent({
         </span>
         <span>
           <Route size={16} />
-          {visibleAgentRecord.baseMcpStatus} Base MCP route
+          {formatDemoRouteStatus(visibleAgentRecord.baseMcpStatus)} Base action route
         </span>
       </section>
 
       <section className="public-agent-grid">
         <article className="public-panel public-summary">
           <div className="panel-title">
-            <span>agent.summary</span>
+            <span>Agent summary</span>
             <span>{visibleTemplate.status}</span>
           </div>
           <p>{visibleTemplate.summary}</p>
@@ -319,7 +321,7 @@ export function PublicAgent({
 
         <article className="public-panel">
           <div className="panel-title">
-            <span>capabilities</span>
+            <span>Capabilities</span>
             <span>demo</span>
           </div>
           <div className="capability-list">
@@ -341,7 +343,7 @@ export function PublicAgent({
 
         <article className="public-panel">
           <div className="panel-title">
-            <span>try.commands</span>
+            <span>Try commands</span>
             <span>{commandRows.length} examples</span>
           </div>
           <div className="command-demo-list public-command-list">
@@ -360,21 +362,21 @@ export function PublicAgent({
 
         <article className="public-panel public-record-panel">
           <div className="panel-title">
-            <span>agent.record</span>
-            <span>{visibleAgentRecord.id}</span>
+            <span>Demo profile</span>
+            <span>share-ready</span>
           </div>
           <div className="record-fact-grid">
             <span>
               Workspace
-              <strong>{visibleAgentRecord.workspaceId}</strong>
+              <strong>Demo workspace</strong>
             </span>
             <span>
               Telegram
-              <strong>{visibleAgentRecord.telegramStatus}</strong>
+              <strong>{formatDemoRouteStatus(visibleAgentRecord.telegramStatus)}</strong>
             </span>
             <span>
-              Base MCP
-              <strong>{visibleAgentRecord.baseMcpStatus}</strong>
+              Base actions
+              <strong>{formatDemoRouteStatus(visibleAgentRecord.baseMcpStatus)}</strong>
             </span>
             <span>
               Last sync
@@ -385,7 +387,7 @@ export function PublicAgent({
 
         <article className="public-panel security-profile-panel">
           <div className="panel-title">
-            <span>safety.policy</span>
+            <span>Safety policy</span>
             <span>required</span>
           </div>
           <div className="profile-safety-grid">
