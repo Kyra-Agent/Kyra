@@ -1,6 +1,7 @@
 import { appConfig } from "../config/appConfig";
 
 const AUTH_STORAGE_KEY = "kyra.supabase.session.v1";
+const SESSION_REFRESH_BUFFER_SECONDS = 120;
 
 export type KyraAuthStatus =
   | "not-configured"
@@ -214,6 +215,42 @@ export async function refreshAuthSession(session: KyraAuthSession): Promise<Kyra
   return requestAuth("token?grant_type=refresh_token", {
     refresh_token: session.refreshToken,
   });
+}
+
+export function shouldRefreshAuthSession(
+  session: KyraAuthSession,
+  bufferSeconds = SESSION_REFRESH_BUFFER_SECONDS,
+) {
+  return session.expiresAt - Math.floor(Date.now() / 1000) <= bufferSeconds;
+}
+
+export async function ensureFreshAuthSession(
+  session: KyraAuthSession | null,
+): Promise<KyraAuthResult> {
+  if (!session) {
+    return makeResult("signed-out", "Sign in before using Supabase-backed demo records.");
+  }
+
+  if (!appConfig.supabase.configured) {
+    return makeResult("not-configured", "Supabase environment variables are missing.");
+  }
+
+  if (!shouldRefreshAuthSession(session)) {
+    return makeResult("signed-in", "Session active.", session);
+  }
+
+  const result = await refreshAuthSession(session);
+
+  if (result.session) {
+    return makeResult("signed-in", "Session refreshed.", result.session);
+  }
+
+  clearStoredAuthSession();
+
+  return makeResult(
+    "error",
+    `Session expired and refresh failed. Sign in again before using Supabase records. ${result.message}`,
+  );
 }
 
 export async function getCurrentAuthUser(session: KyraAuthSession): Promise<KyraAuthResult> {

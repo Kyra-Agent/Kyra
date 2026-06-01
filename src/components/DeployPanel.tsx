@@ -19,7 +19,11 @@ import {
   type DeployPersistenceResult,
   type DeployPersistenceStatus,
 } from "../services/supabaseDeployService";
-import type { KyraAuthSession } from "../services/supabaseAuthService";
+import {
+  ensureFreshAuthSession,
+  type KyraAuthSession,
+  type KyraAuthStatus,
+} from "../services/supabaseAuthService";
 
 interface DeployPanelProps {
   templates: AgentTemplate[];
@@ -27,6 +31,11 @@ interface DeployPanelProps {
   authSession: KyraAuthSession | null;
   onSelectTemplate: (templateId: string) => void;
   onOpenAgent: (target?: { templateId?: string; publicPath?: string }) => void;
+  onAuthSessionChange: (
+    session: KyraAuthSession | null,
+    status: KyraAuthStatus,
+    message: string,
+  ) => void;
 }
 
 const deployLogs = [
@@ -74,6 +83,7 @@ export function DeployPanel({
   authSession,
   onSelectTemplate,
   onOpenAgent,
+  onAuthSessionChange,
 }: DeployPanelProps) {
   const [agentName, setAgentName] = useState("Kyra Operator");
   const [deploying, setDeploying] = useState(false);
@@ -166,6 +176,23 @@ export function DeployPanel({
           ? "guard"
           : "demo";
 
+  function syncFreshAuthSession(
+    currentSession: KyraAuthSession,
+    result: Awaited<ReturnType<typeof ensureFreshAuthSession>>,
+  ) {
+    if (!result.session) {
+      onAuthSessionChange(null, result.status, result.message);
+      return;
+    }
+
+    if (
+      result.session.accessToken !== currentSession.accessToken ||
+      result.session.expiresAt !== currentSession.expiresAt
+    ) {
+      onAuthSessionChange(result.session, result.status, result.message);
+    }
+  }
+
   useEffect(() => {
     let active = true;
 
@@ -173,7 +200,38 @@ export function DeployPanel({
       setQuotaLoading(Boolean(authSession));
 
       try {
-        const quota = await fetchSupabaseDemoAgentQuota(authSession);
+        if (!authSession) {
+          const quota = await fetchSupabaseDemoAgentQuota(null);
+
+          if (!active) {
+            return;
+          }
+
+          setAgentQuota(quota);
+          return;
+        }
+
+        const freshAuth = await ensureFreshAuthSession(authSession);
+
+        if (!active) {
+          return;
+        }
+
+        syncFreshAuthSession(authSession, freshAuth);
+
+        if (!freshAuth.session) {
+          setAgentQuota({
+            used: 0,
+            limit: demoAgentLimits.maxAgentsPerWorkspace,
+            remaining: demoAgentLimits.maxAgentsPerWorkspace,
+            reached: false,
+            source: "local",
+            message: "Session refresh failed. Sign in again to read demo quota.",
+          });
+          return;
+        }
+
+        const quota = await fetchSupabaseDemoAgentQuota(freshAuth.session);
 
         if (!active) {
           return;
@@ -220,8 +278,39 @@ export function DeployPanel({
         setActiveLogStep(index + 1);
         if (index === deployLogs.length - 1) {
           window.setTimeout(async () => {
+            let deploySession = authSession;
+
+            if (authSession) {
+              setPersistMessage("Checking Supabase session before deploy...");
+
+              const freshAuth = await ensureFreshAuthSession(authSession);
+
+              syncFreshAuthSession(authSession, freshAuth);
+
+              if (!freshAuth.session) {
+                const blockedResult: DeployPersistenceResult = {
+                  status: "error",
+                  message: freshAuth.message,
+                  workspaceId: null,
+                  agentId: null,
+                  publicSlug: null,
+                  telegramHandle: null,
+                  source: "local",
+                };
+
+                setPersistStatus(blockedResult.status);
+                setPersistMessage(blockedResult.message);
+                setPersistedRecord(blockedResult);
+                setDeploying(false);
+                setDeployed(true);
+                return;
+              }
+
+              deploySession = freshAuth.session;
+            }
+
             const result = await saveSupabaseDemoDeployment({
-              session: authSession,
+              session: deploySession,
               template: selectedTemplate,
               agentName,
               selectedActions,

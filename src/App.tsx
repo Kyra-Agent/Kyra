@@ -17,6 +17,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { PublicAgent } from "./pages/PublicAgent";
 import { kyraDataService } from "./services/kyraDataService";
 import {
+  ensureFreshAuthSession,
   getCurrentAuthUser,
   loadStoredAuthSession,
   type KyraAuthSession,
@@ -189,7 +190,20 @@ function App() {
     let active = true;
 
     async function validateStoredSession() {
-      const result = await getCurrentAuthUser(sessionToValidate);
+      const freshResult = await ensureFreshAuthSession(sessionToValidate);
+
+      if (!active) {
+        return;
+      }
+
+      if (!freshResult.session) {
+        setAuthSession(null);
+        setAuthStatus(freshResult.status);
+        setAuthMessage(freshResult.message);
+        return;
+      }
+
+      const result = await getCurrentAuthUser(freshResult.session);
 
       if (!active) {
         return;
@@ -421,6 +435,7 @@ function App() {
               authSession={authSession}
               onSelectTemplate={setSelectedId}
               onOpenAgent={(target) => navigate("agent", target)}
+              onAuthSessionChange={updateAuthSession}
             />
             <DashboardPreview selectedTemplate={selectedTemplate} />
             <ActionConsole />

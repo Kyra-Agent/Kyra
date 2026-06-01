@@ -2,6 +2,7 @@ import { useState } from "react";
 import { CheckCircle2, KeyRound, Loader2, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import {
   clearStoredAuthSession,
+  ensureFreshAuthSession,
   getCurrentAuthUser,
   signInWithPassword,
   signOutAuthSession,
@@ -82,7 +83,15 @@ export function AuthSessionPanel({
     }
 
     setBusyAction("validate");
-    const result = await getCurrentAuthUser(session);
+    const freshResult = await ensureFreshAuthSession(session);
+
+    if (!freshResult.session) {
+      applyResult(freshResult);
+      setBusyAction(null);
+      return;
+    }
+
+    const result = await getCurrentAuthUser(freshResult.session);
     applyResult(result);
     setBusyAction(null);
   }

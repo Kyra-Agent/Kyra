@@ -38,6 +38,7 @@ import {
   type SupabaseDashboardStatus,
 } from "../services/supabaseDashboardService";
 import type { KyraAuthSession, KyraAuthStatus } from "../services/supabaseAuthService";
+import { ensureFreshAuthSession } from "../services/supabaseAuthService";
 import {
   getSupabaseAdapterStatus,
   type SupabaseConnectionStatus,
@@ -213,12 +214,28 @@ export function Dashboard({
     }
 
     let active = true;
+    const sessionToLoad = authSession;
 
     async function loadDashboardRecords() {
       setDashboardStatus("loading");
       setDashboardError(null);
 
-      const result = await fetchSupabaseDashboardData(authSession);
+      const freshAuth = await ensureFreshAuthSession(sessionToLoad);
+
+      if (!active) {
+        return;
+      }
+
+      syncFreshAuthSession(sessionToLoad, freshAuth);
+
+      if (!freshAuth.session) {
+        setDashboardStatus("error");
+        setDashboardData(null);
+        setDashboardError(freshAuth.message);
+        return;
+      }
+
+      const result = await fetchSupabaseDashboardData(freshAuth.session);
 
       if (!active) {
         return;
@@ -423,6 +440,23 @@ export function Dashboard({
   ];
   const isAdminActionRunning = adminActionStatus === "running";
 
+  function syncFreshAuthSession(
+    currentSession: KyraAuthSession,
+    result: Awaited<ReturnType<typeof ensureFreshAuthSession>>,
+  ) {
+    if (!result.session) {
+      onAuthSessionChange(null, result.status, result.message);
+      return;
+    }
+
+    if (
+      result.session.accessToken !== currentSession.accessToken ||
+      result.session.expiresAt !== currentSession.expiresAt
+    ) {
+      onAuthSessionChange(result.session, result.status, result.message);
+    }
+  }
+
   function handleOpenResetConfirmation() {
     if (!authSession || isAdminActionRunning) {
       return;
@@ -445,9 +479,22 @@ export function Dashboard({
     }
 
     setAdminActionStatus("running");
+    setAdminActionMessage("Checking Supabase session before reset...");
+
+    const freshAuth = await ensureFreshAuthSession(authSession);
+
+    syncFreshAuthSession(authSession, freshAuth);
+
+    if (!freshAuth.session) {
+      setAdminActionStatus("error");
+      setAdminActionMessage(freshAuth.message);
+      setResetConfirmOpen(false);
+      return;
+    }
+
     setAdminActionMessage("Resetting demo workspace records...");
 
-    const result = await resetSupabaseDemoWorkspace(authSession, dashboardData?.workspace.id);
+    const result = await resetSupabaseDemoWorkspace(freshAuth.session, dashboardData?.workspace.id);
 
     setAdminActionStatus(result.ok ? "success" : "error");
     setAdminActionMessage(result.message);
