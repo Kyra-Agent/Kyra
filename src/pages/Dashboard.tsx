@@ -511,7 +511,9 @@ export function Dashboard({
     <main className="dashboard-page">
       <aside className="dashboard-sidebar">
         <div className="sidebar-brand">
-          <span className="agent-orb">K</span>
+          <span className="agent-orb">
+            <img src="/brand/kyra.jpg" alt="" aria-hidden="true" />
+          </span>
           <div>
             <strong>Kyra Console</strong>
             <small>{workspace.name}</small>

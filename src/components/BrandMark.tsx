@@ -27,6 +27,7 @@ export function BrandMark() {
 
   return (
     <span className="brand-mark" aria-label="KYRA-AGENT">
+      <img className="brand-logo-image" src="/brand/kyra.jpg" alt="" aria-hidden="true" />
       <span className="brand-text">{frames[frame]}</span>
       <span className="brand-cursor">_</span>
     </span>

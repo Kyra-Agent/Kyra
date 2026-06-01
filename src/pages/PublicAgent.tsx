@@ -256,7 +256,9 @@ export function PublicAgent({
             <span className="identity-ring" />
           </div>
           <div className="agent-card-header public-agent-handle">
-            <span className="agent-orb">K</span>
+            <span className="agent-orb">
+              <img src="/brand/kyra.jpg" alt="" aria-hidden="true" />
+            </span>
             <div>
               <strong>{visibleAgentRecord.handle}</strong>
               <small>{visibleTemplate.role}</small>

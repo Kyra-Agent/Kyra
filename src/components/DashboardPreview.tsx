@@ -26,7 +26,9 @@ export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
       <div className="dashboard-grid">
         <div className="agent-card">
           <div className="agent-card-header">
-            <span className="agent-orb">K</span>
+            <span className="agent-orb">
+              <img src="/brand/kyra.jpg" alt="" aria-hidden="true" />
+            </span>
             <div>
               <strong>{agentRecord.displayName}</strong>
               <small>{selectedTemplate.role}</small>
