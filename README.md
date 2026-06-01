@@ -5,7 +5,7 @@ Kyra Agent is a Base-native onchain agent console demo. It lets a user choose an
 Core positioning:
 
 ```text
-Deploy your Base agent. It actually does things onchain.
+Deploy Base agents with approval-first onchain workflows.
 ```
 
 Current caveat: the repository is still a backend-connected demo. It shows the product flow and persistence model, but it does not execute live onchain transactions.

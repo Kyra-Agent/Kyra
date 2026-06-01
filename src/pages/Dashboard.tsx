@@ -23,7 +23,6 @@ import type { AgentTemplate } from "../types/agent";
 import { appConfig } from "../config/appConfig";
 import { demoAgentLimits } from "../config/demoLimits";
 import { coreModules } from "../data/modules";
-import { kyraDataService } from "../services/kyraDataService";
 import { kyraRepositoryRuntime } from "../services/repositoryFactory";
 import {
   fetchDeployFunctionHealth,
@@ -281,9 +280,7 @@ export function Dashboard({
     };
   }, []);
 
-  const showMockDashboard = !authSession;
-  const fallbackAgentRecord = kyraDataService.getAgentInstance(selectedTemplate.id);
-  const agentRecord = dashboardData?.latestAgent ?? (showMockDashboard ? fallbackAgentRecord : null);
+  const agentRecord = dashboardData?.latestAgent ?? null;
   const dashboardAgentCount = dashboardData?.agentInstances.length ?? 0;
   const activeTemplate = useMemo(
     () =>
@@ -307,20 +304,10 @@ export function Dashboard({
       return dashboardData.approvalRequests.slice(0, 3);
     }
 
-    return showMockDashboard ? kyraDataService.listPriorityApprovalRequests(activeTemplate.id, 3) : [];
-  }, [activeTemplate.id, agentRecord, dashboardData, showMockDashboard]);
-  const walletPolicies =
-    dashboardData?.walletPolicies.length
-      ? dashboardData.walletPolicies
-      : showMockDashboard
-        ? kyraDataService.listWalletPolicies()
-        : [];
-  const backendTables =
-    dashboardData?.backendTables.length
-      ? dashboardData.backendTables
-      : showMockDashboard
-        ? kyraDataService.listBackendTables()
-        : [];
+    return [];
+  }, [agentRecord, dashboardData]);
+  const walletPolicies = dashboardData?.walletPolicies ?? [];
+  const backendTables = dashboardData?.backendTables ?? [];
   const workspace =
     dashboardData?.workspace ??
     (authSession
@@ -331,18 +318,23 @@ export function Dashboard({
           mode: "backend-demo" as const,
           authProvider: "supabase" as const,
         }
-      : kyraDataService.getWorkspace());
+      : {
+          id: "signed-out-preview",
+          name: "Signed-out preview",
+          owner: "No Supabase session",
+          mode: "backend-demo" as const,
+          authProvider: "supabase" as const,
+        });
   const activityLines = dashboardData?.activityLogs.length
     ? dashboardData.activityLogs.map(formatActivityLog)
-    : showMockDashboard
-      ? kyraDataService.listActivityLines([
-          "[12:05:07] dashboard route opened",
-          "[12:05:08] approval policy visible",
-          "[12:05:09] demo mode remains active",
-        ])
-      : dashboardStatus === "loading"
+    : dashboardStatus === "loading"
         ? ["[--:--:--] dashboard: loading Supabase workspace records"]
-        : ["[--:--:--] dashboard: no deployed demo agent records"];
+        : authSession
+          ? ["[--:--:--] dashboard: no deployed demo agent records"]
+          : [
+              "[--:--:--] auth: sign in to load Supabase dashboard records",
+              "[--:--:--] dashboard: no mock agent or public route shown while signed out",
+            ];
   const readinessRows = [
     {
       label: "Dashboard data",
@@ -568,7 +560,9 @@ export function Dashboard({
           <div>
             <span className="demo-badge compact">
               <Bot size={14} />
-              {agentRecord
+              {!authSession
+                ? "Signed-out preview"
+                : agentRecord
                 ? dashboardStatus === "connected"
                   ? "Supabase agent"
                   : "Agent online"
@@ -576,9 +570,17 @@ export function Dashboard({
                   ? "Syncing workspace"
                   : "No demo agent"}
             </span>
-            <h1>{agentRecord ? agentRecord.displayName : "No demo agent deployed"}</h1>
+            <h1>
+              {!authSession
+                ? "Sign in to view demo workspace"
+                : agentRecord
+                  ? agentRecord.displayName
+                  : "No demo agent deployed"}
+            </h1>
             <p>
-              {agentRecord
+              {!authSession
+                ? "Dashboard records are hidden until a Supabase session is active. Sign in to load quota, deployed agents, approvals, and public routes."
+                : agentRecord
                 ? activeTemplate.role
                 : "Deploy a demo agent to create Supabase dashboard records."}
             </p>
@@ -649,10 +651,15 @@ export function Dashboard({
             ) : (
               <div className="dashboard-empty-state">
                 <Database size={20} />
-                <strong>No Supabase demo agent records.</strong>
+                <strong>
+                  {authSession
+                    ? "No Supabase demo agent records."
+                    : "Dashboard records locked until sign-in."}
+                </strong>
                 <p>
-                  This signed-in workspace is clean. Deploy a demo agent from the home flow to
-                  create the dashboard, approval queue, wallet policy, logs, and public agent route.
+                  {authSession
+                    ? "This signed-in workspace is clean. Deploy a demo agent from the home flow to create the dashboard, approval queue, wallet policy, logs, and public agent route."
+                    : "Sign in to load RLS-backed demo workspace records. No mock agent, wallet queue, or public route is shown while signed out."}
                 </p>
               </div>
             )}
@@ -725,7 +732,7 @@ export function Dashboard({
           <section className="dashboard-panel backend-shape-panel">
             <div className="panel-title">
               <span>backend.records</span>
-              <span>{showMockDashboard ? "frontend mock" : "supabase"}</span>
+              <span>{authSession ? "supabase" : "signed-out"}</span>
             </div>
             <div className="backend-table-list">
               {backendTables.length ? (
@@ -868,9 +875,7 @@ export function Dashboard({
               <span>
                 {dashboardAgentCount
                   ? `${dashboardAgentCount} Supabase agents`
-                  : showMockDashboard
-                    ? "dashboard fallback ready"
-                    : "no Supabase agents"}
+                  : "no Supabase agents"}
               </span>
               <span>max {demoAgentLimits.maxAgentsPerWorkspace} demo agents</span>
               <span>deploy-agent {getDeployFunctionHealthLabel(deployFunctionStatus)}</span>

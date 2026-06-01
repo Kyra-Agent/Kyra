@@ -101,6 +101,7 @@ function App() {
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [approvalApproved, setApprovalApproved] = useState(false);
   const [approvalClosing, setApprovalClosing] = useState(false);
+  const [approvalDismissed, setApprovalDismissed] = useState(false);
   const [route, setRoute] = useState<"home" | "dashboard" | "agent">(() => {
     if (typeof window === "undefined") {
       return "home";
@@ -300,10 +301,11 @@ function App() {
     setApprovalOpen(false);
     setApprovalApproved(false);
     setApprovalClosing(false);
+    setApprovalDismissed(false);
   }
 
   function requestApproval() {
-    if (!selectedScenario.approvalRequired || approvalApproved) {
+    if (!selectedScenario.approvalRequired || approvalApproved || approvalDismissed) {
       return;
     }
 
@@ -320,6 +322,7 @@ function App() {
   }
 
   function closeApprovalModal() {
+    setApprovalDismissed(true);
     setApprovalClosing(true);
     window.setTimeout(() => {
       setApprovalOpen(false);
@@ -380,7 +383,7 @@ function App() {
                   <Terminal size={15} />
                   Static demo environment
                 </span>
-                <h1>Deploy Base agents that actually do things onchain.</h1>
+                <h1>Deploy Base agents with approval-first onchain workflows.</h1>
                 <p className="hero-subtitle">
                   Launch Telegram-native AI agents that read wallet context, prepare Base
                   actions, and keep every transaction behind wallet approval.
