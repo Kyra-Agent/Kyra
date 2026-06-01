@@ -75,10 +75,12 @@ export async function fetchDeployFunctionHealth(): Promise<DeployFunctionHealthR
   }
 
   try {
+    const apiKey = getSupabaseApiKey();
     const response = await fetch(appConfig.functions.deployAgentUrl, {
       headers: {
         Accept: "application/json",
-        apikey: getSupabaseApiKey(),
+        apikey: apiKey,
+        Authorization: `Bearer ${apiKey}`,
       },
     });
     const payload = await parseHealthPayload(response);

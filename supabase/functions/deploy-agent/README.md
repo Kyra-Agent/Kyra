@@ -29,8 +29,12 @@ Never expose `SUPABASE_SERVICE_ROLE_KEY` to the browser or any `VITE_` environme
 
 ## Deploy
 
+The Supabase CLI must be authenticated first. Use a local CLI login or set a
+temporary `SUPABASE_ACCESS_TOKEN` in your terminal session. Do not commit the
+token or paste it into frontend environment variables.
+
 ```bash
-supabase functions deploy deploy-agent
+npx --yes supabase@latest functions deploy deploy-agent --project-ref lvgqtxbygrazkolhdwnh
 ```
 
 Frontend integration calls this function only after the user has an active Supabase Auth session. Set `VITE_KYRA_DEPLOY_FUNCTION_URL` to the deployed function URL if the default Supabase function URL is not enough.
