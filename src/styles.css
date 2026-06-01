@@ -389,6 +389,10 @@ button {
   justify-content: flex-end;
 }
 
+.header-actions .header-safety {
+  display: none;
+}
+
 .icon-link {
   display: inline-flex;
   align-items: center;
@@ -3320,6 +3324,10 @@ h2 {
     display: none;
   }
 
+  .header-actions .header-safety {
+    display: inline-flex;
+  }
+
   .hero-section {
     grid-template-columns: 1fr;
     min-height: auto;
@@ -3351,6 +3359,12 @@ h2 {
   .module-status {
     grid-column: 1 / -1;
     justify-self: start;
+  }
+}
+
+@media (min-width: 1061px) and (max-width: 1180px) {
+  .site-header .demo-badge {
+    display: none;
   }
 }
 
@@ -3405,7 +3419,7 @@ h2 {
     gap: 0.45rem;
   }
 
-  .hide-on-mobile {
+  .header-actions .hide-on-mobile {
     display: none;
   }
 

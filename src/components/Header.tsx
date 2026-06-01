@@ -47,10 +47,6 @@ export function Header({
       </nav>
 
       <div className="header-actions">
-        <span className="demo-badge">
-          <Terminal size={14} />
-          Demo Mode
-        </span>
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         <a
           className="icon-link"
@@ -79,13 +75,17 @@ export function Header({
           Launch Demo
         </button>
         <button
-          className="button button-ghost button-small hide-on-mobile"
+          className="button button-ghost button-small header-safety hide-on-mobile"
           type="button"
           onClick={() => onOpenSection("security")}
         >
           <ShieldCheck size={16} />
           Safety
         </button>
+        <span className="demo-badge">
+          <Terminal size={14} />
+          Demo Mode
+        </span>
       </div>
     </header>
   );
