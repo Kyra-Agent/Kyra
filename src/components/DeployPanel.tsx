@@ -126,7 +126,7 @@ export function DeployPanel({
       "base_mcp.endpoint=https://mcp.base.org/",
       "wallet.policy=approval_required",
       `agent.quota=${authSession ? `${agentQuota.used}/${agentQuota.limit}` : `0/${agentQuota.limit}`}`,
-      "quota.guard=max_2_demo_agents",
+      `quota.guard=max_${agentQuota.limit}_demo_agents`,
       `supabase.session=${authSession ? "active" : "missing"}`,
       `deploy.api=${authSession ? "edge_function_preferred" : "mock_only"}`,
       `db.write=${authSession ? "edge_or_rls_fallback" : "mock_only"}`,

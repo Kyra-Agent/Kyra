@@ -222,6 +222,25 @@ function sanitizeErrorMessage(message: string) {
     .slice(0, 240);
 }
 
+function getUnknownErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === "object" && error) {
+    const payload = error as Record<string, unknown>;
+    const parts = [payload.message, payload.details, payload.hint, payload.code]
+      .filter((part): part is string => typeof part === "string" && Boolean(part.trim()))
+      .map((part) => part.trim());
+
+    if (parts.length) {
+      return parts.join(" ");
+    }
+  }
+
+  return "Deploy agent function failed.";
+}
+
 async function getUserClient(supabaseUrl: string, anonKey: string, authorization: string) {
   const userClient = createClient(supabaseUrl, anonKey, {
     auth: {
@@ -563,10 +582,7 @@ Deno.serve(async (request) => {
       {
         ok: false,
         status: "server_error",
-        message:
-          error instanceof Error
-            ? sanitizeErrorMessage(error.message)
-            : "Deploy agent function failed.",
+        message: sanitizeErrorMessage(getUnknownErrorMessage(error)),
       },
       500,
     );
