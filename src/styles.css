@@ -2099,6 +2099,35 @@ h2 {
   line-height: 1.65;
 }
 
+.dashboard-empty-state {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.85rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--muted);
+}
+
+.dashboard-empty-state.compact {
+  min-height: 132px;
+  align-content: center;
+}
+
+.dashboard-empty-state svg {
+  color: var(--blue);
+}
+
+.dashboard-empty-state strong {
+  color: var(--text);
+}
+
+.dashboard-empty-state p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
 .dashboard-action-chips {
   display: flex;
   flex-wrap: wrap;
@@ -2372,6 +2401,47 @@ h2 {
   color: #ffb0b8;
 }
 
+.reset-confirm-modal {
+  background:
+    linear-gradient(180deg, rgba(255, 111, 125, 0.1), transparent 42%),
+    rgba(7, 12, 18, 0.98);
+}
+
+.reset-confirm-copy {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.reset-scope-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.58rem;
+  margin: 0.85rem 0;
+}
+
+.reset-scope-grid span {
+  display: grid;
+  gap: 0.3rem;
+  min-height: 74px;
+  padding: 0.72rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.reset-scope-grid strong {
+  color: var(--text);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.reset-confirm-warning {
+  color: #dff8ea;
+}
+
 .backend-readiness-panel {
   background:
     linear-gradient(135deg, rgba(94, 162, 255, 0.08), transparent 44%),
@@ -2613,6 +2683,61 @@ h2 {
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
   padding: 2.2rem 0 4rem;
+}
+
+.public-agent-empty-page {
+  display: grid;
+  min-height: calc(100vh - 140px);
+  place-items: center;
+}
+
+.public-agent-empty-card {
+  width: min(760px, 100%);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(255, 111, 125, 0.08), transparent 42%),
+    var(--panel);
+  box-shadow: var(--shadow);
+  padding: 1.25rem;
+}
+
+.public-agent-empty-card h1 {
+  margin: 1rem 0 0.7rem;
+  color: var(--text);
+  font-size: 3.4rem;
+  line-height: 1;
+}
+
+.public-agent-empty-card p {
+  max-width: 62ch;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.public-agent-empty-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.58rem;
+  margin-top: 1rem;
+}
+
+.public-agent-empty-facts span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 54px;
+  padding: 0.68rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.public-agent-empty-facts svg {
+  color: var(--green);
 }
 
 .agent-profile-hero {
@@ -3412,6 +3537,7 @@ h2 {
   .agent-profile-hero,
   .public-agent-grid,
   .public-proof-strip,
+  .public-agent-empty-facts,
   .profile-status-grid,
   .profile-safety-grid,
   .record-fact-grid {
@@ -3462,6 +3588,7 @@ h2 {
   .backend-table-list article,
   .admin-action-metrics,
   .admin-action-grid,
+  .reset-scope-grid,
   .deploy-checklist-grid,
   .readiness-grid {
     grid-template-columns: 1fr;

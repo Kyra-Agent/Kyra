@@ -61,6 +61,10 @@ function getPublicStatusLabel(status: PublicAgentProfileStatus) {
   return "Public agent preview";
 }
 
+function isDemoPreviewSlug(agentSlug: string) {
+  return agentSlug.endsWith("-demo");
+}
+
 export function PublicAgent({
   selectedTemplate,
   agentSlug,
@@ -72,12 +76,15 @@ export function PublicAgent({
   const [publicStatus, setPublicStatus] = useState<PublicAgentProfileStatus>("loading");
   const [publicProfile, setPublicProfile] = useState<PublicAgentProfile | null>(null);
   const [publicError, setPublicError] = useState<string | null>(null);
+  const canUseMockPreview = isDemoPreviewSlug(agentSlug);
+  const showUnavailableAgent = !canUseMockPreview && !publicProfile && publicStatus !== "loading";
   const fallbackAgentRecord = kyraDataService.getAgentInstance(selectedTemplate.id);
-  const agentRecord = publicProfile?.agent ?? fallbackAgentRecord;
-  const activeTemplate = publicProfile?.template ?? selectedTemplate;
-  const approvalPolicy = kyraDataService.getApprovalPolicyForAgent(agentRecord);
-  const commandRows = kyraDataService.listPriorityApprovalRequests(activeTemplate.id, 4);
-  const backendTables = publicProfile?.backendTables ?? kyraDataService.listBackendTables();
+  const agentRecord = publicProfile?.agent ?? (canUseMockPreview ? fallbackAgentRecord : null);
+  const activeTemplate = publicProfile?.template ?? (canUseMockPreview ? selectedTemplate : null);
+  const approvalPolicy = agentRecord ? kyraDataService.getApprovalPolicyForAgent(agentRecord) : null;
+  const commandRows = activeTemplate ? kyraDataService.listPriorityApprovalRequests(activeTemplate.id, 4) : [];
+  const backendTables =
+    publicProfile?.backendTables ?? (canUseMockPreview ? kyraDataService.listBackendTables() : []);
   const backendSource = publicProfile ? "supabase profile" : "mock tables";
 
   useEffect(() => {
@@ -105,9 +112,68 @@ export function PublicAgent({
     };
   }, [agentSlug, selectedTemplate.id]);
 
+  if (!agentRecord || !activeTemplate || showUnavailableAgent) {
+    const loading = publicStatus === "loading";
+
+    return (
+      <main className="public-agent-page public-agent-empty-page">
+        <section className="public-agent-empty-card">
+          <button className="button button-ghost profile-back" type="button" onClick={onBackDashboard}>
+            <ArrowLeft size={16} />
+            Dashboard
+          </button>
+
+          <span className={`demo-badge ${loading ? "" : "status-paused"}`}>
+            <Bot size={14} />
+            {loading ? "Checking public profile" : "Expired demo agent"}
+          </span>
+          <h1>{loading ? "Checking agent route..." : "Demo agent unavailable."}</h1>
+          <p>
+            {loading
+              ? "Kyra is checking whether this route maps to an active Supabase demo agent."
+              : "This public agent route does not map to an active demo record. The demo workspace may have been reset, the record may have expired, or the agent was never deployed."}
+          </p>
+          {!loading ? (
+            <div className="public-agent-empty-facts">
+              <span>
+                <ShieldCheck size={16} />
+                No real funds touched
+              </span>
+              <span>
+                <LockKeyhole size={16} />
+                No keys stored
+              </span>
+              <span>
+                <Terminal size={16} />
+                No transactions executed
+              </span>
+            </div>
+          ) : null}
+          <div className="profile-cta-row">
+            <button className="button button-primary" type="button" onClick={onBackDashboard}>
+              Back to Dashboard
+              <ArrowLeft size={16} />
+            </button>
+            <button className="button button-ghost" type="button" onClick={onBackHome}>
+              View Website
+            </button>
+          </div>
+          {publicError && !loading ? (
+            <span className="demo-action-note public-profile-note">
+              Supabase profile status: {publicError}
+            </span>
+          ) : null}
+        </section>
+      </main>
+    );
+  }
+
+  const visibleAgentRecord = agentRecord;
+  const visibleTemplate = activeTemplate;
+
   function copyProfileLink() {
     const origin = typeof window === "undefined" ? "https://kyra-agent.demo" : window.location.origin;
-    const profileUrl = `${origin}${agentRecord.publicPath}`;
+    const profileUrl = `${origin}${visibleAgentRecord.publicPath}`;
 
     if (navigator.clipboard) {
       void navigator.clipboard.writeText(profileUrl);
@@ -133,18 +199,18 @@ export function PublicAgent({
           <div className="public-status-line" aria-label="Agent public status">
             <span>
               <Activity size={15} />
-              {agentRecord.status}
+              {visibleAgentRecord.status}
             </span>
             <span>
               <Radio size={15} />
-              {agentRecord.network}
+              {visibleAgentRecord.network}
             </span>
             <span>
               <ShieldCheck size={15} />
               wallet approval
             </span>
           </div>
-          <h1>{agentRecord.displayName}</h1>
+          <h1>{visibleAgentRecord.displayName}</h1>
           <p>
             A share-ready preview for a deployed Kyra agent. It shows the public identity,
             available commands, safety policy, and backend-shaped records before live
@@ -184,34 +250,34 @@ export function PublicAgent({
           <div className="identity-signal">
             <div className="identity-core">
               <span>KYRA</span>
-              <strong>{activeTemplate.name}</strong>
-              <small>{agentRecord.handle}</small>
+              <strong>{visibleTemplate.name}</strong>
+              <small>{visibleAgentRecord.handle}</small>
             </div>
             <span className="identity-ring" />
           </div>
           <div className="agent-card-header public-agent-handle">
             <span className="agent-orb">K</span>
             <div>
-              <strong>{agentRecord.handle}</strong>
-              <small>{activeTemplate.role}</small>
+              <strong>{visibleAgentRecord.handle}</strong>
+              <small>{visibleTemplate.role}</small>
             </div>
           </div>
           <div className="profile-status-grid">
             <span>
               Status
-              <strong>{agentRecord.status}</strong>
+              <strong>{visibleAgentRecord.status}</strong>
             </span>
             <span>
               Network
-              <strong>{agentRecord.network}</strong>
+              <strong>{visibleAgentRecord.network}</strong>
             </span>
             <span>
               Mode
-              <strong>{agentRecord.mode}</strong>
+              <strong>{visibleAgentRecord.mode}</strong>
             </span>
             <span>
               Public route
-              <strong>{agentRecord.publicPath}</strong>
+              <strong>{visibleAgentRecord.publicPath}</strong>
             </span>
           </div>
         </div>
@@ -228,7 +294,7 @@ export function PublicAgent({
         </span>
         <span>
           <Route size={16} />
-          {agentRecord.baseMcpStatus} Base MCP route
+          {visibleAgentRecord.baseMcpStatus} Base MCP route
         </span>
       </section>
 
@@ -236,11 +302,11 @@ export function PublicAgent({
         <article className="public-panel public-summary">
           <div className="panel-title">
             <span>agent.summary</span>
-            <span>{activeTemplate.status}</span>
+            <span>{visibleTemplate.status}</span>
           </div>
-          <p>{activeTemplate.summary}</p>
+          <p>{visibleTemplate.summary}</p>
           <div className="dashboard-action-chips">
-            {activeTemplate.actions.map((action) => (
+            {visibleTemplate.actions.map((action) => (
               <span className="chip chip-active" key={action}>
                 <CheckCircle2 size={13} />
                 {action}
@@ -293,24 +359,24 @@ export function PublicAgent({
         <article className="public-panel public-record-panel">
           <div className="panel-title">
             <span>agent.record</span>
-            <span>{agentRecord.id}</span>
+            <span>{visibleAgentRecord.id}</span>
           </div>
           <div className="record-fact-grid">
             <span>
               Workspace
-              <strong>{agentRecord.workspaceId}</strong>
+              <strong>{visibleAgentRecord.workspaceId}</strong>
             </span>
             <span>
               Telegram
-              <strong>{agentRecord.telegramStatus}</strong>
+              <strong>{visibleAgentRecord.telegramStatus}</strong>
             </span>
             <span>
               Base MCP
-              <strong>{agentRecord.baseMcpStatus}</strong>
+              <strong>{visibleAgentRecord.baseMcpStatus}</strong>
             </span>
             <span>
               Last sync
-              <strong>{agentRecord.lastSyncAt.slice(0, 16).replace("T", " ")}</strong>
+              <strong>{visibleAgentRecord.lastSyncAt.slice(0, 16).replace("T", " ")}</strong>
             </span>
           </div>
         </article>
