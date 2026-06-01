@@ -23,6 +23,12 @@ import { coreModules } from "../data/modules";
 import { kyraDataService } from "../services/kyraDataService";
 import { kyraRepositoryRuntime } from "../services/repositoryFactory";
 import {
+  fetchDeployFunctionHealth,
+  getDeployFunctionHealthLabel,
+  getDeployFunctionHealthTone,
+  type DeployFunctionHealthStatus,
+} from "../services/deployFunctionHealthService";
+import {
   fetchSupabaseDashboardData,
   type SupabaseDashboardData,
   type SupabaseDashboardStatus,
@@ -140,6 +146,10 @@ export function Dashboard({
   );
   const [dashboardData, setDashboardData] = useState<SupabaseDashboardData | null>(null);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
+  const [deployFunctionStatus, setDeployFunctionStatus] = useState<DeployFunctionHealthStatus>(
+    appConfig.functions.deployAgentConfigured ? "checking" : "not-configured",
+  );
+  const [deployFunctionMessage, setDeployFunctionMessage] = useState("");
   const supabaseStatus = getSupabaseAdapterStatus();
 
   useEffect(() => {
@@ -173,6 +183,34 @@ export function Dashboard({
       active = false;
     };
   }, [authSession]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadDeployFunctionHealth() {
+      if (!appConfig.functions.deployAgentConfigured) {
+        setDeployFunctionStatus("not-configured");
+        setDeployFunctionMessage("Deploy function URL is not configured.");
+        return;
+      }
+
+      setDeployFunctionStatus("checking");
+      const result = await fetchDeployFunctionHealth();
+
+      if (!active) {
+        return;
+      }
+
+      setDeployFunctionStatus(result.status);
+      setDeployFunctionMessage(result.message);
+    }
+
+    void loadDeployFunctionHealth();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const fallbackAgentRecord = kyraDataService.getAgentInstance(selectedTemplate.id);
   const agentRecord = dashboardData?.latestAgent ?? fallbackAgentRecord;
@@ -253,8 +291,8 @@ export function Dashboard({
     },
     {
       label: "Deploy API",
-      value: appConfig.integrations.deployApi,
-      tone: "ready",
+      value: getDeployFunctionHealthLabel(deployFunctionStatus),
+      tone: getDeployFunctionHealthTone(deployFunctionStatus),
       icon: Terminal,
     },
     {
@@ -459,6 +497,11 @@ export function Dashboard({
                   Supabase dashboard query: {dashboardError}
                 </p>
               ) : null}
+              {deployFunctionStatus !== "ready" && deployFunctionStatus !== "not-configured" ? (
+                <p className="readiness-error-note">
+                  Deploy function: {deployFunctionMessage}
+                </p>
+              ) : null}
             </div>
             <div className="readiness-grid">
               {readinessRows.map((item) => {
@@ -484,7 +527,7 @@ export function Dashboard({
                   : "dashboard fallback ready"}
               </span>
               <span>max {demoAgentLimits.maxAgentsPerWorkspace} demo agents</span>
-              <span>deploy-agent scaffolded</span>
+              <span>deploy-agent {getDeployFunctionHealthLabel(deployFunctionStatus)}</span>
               <span>onchain execution disabled</span>
             </div>
           </section>

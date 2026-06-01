@@ -13,6 +13,7 @@ Kyra is still safe demo mode. The Supabase demo backend is now partially connect
 - `src/services/supabaseDashboardService.ts` reads signed-in dashboard records.
 - `src/services/supabasePublicAgentService.ts` reads public agent profiles.
 - `src/services/supabaseDeployService.ts` calls the deploy Edge Function first, then falls back to RLS-backed client writes while the function is not deployed.
+- `src/services/deployFunctionHealthService.ts` checks the deploy function health endpoint for dashboard readiness.
 - `.env.example` includes the provider and Supabase env names.
 
 ## Tables
@@ -57,6 +58,12 @@ The UI can run against Supabase when `VITE_KYRA_DATA_PROVIDER=supabase`. It stil
 
 `supabase/functions/deploy-agent` is the intended server-side deployment boundary. It validates the user session, enforces the 2-agent demo quota, writes the same demo records, and returns a receipt.
 
+The function also supports `GET` as a health check. The dashboard uses it to distinguish:
+
+- `edge ready`: function is deployed and required secrets exist.
+- `missing secret`: function is deployed but not fully configured.
+- `fallback active`: function is not reachable yet, so direct RLS demo writes remain active.
+
 The function needs server-only secrets:
 
 ```bash
@@ -74,8 +81,9 @@ The frontend already prefers the Edge Function when configured. The next backend
 
 1. Deploy `deploy-agent` to Supabase.
 2. Set `SUPABASE_SERVICE_ROLE_KEY` and `KYRA_DEMO_AGENT_LIMIT` as Supabase Function secrets.
-3. Verify the frontend receipt source changes from `supabase` fallback to `edge`.
-4. Verify dashboard/public profile reads after the function receipt.
-5. Keep live onchain execution disabled.
+3. Verify dashboard readiness changes from `fallback active` to `edge ready`.
+4. Verify the frontend receipt source changes from `supabase` fallback to `edge`.
+5. Verify dashboard/public profile reads after the function receipt.
+6. Keep live onchain execution disabled.
 
 Keep live onchain execution disabled until wallet approval, rate limits, Telegram token storage, and security review are complete.

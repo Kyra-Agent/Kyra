@@ -30,6 +30,7 @@ The app can run in mock mode or Supabase-backed demo mode:
 - `src/data/demoBackend.ts` keeps local fallback records for dashboard, public agent preview, and deploy flow.
 - `src/services` reads Supabase templates, auth sessions, dashboard records, public agent profiles, and persisted demo deploy receipts when configured.
 - `src/services/supabaseDeployService.ts` calls `deploy-agent` first, then falls back to direct RLS demo writes if the function is unavailable.
+- `src/services/deployFunctionHealthService.ts` checks whether `deploy-agent` is deployed and configured so the dashboard can show `edge ready`, `missing secret`, or `fallback active`.
 - `docs/backend-blueprint.md` outlines the Supabase/Auth/logs/approval plan for the demo backend phase.
 - `supabase/schema.sql` and `supabase/seed.sql` provide the Supabase demo schema and template catalog.
 - `supabase/functions/deploy-agent` contains the server-side deploy function scaffold for the next backend step.

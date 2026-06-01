@@ -132,6 +132,23 @@ function getDemoLimit() {
   return Number.isFinite(value) && value > 0 ? Math.floor(value) : 2;
 }
 
+function getHealthPayload() {
+  const requirements = {
+    supabaseUrl: Boolean(Deno.env.get("SUPABASE_URL")),
+    anonKey: Boolean(Deno.env.get("SUPABASE_ANON_KEY")),
+    serviceRoleKey: Boolean(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")),
+  };
+  const ready = requirements.supabaseUrl && requirements.anonKey && requirements.serviceRoleKey;
+
+  return {
+    ok: ready,
+    status: ready ? "ready" : "missing_secret",
+    function: "deploy-agent",
+    mode: "demo",
+    demoAgentLimit: getDemoLimit(),
+  };
+}
+
 function assertString(value: unknown, label: string) {
   if (typeof value !== "string" || !value.trim()) {
     throw new HttpError(400, "invalid_request", `${label} is required.`);
@@ -447,6 +464,12 @@ Deno.serve(async (request) => {
   }
 
   try {
+    if (request.method === "GET") {
+      const payload = getHealthPayload();
+
+      return jsonResponse(payload, payload.ok ? 200 : 503);
+    }
+
     if (request.method !== "POST") {
       throw new HttpError(405, "method_not_allowed", "Use POST for deploy-agent.");
     }

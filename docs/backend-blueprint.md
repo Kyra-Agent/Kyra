@@ -21,6 +21,8 @@ Supabase-specific services now sit beside the mock repository. The mock path rem
 
 `src/services/supabaseDeployService.ts` now prefers the `deploy-agent` Edge Function for deployment writes and falls back to direct RLS-backed demo writes while the function is unavailable.
 
+`src/services/deployFunctionHealthService.ts` checks the Edge Function health endpoint and exposes the readiness state in the dashboard.
+
 ## Goal
 
 Build a demo backend that can persist agent deployments, dashboard logs, wallet policies, and approval records without enabling live onchain execution yet.

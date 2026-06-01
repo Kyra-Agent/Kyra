@@ -5,6 +5,7 @@ The frontend deploy service prefers this function when configured and falls back
 
 ## What It Does
 
+- Supports `GET` health checks for dashboard readiness.
 - Validates the user from the `Authorization: Bearer <access-token>` header.
 - Finds or creates the user's demo workspace.
 - Enforces the demo limit of 2 agents per workspace.
@@ -33,3 +34,5 @@ supabase functions deploy deploy-agent
 ```
 
 Frontend integration calls this function only after the user has an active Supabase Auth session. Set `VITE_KYRA_DEPLOY_FUNCTION_URL` to the deployed function URL if the default Supabase function URL is not enough.
+
+After deploy, open the Kyra dashboard and check `Deploy API`. It should show `edge ready` when all required secrets are present.
