@@ -2318,6 +2318,96 @@ h2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.deploy-readiness-checklist {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(94, 162, 255, 0.2);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(94, 162, 255, 0.08), transparent 58%),
+    rgba(0, 0, 0, 0.16);
+}
+
+.deploy-checklist-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  color: var(--muted);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.deploy-checklist-title strong {
+  color: var(--blue);
+  text-align: right;
+}
+
+.deploy-checklist-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.deploy-check-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 0.55rem;
+  min-height: 72px;
+  padding: 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.deploy-check-item svg {
+  margin-top: 0.12rem;
+  color: currentColor;
+}
+
+.deploy-check-item span {
+  display: grid;
+  gap: 0.22rem;
+}
+
+.deploy-check-item strong {
+  color: var(--text);
+}
+
+.deploy-check-item small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.deploy-check-complete {
+  border-color: rgba(138, 230, 177, 0.28);
+  background: rgba(138, 230, 177, 0.07);
+  color: var(--green);
+}
+
+.deploy-check-active {
+  border-color: rgba(94, 162, 255, 0.28);
+  background: rgba(94, 162, 255, 0.08);
+  color: var(--blue);
+}
+
+.deploy-check-blocked {
+  border-color: rgba(255, 111, 125, 0.3);
+  background: rgba(255, 111, 125, 0.08);
+  color: #ff8c98;
+}
+
+.deploy-check-todo {
+  border-color: rgba(248, 198, 111, 0.22);
+  background: rgba(248, 198, 111, 0.055);
+  color: var(--amber);
+}
+
 .readiness-item {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -3280,6 +3370,7 @@ h2 {
   }
 
   .backend-table-list article,
+  .deploy-checklist-grid,
   .readiness-grid {
     grid-template-columns: 1fr;
   }

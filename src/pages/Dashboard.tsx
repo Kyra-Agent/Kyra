@@ -127,6 +127,46 @@ function getCatalogValue(status: SupabaseConnectionStatus, source: DataProvider,
   return status === "checking" ? "checking" : "local";
 }
 
+type DeployChecklistState = "complete" | "active" | "blocked" | "todo";
+
+interface DeployChecklistItem {
+  label: string;
+  detail: string;
+  state: DeployChecklistState;
+}
+
+function getDeployChecklistState(status: DeployFunctionHealthStatus): DeployChecklistState {
+  if (status === "ready") {
+    return "complete";
+  }
+
+  if (status === "checking") {
+    return "active";
+  }
+
+  if (status === "missing-secret" || status === "error") {
+    return "blocked";
+  }
+
+  return "todo";
+}
+
+function getDashboardChecklistState(status: SupabaseDashboardStatus): DeployChecklistState {
+  if (status === "connected") {
+    return "complete";
+  }
+
+  if (status === "loading") {
+    return "active";
+  }
+
+  if (status === "error") {
+    return "blocked";
+  }
+
+  return "todo";
+}
+
 export function Dashboard({
   selectedTemplate,
   templates,
@@ -300,6 +340,45 @@ export function Dashboard({
       value: appConfig.integrations.walletExecution,
       tone: "locked",
       icon: LockKeyhole,
+    },
+  ];
+  const deployChecklist: DeployChecklistItem[] = [
+    {
+      label: "Function URL",
+      detail: "Frontend points to the Supabase deploy-agent endpoint.",
+      state: appConfig.functions.deployAgentConfigured ? "complete" : "todo",
+    },
+    {
+      label: "Edge function",
+      detail: "Health check answers before the frontend leaves fallback mode.",
+      state: getDeployChecklistState(deployFunctionStatus),
+    },
+    {
+      label: "Server secrets",
+      detail: "Service role key stays inside Supabase Function secrets only.",
+      state:
+        deployFunctionStatus === "ready"
+          ? "complete"
+          : deployFunctionStatus === "missing-secret"
+            ? "blocked"
+            : deployFunctionStatus === "checking"
+              ? "active"
+              : "todo",
+    },
+    {
+      label: "Demo database",
+      detail: "Signed-in deploy receipts persist through RLS-backed records.",
+      state: getDashboardChecklistState(dashboardStatus),
+    },
+    {
+      label: "Agent quota",
+      detail: `Demo workspace is capped at ${demoAgentLimits.maxAgentsPerWorkspace} agents.`,
+      state: "complete",
+    },
+    {
+      label: "Receipt source",
+      detail: "Successful deploy receipts should show edge after function rollout.",
+      state: getDeployChecklistState(deployFunctionStatus),
     },
   ];
 
@@ -517,6 +596,32 @@ export function Dashboard({
                   </article>
                 );
               })}
+            </div>
+            <div className="deploy-readiness-checklist" aria-label="Deploy agent readiness checklist">
+              <div className="deploy-checklist-title">
+                <span>deploy-agent checklist</span>
+                <strong>{getDeployFunctionHealthLabel(deployFunctionStatus)}</strong>
+              </div>
+              <div className="deploy-checklist-grid">
+                {deployChecklist.map((item) => {
+                  const StatusIcon =
+                    item.state === "complete"
+                      ? CheckCircle2
+                      : item.state === "blocked"
+                        ? LockKeyhole
+                        : Clock3;
+
+                  return (
+                    <article className={`deploy-check-item deploy-check-${item.state}`} key={item.label}>
+                      <StatusIcon size={15} />
+                      <span>
+                        <strong>{item.label}</strong>
+                        <small>{item.detail}</small>
+                      </span>
+                    </article>
+                  );
+                })}
+              </div>
             </div>
             <div className="backend-contract-line">
               <span>{supabaseStatus.tables.length} Supabase tables mapped</span>
