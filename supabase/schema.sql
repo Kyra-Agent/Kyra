@@ -264,8 +264,8 @@ join public.agent_templates templates on templates.id = agents.template_id
 where agents.status = 'online'
   and agents.mode = 'demo';
 
-grant usage on schema public to anon, authenticated;
-grant select on public.agent_templates to anon, authenticated;
+grant usage on schema public to anon, authenticated, service_role;
+grant select on public.agent_templates to anon, authenticated, service_role;
 grant select (
   public_slug,
   display_name,
@@ -287,3 +287,12 @@ grant all on public.approval_requests to authenticated;
 grant select, insert on public.activity_logs to authenticated;
 grant all on public.telegram_sessions to authenticated;
 grant execute on function public.owns_workspace(uuid) to authenticated;
+
+grant all on public.workspaces to service_role;
+grant all on public.agent_instances to service_role;
+grant all on public.wallet_policies to service_role;
+grant all on public.approval_requests to service_role;
+grant all on public.activity_logs to service_role;
+grant all on public.telegram_sessions to service_role;
+grant select on public.public_agent_profiles to service_role;
+grant execute on function public.owns_workspace(uuid) to service_role;

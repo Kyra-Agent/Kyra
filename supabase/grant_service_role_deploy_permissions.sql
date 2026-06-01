@@ -1,0 +1,10 @@
+grant usage on schema public to service_role;
+grant select on public.agent_templates to service_role;
+grant all on public.workspaces to service_role;
+grant all on public.agent_instances to service_role;
+grant all on public.wallet_policies to service_role;
+grant all on public.approval_requests to service_role;
+grant all on public.activity_logs to service_role;
+grant all on public.telegram_sessions to service_role;
+grant select on public.public_agent_profiles to service_role;
+grant execute on function public.owns_workspace(uuid) to service_role;
