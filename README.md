@@ -1,52 +1,146 @@
 # KYRA-AGENT
 
-Kyra Agent is a backend-connected demo for a Base-native onchain agent console.
+Kyra Agent is a Base-native onchain agent console demo. It lets a user choose an agent template, configure a Telegram-style agent identity, deploy a demo agent, and inspect Supabase-backed dashboard records before live Telegram and wallet-approved Base execution are connected.
 
-It shows the intended product flow: choose an agent template, configure a Telegram-native agent, connect a wallet or Base Account, prepare onchain actions through a Base MCP-style layer, and require wallet approval before anything is executed.
+Core positioning:
 
-## Demo Status
+```text
+Deploy your Base agent. It actually does things onchain.
+```
 
-This repository is still demo-only, but the Phase 2 Supabase path is active.
+Current caveat: the repository is still a backend-connected demo. It shows the product flow and persistence model, but it does not execute live onchain transactions.
+
+## Current Status
+
+Kyra is in the backend-connected demo phase.
 
 - No real transactions are executed.
-- No wallet keys, seed phrases, or private keys are stored.
-- No real Telegram bot token is required.
-- Supabase can provide auth, template catalog, dashboard records, public agent profiles, and persisted demo receipts.
-- Base MCP, Telegram, and wallet execution are still simulated.
-- Every onchain action is framed as wallet-approved, never custodial.
-- `supabase/functions/deploy-agent` is scaffolded as the server-side deploy boundary. The frontend prefers it when configured and falls back to RLS-backed demo writes while the function is not deployed.
+- No private keys, seed phrases, or wallet custody are used.
+- No real Telegram bot token is required in the browser.
+- Base MCP, Telegram webhooks, and wallet execution are simulated.
+- Supabase can provide auth, template catalog, dashboard records, public agent profiles, activity logs, and persisted demo deploy receipts.
+- The `deploy-agent` Supabase Edge Function is the preferred server-side deploy boundary when configured.
+- Frontend demo fallback remains available when Supabase is not configured.
+
+## Core Flow
+
+1. Choose an agent template.
+2. Configure the agent name and enabled actions.
+3. Link the simulated Telegram command surface.
+4. Confirm wallet approval policy.
+5. Deploy a demo agent.
+6. Review the deploy receipt.
+7. Open the private dashboard and public agent route.
+8. Later phases connect real Telegram and wallet-approved Base execution.
+
+## Agent Templates
+
+- **Operator** - personal wallet action agent.
+- **Scout** - recon and launch monitor.
+- **Steward** - project and community agent.
+- **Executor** - rule-based action agent.
+- **Launcher** - token launch agent, currently planned.
+- **Custom** - user-defined agent modules and safety limits.
+
+## Features
+
+- Terminal/onchain console interface.
+- Responsive landing and dashboard UI.
+- Template catalog with Supabase or local fallback data.
+- Demo deploy wizard with receipt source labeling.
+- Supabase email/password auth for demo workspace ownership.
+- Demo agent quota guard, currently `3` agents per workspace.
+- Dashboard records for agents, approvals, wallet policies, backend tables, and logs.
+- Admin reset action with confirmation for signed-in demo workspace records.
+- Public agent profile route for deployed demo agents.
+- Explicit expired/unavailable state for stale public agent routes.
+- Session refresh guard before dashboard fetch, deploy, and reset operations.
+- Demo-safe safety copy throughout the product flow.
+
+## Tech Stack
+
+- React 18
+- TypeScript
+- Vite
+- Lucide React icons
+- Supabase Auth
+- Supabase Postgres + RLS
+- Supabase Edge Functions
+- Netlify-ready static build config
+
+## Supabase And Edge Function Role
+
+Supabase is used for the demo backend layer:
+
+- Auth session ownership for demo workspaces.
+- Template catalog rows.
+- Agent instance records.
+- Approval request records.
+- Wallet policy records.
+- Activity logs.
+- Public agent profiles via a share-safe view.
+- Edge Function deploy boundary at `supabase/functions/deploy-agent`.
+
+The frontend prefers the Edge Function when it is configured. If the function is unavailable during demo development, the app can fall back to RLS-backed demo writes. Service role keys must stay server-side inside Supabase Function secrets only.
+
+## Demo Safety Notes
+
+Kyra's current demo mode is intentionally limited:
+
+- No private key input.
+- No seed phrase input.
+- No wallet custody.
+- No real Telegram bot token in browser code.
+- No live transaction submission.
+- No gas spending.
+- No onchain execution.
+
+The intended live model is wallet-approved execution: Kyra can prepare an action, but the user's wallet remains the final approval gate and the user pays gas.
 
 ## Routes
 
-- `/` - main landing and demo console.
-- `/dashboard` - private operator dashboard preview.
-- `/agents/:agent-slug` - public agent profile preview.
-
-## Demo Data Shape
-
-The app can run in mock mode or Supabase-backed demo mode:
-
-- `src/types/backend.ts` defines workspace, agent instance, approval request, wallet policy, activity log, and table summary types.
-- `src/data/demoBackend.ts` keeps local fallback records for dashboard, public agent preview, and deploy flow.
-- `src/services` reads Supabase templates, auth sessions, dashboard records, public agent profiles, and persisted demo deploy receipts when configured.
-- `src/services/supabaseDeployService.ts` calls `deploy-agent` first, then falls back to direct RLS demo writes if the function is unavailable.
-- `src/services/deployFunctionHealthService.ts` checks whether `deploy-agent` is deployed and configured so the dashboard can show `edge ready`, `missing secret`, or `fallback active`.
-- The dashboard includes a `deploy-agent` checklist for function URL, health, server secrets, RLS-backed records, demo quota, and receipt source.
-- `docs/backend-blueprint.md` outlines the Supabase/Auth/logs/approval plan for the demo backend phase.
-- `supabase/schema.sql` and `supabase/seed.sql` provide the Supabase demo schema and template catalog.
-- `supabase/functions/deploy-agent` contains the server-side deploy function scaffold for the next backend step.
-- `docs/backend-demo-skeleton.md` explains how the demo backend should be enabled safely.
+- `/` - main product interface and deploy flow.
+- `/dashboard` - signed-in demo workspace dashboard.
+- `/agents/:agent-slug` - public agent profile route.
 
 ## Local Development
 
+Install dependencies:
+
 ```bash
 npm install
+```
+
+Start the Vite dev server:
+
+```bash
 npm run dev
 ```
 
-Vite serves the app locally, usually at `http://127.0.0.1:5173` unless that port is already in use.
+The dev server usually runs at:
 
-For Supabase-backed demo mode, set:
+```text
+http://localhost:5174
+```
+
+Vite may choose another port if the default is busy.
+
+## Environment Variables
+
+Copy `.env.example` to `.env.local` for local development. Never commit `.env.local`.
+
+Frontend variables:
+
+```bash
+VITE_KYRA_DATA_PROVIDER=mock
+VITE_BASE_MCP_URL=https://mcp.base.org/
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+VITE_KYRA_DEPLOY_FUNCTION_URL=
+VITE_DEMO_MODE=true
+```
+
+For Supabase-backed demo mode:
 
 ```bash
 VITE_KYRA_DATA_PROVIDER=supabase
@@ -55,44 +149,117 @@ VITE_SUPABASE_ANON_KEY=your-anon-or-publishable-key
 VITE_KYRA_DEPLOY_FUNCTION_URL=https://your-project.supabase.co/functions/v1/deploy-agent
 ```
 
-## Build
+Edge Function secrets must be configured in Supabase, not exposed through `VITE_` variables:
+
+```bash
+SUPABASE_SERVICE_ROLE_KEY=server-side-only
+KYRA_DEMO_AGENT_LIMIT=3
+```
+
+## Build And Deploy
+
+Create a production build:
 
 ```bash
 npm run build
 ```
 
-The production output is generated in `dist/`.
+Build output:
 
-## Netlify Notes
+```text
+dist
+```
 
-When this is ready to publish:
+Netlify settings:
 
 - Build command: `npm run build`
 - Publish directory: `dist`
-- Static config: `netlify.toml` is included.
-- SPA fallback: `public/_redirects` and Netlify redirects are included.
-- Social preview: `public/og-card.svg` is wired into the page metadata.
+- Static config: `netlify.toml`
+- SPA fallback: `public/_redirects` and `netlify.toml`
 
-## Product Flow
+Do not deploy production until the backend demo is stable.
 
-1. Choose an agent template: Operator, Scout, Steward, Executor, Launcher, or Custom.
-2. Configure the agent name, enabled actions, and public identity.
-3. Link a Telegram command surface.
-4. Connect a wallet or Base Account.
-5. Prepare onchain actions through the Kyra/Base MCP layer.
-6. Route every transaction through wallet approval.
-7. Monitor the deployed agent from the Kyra dashboard.
+## Supabase Files
+
+- `supabase/schema.sql` - demo schema, RLS policies, public profile view, and grants.
+- `supabase/seed.sql` - template catalog seed data.
+- `supabase/set_demo_agent_limit_3.sql` - demo quota trigger helper.
+- `supabase/fix_public_agent_profiles_security.sql` - public profile view hardening.
+- `supabase/grant_service_role_deploy_permissions.sql` - service role grants for the Edge Function.
+- `supabase/functions/deploy-agent/index.ts` - server-side demo deploy function.
+- `supabase/functions/deploy-agent/README.md` - deploy-agent setup notes.
 
 ## Roadmap
 
-- Phase 1: Frontend demo, responsive UI, dashboard preview, public agent route.
-- Phase 2: Demo backend with Supabase auth, database records, deploy receipts, and Edge Function scaffold.
-- Phase 3: Telegram bot integration and Base MCP action preparation.
-- Phase 4: Live wallet-approved execution with full security hardening.
+### Phase 1 - Frontend Demo
 
-## Security Notes
+- Landing/product interface.
+- Templates.
+- Deploy wizard.
+- Dashboard.
+- Public agent route.
+- Mobile responsive UI.
 
-- Never commit `.env` files.
-- Never enter or store seed phrases or private keys.
-- Keep Telegram bot tokens, OAuth tokens, API keys, and database secrets in environment variables.
-- Treat the wallet as the final approval gate for every user-facing transaction.
+### Phase 2 - Backend-Connected Demo
+
+- Supabase auth.
+- Supabase schema and RLS.
+- Template catalog from Supabase.
+- Dashboard records.
+- Edge Function deploy path.
+- Demo quota and admin reset.
+
+### Phase 3 - Backend Hardening
+
+- Cleaner workspace lifecycle.
+- Better rate limits and quotas.
+- Stronger audit logs.
+- More robust auth/session handling.
+- Better admin tooling.
+
+### Phase 4 - Telegram Integration
+
+- Real Telegram bot/session.
+- Bot token stored server-side only.
+- Webhook handling.
+- Agent command interface.
+
+### Phase 5 - Wallet And Base Integration
+
+- Wallet connect.
+- Wallet approval.
+- Base MCP integration.
+- Prepare transaction safely.
+- User wallet signs.
+- User pays gas.
+- No private key custody.
+
+### Phase 6 - Public Launch
+
+- Publish only after backend demo stability is confirmed.
+- Clearly label any simulated execution while the product remains in demo mode.
+
+## Links
+
+- X: https://x.com/Kyra_Agent
+- Repository: https://github.com/Kyra-Agent/Kyra
+
+## GitHub About Suggestions
+
+Description:
+
+```text
+Base-native onchain agent console demo.
+```
+
+Topics:
+
+```text
+base, onchain, ai-agent, supabase, telegram-bot, mcp, vite, react, typescript, web3
+```
+
+Homepage:
+
+```text
+Leave empty until the site is published.
+```

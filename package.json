@@ -1,8 +1,25 @@
 {
   "name": "kyra-agent",
+  "description": "Base-native onchain agent console demo.",
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kyra-Agent/Kyra.git"
+  },
+  "keywords": [
+    "base",
+    "onchain",
+    "ai-agent",
+    "supabase",
+    "telegram-bot",
+    "mcp",
+    "vite",
+    "react",
+    "typescript",
+    "web3"
+  ],
   "scripts": {
     "dev": "vite --host localhost",
     "build": "tsc && vite build",
