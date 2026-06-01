@@ -9,10 +9,12 @@ import {
   ExternalLink,
   KeyRound,
   LockKeyhole,
+  RotateCcw,
   Server,
   Radio,
   ShieldCheck,
   Terminal,
+  Trash2,
   WalletCards,
 } from "lucide-react";
 import { AuthSessionPanel } from "../components/AuthSessionPanel";
@@ -30,6 +32,7 @@ import {
 } from "../services/deployFunctionHealthService";
 import {
   fetchSupabaseDashboardData,
+  resetSupabaseDemoWorkspace,
   type SupabaseDashboardData,
   type SupabaseDashboardStatus,
 } from "../services/supabaseDashboardService";
@@ -186,6 +189,13 @@ export function Dashboard({
   );
   const [dashboardData, setDashboardData] = useState<SupabaseDashboardData | null>(null);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
+  const [dashboardReloadKey, setDashboardReloadKey] = useState(0);
+  const [adminActionStatus, setAdminActionStatus] = useState<
+    "idle" | "running" | "success" | "error"
+  >("idle");
+  const [adminActionMessage, setAdminActionMessage] = useState(
+    "Admin actions are scoped to this signed-in demo workspace.",
+  );
   const [deployFunctionStatus, setDeployFunctionStatus] = useState<DeployFunctionHealthStatus>(
     appConfig.functions.deployAgentConfigured ? "checking" : "not-configured",
   );
@@ -222,7 +232,7 @@ export function Dashboard({
     return () => {
       active = false;
     };
-  }, [authSession]);
+  }, [authSession, dashboardReloadKey]);
 
   useEffect(() => {
     let active = true;
@@ -381,6 +391,35 @@ export function Dashboard({
       state: getDeployChecklistState(deployFunctionStatus),
     },
   ];
+  const isAdminActionRunning = adminActionStatus === "running";
+
+  async function handleResetDemoWorkspace() {
+    if (!authSession || isAdminActionRunning) {
+      return;
+    }
+
+    setAdminActionStatus("running");
+    setAdminActionMessage("Resetting demo workspace records...");
+
+    const result = await resetSupabaseDemoWorkspace(authSession, dashboardData?.workspace.id);
+
+    setAdminActionStatus(result.ok ? "success" : "error");
+    setAdminActionMessage(result.message);
+
+    if (result.ok) {
+      setDashboardReloadKey((key) => key + 1);
+    }
+  }
+
+  function handleRefreshDashboardRecords() {
+    if (!authSession || isAdminActionRunning) {
+      return;
+    }
+
+    setAdminActionStatus("idle");
+    setAdminActionMessage("Refreshing Supabase dashboard records...");
+    setDashboardReloadKey((key) => key + 1);
+  }
 
   return (
     <main className="dashboard-page">
@@ -417,6 +456,10 @@ export function Dashboard({
           <a href="#backend">
             <Server size={16} />
             Backend
+          </a>
+          <a href="#admin-actions">
+            <Trash2 size={16} />
+            Admin
           </a>
         </nav>
 
@@ -552,6 +595,54 @@ export function Dashboard({
                   <small>{table.purpose}</small>
                 </article>
               ))}
+            </div>
+          </section>
+
+          <section className="dashboard-panel admin-actions-panel" id="admin-actions">
+            <div className="panel-title">
+              <span>admin.actions</span>
+              <span>{authSession ? "workspace owner" : "locked"}</span>
+            </div>
+            <p className="admin-actions-copy">
+              Reset the signed-in demo workspace when quota testing needs a clean slate.
+            </p>
+            <div className="admin-action-metrics">
+              <article>
+                <span>Agent quota</span>
+                <strong>
+                  {dashboardStatus === "connected"
+                    ? `${dashboardData?.agentInstances.length ?? 0}/${demoAgentLimits.maxAgentsPerWorkspace}`
+                    : `max ${demoAgentLimits.maxAgentsPerWorkspace}`}
+                </strong>
+              </article>
+              <article>
+                <span>Scope</span>
+                <strong>{workspace.mode}</strong>
+              </article>
+            </div>
+            <div className="admin-action-grid">
+              <button
+                className="button button-ghost admin-action-button admin-action-danger"
+                type="button"
+                onClick={handleResetDemoWorkspace}
+                disabled={!authSession || isAdminActionRunning}
+              >
+                <Trash2 size={16} />
+                {isAdminActionRunning ? "Resetting" : "Reset demo agents"}
+              </button>
+              <button
+                className="button button-ghost admin-action-button"
+                type="button"
+                onClick={handleRefreshDashboardRecords}
+                disabled={!authSession || isAdminActionRunning || dashboardStatus === "loading"}
+              >
+                <RotateCcw size={16} />
+                Refresh records
+              </button>
+            </div>
+            <div className={`admin-action-note admin-action-${adminActionStatus}`}>
+              <ShieldCheck size={15} />
+              <span>{adminActionMessage}</span>
             </div>
           </section>
 

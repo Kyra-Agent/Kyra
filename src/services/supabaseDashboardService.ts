@@ -10,6 +10,7 @@ import type {
 } from "../types/backend";
 import type { KyraDatabase } from "../types/database";
 import {
+  deleteRows,
   sanitizeSupabaseMessage,
   selectRows,
   type SupabaseTableRow,
@@ -42,6 +43,12 @@ export interface SupabaseDashboardResult {
   status: Exclude<SupabaseDashboardStatus, "loading">;
   data: SupabaseDashboardData | null;
   error: string | null;
+}
+
+export interface ResetSupabaseDemoWorkspaceResult {
+  ok: boolean;
+  message: string;
+  deletedWorkspaceId: string | null;
 }
 
 function encodeFilter(value: string) {
@@ -292,6 +299,67 @@ export async function fetchSupabaseDashboardData(
         error instanceof Error
           ? sanitizeSupabaseMessage(error.message)
           : "Supabase dashboard query failed.",
+    };
+  }
+}
+
+export async function resetSupabaseDemoWorkspace(
+  session: KyraAuthSession | null,
+  workspaceId?: string | null,
+): Promise<ResetSupabaseDemoWorkspaceResult> {
+  if (!session) {
+    return {
+      ok: false,
+      message: "Sign in before resetting demo agents.",
+      deletedWorkspaceId: null,
+    };
+  }
+
+  if (!appConfig.supabase.configured) {
+    return {
+      ok: false,
+      message: "Supabase environment variables are not configured.",
+      deletedWorkspaceId: null,
+    };
+  }
+
+  try {
+    let targetWorkspaceId = workspaceId ?? null;
+
+    if (!targetWorkspaceId) {
+      const workspaces = await selectRows<WorkspaceRow>(
+        session,
+        "workspaces?select=id,owner_user_id,name,mode,created_at&mode=eq.demo&order=created_at.asc&limit=1",
+      );
+      targetWorkspaceId = workspaces[0]?.id ?? null;
+    }
+
+    if (!targetWorkspaceId) {
+      return {
+        ok: true,
+        message: "No demo workspace exists for this session.",
+        deletedWorkspaceId: null,
+      };
+    }
+
+    await deleteRows(
+      session,
+      `workspaces?id=eq.${encodeFilter(targetWorkspaceId)}&mode=eq.demo`,
+    );
+
+    return {
+      ok: true,
+      message: "Demo workspace reset. Agent quota is clear.",
+      deletedWorkspaceId: targetWorkspaceId,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message:
+        error instanceof Error
+          ? sanitizeSupabaseMessage(error.message)
+          : "Demo workspace reset failed.",
+      deletedWorkspaceId: null,
     };
   }
 }

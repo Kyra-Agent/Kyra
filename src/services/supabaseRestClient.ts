@@ -130,3 +130,12 @@ export async function patchRow<TName extends KyraTableName>(
 
   await parseSupabaseResponse(response);
 }
+
+export async function deleteRows(session: KyraAuthSession, path: string) {
+  const response = await fetch(getRestUrl(path), {
+    method: "DELETE",
+    headers: getJsonHeaders(session),
+  });
+
+  await parseSupabaseResponse(response);
+}
