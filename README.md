@@ -14,7 +14,7 @@ This repository is still demo-only, but the Phase 2 Supabase path is active.
 - Supabase can provide auth, template catalog, dashboard records, public agent profiles, and persisted demo receipts.
 - Base MCP, Telegram, and wallet execution are still simulated.
 - Every onchain action is framed as wallet-approved, never custodial.
-- `supabase/functions/deploy-agent` is scaffolded as the future server-side deploy boundary. It is not wired as the default frontend deploy path yet.
+- `supabase/functions/deploy-agent` is scaffolded as the server-side deploy boundary. The frontend prefers it when configured and falls back to RLS-backed demo writes while the function is not deployed.
 
 ## Routes
 
@@ -29,6 +29,7 @@ The app can run in mock mode or Supabase-backed demo mode:
 - `src/types/backend.ts` defines workspace, agent instance, approval request, wallet policy, activity log, and table summary types.
 - `src/data/demoBackend.ts` keeps local fallback records for dashboard, public agent preview, and deploy flow.
 - `src/services` reads Supabase templates, auth sessions, dashboard records, public agent profiles, and persisted demo deploy receipts when configured.
+- `src/services/supabaseDeployService.ts` calls `deploy-agent` first, then falls back to direct RLS demo writes if the function is unavailable.
 - `docs/backend-blueprint.md` outlines the Supabase/Auth/logs/approval plan for the demo backend phase.
 - `supabase/schema.sql` and `supabase/seed.sql` provide the Supabase demo schema and template catalog.
 - `supabase/functions/deploy-agent` contains the server-side deploy function scaffold for the next backend step.
@@ -42,6 +43,15 @@ npm run dev
 ```
 
 Vite serves the app locally, usually at `http://127.0.0.1:5173` unless that port is already in use.
+
+For Supabase-backed demo mode, set:
+
+```bash
+VITE_KYRA_DATA_PROVIDER=supabase
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-or-publishable-key
+VITE_KYRA_DEPLOY_FUNCTION_URL=https://your-project.supabase.co/functions/v1/deploy-agent
+```
 
 ## Build
 

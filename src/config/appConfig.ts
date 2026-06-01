@@ -6,6 +6,9 @@ const requestedDataProvider = readEnv("VITE_KYRA_DATA_PROVIDER") === "supabase" 
 const supabaseUrl = readEnv("VITE_SUPABASE_URL");
 const supabaseAnonKey = readEnv("VITE_SUPABASE_ANON_KEY");
 const supabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+const deployFunctionUrl =
+  readEnv("VITE_KYRA_DEPLOY_FUNCTION_URL") ||
+  (supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/deploy-agent` : "");
 
 export const appConfig = {
   appName: "Kyra Agent",
@@ -18,10 +21,14 @@ export const appConfig = {
     hasAnonKey: Boolean(supabaseAnonKey),
     configured: supabaseConfigured,
   },
+  functions: {
+    deployAgentUrl: deployFunctionUrl,
+    deployAgentConfigured: Boolean(deployFunctionUrl && supabaseConfigured),
+  },
   integrations: {
     auth: requestedDataProvider === "supabase" && supabaseConfigured ? "supabase" : "demo",
     database: requestedDataProvider === "supabase" && supabaseConfigured ? "supabase" : "mock",
-    deployApi: "edge scaffolded",
+    deployApi: requestedDataProvider === "supabase" && deployFunctionUrl ? "edge preferred" : "edge scaffolded",
     telegram: "simulated",
     baseMcp: "simulated",
     walletExecution: "disabled",

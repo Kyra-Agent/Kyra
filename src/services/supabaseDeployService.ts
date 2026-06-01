@@ -4,6 +4,7 @@ import { demoScenarios } from "../data/demoScenarios";
 import type { AgentTemplate } from "../types/agent";
 import type { KyraTableName } from "../types/database";
 import {
+  getSupabaseApiKey,
   insertRow,
   insertRows,
   patchRow,
@@ -23,6 +24,7 @@ type WalletPolicyRow = TableRow<"wallet_policies">;
 type AgentCountRow = Pick<AgentInstanceRow, "id">;
 
 export type DeployPersistenceStatus = "skipped" | "saved" | "error";
+export type DeployPersistenceSource = "local" | "supabase-rest" | "edge-function";
 
 export interface DeployPersistenceInput {
   session: KyraAuthSession | null;
@@ -37,6 +39,8 @@ export interface DeployPersistenceResult {
   workspaceId: string | null;
   agentId: string | null;
   publicSlug: string | null;
+  telegramHandle: string | null;
+  source: DeployPersistenceSource;
 }
 
 export interface DemoAgentQuota {
@@ -64,6 +68,31 @@ function createQuota(used: number, source: DemoAgentQuota["source"]): DemoAgentQ
         ? `Demo agent limit reached (${normalizedUsed}/${limit}).`
         : `${remaining} demo agent slot${remaining === 1 ? "" : "s"} available.`,
   };
+}
+
+interface DeployFunctionResponse {
+  ok?: boolean;
+  status?: string;
+  message?: string;
+  workspaceId?: string | null;
+  agentId?: string | null;
+  publicSlug?: string | null;
+  receipt?: {
+    telegram?: string | null;
+  };
+}
+
+class DeployFunctionError extends Error {
+  readonly statusCode: number;
+  readonly code: string;
+  readonly fallbackAllowed: boolean;
+
+  constructor(statusCode: number, code: string, message: string, fallbackAllowed: boolean) {
+    super(message);
+    this.statusCode = statusCode;
+    this.code = code;
+    this.fallbackAllowed = fallbackAllowed;
+  }
 }
 
 async function getExistingWorkspace(session: KyraAuthSession): Promise<WorkspaceRow | null> {
@@ -244,6 +273,135 @@ async function createTelegramSession(session: KyraAuthSession, agentId: string, 
   });
 }
 
+function shouldFallbackFromFunction(statusCode: number, code: string) {
+  return (
+    statusCode === 404 ||
+    statusCode === 502 ||
+    statusCode === 503 ||
+    statusCode === 504 ||
+    code === "missing_env" ||
+    code === "function_not_found"
+  );
+}
+
+async function parseDeployFunctionResponse(response: Response): Promise<DeployFunctionResponse> {
+  const text = await response.text();
+
+  if (!text) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text) as DeployFunctionResponse;
+  } catch {
+    return {
+      message: text,
+    };
+  }
+}
+
+async function saveViaDeployFunction({
+  session,
+  template,
+  agentName,
+  selectedActions,
+}: {
+  session: KyraAuthSession;
+  template: AgentTemplate;
+  agentName: string;
+  selectedActions: string[];
+}) {
+  if (!appConfig.functions.deployAgentConfigured) {
+    throw new DeployFunctionError(404, "function_not_configured", "Deploy function is not configured.", true);
+  }
+
+  const response = await fetch(appConfig.functions.deployAgentUrl, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      apikey: getSupabaseApiKey(),
+      Authorization: `Bearer ${session.accessToken}`,
+    },
+    body: JSON.stringify({
+      templateId: template.id,
+      agentName,
+      selectedActions,
+    }),
+  });
+  const payload = await parseDeployFunctionResponse(response);
+  const code = payload.status ?? (response.status === 404 ? "function_not_found" : "function_error");
+
+  if (!response.ok || payload.ok === false) {
+    throw new DeployFunctionError(
+      response.status,
+      code,
+      sanitizeSupabaseMessage(payload.message ?? "Deploy function request failed."),
+      shouldFallbackFromFunction(response.status, code),
+    );
+  }
+
+  return {
+    status: "saved",
+    message: payload.message ?? "Demo deployment persisted through deploy-agent Edge Function.",
+    workspaceId: payload.workspaceId ?? null,
+    agentId: payload.agentId ?? null,
+    publicSlug: payload.publicSlug ?? null,
+    telegramHandle: payload.receipt?.telegram ?? null,
+    source: "edge-function",
+  } satisfies DeployPersistenceResult;
+}
+
+async function saveViaSupabaseRestFallback({
+  session,
+  template,
+  agentName,
+  selectedActions,
+  fallbackReason,
+}: {
+  session: KyraAuthSession;
+  template: AgentTemplate;
+  agentName: string;
+  selectedActions: string[];
+  fallbackReason?: string;
+}): Promise<DeployPersistenceResult> {
+  const workspace = await ensureWorkspace(session);
+  const quota = await getQuotaForWorkspace(session, workspace.id);
+
+  if (quota.reached) {
+    return {
+      status: "error",
+      message: `${quota.message} Max ${quota.limit} agents per demo workspace.`,
+      workspaceId: workspace.id,
+      agentId: null,
+      publicSlug: null,
+      telegramHandle: null,
+      source: "supabase-rest",
+    };
+  }
+
+  const agent = await createAgent(session, workspace, template, agentName);
+  const policy = await createWalletPolicy(session, workspace.id, agent.id, selectedActions);
+  await patchRow(session, "agent_instances", agent.id, {
+    approval_policy_id: policy.id,
+  });
+  await createApprovalRequest(session, workspace.id, agent.id, template);
+  await createTelegramSession(session, agent.id, agent.handle);
+  await insertRows(session, "activity_logs", createActivityLogs(workspace.id, agent.id, template));
+
+  return {
+    status: "saved",
+    message: fallbackReason
+      ? `Deploy-agent function unavailable; persisted through Supabase RLS fallback.`
+      : "Demo deployment persisted to Supabase.",
+    workspaceId: workspace.id,
+    agentId: agent.id,
+    publicSlug: agent.public_slug,
+    telegramHandle: agent.handle,
+    source: "supabase-rest",
+  };
+}
+
 export async function saveSupabaseDemoDeployment({
   session,
   template,
@@ -257,6 +415,8 @@ export async function saveSupabaseDemoDeployment({
       workspaceId: null,
       agentId: null,
       publicSlug: null,
+      telegramHandle: null,
+      source: "local",
     };
   }
 
@@ -267,39 +427,42 @@ export async function saveSupabaseDemoDeployment({
       workspaceId: null,
       agentId: null,
       publicSlug: null,
+      telegramHandle: null,
+      source: "local",
     };
   }
 
   try {
-    const workspace = await ensureWorkspace(session);
-    const quota = await getQuotaForWorkspace(session, workspace.id);
+    try {
+      return await saveViaDeployFunction({
+        session,
+        template,
+        agentName,
+        selectedActions,
+      });
+    } catch (error) {
+      if (error instanceof DeployFunctionError && !error.fallbackAllowed) {
+        return {
+          status: "error",
+          message: error.message,
+          workspaceId: null,
+          agentId: null,
+          publicSlug: null,
+          telegramHandle: null,
+          source: "edge-function",
+        };
+      }
 
-    if (quota.reached) {
-      return {
-        status: "error",
-        message: `${quota.message} Max ${quota.limit} agents per demo workspace.`,
-        workspaceId: workspace.id,
-        agentId: null,
-        publicSlug: null,
-      };
+      const fallbackReason = error instanceof Error ? sanitizeSupabaseMessage(error.message) : undefined;
+
+      return await saveViaSupabaseRestFallback({
+        session,
+        template,
+        agentName,
+        selectedActions,
+        fallbackReason,
+      });
     }
-
-    const agent = await createAgent(session, workspace, template, agentName);
-    const policy = await createWalletPolicy(session, workspace.id, agent.id, selectedActions);
-    await patchRow(session, "agent_instances", agent.id, {
-      approval_policy_id: policy.id,
-    });
-    await createApprovalRequest(session, workspace.id, agent.id, template);
-    await createTelegramSession(session, agent.id, agent.handle);
-    await insertRows(session, "activity_logs", createActivityLogs(workspace.id, agent.id, template));
-
-    return {
-      status: "saved",
-      message: "Demo deployment persisted to Supabase.",
-      workspaceId: workspace.id,
-      agentId: agent.id,
-      publicSlug: agent.public_slug,
-    };
   } catch (error) {
     return {
       status: "error",
@@ -310,6 +473,8 @@ export async function saveSupabaseDemoDeployment({
       workspaceId: null,
       agentId: null,
       publicSlug: null,
+      telegramHandle: null,
+      source: "supabase-rest",
     };
   }
 }

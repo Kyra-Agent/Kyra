@@ -1,7 +1,7 @@
 # deploy-agent Edge Function
 
 This function is the server-side boundary for Kyra demo deployment writes.
-It is scaffolded for the live backend phase and is not required for the current local preview.
+The frontend deploy service prefers this function when configured and falls back to RLS-backed demo writes while the function is not deployed.
 
 ## What It Does
 
@@ -26,10 +26,10 @@ supabase secrets set KYRA_DEMO_AGENT_LIMIT=2
 
 Never expose `SUPABASE_SERVICE_ROLE_KEY` to the browser or any `VITE_` environment variable.
 
-## Deploy Later
+## Deploy
 
 ```bash
 supabase functions deploy deploy-agent
 ```
 
-Frontend integration should call this function only after the user has an active Supabase Auth session. The current UI can keep using direct RLS-backed demo writes until this function is deployed and tested.
+Frontend integration calls this function only after the user has an active Supabase Auth session. Set `VITE_KYRA_DEPLOY_FUNCTION_URL` to the deployed function URL if the default Supabase function URL is not enough.

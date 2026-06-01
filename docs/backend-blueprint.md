@@ -19,6 +19,8 @@ The frontend is prepared with a thin service layer:
 
 Supabase-specific services now sit beside the mock repository. The mock path remains as a safe fallback for local preview and failed network requests.
 
+`src/services/supabaseDeployService.ts` now prefers the `deploy-agent` Edge Function for deployment writes and falls back to direct RLS-backed demo writes while the function is unavailable.
+
 ## Goal
 
 Build a demo backend that can persist agent deployments, dashboard logs, wallet policies, and approval records without enabling live onchain execution yet.
@@ -153,13 +155,13 @@ Minimum RLS rules:
 
 ## Deploy Flow
 
-1. Frontend sends selected template, agent name, and requested actions.
+1. Frontend sends selected template, agent name, and requested actions to `deploy-agent` with the active Supabase access token.
 2. API validates template and allowed demo actions.
 3. API creates `agent_instances`.
 4. API creates default `wallet_policies`.
 5. API creates initial `activity_logs`.
 6. API returns dashboard route and public agent route.
-7. Frontend updates the wizard receipt.
+7. Frontend updates the wizard receipt and labels whether the write came from the Edge Function or RLS fallback.
 
 ## Approval Flow
 

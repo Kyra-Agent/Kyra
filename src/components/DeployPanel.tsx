@@ -128,7 +128,8 @@ export function DeployPanel({
       `agent.quota=${authSession ? `${agentQuota.used}/${agentQuota.limit}` : `0/${agentQuota.limit}`}`,
       "quota.guard=max_2_demo_agents",
       `supabase.session=${authSession ? "active" : "missing"}`,
-      `db.write=${authSession ? "supabase_ready" : "mock_only"}`,
+      `deploy.api=${authSession ? "edge_function_preferred" : "mock_only"}`,
+      `db.write=${authSession ? "edge_or_rls_fallback" : "mock_only"}`,
       "security.no_private_keys=true",
       "demo.transactions=disabled",
     ],
@@ -155,6 +156,15 @@ export function DeployPanel({
   const activePublicPath = persistedRecord?.publicSlug
     ? `/agents/${persistedRecord.publicSlug}`
     : agentRecord.publicPath;
+  const activeTelegramHandle = persistedRecord?.telegramHandle ?? agentRecord.handle;
+  const receiptSourceLabel =
+    persistedRecord?.source === "edge-function"
+      ? "edge"
+      : persistedRecord?.source === "supabase-rest"
+        ? "supabase"
+        : persistStatus === "error"
+          ? "guard"
+          : "demo";
 
   useEffect(() => {
     let active = true;
@@ -243,6 +253,8 @@ export function DeployPanel({
           workspaceId: null,
           agentId: null,
           publicSlug: null,
+          telegramHandle: null,
+          source: "local",
         });
         return;
       }
@@ -387,7 +399,7 @@ export function DeployPanel({
               <div className="wizard-screen">
                 <span className="wizard-kicker">Step 03</span>
                 <h3>Connect Telegram</h3>
-                <p>No real BotFather token is required while the product is in frontend demo mode.</p>
+                <p>No real BotFather token is required while the product is in backend-connected demo mode.</p>
 
                 <label className="field">
                   <span>Telegram bot token</span>
@@ -455,7 +467,7 @@ export function DeployPanel({
                   </span>
                   <span>
                     Records
-                    <strong>{authSession ? "Supabase write ready" : `${backendTables.length} mock tables`}</strong>
+                    <strong>{authSession ? "Edge Function preferred" : `${backendTables.length} mock tables`}</strong>
                   </span>
                   <span>
                     Agent limit
@@ -475,7 +487,7 @@ export function DeployPanel({
                   {quotaBlocksDeploy
                     ? `${agentQuota.message} Max ${agentQuota.limit} agents per demo workspace.`
                     : authSession
-                    ? "Session active. This demo deploy will persist to Supabase."
+                    ? "Session active. Kyra will try deploy-agent first, then use the safe RLS fallback if needed."
                     : "No active session. This demo deploy will stay local until auth is connected."}
                 </div>
               </div>
@@ -522,7 +534,7 @@ export function DeployPanel({
                   {persistStatus === "error" ? <ShieldCheck size={16} /> : <CheckCircle2 size={16} />}
                   {persistStatus === "error" ? "Deploy blocked" : "Agent deployed"}
                 </span>
-                <strong>{persistStatus === "saved" ? "supabase" : persistStatus === "error" ? "guard" : "demo"}</strong>
+                <strong>{receiptSourceLabel}</strong>
               </div>
               <div className={`deploy-persist-note persist-${persistStatus}`}>
                 <ShieldCheck size={15} />
@@ -533,7 +545,7 @@ export function DeployPanel({
                   <div className="receipt-grid">
                     <span>
                       Telegram
-                      <strong>{agentRecord.handle}</strong>
+                      <strong>{activeTelegramHandle}</strong>
                     </span>
                     <span>
                       Console

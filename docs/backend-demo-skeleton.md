@@ -6,13 +6,13 @@ Kyra is still safe demo mode. The Supabase demo backend is now partially connect
 
 - `supabase/schema.sql` defines the first database shape.
 - `supabase/seed.sql` seeds Kyra agent templates.
-- `supabase/functions/deploy-agent` scaffolds the future server-side deploy write path.
+- `supabase/functions/deploy-agent` scaffolds the server-side deploy write path.
 - `src/types/database.ts` mirrors the Supabase table rows in TypeScript.
 - `src/services/repositoryFactory.ts` keeps mock fallback data available.
 - `src/services/supabaseKyraRepository.ts` reads the Supabase template catalog.
 - `src/services/supabaseDashboardService.ts` reads signed-in dashboard records.
 - `src/services/supabasePublicAgentService.ts` reads public agent profiles.
-- `src/services/supabaseDeployService.ts` persists demo deployment receipts through RLS-backed client writes.
+- `src/services/supabaseDeployService.ts` calls the deploy Edge Function first, then falls back to RLS-backed client writes while the function is not deployed.
 - `.env.example` includes the provider and Supabase env names.
 
 ## Tables
@@ -48,13 +48,14 @@ When you are ready to test a real demo backend:
 VITE_KYRA_DATA_PROVIDER=supabase
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_KYRA_DEPLOY_FUNCTION_URL=https://your-project.supabase.co/functions/v1/deploy-agent
 ```
 
 The UI can run against Supabase when `VITE_KYRA_DATA_PROVIDER=supabase`. It still falls back to mock records when Supabase is unavailable.
 
 ## Edge Function Scaffold
 
-`supabase/functions/deploy-agent` is the intended server-side deployment boundary for the next backend step. It validates the user session, enforces the 2-agent demo quota, writes the same demo records, and returns a receipt.
+`supabase/functions/deploy-agent` is the intended server-side deployment boundary. It validates the user session, enforces the 2-agent demo quota, writes the same demo records, and returns a receipt.
 
 The function needs server-only secrets:
 
@@ -69,11 +70,11 @@ Do not place `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` or any `VITE_` variable
 
 ## Next Implementation Step
 
-The next code phase should move deployment writes from the frontend service to the Edge Function after it is deployed:
+The frontend already prefers the Edge Function when configured. The next backend step is to deploy and test the function in Supabase:
 
 1. Deploy `deploy-agent` to Supabase.
-2. Add a frontend API client that calls the function with the active Supabase access token.
-3. Keep the current direct RLS-backed write path as fallback.
+2. Set `SUPABASE_SERVICE_ROLE_KEY` and `KYRA_DEMO_AGENT_LIMIT` as Supabase Function secrets.
+3. Verify the frontend receipt source changes from `supabase` fallback to `edge`.
 4. Verify dashboard/public profile reads after the function receipt.
 5. Keep live onchain execution disabled.
 
