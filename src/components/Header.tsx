@@ -1,4 +1,5 @@
-import { Github, Rocket, ShieldCheck, Terminal } from "lucide-react";
+import { useState } from "react";
+import { Github, Menu, Rocket, ShieldCheck, Terminal, X } from "lucide-react";
 import { BrandMark } from "./BrandMark";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -19,9 +20,21 @@ export function Header({
   onOpenAgent,
   onOpenSection,
 }: HeaderProps) {
+  const [compactNavOpen, setCompactNavOpen] = useState(false);
+
+  function handleNavigation(action: () => void) {
+    setCompactNavOpen(false);
+    action();
+  }
+
   return (
     <header className="site-header">
-      <button className="logo-link logo-button" type="button" onClick={onOpenHome} aria-label="Kyra Agent home">
+      <button
+        className="logo-link logo-button"
+        type="button"
+        onClick={() => handleNavigation(onOpenHome)}
+        aria-label="Kyra Agent home"
+      >
         <BrandMark />
       </button>
 
@@ -47,6 +60,16 @@ export function Header({
       </nav>
 
       <div className="header-actions">
+        <button
+          aria-controls="compact-site-nav"
+          aria-expanded={compactNavOpen}
+          aria-label={compactNavOpen ? "Close navigation menu" : "Open navigation menu"}
+          className="compact-nav-trigger"
+          type="button"
+          onClick={() => setCompactNavOpen((open) => !open)}
+        >
+          {compactNavOpen ? <X size={18} /> : <Menu size={18} />}
+        </button>
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         <a
           className="icon-link"
@@ -87,6 +110,31 @@ export function Header({
           Demo Mode
         </span>
       </div>
+
+      <nav
+        className={`compact-nav-menu ${compactNavOpen ? "is-open" : ""}`}
+        id="compact-site-nav"
+        aria-label="Compact navigation"
+      >
+        <button type="button" onClick={() => handleNavigation(() => onOpenSection("templates"))}>
+          Templates
+        </button>
+        <button type="button" onClick={() => handleNavigation(() => onOpenSection("actions"))}>
+          Actions
+        </button>
+        <button type="button" onClick={() => handleNavigation(() => onOpenSection("security"))}>
+          Security
+        </button>
+        <button type="button" onClick={() => handleNavigation(() => onOpenSection("faq"))}>
+          FAQ
+        </button>
+        <button type="button" onClick={() => handleNavigation(onOpenDashboard)}>
+          Dashboard
+        </button>
+        <button type="button" onClick={() => handleNavigation(onOpenAgent)}>
+          Agent
+        </button>
+      </nav>
     </header>
   );
 }
