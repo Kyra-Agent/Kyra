@@ -2,6 +2,28 @@ import { appConfig } from "../config/appConfig";
 
 const AUTH_STORAGE_KEY = "kyra.supabase.session.v1";
 const SESSION_REFRESH_BUFFER_SECONDS = 120;
+const AUTH_CALLBACK_KEYS = [
+  "access_token",
+  "refresh_token",
+  "expires_at",
+  "expires_in",
+  "token_type",
+  "type",
+  "code",
+  "error",
+  "error_code",
+  "error_description",
+] as const;
+const AUTH_CALLBACK_INDICATOR_KEYS = [
+  "access_token",
+  "refresh_token",
+  "code",
+  "error",
+  "error_code",
+  "error_description",
+] as const;
+
+let authCallbackResultPromise: Promise<KyraAuthResult | null> | null = null;
 
 export type KyraAuthStatus =
   | "not-configured"
@@ -114,6 +136,111 @@ function parseSession(payload: SupabaseAuthTokenResponse): KyraAuthSession | nul
   };
 }
 
+function getCallbackExpiry(params: URLSearchParams) {
+  const expiresAt = Number(params.get("expires_at"));
+
+  if (Number.isFinite(expiresAt) && expiresAt > 0) {
+    return expiresAt;
+  }
+
+  const expiresIn = Number(params.get("expires_in"));
+
+  return Math.floor(Date.now() / 1000) + (Number.isFinite(expiresIn) ? Math.max(0, expiresIn) : 3600);
+}
+
+function clearAuthCallbackUrl() {
+  const url = new URL(window.location.href);
+  const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+  const queryParams = new URLSearchParams(url.search);
+  const hasAuthHash = AUTH_CALLBACK_INDICATOR_KEYS.some((key) => hashParams.has(key));
+  const hasAuthQuery = AUTH_CALLBACK_INDICATOR_KEYS.some((key) => queryParams.has(key));
+  let changed = false;
+
+  if (hasAuthHash) {
+    url.hash = "";
+    changed = true;
+  }
+
+  if (hasAuthQuery) {
+    AUTH_CALLBACK_KEYS.forEach((key) => {
+      if (url.searchParams.has(key)) {
+        url.searchParams.delete(key);
+        changed = true;
+      }
+    });
+  }
+
+  if (changed) {
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+
+  return hasAuthHash ? hashParams : hasAuthQuery ? queryParams : null;
+}
+
+async function processAuthCallbackSession(): Promise<KyraAuthResult | null> {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const params = clearAuthCallbackUrl();
+
+  if (!params) {
+    return null;
+  }
+
+  const callbackError = params.get("error_description") ?? params.get("error");
+
+  if (callbackError) {
+    return makeResult("error", sanitizeAuthMessage(callbackError));
+  }
+
+  const accessToken = params.get("access_token");
+  const refreshToken = params.get("refresh_token");
+
+  if (!accessToken || !refreshToken) {
+    return makeResult(
+      "confirmation-required",
+      "Email confirmation completed. Sign in to start a fresh account session.",
+    );
+  }
+
+  if (!appConfig.supabase.configured) {
+    return makeResult("not-configured", "Backend environment is not configured.");
+  }
+
+  try {
+    const response = await fetch(getAuthUrl("user"), {
+      headers: getSessionAuthHeaders(accessToken),
+    });
+    const payload = (await response.json()) as SupabaseAuthUserResponse & SupabaseAuthTokenResponse;
+
+    if (!response.ok || !payload.id) {
+      return makeResult("error", getAuthErrorMessage(payload, "Email confirmation session failed."));
+    }
+
+    const session = {
+      accessToken,
+      refreshToken,
+      expiresAt: getCallbackExpiry(params),
+      user: {
+        id: payload.id,
+        email: payload.email ?? null,
+        app_metadata: getSafeAppMetadata(payload),
+      },
+    };
+
+    saveStoredAuthSession(session);
+    return makeResult("signed-in", "Email confirmed. Session active.", session);
+  } catch (error) {
+    return makeResult(
+      "error",
+      error instanceof Error
+        ? sanitizeAuthMessage(error.message)
+        : "Email confirmation session failed.",
+    );
+  }
+}
+
 function makeResult(
   status: KyraAuthStatus,
   message: string,
@@ -203,6 +330,14 @@ export function clearStoredAuthSession() {
   }
 
   window.localStorage.removeItem(AUTH_STORAGE_KEY);
+}
+
+export function consumeAuthCallbackSession() {
+  if (!authCallbackResultPromise) {
+    authCallbackResultPromise = processAuthCallbackSession();
+  }
+
+  return authCallbackResultPromise;
 }
 
 export async function signUpWithPassword(email: string, password: string) {

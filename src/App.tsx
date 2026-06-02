@@ -17,6 +17,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { PublicAgent } from "./pages/PublicAgent";
 import { kyraDataService } from "./services/kyraDataService";
 import {
+  consumeAuthCallbackSession,
   ensureFreshAuthSession,
   getCurrentAuthUser,
   loadStoredAuthSession,
@@ -181,16 +182,27 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const storedSession = loadStoredAuthSession();
-
-    if (!storedSession) {
-      return;
-    }
-
-    const sessionToValidate = storedSession;
     let active = true;
 
     async function validateStoredSession() {
+      const callbackResult = await consumeAuthCallbackSession();
+
+      if (!active) {
+        return;
+      }
+
+      const sessionToValidate = callbackResult?.session ?? loadStoredAuthSession();
+
+      if (!sessionToValidate) {
+        if (callbackResult) {
+          setAuthSession(null);
+          setAuthStatus(callbackResult.status);
+          setAuthMessage(callbackResult.message);
+        }
+
+        return;
+      }
+
       const freshResult = await ensureFreshAuthSession(sessionToValidate);
 
       if (!active) {
