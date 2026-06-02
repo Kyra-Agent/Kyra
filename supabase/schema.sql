@@ -178,18 +178,18 @@ for select
 using (true);
 
 drop policy if exists "Users can manage their own workspaces" on public.workspaces;
-create policy "Users can manage their own workspaces"
+drop policy if exists "Users can read their own workspaces" on public.workspaces;
+create policy "Users can read their own workspaces"
 on public.workspaces
-for all
-using (owner_user_id = auth.uid())
-with check (owner_user_id = auth.uid());
+for select
+using (owner_user_id = auth.uid());
 
 drop policy if exists "Workspace owners can manage agent instances" on public.agent_instances;
-create policy "Workspace owners can manage agent instances"
+drop policy if exists "Workspace owners can read agent instances" on public.agent_instances;
+create policy "Workspace owners can read agent instances"
 on public.agent_instances
-for all
-using (public.owns_workspace(workspace_id))
-with check (public.owns_workspace(workspace_id));
+for select
+using (public.owns_workspace(workspace_id));
 
 drop policy if exists "Online demo agent instances are public readable" on public.agent_instances;
 create policy "Online demo agent instances are public readable"
@@ -198,18 +198,18 @@ for select
 using (status = 'online' and mode = 'demo');
 
 drop policy if exists "Workspace owners can manage wallet policies" on public.wallet_policies;
-create policy "Workspace owners can manage wallet policies"
+drop policy if exists "Workspace owners can read wallet policies" on public.wallet_policies;
+create policy "Workspace owners can read wallet policies"
 on public.wallet_policies
-for all
-using (public.owns_workspace(workspace_id))
-with check (public.owns_workspace(workspace_id));
+for select
+using (public.owns_workspace(workspace_id));
 
 drop policy if exists "Workspace owners can manage approval requests" on public.approval_requests;
-create policy "Workspace owners can manage approval requests"
+drop policy if exists "Workspace owners can read approval requests" on public.approval_requests;
+create policy "Workspace owners can read approval requests"
 on public.approval_requests
-for all
-using (public.owns_workspace(workspace_id))
-with check (public.owns_workspace(workspace_id));
+for select
+using (public.owns_workspace(workspace_id));
 
 drop policy if exists "Workspace owners can read activity logs" on public.activity_logs;
 create policy "Workspace owners can read activity logs"
@@ -218,24 +218,13 @@ for select
 using (public.owns_workspace(workspace_id));
 
 drop policy if exists "Workspace owners can create activity logs" on public.activity_logs;
-create policy "Workspace owners can create activity logs"
-on public.activity_logs
-for insert
-with check (public.owns_workspace(workspace_id));
 
 drop policy if exists "Workspace owners can manage telegram sessions" on public.telegram_sessions;
-create policy "Workspace owners can manage telegram sessions"
+drop policy if exists "Workspace owners can read telegram sessions" on public.telegram_sessions;
+create policy "Workspace owners can read telegram sessions"
 on public.telegram_sessions
-for all
+for select
 using (
-  exists (
-    select 1
-    from public.agent_instances agents
-    where agents.id = telegram_sessions.agent_id
-      and public.owns_workspace(agents.workspace_id)
-  )
-)
-with check (
   exists (
     select 1
     from public.agent_instances agents
@@ -273,6 +262,15 @@ where agents.status = 'online'
 
 grant usage on schema public to anon, authenticated, service_role;
 grant select on public.agent_templates to anon, authenticated, service_role;
+
+revoke all privileges on public.workspaces from authenticated;
+revoke all privileges on public.agent_instances from authenticated;
+revoke all privileges on public.wallet_policies from authenticated;
+revoke all privileges on public.approval_requests from authenticated;
+revoke all privileges on public.activity_logs from authenticated;
+revoke all privileges on public.telegram_sessions from authenticated;
+
+grant select on public.workspaces to authenticated;
 grant select (
   public_slug,
   display_name,
@@ -286,13 +284,12 @@ grant select (
   last_sync_at,
   template_id
 ) on public.agent_instances to anon, authenticated;
+grant select on public.agent_instances to authenticated;
+grant select on public.wallet_policies to authenticated;
+grant select on public.approval_requests to authenticated;
+grant select on public.activity_logs to authenticated;
+grant select on public.telegram_sessions to authenticated;
 grant select on public.public_agent_profiles to anon, authenticated;
-grant all on public.workspaces to authenticated;
-grant all on public.agent_instances to authenticated;
-grant all on public.wallet_policies to authenticated;
-grant all on public.approval_requests to authenticated;
-grant select, insert on public.activity_logs to authenticated;
-grant all on public.telegram_sessions to authenticated;
 grant execute on function public.owns_workspace(uuid) to authenticated;
 
 grant all on public.workspaces to service_role;

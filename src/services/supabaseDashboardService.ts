@@ -49,6 +49,8 @@ export interface ResetSupabaseDemoWorkspaceResult {
   ok: boolean;
   message: string;
   recordsRemoved: boolean;
+  code?: string;
+  failureKind?: "session" | "admin" | "backend" | "configuration" | "unknown";
 }
 
 interface ResetDemoWorkspaceFunctionResponse {
@@ -71,6 +73,44 @@ function parseResetDemoWorkspaceFunctionResponse(text: string): ResetDemoWorkspa
     return {
       message: "Backend reset endpoint returned an invalid response.",
     };
+  }
+}
+
+function getResetFailureKind(statusCode: number, code: string) {
+  if (statusCode === 401 || code === "unauthorized") {
+    return "session" as const;
+  }
+
+  if (statusCode === 403 || code === "forbidden") {
+    return "admin" as const;
+  }
+
+  if (code === "missing_env" || code === "function_not_configured") {
+    return "configuration" as const;
+  }
+
+  if (statusCode === 404 || statusCode >= 500) {
+    return "backend" as const;
+  }
+
+  return "unknown" as const;
+}
+
+function getResetFailureMessage(statusCode: number, code: string, fallback: string) {
+  const safeFallback = sanitizeSupabaseMessage(fallback);
+
+  switch (getResetFailureKind(statusCode, code)) {
+    case "session":
+      return "Account session expired or is invalid. Sign in again before resetting demo agents.";
+    case "admin":
+      return "Admin role is required for demo workspace reset.";
+    case "configuration":
+      return "Backend reset endpoint is not fully configured.";
+    case "backend":
+      return "Kyra reset backend is unavailable. No demo workspace records were deleted.";
+    case "unknown":
+    default:
+      return safeFallback || "Demo workspace reset failed.";
   }
 }
 
@@ -334,6 +374,8 @@ export async function resetSupabaseDemoWorkspace(
       ok: false,
       message: "Sign in before resetting demo agents.",
       recordsRemoved: false,
+      code: "sign_in_required",
+      failureKind: "session",
     };
   }
 
@@ -342,6 +384,8 @@ export async function resetSupabaseDemoWorkspace(
       ok: false,
       message: "Backend reset endpoint is not configured.",
       recordsRemoved: false,
+      code: "function_not_configured",
+      failureKind: "configuration",
     };
   }
 
@@ -360,12 +404,18 @@ export async function resetSupabaseDemoWorkspace(
     const payload = parseResetDemoWorkspaceFunctionResponse(text);
 
     if (!response.ok || payload.ok === false) {
+      const code = payload.status ?? (response.status === 404 ? "function_not_found" : "function_error");
+
       return {
         ok: false,
-        message: sanitizeSupabaseMessage(
+        message: getResetFailureMessage(
+          response.status,
+          code,
           payload.message ?? "Backend reset endpoint is unavailable.",
         ),
         recordsRemoved: false,
+        code,
+        failureKind: getResetFailureKind(response.status, code),
       };
     }
 
@@ -373,15 +423,18 @@ export async function resetSupabaseDemoWorkspace(
       ok: true,
       message: payload.message ?? "Demo workspace reset. Agent quota is clear.",
       recordsRemoved: payload.reset?.recordsRemoved ?? false,
+      code: "reset_complete",
     };
   } catch (error) {
     return {
       ok: false,
       message:
         error instanceof Error
-          ? sanitizeSupabaseMessage(error.message)
-          : "Demo workspace reset failed.",
+          ? getResetFailureMessage(503, "function_error", error.message)
+          : "Kyra reset backend is unavailable. No demo workspace records were deleted.",
       recordsRemoved: false,
+      code: "function_error",
+      failureKind: "backend",
     };
   }
 }

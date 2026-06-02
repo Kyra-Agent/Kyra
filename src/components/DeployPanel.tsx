@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bot,
   CheckCircle2,
@@ -16,6 +16,7 @@ import {
   fetchSupabaseDemoAgentQuota,
   saveSupabaseDemoDeployment,
   type DemoAgentQuota,
+  type DeployFailureKind,
   type DeployPersistenceResult,
   type DeployPersistenceStatus,
 } from "../services/supabaseDeployService";
@@ -24,6 +25,7 @@ import {
   type KyraAuthSession,
   type KyraAuthStatus,
 } from "../services/supabaseAuthService";
+import { recordBackendEvent } from "../services/backendObservabilityService";
 
 interface DeployPanelProps {
   templates: AgentTemplate[];
@@ -77,6 +79,26 @@ const wizardSteps = [
   },
 ];
 
+function getDeployFailureTitle(kind?: DeployFailureKind) {
+  switch (kind) {
+    case "session":
+      return "Account session required";
+    case "quota":
+      return "Demo agent limit reached";
+    case "template":
+      return "Template unavailable";
+    case "request":
+      return "Deploy request incomplete";
+    case "configuration":
+      return "Backend configuration required";
+    case "backend":
+      return "Backend unavailable";
+    case "unknown":
+    default:
+      return "Deploy persistence blocked";
+  }
+}
+
 export function DeployPanel({
   templates,
   selectedTemplate,
@@ -106,6 +128,7 @@ export function DeployPanel({
     message: `${demoAgentLimits.maxAgentsPerWorkspace} demo agent slots available.`,
   });
   const [quotaLoading, setQuotaLoading] = useState(false);
+  const deployingRef = useRef(false);
 
   const backendTables = useMemo(() => kyraDataService.listBackendTables(), []);
   const agentRecord = useMemo(
@@ -162,6 +185,17 @@ export function DeployPanel({
     ? `/agents/${persistedRecord.publicSlug}`
     : agentRecord.publicPath;
   const activeTelegramHandle = persistedRecord?.telegramHandle ?? agentRecord.handle;
+  const hasPersistedPublicRoute = Boolean(
+    persistedRecord?.publicSlug &&
+      (persistedRecord.source === "edge-function" || persistedRecord.source === "supabase-rest") &&
+      persistedRecord.status === "saved",
+  );
+  const receiptPublicRoute = hasPersistedPublicRoute ? activePublicPath : "not created";
+  const receiptQuotaLabel = persistedRecord?.quota
+    ? `${persistedRecord.quota.used}/${persistedRecord.quota.limit}`
+    : authSession
+      ? `${agentQuota.used}/${agentQuota.limit}`
+      : "local preview";
   const receiptSourceLabel =
     persistedRecord?.source === "edge-function" || persistedRecord?.source === "supabase-rest"
       ? "Backend"
@@ -259,6 +293,11 @@ export function DeployPanel({
   }, [authSession, deployed]);
 
   function runDeploySimulation() {
+    if (deployingRef.current) {
+      return;
+    }
+
+    deployingRef.current = true;
     setDeploying(true);
     setDeployed(false);
     setActiveLogStep(0);
@@ -294,6 +333,14 @@ export function DeployPanel({
                 setPersistStatus(blockedResult.status);
                 setPersistMessage(blockedResult.message);
                 setPersistedRecord(blockedResult);
+                recordBackendEvent({
+                  kind: "deploy",
+                  status: "blocked",
+                  message: blockedResult.message,
+                  source: "account session",
+                  code: "session_refresh_failed",
+                });
+                deployingRef.current = false;
                 setDeploying(false);
                 setDeployed(true);
                 return;
@@ -301,6 +348,13 @@ export function DeployPanel({
 
               deploySession = freshAuth.session;
             }
+
+            recordBackendEvent({
+              kind: "deploy",
+              status: "running",
+              message: `Deploy attempt started for ${selectedTemplate.name}.`,
+              source: deploySession ? "backend" : "local preview",
+            });
 
             const result = await saveSupabaseDemoDeployment({
               session: deploySession,
@@ -311,6 +365,21 @@ export function DeployPanel({
             setPersistStatus(result.status);
             setPersistMessage(result.message);
             setPersistedRecord(result);
+            const deployEventSource =
+              result.source === "edge-function" || result.source === "supabase-rest"
+                ? "Backend"
+                : "local preview";
+            recordBackendEvent({
+              kind: "deploy",
+              status: result.status === "saved" ? "success" : result.status === "error" ? "error" : "info",
+              message:
+                result.status === "saved"
+                  ? `Deploy persisted through ${deployEventSource}.`
+                  : result.message,
+              source: result.source,
+              code: result.code,
+            });
+            deployingRef.current = false;
             setDeploying(false);
             setDeployed(true);
           }, 700);
@@ -320,6 +389,10 @@ export function DeployPanel({
   }
 
   function goNext() {
+    if (deployingRef.current) {
+      return;
+    }
+
     setTemplateMenuOpen(false);
 
     if (atDeployStep) {
@@ -337,6 +410,20 @@ export function DeployPanel({
           publicSlug: null,
           telegramHandle: null,
           source: "local",
+          code: "quota_exceeded",
+          failureKind: "quota",
+          quota: {
+            used: agentQuota.used,
+            limit: agentQuota.limit,
+            remaining: agentQuota.remaining,
+          },
+        });
+        recordBackendEvent({
+          kind: "deploy",
+          status: "blocked",
+          message,
+          source: "quota guard",
+          code: "quota_exceeded",
         });
         return;
       }
@@ -349,6 +436,10 @@ export function DeployPanel({
   }
 
   function copyDemoLink() {
+    if (!hasPersistedPublicRoute) {
+      return;
+    }
+
     const origin = typeof window === "undefined" ? "https://kyra-agent.demo" : window.location.origin;
     const demoLink = `${origin}${activePublicPath}`;
 
@@ -384,6 +475,7 @@ export function DeployPanel({
                 className={index === wizardStep ? "is-active" : index < wizardStep ? "is-complete" : ""}
                 key={step.id}
                 type="button"
+                disabled={deploying}
                 onClick={() => {
                   setTemplateMenuOpen(false);
                   setWizardStep(index);
@@ -407,6 +499,7 @@ export function DeployPanel({
                   <button
                     className="template-menu-trigger"
                     type="button"
+                    disabled={deploying}
                     onClick={() => setTemplateMenuOpen((open) => !open)}
                     aria-expanded={templateMenuOpen}
                   >
@@ -427,6 +520,7 @@ export function DeployPanel({
                             className={active ? "is-selected" : ""}
                             key={template.id}
                             type="button"
+                            disabled={deploying}
                             onClick={() => {
                               onSelectTemplate(template.id);
                               setTemplateMenuOpen(false);
@@ -460,6 +554,7 @@ export function DeployPanel({
                     value={agentName}
                     onChange={(event) => setAgentName(event.target.value)}
                     placeholder="Kyra Operator"
+                    disabled={deploying}
                   />
                 </label>
 
@@ -635,7 +730,7 @@ export function DeployPanel({
                     </span>
                     <span>
                       Public route
-                      <strong>{activePublicPath}</strong>
+                      <strong>{receiptPublicRoute}</strong>
                     </span>
                     <span>
                       Template
@@ -653,14 +748,26 @@ export function DeployPanel({
                       Workspace
                       <strong>{persistedRecord?.workspaceId ?? "local demo"}</strong>
                     </span>
+                    <span>
+                      Agent quota
+                      <strong>{receiptQuotaLabel}</strong>
+                    </span>
+                    <span>
+                      Execution
+                      <strong>simulated</strong>
+                    </span>
                   </div>
+                  <p className="receipt-safety-line">
+                    Backend persistence stores demo records only. No real transaction, wallet key, or Telegram token is used.
+                  </p>
                   <div className="receipt-actions">
-                    <button type="button" onClick={copyDemoLink}>
+                    <button type="button" onClick={copyDemoLink} disabled={!hasPersistedPublicRoute}>
                       <Copy size={14} />
-                      {copiedLink ? "Copied" : "Copy demo link"}
+                      {copiedLink ? "Copied" : hasPersistedPublicRoute ? "Copy demo link" : "No public route"}
                     </button>
                     <button
                       type="button"
+                      disabled={!hasPersistedPublicRoute}
                       onClick={() =>
                         onOpenAgent({
                           templateId: selectedTemplate.id,
@@ -673,7 +780,12 @@ export function DeployPanel({
                     </button>
                   </div>
                 </>
-              ) : null}
+              ) : (
+                <div className="receipt-error-detail">
+                  <strong>{getDeployFailureTitle(persistedRecord?.failureKind)}</strong>
+                  <small>No demo public route was confirmed, and no live transaction was attempted.</small>
+                </div>
+              )}
             </div>
           ) : null}
         </div>

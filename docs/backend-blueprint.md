@@ -20,7 +20,7 @@ The frontend is prepared with a thin service layer:
 
 Supabase-specific services now sit beside the mock repository. The mock path remains as a safe fallback for local preview and failed network requests.
 
-`src/services/supabaseDeployService.ts` now prefers the `deploy-agent` Edge Function for deployment writes. Direct RLS-backed demo writes remain available only during local development.
+`src/services/supabaseDeployService.ts` now prefers the `deploy-agent` Edge Function for deployment writes. The direct RLS-backed fallback remains a development-only code path for isolated dev databases with write grants. Production should run `supabase/lockdown_authenticated_demo_writes.sql` so authenticated browser clients are read-only for demo records.
 
 `src/services/deployFunctionHealthService.ts` checks the Edge Function health endpoint and exposes the readiness state in the dashboard.
 
@@ -155,8 +155,9 @@ Use Supabase Auth first. Every table should be scoped by `workspace_id` or joine
 
 Minimum RLS rules:
 
-- Users can read and write workspaces they own.
-- Users can read and write agent instances inside their workspaces.
+- Users can read workspaces they own.
+- Users can read agent instances, wallet policies, approvals, logs, and Telegram session metadata inside their workspaces.
+- Production writes for demo records go through Edge Functions using `service_role`, not direct authenticated browser grants.
 - Public agent pages can read a limited view of `agent_instances`, template metadata, and safe public stats.
 - Public reads must not expose wallet addresses, secrets, raw logs, API keys, bot tokens, or prepared transaction payloads.
 

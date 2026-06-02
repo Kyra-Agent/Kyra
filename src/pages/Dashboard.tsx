@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   ArrowLeft,
@@ -38,6 +38,13 @@ import {
 } from "../services/supabaseDashboardService";
 import type { KyraAuthSession, KyraAuthStatus } from "../services/supabaseAuthService";
 import { ensureFreshAuthSession } from "../services/supabaseAuthService";
+import {
+  getBackendEvents,
+  recordBackendEvent,
+  subscribeBackendEvents,
+  type BackendEvent,
+  type BackendEventStatus,
+} from "../services/backendObservabilityService";
 import {
   getSupabaseAdapterStatus,
   type SupabaseConnectionStatus,
@@ -181,6 +188,39 @@ function getDashboardChecklistState(status: SupabaseDashboardStatus): DeployChec
   return "todo";
 }
 
+function getDiagnosticTone(status: BackendEventStatus | "ready" | "standby" | "locked") {
+  if (status === "success" || status === "ready") {
+    return "ready";
+  }
+
+  if (status === "error" || status === "blocked") {
+    return "error";
+  }
+
+  if (status === "running" || status === "locked") {
+    return "locked";
+  }
+
+  return "standby";
+}
+
+function formatDiagnosticTimestamp(value: string | null) {
+  if (!value) {
+    return "not recorded";
+  }
+
+  return new Date(value).toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+}
+
+function getLatestEvent(events: BackendEvent[], kind: BackendEvent["kind"]) {
+  return events.find((event) => event.kind === kind) ?? null;
+}
+
 export function Dashboard({
   selectedTemplate,
   templates,
@@ -209,6 +249,9 @@ export function Dashboard({
   );
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const isAdmin = authSession?.user.app_metadata?.role === "admin";
+  const postResetRefreshPendingRef = useRef(false);
+  const [backendEvents, setBackendEvents] = useState<BackendEvent[]>(() => getBackendEvents());
+  const [lastDashboardRefreshAt, setLastDashboardRefreshAt] = useState<string | null>(null);
   const [deployFunctionStatus, setDeployFunctionStatus] = useState<DeployFunctionHealthStatus>(
     appConfig.functions.deployAgentConfigured ? "checking" : "not-configured",
   );
@@ -216,10 +259,15 @@ export function Dashboard({
   const supabaseStatus = getSupabaseAdapterStatus();
 
   useEffect(() => {
+    return subscribeBackendEvents(() => setBackendEvents(getBackendEvents()));
+  }, []);
+
+  useEffect(() => {
     if (!authSession) {
       setDashboardStatus(appConfig.supabase.configured ? "empty" : "not-configured");
       setDashboardData(null);
       setDashboardError(null);
+      setLastDashboardRefreshAt(null);
       return;
     }
 
@@ -254,6 +302,33 @@ export function Dashboard({
       setDashboardStatus(result.status);
       setDashboardData(result.ok ? result.data : null);
       setDashboardError(result.error);
+      setLastDashboardRefreshAt(new Date().toISOString());
+
+      if (isAdmin) {
+        recordBackendEvent({
+          kind: "dashboard-refresh",
+          status: result.ok || result.status === "empty" ? "success" : result.status === "error" ? "error" : "info",
+          message: result.ok
+            ? "Dashboard records loaded."
+            : result.error ?? "Dashboard has no persisted demo records.",
+          source: "dashboard",
+          code: result.status,
+        });
+      }
+
+      if (postResetRefreshPendingRef.current) {
+        postResetRefreshPendingRef.current = false;
+
+        if (result.status === "error") {
+          setAdminActionStatus("error");
+          setAdminActionMessage(
+            `Reset succeeded, but dashboard refresh failed: ${result.error ?? "records unavailable"}`,
+          );
+        } else {
+          setAdminActionStatus("success");
+          setAdminActionMessage("Demo workspace reset. Agent quota is clear.");
+        }
+      }
     }
 
     void loadDashboardRecords();
@@ -261,7 +336,7 @@ export function Dashboard({
     return () => {
       active = false;
     };
-  }, [authSession, dashboardReloadKey]);
+  }, [authSession, dashboardReloadKey, isAdmin]);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -286,6 +361,18 @@ export function Dashboard({
 
       setDeployFunctionStatus(result.status);
       setDeployFunctionMessage(result.message);
+      recordBackendEvent({
+        kind: "function-health",
+        status:
+          result.status === "ready"
+            ? "success"
+            : result.status === "missing-secret" || result.status === "error"
+              ? "error"
+              : "info",
+        message: result.message,
+        source: "deploy-agent",
+        code: result.status,
+      });
     }
 
     void loadDeployFunctionHealth();
@@ -324,6 +411,11 @@ export function Dashboard({
   const walletPolicies = dashboardData?.walletPolicies ?? [];
   const backendTables = dashboardData?.backendTables ?? [];
   const hasPublicRoute = Boolean(agentRecord?.publicPath);
+  const latestDeployEvent = getLatestEvent(backendEvents, "deploy");
+  const latestResetEvent = getLatestEvent(backendEvents, "reset");
+  const latestRefreshEvent = getLatestEvent(backendEvents, "dashboard-refresh");
+  const lastBackendIssue =
+    backendEvents.find((event) => event.status === "error" || event.status === "blocked") ?? null;
   const workspace =
     dashboardData?.workspace ??
     (authSession
@@ -441,6 +533,52 @@ export function Dashboard({
     },
   ];
   const isAdminActionRunning = adminActionStatus === "running";
+  const diagnosticRows = [
+    {
+      label: "Deploy function",
+      value: getDeployFunctionHealthLabel(deployFunctionStatus),
+      detail: deployFunctionMessage || "Waiting for health check.",
+      tone: getDeployFunctionHealthTone(deployFunctionStatus),
+    },
+    {
+      label: "Reset function",
+      value: appConfig.functions.resetDemoWorkspaceConfigured ? "configured" : "not configured",
+      detail: appConfig.functions.resetDemoWorkspaceConfigured
+        ? "Admin reset requests use the backend endpoint."
+        : "Reset endpoint URL is missing.",
+      tone: appConfig.functions.resetDemoWorkspaceConfigured ? "ready" : "standby",
+    },
+    {
+      label: "Catalog",
+      value: getCatalogValue(templateCatalogStatus, agentTemplates.length),
+      detail: templateCatalogError ?? "Template catalog state is available.",
+      tone: getReadinessTone(templateCatalogStatus),
+    },
+    {
+      label: "Dashboard records",
+      value: getDashboardReadinessLabel(dashboardStatus),
+      detail: dashboardError ?? `${dashboardAgentCount} persisted demo agent records loaded.`,
+      tone: getDashboardReadinessTone(dashboardStatus),
+    },
+    {
+      label: "Last refresh",
+      value: formatDiagnosticTimestamp(lastDashboardRefreshAt),
+      detail: latestRefreshEvent?.message ?? "No dashboard refresh event recorded yet.",
+      tone: getDiagnosticTone(latestRefreshEvent?.status ?? "standby"),
+    },
+    {
+      label: "Last deploy",
+      value: latestDeployEvent ? latestDeployEvent.status : "not recorded",
+      detail: latestDeployEvent?.message ?? "No deploy attempt recorded in this browser yet.",
+      tone: getDiagnosticTone(latestDeployEvent?.status ?? "standby"),
+    },
+    {
+      label: "Last reset",
+      value: latestResetEvent ? latestResetEvent.status : "not recorded",
+      detail: latestResetEvent?.message ?? "No reset attempt recorded in this browser yet.",
+      tone: getDiagnosticTone(latestResetEvent?.status ?? "standby"),
+    },
+  ];
 
   function syncFreshAuthSession(
     currentSession: KyraAuthSession,
@@ -482,6 +620,12 @@ export function Dashboard({
 
     setAdminActionStatus("running");
     setAdminActionMessage("Checking account session before reset...");
+    recordBackendEvent({
+      kind: "reset",
+      status: "running",
+      message: "Admin reset requested.",
+      source: "reset-demo-workspace",
+    });
 
     const freshAuth = await ensureFreshAuthSession(authSession);
 
@@ -490,6 +634,13 @@ export function Dashboard({
     if (!freshAuth.session) {
       setAdminActionStatus("error");
       setAdminActionMessage(freshAuth.message);
+      recordBackendEvent({
+        kind: "reset",
+        status: "blocked",
+        message: freshAuth.message,
+        source: "account session",
+        code: "session_refresh_failed",
+      });
       setResetConfirmOpen(false);
       return;
     }
@@ -499,10 +650,18 @@ export function Dashboard({
     const result = await resetSupabaseDemoWorkspace(freshAuth.session);
 
     setAdminActionStatus(result.ok ? "success" : "error");
-    setAdminActionMessage(result.message);
+    setAdminActionMessage(result.ok ? "Reset succeeded. Refreshing dashboard records..." : result.message);
+    recordBackendEvent({
+      kind: "reset",
+      status: result.ok ? "success" : "error",
+      message: result.message,
+      source: "reset-demo-workspace",
+      code: result.code,
+    });
     setResetConfirmOpen(false);
 
     if (result.ok) {
+      postResetRefreshPendingRef.current = true;
       setDashboardReloadKey((key) => key + 1);
     }
   }
@@ -514,6 +673,12 @@ export function Dashboard({
 
     setAdminActionStatus("idle");
     setAdminActionMessage("Refreshing demo workspace records...");
+    recordBackendEvent({
+      kind: "dashboard-refresh",
+      status: "running",
+      message: "Manual dashboard refresh requested.",
+      source: "admin actions",
+    });
     setDashboardReloadKey((key) => key + 1);
   }
 
@@ -819,6 +984,20 @@ export function Dashboard({
                       Function health: <strong>{deployFunctionMessage || "checking"}</strong>
                     </p>
                   </div>
+                  <div className="diagnostic-status-grid">
+                    {diagnosticRows.map((row) => (
+                      <article className={`diagnostic-status-card diagnostic-${row.tone}`} key={row.label}>
+                        <span>{row.label}</span>
+                        <strong>{formatRuntimeValue(row.value)}</strong>
+                        <small>{row.detail}</small>
+                      </article>
+                    ))}
+                  </div>
+                  {lastBackendIssue ? (
+                    <p className="readiness-error-note">
+                      Last backend issue: {lastBackendIssue.message}
+                    </p>
+                  ) : null}
                   {templateCatalogError ? (
                     <p className="readiness-error-note">
                       Supabase catalog query failed: {templateCatalogError}

@@ -1438,6 +1438,36 @@ h2 {
   cursor: pointer;
 }
 
+.receipt-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.receipt-safety-line {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+
+.receipt-error-detail {
+  display: grid;
+  gap: 0.22rem;
+  padding: 0.68rem;
+  border: 1px solid rgba(255, 111, 125, 0.28);
+  border-radius: var(--radius);
+  background: rgba(255, 111, 125, 0.07);
+}
+
+.receipt-error-detail strong {
+  color: #ffd2d7;
+}
+
+.receipt-error-detail small {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .deployment-terminal {
   overflow: hidden;
   background:
@@ -2520,6 +2550,55 @@ h2 {
   margin: 0;
   color: var(--muted);
   overflow-wrap: anywhere;
+}
+
+.diagnostic-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.diagnostic-status-card {
+  display: grid;
+  gap: 0.28rem;
+  min-width: 0;
+  padding: 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.diagnostic-status-card span,
+.diagnostic-status-card small {
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.diagnostic-status-card strong {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.diagnostic-ready {
+  border-color: rgba(138, 230, 177, 0.24);
+  background: rgba(138, 230, 177, 0.06);
+}
+
+.diagnostic-standby {
+  border-color: rgba(248, 198, 111, 0.22);
+  background: rgba(248, 198, 111, 0.055);
+}
+
+.diagnostic-locked {
+  border-color: rgba(94, 162, 255, 0.22);
+  background: rgba(94, 162, 255, 0.055);
+}
+
+.diagnostic-error {
+  border-color: rgba(255, 111, 125, 0.24);
+  background: rgba(255, 111, 125, 0.06);
 }
 
 .reset-confirm-modal {
@@ -3655,6 +3734,7 @@ h2 {
   }
 
   .receipt-grid,
+  .diagnostic-status-grid,
   .approval-detail-grid {
     grid-template-columns: 1fr;
   }

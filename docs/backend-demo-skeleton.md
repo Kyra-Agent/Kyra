@@ -16,6 +16,7 @@ Kyra is still safe demo mode. The Supabase demo backend is now partially connect
 - `src/services/supabaseDeployService.ts` calls the deploy Edge Function first. Direct RLS-backed client writes remain available only during local development.
 - `src/services/deployFunctionHealthService.ts` checks the deploy function health endpoint for dashboard readiness.
 - `.env.example` includes the provider and Supabase env names.
+- `supabase/lockdown_authenticated_demo_writes.sql` keeps production authenticated clients read-only for demo records, while Edge Functions continue writing with `service_role`.
 
 ## Tables
 
@@ -36,6 +37,7 @@ The demo backend is built around these records:
 - `prepared_tx` and `tx_hash` exist only for the future live phase.
 - Public reads should use `public_agent_profiles`, not private workspace tables.
 - Row Level Security is enabled on the private tables.
+- Production writes should use Edge Functions. Browser clients should not receive direct insert, update, or delete privileges on demo record tables.
 
 ## Local Supabase Setup
 
@@ -55,6 +57,8 @@ VITE_KYRA_RESET_FUNCTION_URL=https://your-project.supabase.co/functions/v1/reset
 ```
 
 The UI can run against Supabase when `VITE_KYRA_DATA_PROVIDER=supabase`. It still falls back to mock records when Supabase is unavailable.
+
+For production, run `supabase/lockdown_authenticated_demo_writes.sql` after the deploy and reset Edge Functions are deployed. The development-only REST fallback is only for isolated local/dev databases that intentionally keep write grants. If a dev build points at the locked production project, direct browser writes should fail and deploys should use the Edge Function.
 
 ## Edge Function Scaffold
 
@@ -83,15 +87,18 @@ Do not place `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` or any `VITE_` variable
 
 ## Next Implementation Step
 
-The frontend already prefers the Edge Function when configured. The next backend step is to deploy and test the function in Supabase:
+The frontend already prefers the Edge Function when configured. The production backend should be verified in this order:
 
-1. Deploy `deploy-agent` to Supabase.
-2. Set `SUPABASE_SERVICE_ROLE_KEY` and `KYRA_DEMO_AGENT_LIMIT` as Supabase Function secrets.
-3. Verify admin backend diagnostics changes from `fallback ready` to `ready`.
-4. Verify the frontend receipt source shows backend persistence only after the function succeeds.
-5. Verify dashboard/public profile reads after the function receipt.
-6. Keep live onchain execution disabled.
-7. Deploy `reset-demo-workspace`, then test its confirmation flow once with an admin account.
-8. Verify a non-admin request receives `403 Forbidden`.
+1. Run `npm run check:functions` so Deno type-checks `deploy-agent` and `reset-demo-workspace` before either function is deployed.
+2. Deploy `deploy-agent` to Supabase.
+3. Set `SUPABASE_SERVICE_ROLE_KEY` and `KYRA_DEMO_AGENT_LIMIT` as Supabase Function secrets.
+4. Verify admin backend diagnostics changes from `fallback ready` to `ready`.
+5. Verify the frontend receipt source shows backend persistence only after the function succeeds.
+6. Verify dashboard/public profile reads after the function receipt.
+7. Keep live onchain execution disabled.
+8. Deploy `reset-demo-workspace`, then test its confirmation flow once with an admin account.
+9. Verify a non-admin request receives `403 Forbidden`.
+10. Run `supabase/lockdown_authenticated_demo_writes.sql`.
+11. Run `supabase/verify_authenticated_demo_write_lockdown.sql` and confirm authenticated inserts are false while service role inserts remain true.
 
 Keep live onchain execution disabled until wallet approval, rate limits, Telegram token storage, and security review are complete.

@@ -21,6 +21,7 @@ Kyra is in the backend-connected demo phase.
 - Supabase can provide auth, template catalog, dashboard records, public agent profiles, activity logs, and persisted demo deploy receipts.
 - The `deploy-agent` Supabase Edge Function is the preferred server-side deploy boundary when configured.
 - The `reset-demo-workspace` Supabase Edge Function is the admin-only reset boundary when deployed.
+- Production demo writes are intended to be Edge-only; authenticated browser clients should only read their own dashboard records.
 - Frontend demo fallback remains available when Supabase is not configured.
 
 ## Core Flow
@@ -83,7 +84,7 @@ Supabase is used for the demo backend layer:
 - Edge Function deploy boundary at `supabase/functions/deploy-agent`.
 - Admin-only reset boundary at `supabase/functions/reset-demo-workspace`.
 
-The frontend prefers the Edge Function when it is configured. If the function is unavailable during demo development, the app can fall back to RLS-backed demo writes. Service role keys must stay server-side inside Supabase Function secrets only.
+The frontend prefers the Edge Function when it is configured. Production demo writes should go through Edge Functions only. The development-only REST fallback is for isolated local/dev databases with write grants; it should fail against the production project after the write-lockdown SQL is applied. Service role keys must stay server-side inside Supabase Function secrets only.
 
 ## Demo Safety Notes
 
@@ -167,6 +168,14 @@ KYRA_DEMO_AGENT_LIMIT=3
 
 ## Build And Deploy
 
+Before deploying Supabase Edge Functions, run the Deno function check:
+
+```bash
+npm run check:functions
+```
+
+This validates `deploy-agent` and `reset-demo-workspace` with the same TypeScript runtime family used by Supabase Edge Functions. Deno must be installed locally or exposed through `DENO_BIN`.
+
 Create a production build:
 
 ```bash
@@ -195,6 +204,8 @@ Do not deploy production until the backend demo is stable.
 - `supabase/set_demo_agent_limit_3.sql` - demo quota trigger helper.
 - `supabase/harden_demo_workspace_and_quota.sql` - non-destructive hardening for one demo workspace per user and serialized quota checks.
 - `supabase/fix_public_agent_profiles_security.sql` - public profile view hardening.
+- `supabase/lockdown_authenticated_demo_writes.sql` - production hardening that keeps authenticated clients read-only and routes demo writes through Edge Functions.
+- `supabase/verify_authenticated_demo_write_lockdown.sql` - read-only verification query for the write-lockdown grants and policies.
 - `supabase/grant_service_role_deploy_permissions.sql` - service role grants for the Edge Function.
 - `supabase/functions/deploy-agent/index.ts` - server-side demo deploy function.
 - `supabase/functions/deploy-agent/README.md` - deploy-agent setup notes.

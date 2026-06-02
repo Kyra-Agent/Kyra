@@ -25,6 +25,14 @@ type AgentCountRow = Pick<AgentInstanceRow, "id">;
 
 export type DeployPersistenceStatus = "skipped" | "saved" | "error";
 export type DeployPersistenceSource = "local" | "supabase-rest" | "edge-function";
+export type DeployFailureKind =
+  | "session"
+  | "quota"
+  | "backend"
+  | "template"
+  | "request"
+  | "configuration"
+  | "unknown";
 
 export interface DeployPersistenceInput {
   session: KyraAuthSession | null;
@@ -41,6 +49,9 @@ export interface DeployPersistenceResult {
   publicSlug: string | null;
   telegramHandle: string | null;
   source: DeployPersistenceSource;
+  code?: string;
+  failureKind?: DeployFailureKind;
+  quota?: Pick<DemoAgentQuota, "used" | "limit" | "remaining">;
 }
 
 export interface DemoAgentQuota {
@@ -77,6 +88,11 @@ interface DeployFunctionResponse {
   workspaceId?: string | null;
   agentId?: string | null;
   publicSlug?: string | null;
+  quota?: {
+    used?: number;
+    limit?: number;
+    remaining?: number;
+  };
   receipt?: {
     telegram?: string | null;
   };
@@ -290,17 +306,60 @@ function canUseRestDeployFallback() {
 
 function getDeployFunctionBlockedMessage(error: unknown) {
   if (error instanceof DeployFunctionError) {
-    if (
-      error.code === "quota_exceeded" ||
-      error.code === "unauthorized" ||
-      error.code === "template_not_found" ||
-      error.code === "invalid_request"
-    ) {
-      return error.message;
-    }
+    return getDeployFailureMessage(error.code, error.message);
   }
 
   return "Backend persistence is unavailable. No demo records were written. Try again after the Kyra backend is ready.";
+}
+
+function getDeployFailureKind(code: string): DeployFailureKind {
+  if (code === "unauthorized") {
+    return "session";
+  }
+
+  if (code === "quota_exceeded") {
+    return "quota";
+  }
+
+  if (code === "template_not_found") {
+    return "template";
+  }
+
+  if (code === "invalid_request") {
+    return "request";
+  }
+
+  if (code === "missing_env" || code === "function_not_configured") {
+    return "configuration";
+  }
+
+  if (code === "function_not_found" || code === "function_error") {
+    return "backend";
+  }
+
+  return "unknown";
+}
+
+function getDeployFailureMessage(code: string, fallback: string) {
+  const safeFallback = sanitizeSupabaseMessage(fallback);
+
+  switch (getDeployFailureKind(code)) {
+    case "session":
+      return "Account session expired or is invalid. Sign in again before deploying a demo agent.";
+    case "quota":
+      return safeFallback || "Demo agent limit reached. No new demo records were written.";
+    case "template":
+      return "This agent template is unavailable. Refresh the catalog and choose an active template.";
+    case "request":
+      return safeFallback || "Deploy request is incomplete. Review the template, agent name, and selected actions.";
+    case "configuration":
+      return "Backend persistence is not fully configured. No demo records were written.";
+    case "backend":
+      return "Kyra backend is unavailable. No demo records were written. Try again after backend persistence is ready.";
+    case "unknown":
+    default:
+      return safeFallback || "Demo persistence failed. No public route was confirmed.";
+  }
 }
 
 async function parseDeployFunctionResponse(response: Response): Promise<DeployFunctionResponse> {
@@ -368,6 +427,16 @@ async function saveViaDeployFunction({
     publicSlug: payload.publicSlug ?? null,
     telegramHandle: payload.receipt?.telegram ?? null,
     source: "edge-function",
+    quota:
+      typeof payload.quota?.used === "number" &&
+      typeof payload.quota?.limit === "number" &&
+      typeof payload.quota?.remaining === "number"
+        ? {
+            used: payload.quota.used,
+            limit: payload.quota.limit,
+            remaining: payload.quota.remaining,
+          }
+        : undefined,
   } satisfies DeployPersistenceResult;
 }
 
@@ -394,6 +463,13 @@ async function saveViaSupabaseRestFallback({
       publicSlug: null,
       telegramHandle: null,
       source: "supabase-rest",
+      code: "quota_exceeded",
+      failureKind: "quota",
+      quota: {
+        used: quota.used,
+        limit: quota.limit,
+        remaining: quota.remaining,
+      },
     };
   }
 
@@ -414,6 +490,11 @@ async function saveViaSupabaseRestFallback({
     publicSlug: agent.public_slug,
     telegramHandle: agent.handle,
     source: "supabase-rest",
+    quota: {
+      used: quota.used + 1,
+      limit: quota.limit,
+      remaining: Math.max(0, quota.limit - quota.used - 1),
+    },
   };
 }
 
@@ -432,6 +513,8 @@ export async function saveSupabaseDemoDeployment({
       publicSlug: null,
       telegramHandle: null,
       source: "local",
+      code: "sign_in_required",
+      failureKind: "session",
     };
   }
 
@@ -444,6 +527,8 @@ export async function saveSupabaseDemoDeployment({
       publicSlug: null,
       telegramHandle: null,
       source: "local",
+      code: "backend_not_configured",
+      failureKind: "configuration",
     };
   }
 
@@ -469,6 +554,11 @@ export async function saveSupabaseDemoDeployment({
           publicSlug: null,
           telegramHandle: null,
           source: "edge-function",
+          code: error instanceof DeployFunctionError ? error.code : "function_error",
+          failureKind:
+            error instanceof DeployFunctionError
+              ? getDeployFailureKind(error.code)
+              : "backend",
         };
       }
 
@@ -479,15 +569,20 @@ export async function saveSupabaseDemoDeployment({
         selectedActions,
       });
     }
-  } catch {
+  } catch (error) {
     return {
       status: "error",
-      message: "Demo persistence failed.",
+      message:
+        error instanceof Error
+          ? getDeployFailureMessage("unknown", error.message)
+          : "Demo persistence failed. No public route was confirmed.",
       workspaceId: null,
       agentId: null,
       publicSlug: null,
       telegramHandle: null,
       source: "supabase-rest",
+      code: "persistence_error",
+      failureKind: "unknown",
     };
   }
 }

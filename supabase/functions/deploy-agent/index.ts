@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+type KyraSupabaseClient = ReturnType<typeof createClient<any>>;
 type TemplateStatus = "mvp" | "advanced" | "coming-soon";
 type AgentStatus = "online" | "draft";
 type ApprovalRisk = "normal" | "review" | "read-only";
@@ -287,7 +288,7 @@ async function getUserClient(supabaseUrl: string, anonKey: string, authorization
   return data.user;
 }
 
-async function readExistingWorkspace(serviceClient: ReturnType<typeof createClient>, userId: string) {
+async function readExistingWorkspace(serviceClient: KyraSupabaseClient, userId: string) {
   const { data: existing, error: readError } = await serviceClient
     .from("workspaces")
     .select("id,owner_user_id,name,mode,created_at")
@@ -304,7 +305,7 @@ async function readExistingWorkspace(serviceClient: ReturnType<typeof createClie
   return existing ?? null;
 }
 
-async function ensureWorkspace(serviceClient: ReturnType<typeof createClient>, userId: string) {
+async function ensureWorkspace(serviceClient: KyraSupabaseClient, userId: string) {
   const existing = await readExistingWorkspace(serviceClient, userId);
 
   if (existing) {
@@ -336,7 +337,7 @@ async function ensureWorkspace(serviceClient: ReturnType<typeof createClient>, u
   return created;
 }
 
-async function getTemplate(serviceClient: ReturnType<typeof createClient>, templateId: string) {
+async function getTemplate(serviceClient: KyraSupabaseClient, templateId: string) {
   const { data, error } = await serviceClient
     .from("agent_templates")
     .select("id,name,role,status,summary,actions,modules,terminal_seed")
@@ -354,7 +355,7 @@ async function getTemplate(serviceClient: ReturnType<typeof createClient>, templ
   return data;
 }
 
-async function getAgentCount(serviceClient: ReturnType<typeof createClient>, workspaceId: string) {
+async function getAgentCount(serviceClient: KyraSupabaseClient, workspaceId: string) {
   const { count, error } = await serviceClient
     .from("agent_instances")
     .select("id", { count: "exact", head: true })
@@ -369,7 +370,7 @@ async function getAgentCount(serviceClient: ReturnType<typeof createClient>, wor
 }
 
 async function insertAgent(
-  serviceClient: ReturnType<typeof createClient>,
+  serviceClient: KyraSupabaseClient,
   workspaceId: string,
   template: AgentTemplateRow,
   userId: string,
@@ -407,7 +408,7 @@ async function insertAgent(
 }
 
 async function insertWalletPolicy(
-  serviceClient: ReturnType<typeof createClient>,
+  serviceClient: KyraSupabaseClient,
   workspaceId: string,
   agentId: string,
   selectedActions: string[],
@@ -435,7 +436,7 @@ async function insertWalletPolicy(
 }
 
 async function insertRelatedRecords(
-  serviceClient: ReturnType<typeof createClient>,
+  serviceClient: KyraSupabaseClient,
   workspace: WorkspaceRow,
   agent: AgentInstanceRow,
   template: AgentTemplateRow,
@@ -515,6 +516,18 @@ async function insertRelatedRecords(
   }
 }
 
+async function cleanupPartialAgent(serviceClient: KyraSupabaseClient, agentId: string | null) {
+  if (!agentId) {
+    return;
+  }
+
+  try {
+    await serviceClient.from("agent_instances").delete().eq("id", agentId);
+  } catch {
+    // Preserve the original deploy error. A later reset can clean up if this best-effort delete fails.
+  }
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -574,9 +587,22 @@ Deno.serve(async (request) => {
     const selectedActions = filteredActions.length ? filteredActions : allowedActions;
     const agentName = normalizeAgentName(body.agentName, template);
     const agent = await insertAgent(serviceClient, workspace.id, template, user.id, agentName);
-    const policy = await insertWalletPolicy(serviceClient, workspace.id, agent.id, selectedActions);
+    let nextUsed = used + 1;
 
-    await insertRelatedRecords(serviceClient, workspace, agent, template, policy);
+    try {
+      const policy = await insertWalletPolicy(serviceClient, workspace.id, agent.id, selectedActions);
+
+      await insertRelatedRecords(serviceClient, workspace, agent, template, policy);
+
+      try {
+        nextUsed = await getAgentCount(serviceClient, workspace.id);
+      } catch {
+        nextUsed = used + 1;
+      }
+    } catch (error) {
+      await cleanupPartialAgent(serviceClient, agent.id);
+      throw error;
+    }
 
     return jsonResponse(
       {
@@ -588,9 +614,9 @@ Deno.serve(async (request) => {
         publicSlug: agent.public_slug,
         publicPath: `/agents/${agent.public_slug}`,
         quota: {
-          used: used + 1,
+          used: nextUsed,
           limit,
-          remaining: Math.max(0, limit - used - 1),
+          remaining: Math.max(0, limit - nextUsed),
         },
         receipt: {
           template: template.name,
