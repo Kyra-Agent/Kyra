@@ -10,12 +10,12 @@
     <path d="M80 488H1120" stroke="#5EA2FF" stroke-opacity="0.14"/>
   </g>
   <rect x="72" y="72" width="1056" height="486" rx="28" fill="#0B1018" fill-opacity="0.86" stroke="#5EA2FF" stroke-opacity="0.28"/>
-  <rect x="96" y="96" width="158" height="42" rx="21" fill="#102035" stroke="#8AE6B1" stroke-opacity="0.32"/>
-  <text x="122" y="123" fill="#8AE6B1" font-family="Consolas, monospace" font-size="18" font-weight="700">DEMO MODE</text>
+  <rect x="96" y="96" width="318" height="42" rx="21" fill="#102035" stroke="#8AE6B1" stroke-opacity="0.32"/>
+  <text x="122" y="123" fill="#8AE6B1" font-family="Consolas, monospace" font-size="18" font-weight="700">BACKEND-CONNECTED DEMO</text>
   <text x="96" y="220" fill="#EEF5FF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="72" font-weight="800">Kyra Agent</text>
   <text x="96" y="292" fill="#EEF5FF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="44" font-weight="700">Base Onchain Agent Console</text>
-  <text x="96" y="368" fill="#9DAFC6" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28">Deploy Telegram-native AI agents that prepare</text>
-  <text x="96" y="408" fill="#9DAFC6" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28">wallet-approved Base actions in a safe frontend demo.</text>
+  <text x="96" y="368" fill="#9DAFC6" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28">Deploy Telegram-native AI agents with</text>
+  <text x="96" y="408" fill="#9DAFC6" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28">approval-first Base workflows in demo mode.</text>
   <g transform="translate(820 156)">
     <circle cx="132" cy="132" r="126" fill="#07111F" stroke="#5EA2FF" stroke-opacity="0.36"/>
     <circle cx="132" cy="132" r="82" fill="#05070A" stroke="#8AE6B1" stroke-opacity="0.34"/>
