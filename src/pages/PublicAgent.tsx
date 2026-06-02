@@ -69,6 +69,16 @@ function formatDemoRouteStatus(status: string) {
   return status === "mocked" ? "simulated" : status;
 }
 
+function getPublicAgentHeadline(displayName: string, templateName: string) {
+  const normalizedName = displayName.trim();
+
+  if (!normalizedName || normalizedName.toLowerCase() === "kyra") {
+    return `Kyra ${templateName}`;
+  }
+
+  return normalizedName;
+}
+
 export function PublicAgent({
   selectedTemplate,
   agentSlug,
@@ -172,6 +182,10 @@ export function PublicAgent({
 
   const visibleAgentRecord = agentRecord;
   const visibleTemplate = activeTemplate;
+  const publicAgentHeadline = getPublicAgentHeadline(
+    visibleAgentRecord.displayName,
+    visibleTemplate.name,
+  );
 
   function copyProfileLink() {
     const origin = typeof window === "undefined" ? "https://kyra-agent.demo" : window.location.origin;
@@ -212,7 +226,7 @@ export function PublicAgent({
               wallet approval
             </span>
           </div>
-          <h1>{visibleAgentRecord.displayName}</h1>
+          <h1>{publicAgentHeadline}</h1>
           <p>
             A share-ready preview for a deployed Kyra agent. It shows the public identity,
             available commands, and safety policy before live Telegram and Base action
