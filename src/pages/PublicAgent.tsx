@@ -71,12 +71,17 @@ function formatDemoRouteStatus(status: string) {
 
 function getPublicAgentHeadline(displayName: string, templateName: string) {
   const normalizedName = displayName.trim();
+  const normalizedTemplateName = templateName.trim();
 
   if (!normalizedName || normalizedName.toLowerCase() === "kyra") {
-    return `Kyra ${templateName}`;
+    return `Kyra ${normalizedTemplateName}`;
   }
 
-  return normalizedName;
+  if (normalizedName.toLowerCase().includes(normalizedTemplateName.toLowerCase())) {
+    return normalizedName;
+  }
+
+  return `${normalizedName} ${normalizedTemplateName}`;
 }
 
 export function PublicAgent({
