@@ -1,6 +1,8 @@
 # KYRA-AGENT
 
-Kyra Agent is a Base-native onchain agent console demo. It lets a user choose an agent template, configure a Telegram-style agent identity, deploy a demo agent, and inspect Supabase-backed dashboard records before live Telegram and wallet-approved Base execution are connected.
+Kyra Agent is a backend-connected Base agent console demo for approval-first onchain workflows. It lets a user choose an agent template, configure a Telegram-style agent identity, deploy a persisted demo agent, and inspect dashboard/public profile records before live Telegram and wallet-approved Base execution are connected.
+
+Live demo: https://kyraagent.xyz
 
 Core positioning:
 
@@ -8,11 +10,11 @@ Core positioning:
 Deploy Base agents with approval-first onchain workflows.
 ```
 
-Current caveat: the repository is still a backend-connected demo. It shows the product flow and persistence model, but it does not execute live onchain transactions.
+Current caveat: the product is still a backend-connected demo. It shows the product flow and persistence model, but it does not execute live onchain transactions.
 
 ## Current Status
 
-Kyra is in the backend-connected demo phase.
+Kyra is in the production-safe backend-connected demo phase.
 
 - No real transactions are executed.
 - No private keys, seed phrases, or wallet custody are used.
@@ -23,6 +25,7 @@ Kyra is in the backend-connected demo phase.
 - The `reset-demo-workspace` Supabase Edge Function is the admin-only reset boundary when deployed.
 - Production demo writes are intended to be Edge-only; authenticated browser clients should only read their own dashboard records.
 - Frontend demo fallback remains available when Supabase is not configured.
+- Phase 4 production smoke passed for signed-out, admin, and non-admin demo flows.
 
 ## Core Flow
 
@@ -195,7 +198,7 @@ Netlify settings:
 - Static config: `netlify.toml`
 - SPA fallback: `public/_redirects` and `netlify.toml`
 
-Do not deploy production until the backend demo is stable.
+Production is currently deployed as a backend-connected demo. Keep live onchain execution disabled until the Telegram, wallet, Base MCP, rate-limit, and security-review phases are complete.
 
 ## Supabase Files
 
@@ -240,14 +243,23 @@ Do not deploy production until the backend demo is stable.
 - More robust auth/session handling.
 - Better admin tooling.
 
-### Phase 4 - Telegram Integration
+### Phase 4 - Production Demo Hardening
+
+- Production deploy smoke.
+- Signed-out, admin, and non-admin role checks.
+- Edge-only production demo write policy.
+- Better deploy/reset failure UX.
+- Admin-only diagnostics and reset controls.
+- Stale public route handling.
+
+### Phase 5 - Telegram Integration
 
 - Real Telegram bot/session.
 - Bot token stored server-side only.
 - Webhook handling.
 - Agent command interface.
 
-### Phase 5 - Wallet And Base Integration
+### Phase 6 - Wallet And Base Integration
 
 - Wallet connect.
 - Wallet approval.
@@ -257,7 +269,7 @@ Do not deploy production until the backend demo is stable.
 - User pays gas.
 - No private key custody.
 
-### Phase 6 - Public Launch
+### Phase 7 - Public Launch
 
 - Publish only after backend demo stability is confirmed.
 - Clearly label any simulated execution while the product remains in demo mode.
@@ -265,6 +277,7 @@ Do not deploy production until the backend demo is stable.
 ## Links
 
 - X: https://x.com/Kyra_Agent
+- Website: https://kyraagent.xyz
 - Repository: https://github.com/Kyra-Agent/Kyra
 
 ## GitHub About Suggestions
@@ -284,5 +297,5 @@ base, onchain, ai-agent, supabase, telegram-bot, mcp, vite, react, typescript, w
 Homepage:
 
 ```text
-Leave empty until the site is published.
+https://kyraagent.xyz
 ```

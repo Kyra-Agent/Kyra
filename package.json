@@ -4,6 +4,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "homepage": "https://kyraagent.xyz",
   "repository": {
     "type": "git",
     "url": "https://github.com/Kyra-Agent/Kyra.git"
