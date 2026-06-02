@@ -264,6 +264,10 @@ export function Dashboard({
   }, [authSession, dashboardReloadKey]);
 
   useEffect(() => {
+    if (!isAdmin) {
+      return;
+    }
+
     let active = true;
 
     async function loadDeployFunctionHealth() {
@@ -289,7 +293,7 @@ export function Dashboard({
     return () => {
       active = false;
     };
-  }, []);
+  }, [isAdmin]);
 
   const agentRecord = dashboardData?.latestAgent ?? null;
   const dashboardAgentCount = dashboardData?.agentInstances.length ?? 0;
@@ -319,6 +323,7 @@ export function Dashboard({
   }, [agentRecord, dashboardData]);
   const walletPolicies = dashboardData?.walletPolicies ?? [];
   const backendTables = dashboardData?.backendTables ?? [];
+  const hasPublicRoute = Boolean(agentRecord?.publicPath);
   const workspace =
     dashboardData?.workspace ??
     (authSession
@@ -357,7 +362,7 @@ export function Dashboard({
       label: "Template catalog",
       value: getCatalogValue(templateCatalogStatus, agentTemplates.length),
       tone: getReadinessTone(templateCatalogStatus),
-      icon: Server,
+      icon: Bot,
     },
     {
       label: "Agent limit",
@@ -372,32 +377,26 @@ export function Dashboard({
       icon: ShieldCheck,
     },
     {
-      label: "Backend environment",
-      value: supabaseStatus.configured ? "configured" : "waiting",
-      tone: supabaseStatus.configured ? "ready" : "standby",
-      icon: Database,
-    },
-    {
-      label: "Account session",
-      value: authSession ? "active" : "sign in required",
+      label: "Account",
+      value: authSession ? "active" : "sign in to persist",
       tone: authSession ? "ready" : "standby",
       icon: KeyRound,
     },
     {
-      label: "Database",
-      value: appConfig.integrations.database === "supabase" ? "connected" : "local preview",
-      tone: appConfig.integrations.database === "supabase" ? "ready" : "standby",
-      icon: Server,
+      label: "Public route",
+      value: hasPublicRoute ? "available" : "not created",
+      tone: hasPublicRoute ? "ready" : "standby",
+      icon: ExternalLink,
     },
     {
-      label: "Deploy API",
-      value: getDeployFunctionHealthLabel(deployFunctionStatus),
-      tone: getDeployFunctionHealthTone(deployFunctionStatus),
-      icon: Terminal,
+      label: "Safety",
+      value: "approval-first",
+      tone: "ready",
+      icon: ShieldCheck,
     },
     {
       label: "Execution",
-      value: appConfig.integrations.walletExecution,
+      value: appConfig.integrations.walletExecution === "disabled" ? "simulated" : appConfig.integrations.walletExecution,
       tone: "locked",
       icon: LockKeyhole,
     },
@@ -405,7 +404,7 @@ export function Dashboard({
   const deployChecklist: DeployChecklistItem[] = [
     {
       label: "Function URL",
-      detail: "Frontend points to the Supabase deploy-agent endpoint.",
+      detail: "Frontend points to the deploy-agent endpoint.",
       state: appConfig.functions.deployAgentConfigured ? "complete" : "todo",
     },
     {
@@ -437,7 +436,7 @@ export function Dashboard({
     },
     {
       label: "Receipt source",
-      detail: "Successful deploy receipts should show edge after function rollout.",
+      detail: "Successful deploy receipts should show Backend when persistence is ready.",
       state: getDeployChecklistState(deployFunctionStatus),
     },
   ];
@@ -707,7 +706,11 @@ export function Dashboard({
                 <div className="dashboard-empty-state compact">
                   <WalletCards size={18} />
                   <strong>No approval requests.</strong>
-                  <p>Deploy a demo agent before Kyra creates wallet approval records.</p>
+                  <p>
+                    {authSession
+                      ? "Deploy a demo agent before Kyra creates wallet approval records."
+                      : "Sign in to load account-scoped approval records. Nothing is mocked while signed out."}
+                  </p>
                 </div>
               )}
             </div>
@@ -738,7 +741,11 @@ export function Dashboard({
                 <div className="dashboard-empty-state compact">
                   <ShieldCheck size={18} />
                   <strong>No wallet policy record.</strong>
-                  <p>No keys, funds, or approval settings exist until a demo agent is deployed.</p>
+                  <p>
+                    {authSession
+                      ? "No keys, funds, or approval settings exist until a demo agent is deployed."
+                      : "Sign in and deploy a demo agent before Kyra shows wallet policy records."}
+                  </p>
                 </div>
               )}
             </div>
@@ -870,8 +877,8 @@ export function Dashboard({
                     <span>{agentTemplates.length} templates loaded</span>
                     <span>
                       {dashboardAgentCount
-                        ? `${dashboardAgentCount} Supabase agents`
-                        : "no Supabase agents"}
+                        ? `${dashboardAgentCount} persisted demo agents`
+                        : "no persisted demo agents"}
                     </span>
                     <span>max {demoAgentLimits.maxAgentsPerWorkspace} demo agents</span>
                     <span>deploy-agent {getDeployFunctionHealthLabel(deployFunctionStatus)}</span>

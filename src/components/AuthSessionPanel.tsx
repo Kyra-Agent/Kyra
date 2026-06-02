@@ -105,7 +105,7 @@ export function AuthSessionPanel({
   return (
     <section className="dashboard-panel auth-session-panel" id="auth">
       <div className="panel-title">
-        <span>account.session</span>
+        <span>Account session</span>
         <span>{session ? "session active" : "session required"}</span>
       </div>
 

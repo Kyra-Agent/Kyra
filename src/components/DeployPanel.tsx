@@ -528,7 +528,11 @@ export function DeployPanel({
               <div className="wizard-screen">
                 <span className="wizard-kicker">Step 05</span>
                 <h3>Publish demo agent</h3>
-                <p>Compile the profile and publish a demo instance with a dashboard and public agent preview.</p>
+                <p>
+                  {authSession
+                    ? "Publish a backend-persisted demo profile with dashboard records and a shareable public route."
+                    : "Review the demo output. Sign in before deploying if you want backend persistence and a shareable public route."}
+                </p>
 
                 <div className="wizard-review-grid">
                   <span>
@@ -548,7 +552,7 @@ export function DeployPanel({
                     <strong>approval required</strong>
                   </span>
                   <span>
-                    Records
+                    Persistence
                     <strong>{authSession ? "Demo persistence active" : "Local preview only"}</strong>
                   </span>
                   <span>
@@ -570,7 +574,7 @@ export function DeployPanel({
                     ? `${agentQuota.message} Max ${agentQuota.limit} agents per demo workspace.`
                     : authSession
                     ? "Account session active. Kyra will persist this demo through the connected backend."
-                    : "No active account session. This demo deploy will stay local until you sign in."}
+                    : "No active account session. This deploy stays local unless you sign in first."}
                 </div>
               </div>
             ) : null}
@@ -630,8 +634,8 @@ export function DeployPanel({
                       <strong>{activeTelegramHandle}</strong>
                     </span>
                     <span>
-                      Console
-                      <strong>kyra.app{activePublicPath}</strong>
+                      Public route
+                      <strong>{activePublicPath}</strong>
                     </span>
                     <span>
                       Template

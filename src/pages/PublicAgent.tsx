@@ -34,12 +34,12 @@ interface PublicAgentProps {
 const capabilityRows = [
   {
     title: "Telegram interface",
-    summary: "Command the agent from chat in demo mode.",
+    summary: "Preview the chat surface in demo mode. No live bot token is connected.",
     icon: Bot,
   },
   {
     title: "Base action layer",
-    summary: "Prepare Base actions through an approval-first workflow.",
+    summary: "Show approval-first Base action preparation while execution stays simulated.",
     icon: Radio,
   },
   {
@@ -233,9 +233,9 @@ export function PublicAgent({
           </div>
           <h1>{publicAgentHeadline}</h1>
           <p>
-            A share-ready preview for a deployed Kyra agent. It shows the public identity,
-            available commands, and safety policy before live Telegram and Base action
-            integrations are connected.
+            A share-ready backend demo profile for a deployed Kyra agent. It shows public
+            identity, available demo commands, and safety policy while Telegram and Base
+            execution remain simulated.
           </p>
           {publicError ? (
             <span className="demo-action-note public-profile-note">
@@ -429,7 +429,7 @@ export function PublicAgent({
           </div>
           <p>
             Kyra prepares actions. The connected wallet is always the final decision
-            point. This preview does not execute real transactions.
+            point. This public preview does not execute real transactions.
           </p>
         </article>
       </section>
