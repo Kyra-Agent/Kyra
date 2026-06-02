@@ -95,7 +95,7 @@ export async function fetchDeployFunctionHealth(): Promise<DeployFunctionHealthR
     if (response.status === 404) {
       return {
         status: "unavailable",
-        message: "deploy-agent is not deployed yet. RLS fallback remains active.",
+        message: "deploy-agent is not deployed yet. Production persistence should stay unavailable until the backend is ready.",
       };
     }
 

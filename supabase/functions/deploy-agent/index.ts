@@ -157,6 +157,30 @@ function assertString(value: unknown, label: string) {
   return value.trim();
 }
 
+function assertTemplateId(value: unknown) {
+  const templateId = assertString(value, "templateId").toLowerCase();
+
+  if (!/^[a-z0-9_-]{2,48}$/.test(templateId)) {
+    throw new HttpError(400, "invalid_request", "templateId is invalid.");
+  }
+
+  return templateId;
+}
+
+async function readDeployRequestBody(request: Request): Promise<DeployAgentRequest> {
+  try {
+    const payload = await request.json();
+
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      throw new Error("Expected object payload.");
+    }
+
+    return payload as DeployAgentRequest;
+  } catch {
+    throw new HttpError(400, "invalid_request", "Request body must be valid JSON.");
+  }
+}
+
 function normalizeStringArray(value: unknown) {
   if (!Array.isArray(value)) {
     return [];
@@ -263,7 +287,7 @@ async function getUserClient(supabaseUrl: string, anonKey: string, authorization
   return data.user;
 }
 
-async function ensureWorkspace(serviceClient: ReturnType<typeof createClient>, userId: string) {
+async function readExistingWorkspace(serviceClient: ReturnType<typeof createClient>, userId: string) {
   const { data: existing, error: readError } = await serviceClient
     .from("workspaces")
     .select("id,owner_user_id,name,mode,created_at")
@@ -276,6 +300,12 @@ async function ensureWorkspace(serviceClient: ReturnType<typeof createClient>, u
   if (readError) {
     throw readError;
   }
+
+  return existing ?? null;
+}
+
+async function ensureWorkspace(serviceClient: ReturnType<typeof createClient>, userId: string) {
+  const existing = await readExistingWorkspace(serviceClient, userId);
 
   if (existing) {
     return existing;
@@ -292,6 +322,14 @@ async function ensureWorkspace(serviceClient: ReturnType<typeof createClient>, u
     .single<WorkspaceRow>();
 
   if (createError || !created) {
+    if (createError?.code === "23505") {
+      const nextExisting = await readExistingWorkspace(serviceClient, userId);
+
+      if (nextExisting) {
+        return nextExisting;
+      }
+    }
+
     throw createError ?? new Error("Workspace creation failed.");
   }
 
@@ -503,8 +541,8 @@ Deno.serve(async (request) => {
     const anonKey = getEnv("SUPABASE_ANON_KEY");
     const serviceRoleKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
     const limit = getDemoLimit();
-    const body = (await request.json()) as DeployAgentRequest;
-    const templateId = assertString(body.templateId, "templateId");
+    const body = await readDeployRequestBody(request);
+    const templateId = assertTemplateId(body.templateId);
 
     const user = await getUserClient(supabaseUrl, anonKey, authorization);
     const serviceClient = createClient(supabaseUrl, serviceRoleKey, {

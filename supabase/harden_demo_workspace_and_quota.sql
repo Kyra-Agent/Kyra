@@ -1,3 +1,7 @@
+create unique index if not exists workspaces_owner_demo_unique_idx
+on public.workspaces(owner_user_id)
+where mode = 'demo';
+
 create or replace function public.enforce_demo_agent_limit()
 returns trigger
 language plpgsql

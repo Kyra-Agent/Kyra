@@ -163,7 +163,7 @@ Minimum RLS rules:
 4. API creates default `wallet_policies`.
 5. API creates initial `activity_logs`.
 6. API returns dashboard route and public agent route.
-7. Frontend updates the wizard receipt and labels whether the write came from the Edge Function or RLS fallback.
+7. Frontend updates the wizard receipt after the Edge Function persists the demo records. Direct RLS writes are reserved for local development fallback only.
 
 ## Approval Flow
 

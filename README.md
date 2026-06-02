@@ -189,6 +189,7 @@ Do not deploy production until the backend demo is stable.
 - `supabase/schema.sql` - demo schema, RLS policies, public profile view, and grants.
 - `supabase/seed.sql` - template catalog seed data.
 - `supabase/set_demo_agent_limit_3.sql` - demo quota trigger helper.
+- `supabase/harden_demo_workspace_and_quota.sql` - non-destructive hardening for one demo workspace per user and serialized quota checks.
 - `supabase/fix_public_agent_profiles_security.sql` - public profile view hardening.
 - `supabase/grant_service_role_deploy_permissions.sql` - service role grants for the Edge Function.
 - `supabase/functions/deploy-agent/index.ts` - server-side demo deploy function.

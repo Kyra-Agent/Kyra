@@ -284,6 +284,25 @@ function shouldFallbackFromFunction(statusCode: number, code: string) {
   );
 }
 
+function canUseRestDeployFallback() {
+  return import.meta.env.DEV;
+}
+
+function getDeployFunctionBlockedMessage(error: unknown) {
+  if (error instanceof DeployFunctionError) {
+    if (
+      error.code === "quota_exceeded" ||
+      error.code === "unauthorized" ||
+      error.code === "template_not_found" ||
+      error.code === "invalid_request"
+    ) {
+      return error.message;
+    }
+  }
+
+  return "Backend persistence is unavailable. No demo records were written. Try again after the Kyra backend is ready.";
+}
+
 async function parseDeployFunctionResponse(response: Response): Promise<DeployFunctionResponse> {
   const text = await response.text();
 
@@ -437,10 +456,14 @@ export async function saveSupabaseDemoDeployment({
         selectedActions,
       });
     } catch (error) {
-      if (error instanceof DeployFunctionError && !error.fallbackAllowed) {
+      const fallbackAllowed =
+        canUseRestDeployFallback() &&
+        (!(error instanceof DeployFunctionError) || error.fallbackAllowed);
+
+      if (!fallbackAllowed) {
         return {
           status: "error",
-          message: "Demo persistence is temporarily unavailable.",
+          message: getDeployFunctionBlockedMessage(error),
           workspaceId: null,
           agentId: null,
           publicSlug: null,

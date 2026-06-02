@@ -109,6 +109,9 @@ create table if not exists public.telegram_sessions (
 );
 
 create index if not exists workspaces_owner_user_id_idx on public.workspaces(owner_user_id);
+create unique index if not exists workspaces_owner_demo_unique_idx
+on public.workspaces(owner_user_id)
+where mode = 'demo';
 create index if not exists agent_instances_workspace_id_idx on public.agent_instances(workspace_id);
 create index if not exists agent_instances_public_slug_idx on public.agent_instances(public_slug);
 create index if not exists wallet_policies_workspace_id_idx on public.wallet_policies(workspace_id);
@@ -122,13 +125,17 @@ security definer
 set search_path = public
 as $$
 begin
-  if new.mode = 'demo' and (
-    select count(*)
-    from public.agent_instances
-    where workspace_id = new.workspace_id
-      and mode = 'demo'
-  ) >= 3 then
-    raise exception 'Demo agent limit reached (3/3).';
+  if new.mode = 'demo' then
+    perform pg_advisory_xact_lock(hashtext(new.workspace_id::text));
+
+    if (
+      select count(*)
+      from public.agent_instances
+      where workspace_id = new.workspace_id
+        and mode = 'demo'
+    ) >= 3 then
+      raise exception 'Demo agent limit reached (3/3).';
+    end if;
   end if;
 
   return new;

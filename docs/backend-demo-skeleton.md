@@ -56,13 +56,13 @@ The UI can run against Supabase when `VITE_KYRA_DATA_PROVIDER=supabase`. It stil
 
 ## Edge Function Scaffold
 
-`supabase/functions/deploy-agent` is the intended server-side deployment boundary. It validates the user session, enforces the 2-agent demo quota, writes the same demo records, and returns a receipt.
+`supabase/functions/deploy-agent` is the intended server-side deployment boundary. It validates the user session, enforces the 3-agent demo quota, writes the same demo records, and returns a receipt.
 
-The function also supports `GET` as a health check. The dashboard uses it to distinguish:
+The function also supports `GET` as a health check. Admin-only backend diagnostics use it to distinguish:
 
-- `edge ready`: function is deployed and required secrets exist.
-- `missing secret`: function is deployed but not fully configured.
-- `fallback active`: function is not reachable yet, so direct RLS demo writes remain active.
+- `ready`: function is deployed and required secrets exist.
+- `configuration required`: function is deployed but not fully configured.
+- `fallback ready`: function is not reachable yet. Production deploys should not silently write through frontend REST fallback.
 
 The function needs server-only secrets:
 
@@ -81,8 +81,8 @@ The frontend already prefers the Edge Function when configured. The next backend
 
 1. Deploy `deploy-agent` to Supabase.
 2. Set `SUPABASE_SERVICE_ROLE_KEY` and `KYRA_DEMO_AGENT_LIMIT` as Supabase Function secrets.
-3. Verify dashboard readiness changes from `fallback active` to `edge ready`.
-4. Verify the frontend receipt source changes from `supabase` fallback to `edge`.
+3. Verify admin backend diagnostics changes from `fallback ready` to `ready`.
+4. Verify the frontend receipt source shows backend persistence only after the function succeeds.
 5. Verify dashboard/public profile reads after the function receipt.
 6. Keep live onchain execution disabled.
 

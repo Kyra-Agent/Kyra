@@ -1,14 +1,14 @@
 # deploy-agent Edge Function
 
 This function is the server-side boundary for Kyra demo deployment writes.
-The frontend deploy service prefers this function when configured and falls back to RLS-backed demo writes while the function is not deployed.
+The frontend deploy service uses this function as the production write boundary. Direct RLS-backed writes are for local development fallback only.
 
 ## What It Does
 
 - Supports `GET` health checks for dashboard readiness.
 - Validates the user from the `Authorization: Bearer <access-token>` header.
 - Finds or creates the user's demo workspace.
-- Enforces the demo limit of 2 agents per workspace.
+- Enforces the demo limit of 3 agents per workspace.
 - Reads a template from `agent_templates`.
 - Creates an `agent_instances` row.
 - Creates the default `wallet_policies`, `approval_requests`, `telegram_sessions`, and `activity_logs` rows.
@@ -39,4 +39,4 @@ npx --yes supabase@latest functions deploy deploy-agent --project-ref lvgqtxbygr
 
 Frontend integration calls this function only after the user has an active Supabase Auth session. Set `VITE_KYRA_DEPLOY_FUNCTION_URL` to the deployed function URL if the default Supabase function URL is not enough.
 
-After deploy, open the Kyra dashboard and check `Deploy API`. It should show `edge ready` when all required secrets are present.
+After deploy, open the Kyra dashboard as an admin and check `Backend Diagnostics`. The `deploy-agent` checklist should show `ready` when all required secrets are present.

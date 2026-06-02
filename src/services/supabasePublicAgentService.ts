@@ -56,21 +56,11 @@ function mapRecordStatus(status: PublicAgentRouteStatus): DemoRecordStatus {
   return status;
 }
 
-function getTemplateIdFromSlug(agentSlug: string, fallbackTemplateId: string) {
-  if (agentSlug.endsWith("-demo")) {
-    return agentSlug.replace(/-demo$/, "");
-  }
-
-  const firstSegment = agentSlug.split("-")[0];
-  return firstSegment || fallbackTemplateId;
+function isLocalDemoPreviewSlug(agentSlug: string) {
+  return agentSlug.endsWith("-demo");
 }
 
-function buildPublicAgentQuery(agentSlug: string, fallbackTemplateId: string) {
-  if (agentSlug.endsWith("-demo")) {
-    const templateId = getTemplateIdFromSlug(agentSlug, fallbackTemplateId);
-    return `public_agent_profiles?select=*&template_id=eq.${encodeURIComponent(templateId)}&order=created_at.desc&limit=1`;
-  }
-
+function buildPublicAgentQuery(agentSlug: string) {
   return `public_agent_profiles?select=*&public_slug=eq.${encodeURIComponent(agentSlug)}&limit=1`;
 }
 
@@ -125,8 +115,17 @@ function mapPublicAgentProfile(row: PublicAgentProfileRow): PublicAgentProfile {
 
 export async function fetchPublicAgentProfile(
   agentSlug: string,
-  fallbackTemplateId: string,
+  _fallbackTemplateId: string,
 ): Promise<PublicAgentProfileResult> {
+  if (isLocalDemoPreviewSlug(agentSlug)) {
+    return {
+      ok: false,
+      status: "empty",
+      profile: null,
+      error: null,
+    };
+  }
+
   if (!appConfig.supabase.configured) {
     return {
       ok: false,
@@ -138,7 +137,7 @@ export async function fetchPublicAgentProfile(
 
   try {
     const rows = await selectPublicRows<PublicAgentProfileRow>(
-      buildPublicAgentQuery(agentSlug, fallbackTemplateId),
+      buildPublicAgentQuery(agentSlug),
     );
 
     if (!rows[0]) {
