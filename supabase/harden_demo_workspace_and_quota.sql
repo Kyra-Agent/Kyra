@@ -25,3 +25,22 @@ begin
   return new;
 end;
 $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_trigger
+    where tgname = 'enforce_demo_agent_limit_on_insert'
+      and tgrelid = 'public.agent_instances'::regclass
+      and not tgisinternal
+  ) then
+    execute '
+      create trigger enforce_demo_agent_limit_on_insert
+      before insert on public.agent_instances
+      for each row
+      execute function public.enforce_demo_agent_limit()
+    ';
+  end if;
+end;
+$$;

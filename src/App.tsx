@@ -24,6 +24,7 @@ import {
   type KyraAuthSession,
   type KyraAuthStatus,
 } from "./services/supabaseAuthService";
+import { fetchSupabaseDashboardData } from "./services/supabaseDashboardService";
 import {
   fetchSupabaseTemplates,
   type SupabaseConnectionStatus,
@@ -248,6 +249,41 @@ function App() {
     setTheme((value) => (value === "dark" ? "light" : "dark"));
   }
 
+  async function openAgentFromHeader() {
+    if (!authSession) {
+      navigate("agent");
+      return;
+    }
+
+    const freshAuth = await ensureFreshAuthSession(authSession);
+
+    if (!freshAuth.session) {
+      updateAuthSession(null, freshAuth.status, freshAuth.message);
+      navigate("agent");
+      return;
+    }
+
+    if (
+      freshAuth.session.accessToken !== authSession.accessToken ||
+      freshAuth.session.expiresAt !== authSession.expiresAt
+    ) {
+      updateAuthSession(freshAuth.session, freshAuth.status, freshAuth.message);
+    }
+
+    const result = await fetchSupabaseDashboardData(freshAuth.session);
+    const latestAgent = result.data?.latestAgent;
+
+    navigate(
+      "agent",
+      latestAgent
+        ? {
+            templateId: latestAgent.templateId,
+            publicPath: latestAgent.publicPath,
+          }
+        : undefined,
+    );
+  }
+
   useEffect(() => {
     function syncRouteFromLocation() {
       if (window.location.pathname === "/dashboard") {
@@ -351,7 +387,7 @@ function App() {
         onToggleTheme={toggleTheme}
         onOpenDashboard={() => navigate("dashboard")}
         onOpenHome={() => navigate("home")}
-        onOpenAgent={() => navigate("agent")}
+        onOpenAgent={() => void openAgentFromHeader()}
         onOpenSection={openHomeSection}
       />
       <div className="demo-disclaimer" role="note" aria-label="Kyra demo disclaimer">
