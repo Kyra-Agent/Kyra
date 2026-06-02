@@ -27,6 +27,11 @@ export const faqs: FAQItem[] = [
       "Telegram gives Kyra a fast command interface for personal and community agents. The product output is still an agent instance: Telegram interface, Kyra dashboard, and wallet approval workflow.",
   },
   {
+    question: "Do I need a Telegram bot token to try the demo?",
+    answer:
+      "No. The current backend-connected demo does not ask for a real BotFather token. When Telegram integration ships, users will create a bot through @BotFather and paste the token only into Kyra's secure backend connection screen.",
+  },
+  {
     question: "What is the Base action layer?",
     answer:
       "It is the approval-first workflow Kyra uses to prepare Base ecosystem actions while keeping the final decision in the user's wallet.",

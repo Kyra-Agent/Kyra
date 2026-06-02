@@ -33,6 +33,19 @@ import type { DataProvider } from "./types/api";
 
 const fallbackAgentTemplates = kyraDataService.listTemplates();
 const demoScenarios = kyraDataService.listScenarios();
+const homeSectionIds = ["templates", "deploy", "actions", "security", "faq"] as const;
+
+type HomeSectionId = (typeof homeSectionIds)[number];
+
+function isHomeSectionId(sectionId: string): sectionId is HomeSectionId {
+  return homeSectionIds.includes(sectionId as HomeSectionId);
+}
+
+function getHomeSectionIdFromPath(pathname: string) {
+  const sectionId = pathname.replace(/^\/|\/$/g, "");
+
+  return isHomeSectionId(sectionId) ? sectionId : null;
+}
 
 function getAgentSlugFromPath(pathname: string) {
   return pathname.match(/^\/agents\/([^/]+)$/)?.[1] ?? null;
@@ -104,12 +117,22 @@ function App() {
   const [approvalApproved, setApprovalApproved] = useState(false);
   const [approvalClosing, setApprovalClosing] = useState(false);
   const [approvalDismissed, setApprovalDismissed] = useState(false);
+  const [homeSectionId, setHomeSectionId] = useState<HomeSectionId | null>(() => {
+    if (typeof window === "undefined") {
+      return null;
+    }
+
+    return getHomeSectionIdFromPath(window.location.pathname);
+  });
   const [route, setRoute] = useState<"home" | "dashboard" | "agent">(() => {
     if (typeof window === "undefined") {
       return "home";
     }
 
-    if (window.location.pathname === "/dashboard") {
+    if (
+      window.location.pathname === "/dashboard" ||
+      window.location.pathname.startsWith("/dashboard/")
+    ) {
       return "dashboard";
     }
 
@@ -285,20 +308,41 @@ function App() {
   }
 
   useEffect(() => {
+    if (route !== "home") {
+      return;
+    }
+
+    if (!homeSectionId) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    window.setTimeout(() => {
+      document.getElementById(homeSectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 40);
+  }, [homeSectionId, route]);
+
+  useEffect(() => {
     function syncRouteFromLocation() {
-      if (window.location.pathname === "/dashboard") {
+      if (
+        window.location.pathname === "/dashboard" ||
+        window.location.pathname.startsWith("/dashboard/")
+      ) {
+        setHomeSectionId(null);
         setRoute("dashboard");
         return;
       }
 
       if (window.location.pathname.startsWith("/agents/")) {
         const nextAgentSlug = getAgentSlugFromPath(window.location.pathname);
+        setHomeSectionId(null);
         setAgentSlug(nextAgentSlug ?? "operator-demo");
         setSelectedId(getTemplateIdFromAgentSlug(nextAgentSlug));
         setRoute("agent");
         return;
       }
 
+      setHomeSectionId(getHomeSectionIdFromPath(window.location.pathname));
       setRoute("home");
     }
 
@@ -318,6 +362,7 @@ function App() {
       setAgentSlug(targetSlug ?? `${nextTemplateId}-demo`);
     }
 
+    setHomeSectionId(null);
     setRoute(nextRoute);
     const path =
       nextRoute === "dashboard"
@@ -329,12 +374,21 @@ function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function openAccountSession() {
+    setHomeSectionId(null);
+    setRoute("dashboard");
+    window.history.pushState({}, "", "/dashboard/auth");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function openHomeSection(sectionId: string) {
+    if (!isHomeSectionId(sectionId)) {
+      return;
+    }
+
     setRoute("home");
-    window.history.pushState({}, "", `/#${sectionId}`);
-    window.setTimeout(() => {
-      document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 40);
+    setHomeSectionId(sectionId);
+    window.history.pushState({}, "", `/${sectionId}`);
   }
 
   function selectScenario(scenarioId: string) {
@@ -388,6 +442,7 @@ function App() {
         onOpenDashboard={() => navigate("dashboard")}
         onOpenHome={() => navigate("home")}
         onOpenAgent={() => void openAgentFromHeader()}
+        onOpenAccount={openAccountSession}
         onOpenSection={openHomeSection}
       />
       <div className="demo-disclaimer" role="note" aria-label="Kyra demo disclaimer">
@@ -438,10 +493,14 @@ function App() {
                 </p>
 
                 <div className="hero-actions">
-                  <a className="button button-primary" href="#deploy">
+                  <button
+                    className="button button-primary"
+                    type="button"
+                    onClick={() => openHomeSection("deploy")}
+                  >
                     Deploy Agent
                     <ArrowRight size={17} />
-                  </a>
+                  </button>
                   <button
                     className="button button-ghost"
                     type="button"
@@ -450,10 +509,14 @@ function App() {
                     Open Dashboard
                     <ArrowRight size={17} />
                   </button>
-                  <a className="button button-ghost" href="#security">
+                  <button
+                    className="button button-ghost"
+                    type="button"
+                    onClick={() => openHomeSection("security")}
+                  >
                     <ShieldCheck size={17} />
                     View Safety Model
-                  </a>
+                  </button>
                 </div>
 
                 <div className="trust-row" aria-label="Kyra trust model">
@@ -483,6 +546,7 @@ function App() {
               templates={agentTemplates}
               selectedTemplate={selectedTemplate}
               authSession={authSession}
+              onOpenAccount={openAccountSession}
               onSelectTemplate={setSelectedId}
               onOpenAgent={(target) => navigate("agent", target)}
               onAuthSessionChange={updateAuthSession}

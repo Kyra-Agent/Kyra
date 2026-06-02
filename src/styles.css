@@ -364,7 +364,10 @@ button {
 }
 
 .site-nav {
+  flex: 1 1 auto;
+  justify-content: center;
   gap: 1.1rem;
+  min-width: 0;
   color: var(--muted);
   font-size: 0.9rem;
 }
@@ -375,6 +378,7 @@ button {
   background: transparent;
   color: inherit;
   cursor: pointer;
+  white-space: nowrap;
   transition: color 180ms ease;
 }
 
@@ -384,6 +388,7 @@ button {
 }
 
 .header-actions {
+  flex: 0 0 auto;
   gap: 0.55rem;
   min-width: 0;
   justify-content: flex-end;
@@ -391,6 +396,10 @@ button {
 
 .header-actions .header-safety {
   display: none;
+}
+
+.header-actions .header-account {
+  min-width: 92px;
 }
 
 .compact-nav-trigger {
@@ -420,6 +429,13 @@ button {
 
 .compact-nav-menu {
   display: none;
+}
+
+.compact-nav-menu a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.48rem;
+  text-decoration: none;
 }
 
 .icon-link {
@@ -1017,6 +1033,48 @@ h2 {
   gap: 0.9rem;
 }
 
+.deploy-howto {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.72rem;
+  margin: -0.4rem 0 1rem;
+}
+
+.deploy-howto article {
+  display: grid;
+  gap: 0.38rem;
+  min-height: 132px;
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(94, 162, 255, 0.075), transparent 60%),
+    rgba(255, 255, 255, 0.035);
+}
+
+.deploy-howto span,
+.telegram-guide-card .mini-label-inline {
+  color: var(--green);
+}
+
+.deploy-howto span {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.deploy-howto strong {
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.deploy-howto p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
 .config-panel,
 .deployment-terminal,
 .agent-card,
@@ -1186,7 +1244,7 @@ h2 {
 
 .wizard-stepper {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.45rem;
   margin-bottom: 1rem;
 }
@@ -1276,6 +1334,47 @@ h2 {
 
 .connection-grid.single-row {
   grid-template-columns: 1fr;
+}
+
+.deploy-account-card,
+.telegram-guide-card {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(94, 162, 255, 0.07), transparent 58%),
+    rgba(255, 255, 255, 0.035);
+}
+
+.deploy-account-card strong {
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.deploy-account-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.deploy-account-card .button {
+  width: fit-content;
+}
+
+.telegram-guide-card {
+  margin-bottom: 0.85rem;
+}
+
+.telegram-guide-card ol {
+  display: grid;
+  gap: 0.42rem;
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.55;
 }
 
 .wizard-review-grid {
@@ -3513,6 +3612,7 @@ h2 {
     backdrop-filter: blur(18px);
   }
 
+  .compact-nav-menu a,
   .compact-nav-menu button {
     min-height: 40px;
     padding: 0.62rem 0.7rem;
@@ -3527,6 +3627,7 @@ h2 {
       color 160ms ease;
   }
 
+  .compact-nav-menu a:hover,
   .compact-nav-menu button:hover {
     background: rgba(94, 162, 255, 0.09);
     color: var(--text);
@@ -3701,6 +3802,7 @@ h2 {
 
   .template-grid,
   .deploy-layout,
+  .deploy-howto,
   .dashboard-grid,
   .actions-grid,
   .security-grid {
@@ -3845,13 +3947,18 @@ h2 {
 }
 
 @media (max-width: 520px) {
+  .site-header {
+    gap: 0.45rem;
+  }
+
   .logo-link {
     min-width: 0;
   }
 
   .brand-mark {
-    min-width: 9.65rem;
-    font-size: 0.78rem;
+    gap: 0.38rem;
+    min-width: 7.35rem;
+    font-size: 0.74rem;
   }
 
   .brand-logo-image {
@@ -3864,16 +3971,24 @@ h2 {
     display: none;
   }
 
-  .header-actions .button-primary {
+  .header-actions {
+    gap: 0.35rem;
+  }
+
+  .header-actions .header-account {
     width: 42px;
     min-width: 42px;
     padding: 0;
     font-size: 0;
   }
 
-  .header-actions .button-primary svg {
+  .header-actions .header-account svg {
     width: 18px;
     height: 18px;
+  }
+
+  .header-actions .button-primary {
+    display: none;
   }
 
   .header-actions .icon-link {
@@ -3881,12 +3996,6 @@ h2 {
   }
 
   .theme-toggle {
-    width: 42px;
-    min-width: 42px;
-    padding: 0;
-  }
-
-  .theme-toggle span {
     display: none;
   }
 

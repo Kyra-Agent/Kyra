@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Github, Menu, Rocket, ShieldCheck, Terminal, X } from "lucide-react";
+import { Github, Menu, Rocket, ShieldCheck, Terminal, UserRound, X } from "lucide-react";
 import { BrandMark } from "./BrandMark";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -9,6 +9,7 @@ interface HeaderProps {
   onOpenDashboard: () => void;
   onOpenHome: () => void;
   onOpenAgent: () => void;
+  onOpenAccount: () => void;
   onOpenSection: (sectionId: string) => void;
 }
 
@@ -18,6 +19,7 @@ export function Header({
   onOpenDashboard,
   onOpenHome,
   onOpenAgent,
+  onOpenAccount,
   onOpenSection,
 }: HeaderProps) {
   const [compactNavOpen, setCompactNavOpen] = useState(false);
@@ -71,24 +73,14 @@ export function Header({
           {compactNavOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
-        <a
-          className="icon-link"
-          href="https://github.com/Kyra-Agent/Kyra"
-          target="_blank"
-          rel="noreferrer"
-          aria-label="Kyra Agent on GitHub"
+        <button
+          className="button button-ghost button-small header-account"
+          type="button"
+          onClick={onOpenAccount}
         >
-          <Github size={17} />
-        </a>
-        <a
-          className="x-link icon-link"
-          href="https://x.com/Kyra_Agent"
-          target="_blank"
-          rel="noreferrer"
-          aria-label="Kyra Agent on X"
-        >
-          X
-        </a>
+          <UserRound size={16} />
+          Sign in
+        </button>
         <button
           className="button button-primary button-small"
           type="button"
@@ -131,9 +123,25 @@ export function Header({
         <button type="button" onClick={() => handleNavigation(onOpenDashboard)}>
           Dashboard
         </button>
+        <button type="button" onClick={() => handleNavigation(onOpenAccount)}>
+          Sign in
+        </button>
+        <button type="button" onClick={() => handleNavigation(() => onOpenSection("deploy"))}>
+          Launch Demo
+        </button>
+        <button type="button" onClick={() => handleNavigation(onToggleTheme)}>
+          {theme === "light" ? "Dark mode" : "Light mode"}
+        </button>
         <button type="button" onClick={() => handleNavigation(onOpenAgent)}>
           Agent
         </button>
+        <a href="https://github.com/Kyra-Agent/Kyra" target="_blank" rel="noreferrer">
+          <Github size={16} />
+          GitHub
+        </a>
+        <a href="https://x.com/Kyra_Agent" target="_blank" rel="noreferrer" aria-label="Kyra Agent on X">
+          X
+        </a>
       </nav>
     </header>
   );

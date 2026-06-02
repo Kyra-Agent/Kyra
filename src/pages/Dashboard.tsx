@@ -70,6 +70,26 @@ interface DashboardProps {
   onOpenAgent: (target?: { templateId?: string; publicPath?: string }) => void;
 }
 
+const dashboardSectionIds = [
+  "overview",
+  "auth",
+  "approvals",
+  "logs",
+  "modules",
+  "backend",
+  "admin-actions",
+] as const;
+
+type DashboardSectionId = (typeof dashboardSectionIds)[number];
+
+function getDashboardSectionIdFromPath(pathname: string): DashboardSectionId {
+  const sectionId = pathname.match(/^\/dashboard\/([^/]+)\/?$/)?.[1];
+
+  return dashboardSectionIds.includes(sectionId as DashboardSectionId)
+    ? (sectionId as DashboardSectionId)
+    : "overview";
+}
+
 function getQueueTone(request: DemoApprovalRequest) {
   if (request.status === "waiting_wallet") {
     return "pending";
@@ -248,6 +268,9 @@ export function Dashboard({
     "Admin actions are scoped to this signed-in demo workspace.",
   );
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [activeDashboardSectionId, setActiveDashboardSectionId] = useState<DashboardSectionId>(() =>
+    typeof window === "undefined" ? "overview" : getDashboardSectionIdFromPath(window.location.pathname),
+  );
   const isAdmin = authSession?.user.app_metadata?.role === "admin";
   const postResetRefreshPendingRef = useRef(false);
   const [backendEvents, setBackendEvents] = useState<BackendEvent[]>(() => getBackendEvents());
@@ -261,6 +284,28 @@ export function Dashboard({
   useEffect(() => {
     return subscribeBackendEvents(() => setBackendEvents(getBackendEvents()));
   }, []);
+
+  useEffect(() => {
+    function syncDashboardSectionFromLocation() {
+      setActiveDashboardSectionId(getDashboardSectionIdFromPath(window.location.pathname));
+    }
+
+    window.addEventListener("popstate", syncDashboardSectionFromLocation);
+    return () => window.removeEventListener("popstate", syncDashboardSectionFromLocation);
+  }, []);
+
+  useEffect(() => {
+    window.setTimeout(() => {
+      document
+        .getElementById(activeDashboardSectionId)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 40);
+  }, [activeDashboardSectionId]);
+
+  function openDashboardSection(sectionId: DashboardSectionId) {
+    setActiveDashboardSectionId(sectionId);
+    window.history.pushState({}, "", `/dashboard/${sectionId}`);
+  }
 
   useEffect(() => {
     if (!authSession) {
@@ -696,32 +741,81 @@ export function Dashboard({
         </div>
 
         <nav className="dashboard-nav" aria-label="Dashboard navigation">
-          <a className="is-active" href="#overview">
+          <a
+            className={activeDashboardSectionId === "overview" ? "is-active" : undefined}
+            href="/dashboard/overview"
+            onClick={(event) => {
+              event.preventDefault();
+              openDashboardSection("overview");
+            }}
+          >
             <Activity size={16} />
             Overview
           </a>
-          <a href="#auth">
+          <a
+            className={activeDashboardSectionId === "auth" ? "is-active" : undefined}
+            href="/dashboard/auth"
+            onClick={(event) => {
+              event.preventDefault();
+              openDashboardSection("auth");
+            }}
+          >
             <KeyRound size={16} />
             Account
           </a>
-          <a href="#approvals">
+          <a
+            className={activeDashboardSectionId === "approvals" ? "is-active" : undefined}
+            href="/dashboard/approvals"
+            onClick={(event) => {
+              event.preventDefault();
+              openDashboardSection("approvals");
+            }}
+          >
             <WalletCards size={16} />
             Approvals
           </a>
-          <a href="#logs">
+          <a
+            className={activeDashboardSectionId === "logs" ? "is-active" : undefined}
+            href="/dashboard/logs"
+            onClick={(event) => {
+              event.preventDefault();
+              openDashboardSection("logs");
+            }}
+          >
             <Terminal size={16} />
             Logs
           </a>
-          <a href="#modules">
+          <a
+            className={activeDashboardSectionId === "modules" ? "is-active" : undefined}
+            href="/dashboard/modules"
+            onClick={(event) => {
+              event.preventDefault();
+              openDashboardSection("modules");
+            }}
+          >
             <Radio size={16} />
             Modules
           </a>
-          <a href="#backend">
+          <a
+            className={activeDashboardSectionId === "backend" ? "is-active" : undefined}
+            href="/dashboard/backend"
+            onClick={(event) => {
+              event.preventDefault();
+              openDashboardSection("backend");
+            }}
+          >
             <Server size={16} />
             Readiness
           </a>
           {isAdmin ? (
-            <a href="#admin-actions">
+            <a
+              className={activeDashboardSectionId === "admin-actions" ? "is-active" : undefined}
+              href="/dashboard/admin-actions"
+              onClick={(event) => {
+                event.preventDefault();
+                openDashboardSection("admin-actions");
+              }}
+            >
               <Trash2 size={16} />
               Admin
             </a>

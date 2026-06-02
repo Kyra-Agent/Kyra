@@ -5,8 +5,10 @@ import {
   ChevronDown,
   Copy,
   ExternalLink,
+  KeyRound,
   Play,
   ShieldCheck,
+  UserRound,
   WalletCards,
 } from "lucide-react";
 import { demoAgentLimits } from "../config/demoLimits";
@@ -31,6 +33,7 @@ interface DeployPanelProps {
   templates: AgentTemplate[];
   selectedTemplate: AgentTemplate;
   authSession: KyraAuthSession | null;
+  onOpenAccount: () => void;
   onSelectTemplate: (templateId: string) => void;
   onOpenAgent: (target?: { templateId?: string; publicPath?: string }) => void;
   onAuthSessionChange: (
@@ -52,6 +55,11 @@ const deployLogs = [
 ];
 
 const wizardSteps = [
+  {
+    id: "account",
+    title: "Account",
+    summary: "Sign in to save.",
+  },
   {
     id: "template",
     title: "Template",
@@ -103,6 +111,7 @@ export function DeployPanel({
   templates,
   selectedTemplate,
   authSession,
+  onOpenAccount,
   onSelectTemplate,
   onOpenAgent,
   onAuthSessionChange,
@@ -180,6 +189,7 @@ export function DeployPanel({
   const progress = Math.round((Math.min(activeLogStep, deployLogs.length) / deployLogs.length) * 100);
   const atFirstStep = wizardStep === 0;
   const atDeployStep = wizardStep === wizardSteps.length - 1;
+  const atAccountStep = wizardStep === 0;
   const quotaBlocksDeploy = Boolean(authSession && agentQuota.reached);
   const activePublicPath = persistedRecord?.publicSlug
     ? `/agents/${persistedRecord.publicSlug}`
@@ -462,6 +472,29 @@ export function DeployPanel({
         </p>
       </div>
 
+      <div className="deploy-howto" aria-label="How to deploy a Kyra demo agent">
+        <article>
+          <span>01</span>
+          <strong>Create an account</strong>
+          <p>Sign in so Kyra can save demo records, quota, and the public agent route.</p>
+        </article>
+        <article>
+          <span>02</span>
+          <strong>Choose a template</strong>
+          <p>Pick Operator, Steward, Strategist, or another demo profile for the use case.</p>
+        </article>
+        <article>
+          <span>03</span>
+          <strong>Configure identity</strong>
+          <p>Name the agent and review the enabled demo actions before publishing.</p>
+        </article>
+        <article>
+          <span>04</span>
+          <strong>Publish demo route</strong>
+          <p>Deploy a backend-persisted profile, then open dashboard or share the public route.</p>
+        </article>
+      </div>
+
       <div className="deploy-layout">
         <div className={`config-panel wizard-panel ${templateMenuOpen ? "is-menu-open" : ""}`}>
           <div className="panel-title">
@@ -491,6 +524,38 @@ export function DeployPanel({
             {wizardStep === 0 ? (
               <div className="wizard-screen">
                 <span className="wizard-kicker">Step 01</span>
+                <h3>Create an account or sign in</h3>
+                <p>
+                  A saved demo agent needs an account session. You can still browse Kyra without
+                  signing in, but persisted agents, quota, dashboard records, and public routes are
+                  account-scoped.
+                </p>
+
+                <div className="deploy-account-card">
+                  <span className={`readiness-chip readiness-${authSession ? "ready" : "standby"}`}>
+                    {authSession ? <CheckCircle2 size={14} /> : <KeyRound size={14} />}
+                    {authSession ? "Account active" : "Sign-in recommended"}
+                  </span>
+                  <strong>
+                    {authSession
+                      ? "Kyra can save this deploy to the connected backend."
+                      : "Sign in before deploy to create a shareable agent route."}
+                  </strong>
+                  <p>
+                    No wallet access is requested. The account only stores demo workspace records
+                    for this backend-connected preview.
+                  </p>
+                  <button className="button button-ghost" type="button" onClick={onOpenAccount}>
+                    <UserRound size={16} />
+                    {authSession ? "View account session" : "Open sign-in"}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {wizardStep === 1 ? (
+              <div className="wizard-screen">
+                <span className="wizard-kicker">Step 02</span>
                 <h3>Choose template</h3>
                 <p>Start from a clear use case. Kyra modules run behind the selected template.</p>
 
@@ -542,9 +607,9 @@ export function DeployPanel({
               </div>
             ) : null}
 
-            {wizardStep === 1 ? (
+            {wizardStep === 2 ? (
               <div className="wizard-screen">
-                <span className="wizard-kicker">Step 02</span>
+                <span className="wizard-kicker">Step 03</span>
                 <h3>Configure agent</h3>
                 <p>Set the visible identity and confirm which demo actions are enabled.</p>
 
@@ -572,16 +637,28 @@ export function DeployPanel({
               </div>
             ) : null}
 
-            {wizardStep === 2 ? (
+            {wizardStep === 3 ? (
               <div className="wizard-screen">
-                <span className="wizard-kicker">Step 03</span>
+                <span className="wizard-kicker">Step 04</span>
                 <h3>Connect Telegram</h3>
-                <p>No real BotFather token is required while the product is in backend-connected demo mode.</p>
+                <p>
+                  No real BotFather token is required while Kyra is in backend-connected demo mode.
+                  The secure token connection screen comes in the Telegram integration phase.
+                </p>
 
                 <label className="field">
                   <span>Telegram bot token</span>
                   <input readOnly value="demo mode - no real token required" />
                 </label>
+
+                <div className="telegram-guide-card">
+                  <span className="mini-label-inline">Phase 5 preview</span>
+                  <ol>
+                    <li>Open Telegram and message @BotFather.</li>
+                    <li>Create a bot with /newbot and choose a handle.</li>
+                    <li>Paste the token only into Kyra's secure backend connection screen.</li>
+                  </ol>
+                </div>
 
                 <div className="connection-grid single-row">
                   <span>
@@ -593,9 +670,9 @@ export function DeployPanel({
               </div>
             ) : null}
 
-            {wizardStep === 3 ? (
+            {wizardStep === 4 ? (
               <div className="wizard-screen">
-                <span className="wizard-kicker">Step 04</span>
+                <span className="wizard-kicker">Step 05</span>
                 <h3>Wallet approval policy</h3>
                 <p>Kyra prepares actions. The wallet remains the final approval gate.</p>
 
@@ -619,9 +696,9 @@ export function DeployPanel({
               </div>
             ) : null}
 
-            {wizardStep === 4 ? (
+            {wizardStep === 5 ? (
               <div className="wizard-screen">
-                <span className="wizard-kicker">Step 05</span>
+                <span className="wizard-kicker">Step 06</span>
                 <h3>Publish demo agent</h3>
                 <p>
                   {authSession
@@ -703,7 +780,7 @@ export function DeployPanel({
                       : "Deploy demo agent"}
                 </>
               ) : (
-                "Continue"
+                atAccountStep && !authSession ? "Continue as preview" : "Continue"
               )}
             </button>
           </div>
