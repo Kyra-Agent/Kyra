@@ -9,6 +9,9 @@ const supabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 const deployFunctionUrl =
   readEnv("VITE_KYRA_DEPLOY_FUNCTION_URL") ||
   (supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/deploy-agent` : "");
+const resetDemoWorkspaceFunctionUrl =
+  readEnv("VITE_KYRA_RESET_FUNCTION_URL") ||
+  (supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/reset-demo-workspace` : "");
 
 export const appConfig = {
   appName: "Kyra Agent",
@@ -24,6 +27,8 @@ export const appConfig = {
   functions: {
     deployAgentUrl: deployFunctionUrl,
     deployAgentConfigured: Boolean(deployFunctionUrl && supabaseConfigured),
+    resetDemoWorkspaceUrl: resetDemoWorkspaceFunctionUrl,
+    resetDemoWorkspaceConfigured: Boolean(resetDemoWorkspaceFunctionUrl && supabaseConfigured),
   },
   integrations: {
     auth: requestedDataProvider === "supabase" && supabaseConfigured ? "supabase" : "demo",

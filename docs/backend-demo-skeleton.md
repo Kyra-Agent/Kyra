@@ -7,12 +7,13 @@ Kyra is still safe demo mode. The Supabase demo backend is now partially connect
 - `supabase/schema.sql` defines the first database shape.
 - `supabase/seed.sql` seeds Kyra agent templates.
 - `supabase/functions/deploy-agent` scaffolds the server-side deploy write path.
+- `supabase/functions/reset-demo-workspace` provides the admin-only demo reset path.
 - `src/types/database.ts` mirrors the Supabase table rows in TypeScript.
 - `src/services/repositoryFactory.ts` keeps mock fallback data available.
 - `src/services/supabaseKyraRepository.ts` reads the Supabase template catalog.
 - `src/services/supabaseDashboardService.ts` reads signed-in dashboard records.
 - `src/services/supabasePublicAgentService.ts` reads public agent profiles.
-- `src/services/supabaseDeployService.ts` calls the deploy Edge Function first, then falls back to RLS-backed client writes while the function is not deployed.
+- `src/services/supabaseDeployService.ts` calls the deploy Edge Function first. Direct RLS-backed client writes remain available only during local development.
 - `src/services/deployFunctionHealthService.ts` checks the deploy function health endpoint for dashboard readiness.
 - `.env.example` includes the provider and Supabase env names.
 
@@ -50,6 +51,7 @@ VITE_KYRA_DATA_PROVIDER=supabase
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 VITE_KYRA_DEPLOY_FUNCTION_URL=https://your-project.supabase.co/functions/v1/deploy-agent
+VITE_KYRA_RESET_FUNCTION_URL=https://your-project.supabase.co/functions/v1/reset-demo-workspace
 ```
 
 The UI can run against Supabase when `VITE_KYRA_DATA_PROVIDER=supabase`. It still falls back to mock records when Supabase is unavailable.
@@ -57,6 +59,10 @@ The UI can run against Supabase when `VITE_KYRA_DATA_PROVIDER=supabase`. It stil
 ## Edge Function Scaffold
 
 `supabase/functions/deploy-agent` is the intended server-side deployment boundary. It validates the user session, enforces the 3-agent demo quota, writes the same demo records, and returns a receipt.
+
+`supabase/functions/reset-demo-workspace` is the admin-only reset boundary. It validates the user
+session and `app_metadata.role` on the server, accepts no workspace or user ID from the browser,
+and deletes only the signed-in admin account's demo workspace records.
 
 The function also supports `GET` as a health check. Admin-only backend diagnostics use it to distinguish:
 
@@ -85,5 +91,7 @@ The frontend already prefers the Edge Function when configured. The next backend
 4. Verify the frontend receipt source shows backend persistence only after the function succeeds.
 5. Verify dashboard/public profile reads after the function receipt.
 6. Keep live onchain execution disabled.
+7. Deploy `reset-demo-workspace`, then test its confirmation flow once with an admin account.
+8. Verify a non-admin request receives `403 Forbidden`.
 
 Keep live onchain execution disabled until wallet approval, rate limits, Telegram token storage, and security review are complete.

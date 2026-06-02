@@ -7,6 +7,7 @@ Concrete starter files now live in:
 - `supabase/schema.sql` for the initial tables, indexes, RLS policies, and public profile view.
 - `supabase/seed.sql` for the Kyra template seed records.
 - `supabase/functions/deploy-agent` for the server-side deploy endpoint scaffold.
+- `supabase/functions/reset-demo-workspace` for the admin-only demo reset endpoint.
 - `docs/backend-demo-skeleton.md` for the implementation checklist and safe demo defaults.
 
 The frontend is prepared with a thin service layer:
@@ -19,9 +20,13 @@ The frontend is prepared with a thin service layer:
 
 Supabase-specific services now sit beside the mock repository. The mock path remains as a safe fallback for local preview and failed network requests.
 
-`src/services/supabaseDeployService.ts` now prefers the `deploy-agent` Edge Function for deployment writes and falls back to direct RLS-backed demo writes while the function is unavailable.
+`src/services/supabaseDeployService.ts` now prefers the `deploy-agent` Edge Function for deployment writes. Direct RLS-backed demo writes remain available only during local development.
 
 `src/services/deployFunctionHealthService.ts` checks the Edge Function health endpoint and exposes the readiness state in the dashboard.
+
+`src/services/supabaseDashboardService.ts` sends admin reset requests through
+`reset-demo-workspace`. The Edge Function validates `app_metadata.role` server-side and never
+accepts a target workspace or user ID from the browser.
 
 ## Goal
 

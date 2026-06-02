@@ -20,6 +20,7 @@ Kyra is in the backend-connected demo phase.
 - Base MCP, Telegram webhooks, and wallet execution are simulated.
 - Supabase can provide auth, template catalog, dashboard records, public agent profiles, activity logs, and persisted demo deploy receipts.
 - The `deploy-agent` Supabase Edge Function is the preferred server-side deploy boundary when configured.
+- The `reset-demo-workspace` Supabase Edge Function is the admin-only reset boundary when deployed.
 - Frontend demo fallback remains available when Supabase is not configured.
 
 ## Core Flow
@@ -80,6 +81,7 @@ Supabase is used for the demo backend layer:
 - Activity logs.
 - Public agent profiles via a share-safe view.
 - Edge Function deploy boundary at `supabase/functions/deploy-agent`.
+- Admin-only reset boundary at `supabase/functions/reset-demo-workspace`.
 
 The frontend prefers the Edge Function when it is configured. If the function is unavailable during demo development, the app can fall back to RLS-backed demo writes. Service role keys must stay server-side inside Supabase Function secrets only.
 
@@ -137,6 +139,7 @@ VITE_BASE_MCP_URL=https://mcp.base.org/
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 VITE_KYRA_DEPLOY_FUNCTION_URL=
+VITE_KYRA_RESET_FUNCTION_URL=
 VITE_DEMO_MODE=true
 ```
 
@@ -147,6 +150,7 @@ VITE_KYRA_DATA_PROVIDER=supabase
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-or-publishable-key
 VITE_KYRA_DEPLOY_FUNCTION_URL=https://your-project.supabase.co/functions/v1/deploy-agent
+VITE_KYRA_RESET_FUNCTION_URL=https://your-project.supabase.co/functions/v1/reset-demo-workspace
 ```
 
 Demo UI gating for the internal Admin actions panel uses the Supabase user's
@@ -194,6 +198,8 @@ Do not deploy production until the backend demo is stable.
 - `supabase/grant_service_role_deploy_permissions.sql` - service role grants for the Edge Function.
 - `supabase/functions/deploy-agent/index.ts` - server-side demo deploy function.
 - `supabase/functions/deploy-agent/README.md` - deploy-agent setup notes.
+- `supabase/functions/reset-demo-workspace/index.ts` - server-side admin-only demo reset function.
+- `supabase/functions/reset-demo-workspace/README.md` - reset-demo-workspace setup and safety notes.
 
 ## Roadmap
 

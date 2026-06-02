@@ -10,7 +10,7 @@ import type {
 } from "../types/backend";
 import type { KyraDatabase } from "../types/database";
 import {
-  deleteRows,
+  getSupabaseApiKey,
   sanitizeSupabaseMessage,
   selectRows,
   type SupabaseTableRow,
@@ -48,7 +48,30 @@ export interface SupabaseDashboardResult {
 export interface ResetSupabaseDemoWorkspaceResult {
   ok: boolean;
   message: string;
-  deletedWorkspaceId: string | null;
+  recordsRemoved: boolean;
+}
+
+interface ResetDemoWorkspaceFunctionResponse {
+  ok?: boolean;
+  status?: string;
+  message?: string;
+  reset?: {
+    recordsRemoved?: boolean;
+  };
+}
+
+function parseResetDemoWorkspaceFunctionResponse(text: string): ResetDemoWorkspaceFunctionResponse {
+  if (!text) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text) as ResetDemoWorkspaceFunctionResponse;
+  } catch {
+    return {
+      message: "Backend reset endpoint returned an invalid response.",
+    };
+  }
 }
 
 function encodeFilter(value: string) {
@@ -305,52 +328,51 @@ export async function fetchSupabaseDashboardData(
 
 export async function resetSupabaseDemoWorkspace(
   session: KyraAuthSession | null,
-  workspaceId?: string | null,
 ): Promise<ResetSupabaseDemoWorkspaceResult> {
   if (!session) {
     return {
       ok: false,
       message: "Sign in before resetting demo agents.",
-      deletedWorkspaceId: null,
+      recordsRemoved: false,
     };
   }
 
-  if (!appConfig.supabase.configured) {
+  if (!appConfig.functions.resetDemoWorkspaceConfigured) {
     return {
       ok: false,
-      message: "Backend environment is not configured.",
-      deletedWorkspaceId: null,
+      message: "Backend reset endpoint is not configured.",
+      recordsRemoved: false,
     };
   }
 
   try {
-    let targetWorkspaceId = workspaceId ?? null;
+    const response = await fetch(appConfig.functions.resetDemoWorkspaceUrl, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        apikey: getSupabaseApiKey(),
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      body: JSON.stringify({}),
+    });
+    const text = await response.text();
+    const payload = parseResetDemoWorkspaceFunctionResponse(text);
 
-    if (!targetWorkspaceId) {
-      const workspaces = await selectRows<WorkspaceRow>(
-        session,
-        "workspaces?select=id,owner_user_id,name,mode,created_at&mode=eq.demo&order=created_at.asc&limit=1",
-      );
-      targetWorkspaceId = workspaces[0]?.id ?? null;
-    }
-
-    if (!targetWorkspaceId) {
+    if (!response.ok || payload.ok === false) {
       return {
-        ok: true,
-        message: "No demo workspace exists for this session.",
-        deletedWorkspaceId: null,
+        ok: false,
+        message: sanitizeSupabaseMessage(
+          payload.message ?? "Backend reset endpoint is unavailable.",
+        ),
+        recordsRemoved: false,
       };
     }
 
-    await deleteRows(
-      session,
-      `workspaces?id=eq.${encodeFilter(targetWorkspaceId)}&mode=eq.demo`,
-    );
-
     return {
       ok: true,
-      message: "Demo workspace reset. Agent quota is clear.",
-      deletedWorkspaceId: targetWorkspaceId,
+      message: payload.message ?? "Demo workspace reset. Agent quota is clear.",
+      recordsRemoved: payload.reset?.recordsRemoved ?? false,
     };
   } catch (error) {
     return {
@@ -359,7 +381,7 @@ export async function resetSupabaseDemoWorkspace(
         error instanceof Error
           ? sanitizeSupabaseMessage(error.message)
           : "Demo workspace reset failed.",
-      deletedWorkspaceId: null,
+      recordsRemoved: false,
     };
   }
 }

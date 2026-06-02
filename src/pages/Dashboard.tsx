@@ -496,7 +496,7 @@ export function Dashboard({
 
     setAdminActionMessage("Resetting demo workspace records...");
 
-    const result = await resetSupabaseDemoWorkspace(freshAuth.session, dashboardData?.workspace.id);
+    const result = await resetSupabaseDemoWorkspace(freshAuth.session);
 
     setAdminActionStatus(result.ok ? "success" : "error");
     setAdminActionMessage(result.message);
