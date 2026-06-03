@@ -436,6 +436,130 @@ Must not:
 - Do not deploy Edge Functions.
 - Do not commit or push without approval.
 
+## Phase 5G.4 Ownership Read Boundary Plan
+
+Phase 5G.4 is an audit and design step for the future real ownership lookup in
+`telegram-connect`. It does not add a real database query, service-role client,
+schema/RLS change, Telegram API call, Vault access, token input, deploy, push,
+or production publish.
+
+Current readiness:
+
+- `telegram-connect` already has an inert pure ownership adapter contract for
+  `lookupAgentOwnership`.
+- The current runtime does not wire a real database lookup yet.
+- `workspaces.owner_user_id` and `agent_instances.workspace_id` already exist.
+- Existing RLS includes `public.owns_workspace(workspace_id)` and owner-read
+  policies.
+- The existing backend pattern validates a Supabase bearer session first, then
+  creates a service-role client only inside trusted Edge Function runtime.
+
+Recommended future read boundary:
+
+- Keep the browser contract limited to authenticated `agentId` submission.
+- Do not accept `workspaceId`, owner user IDs, target user IDs, or ownership
+  hints from the browser.
+- Validate method, bearer session, content type, body size, JSON shape, and
+  `agentId` before any ownership lookup.
+- Create a service-role Supabase client only after session validation succeeds.
+- Perform a read-only lookup with minimal selected fields.
+- Normalize the lookup result into the pure `lookupAgentOwnership` contract.
+- Keep the response inert until later approval; an owner match should still
+  return `not_configured` while real Telegram connect remains disabled.
+
+Recommended lookup model:
+
+```text
+agent_instances.id = agentId
+agent_instances.workspace_id -> workspaces.id
+workspaces.owner_user_id must equal authenticated user.id
+```
+
+Recommended minimal result shape:
+
+```ts
+{
+  agentId: "uuid",
+  workspaceId: "uuid",
+  ownerUserId: "uuid"
+}
+```
+
+The result shape is internal only. API responses must never expose
+`ownerUserId`, `workspaceId`, `owner_user_id`, `workspace_id`, raw database
+errors, token refs, or secret values.
+
+Implementation choices:
+
+- Prefer a direct service-role read in `telegram-connect` for the first inert
+  implementation slice, because existing Edge Functions already use
+  service-role clients after session validation.
+- Use the narrowest possible select, not `select("*")`.
+- If Supabase join typing becomes brittle, use two minimal reads:
+  first `agent_instances(id, workspace_id)`, then
+  `workspaces(id, owner_user_id)`.
+- Consider a database RPC only when ownership lookup grows beyond this simple
+  read boundary or when Vault-backed secret operations need a stricter database
+  boundary.
+
+Error contract:
+
+- `400 invalid_request`: `agentId` is missing, empty, malformed, or not a
+  string.
+- `401 unauthorized`: bearer token is missing or Supabase session validation
+  fails.
+- `404 agent_not_found`: no `agent_instances` row exists for the validated
+  `agentId`.
+- `403 forbidden`: the agent exists but `workspaces.owner_user_id` does not
+  match the authenticated Supabase user.
+- `500 server_error`: unexpected ownership lookup failure, with sanitized
+  message only.
+
+Security notes:
+
+- The requested `403` versus `404` split intentionally reveals that an agent can
+  exist but be non-owned. This is acceptable for the planned owner dashboard
+  flow, but should remain documented and should not expose internal row data.
+- Public demo agent read policies do not make the connect operation public.
+  Connect must still require a signed-in Supabase session and owner match.
+- The ownership read slice must not write `telegram_sessions`, update
+  `agent_instances`, store tokens, call Telegram, access Vault, or register
+  webhooks.
+
+Test plan for the future implementation slice:
+
+- Missing bearer returns `401` before env reads, DB lookup, or body parsing that
+  could expose secret data.
+- Invalid session returns `401`.
+- Missing or malformed `agentId` returns `400` and does not run ownership
+  lookup.
+- Lookup returns null and maps to `404 agent_not_found`.
+- Lookup returns owner mismatch and maps to `403 forbidden`.
+- Lookup returns owner match and still returns inert `not_configured`.
+- Lookup throws and maps to sanitized `500 server_error`.
+- Responses do not include owner IDs, workspace IDs, token refs, raw database
+  messages, or secret-like strings.
+
+Files likely touched later:
+
+- `supabase/functions/telegram-connect/index.ts`
+- `supabase/functions/telegram-connect/core.ts`
+- `supabase/functions/telegram-connect/index_test.ts`
+- `supabase/functions/telegram-connect/README.md`, if documenting the inert
+  ownership read behavior.
+
+What not to touch in this phase:
+
+- No real DB read implementation.
+- No service-role client wiring in `telegram-connect`.
+- No DB writes.
+- No schema/RLS changes.
+- No Telegram API calls.
+- No Vault access.
+- No frontend token input.
+- No Edge Function deploy.
+- No push or production publish.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
