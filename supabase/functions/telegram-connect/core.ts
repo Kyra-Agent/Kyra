@@ -21,6 +21,18 @@ export interface TelegramBotValidationResult {
   canReadAllGroupMessages?: boolean;
 }
 
+export interface StoreTelegramBotTokenInput {
+  agentId: string;
+  ownerUserId: string;
+  telegramBotId: string;
+  botToken: string;
+}
+
+export interface StoreTelegramBotTokenResult {
+  tokenSecretRef: string;
+  provider?: string;
+}
+
 export interface OwnershipLookupAgentRow {
   id: string;
   workspace_id: string;
@@ -60,6 +72,8 @@ export class HttpError extends Error {
 export const maxTelegramConnectBodyBytes = 8192;
 export const telegramConnectGetMeEnabledEnvKey =
   "KYRA_TELEGRAM_CONNECT_GETME_ENABLED";
+export const telegramConnectStoreEnabledEnvKey =
+  "KYRA_TELEGRAM_CONNECT_STORE_ENABLED";
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const botTokenPattern = /^\d{5,20}:[A-Za-z0-9_-]{20,128}$/;
@@ -85,6 +99,9 @@ export interface TelegramConnectDependencies {
   validateTelegramBotToken?: (
     botToken: string,
   ) => Promise<TelegramBotValidationResult>;
+  storeTelegramBotToken?: (
+    input: StoreTelegramBotTokenInput,
+  ) => Promise<StoreTelegramBotTokenResult>;
 }
 
 export function jsonResponse(body: Record<string, unknown>, status = 200) {
@@ -130,6 +147,12 @@ export function getUnknownErrorMessage(error: unknown) {
 }
 
 export function isTelegramConnectGetMeEnabled(
+  value: string | null | undefined,
+) {
+  return value === "true";
+}
+
+export function isTelegramConnectStoreEnabled(
   value: string | null | undefined,
 ) {
   return value === "true";
@@ -333,6 +356,33 @@ export function assertTelegramBotValidationResult(value: unknown) {
   };
 }
 
+export function sanitizeTelegramTokenStorageError(error: unknown) {
+  if (error instanceof HttpError && error.code === "secret_store_unavailable") {
+    return new HttpError(
+      503,
+      "secret_store_unavailable",
+      "Telegram token secret store is unavailable.",
+    );
+  }
+
+  if (
+    error instanceof HttpError &&
+    (error.statusCode === 409 || error.code === "duplicate_bot_active")
+  ) {
+    return new HttpError(
+      409,
+      "duplicate_bot_active",
+      "Telegram bot is already connected.",
+    );
+  }
+
+  return new HttpError(
+    500,
+    "server_error",
+    "Telegram token storage failed.",
+  );
+}
+
 export async function lookupAgentOwnershipRecord(
   serviceClient: OwnershipLookupClient,
   agentId: string,
@@ -466,12 +516,15 @@ export async function handleTelegramConnectRequest(
       assertAgentOwnership(agentId, userId, ownership);
     }
 
+    let botToken: string | null = null;
+    let telegramBot: TelegramBotValidationResult | null = null;
+
     if (dependencies.validateTelegramBotToken) {
-      const botToken = assertBotToken(body.botToken);
+      botToken = assertBotToken(body.botToken);
 
       try {
         const bot = await dependencies.validateTelegramBotToken(botToken);
-        assertTelegramBotValidationResult(bot);
+        telegramBot = assertTelegramBotValidationResult(bot);
       } catch (error) {
         if (error instanceof HttpError) {
           throw error;
@@ -482,6 +535,27 @@ export async function handleTelegramConnectRequest(
           "server_error",
           "Telegram bot token validation failed.",
         );
+      }
+    }
+
+    if (dependencies.storeTelegramBotToken) {
+      if (!botToken || !telegramBot) {
+        throw new HttpError(
+          500,
+          "server_error",
+          "Telegram token storage is not configured safely.",
+        );
+      }
+
+      try {
+        await dependencies.storeTelegramBotToken({
+          agentId,
+          ownerUserId: userId,
+          telegramBotId: telegramBot.telegramBotId,
+          botToken,
+        });
+      } catch (error) {
+        throw sanitizeTelegramTokenStorageError(error);
       }
     }
 

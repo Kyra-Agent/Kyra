@@ -4,11 +4,14 @@ import {
   handleTelegramConnectRequest,
   HttpError,
   isTelegramConnectGetMeEnabled,
+  isTelegramConnectStoreEnabled,
   lookupAgentOwnershipRecord,
   type OwnershipLookupClient,
   type TelegramConnectDependencies,
   telegramConnectGetMeEnabledEnvKey,
+  telegramConnectStoreEnabledEnvKey,
 } from "./core.ts";
+import { createRpcTelegramBotTokenSecretStore } from "./secret-store.ts";
 import { validateTelegramBotTokenWithGetMe } from "./telegram-api.ts";
 
 export * from "./core.ts";
@@ -85,24 +88,42 @@ export async function lookupAgentOwnership(
 }
 
 export function createTelegramConnectDependencies(): TelegramConnectDependencies {
+  let serviceClient: KyraSupabaseClient | null = null;
+  const getServiceClient = () => {
+    if (!serviceClient) {
+      const supabaseUrl = getEnv("SUPABASE_URL");
+      const serviceRoleKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
+      serviceClient = createServiceClient(supabaseUrl, serviceRoleKey);
+    }
+
+    return serviceClient;
+  };
+  const getMeEnabled = isTelegramConnectGetMeEnabled(
+    getOptionalEnv(telegramConnectGetMeEnabledEnvKey),
+  );
+  const storeEnabled = isTelegramConnectStoreEnabled(
+    getOptionalEnv(telegramConnectStoreEnabledEnvKey),
+  );
   const dependencies: TelegramConnectDependencies = {
     getEnv,
     getUser,
     lookupAgentOwnership: async (agentId: string) => {
-      const supabaseUrl = getEnv("SUPABASE_URL");
-      const serviceRoleKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
-      const serviceClient = createServiceClient(supabaseUrl, serviceRoleKey);
-
-      return await lookupAgentOwnership(serviceClient, agentId);
+      return await lookupAgentOwnership(getServiceClient(), agentId);
     },
   };
 
-  if (
-    isTelegramConnectGetMeEnabled(
-      getOptionalEnv(telegramConnectGetMeEnabledEnvKey),
-    )
-  ) {
+  if (getMeEnabled || storeEnabled) {
     dependencies.validateTelegramBotToken = validateTelegramBotTokenWithGetMe;
+  }
+
+  if (storeEnabled) {
+    const secretStore = createRpcTelegramBotTokenSecretStore({
+      rpc: async (functionName, args) => {
+        return await getServiceClient().rpc(functionName, args);
+      },
+    });
+    dependencies.storeTelegramBotToken = (input) =>
+      secretStore.storeTelegramBotToken(input);
   }
 
   return dependencies;

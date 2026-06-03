@@ -3,12 +3,14 @@ import {
   handleTelegramConnectRequest,
   HttpError,
   isTelegramConnectGetMeEnabled,
+  isTelegramConnectStoreEnabled,
   lookupAgentOwnershipRecord,
   maxTelegramConnectBodyBytes,
   readJsonObjectBody,
   sanitizeErrorMessage,
   type TelegramConnectDependencies,
   telegramConnectGetMeEnabledEnvKey,
+  telegramConnectStoreEnabledEnvKey,
 } from "./core.ts";
 
 function assert(condition: boolean, message: string) {
@@ -33,6 +35,8 @@ const testAgentId = "11111111-1111-4111-8111-111111111111";
 const testWorkspaceId = "22222222-2222-4222-8222-222222222222";
 const testUserId = "33333333-3333-4333-8333-333333333333";
 const otherUserId = "44444444-4444-4444-8444-444444444444";
+const testTelegramBotId = "987654321";
+const testTokenSecretRef = "vault:telegram:55555555-5555-4555-8555-555555555555";
 const testBotToken = "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi";
 
 interface LookupCall {
@@ -508,6 +512,20 @@ Deno.test("telegram-connect getMe runtime gate defaults off and requires exact t
   assertEquals(isTelegramConnectGetMeEnabled("true"), true);
 });
 
+Deno.test("telegram-connect store runtime gate defaults off and requires exact true", () => {
+  assertEquals(
+    telegramConnectStoreEnabledEnvKey,
+    "KYRA_TELEGRAM_CONNECT_STORE_ENABLED",
+  );
+  assertEquals(isTelegramConnectStoreEnabled(undefined), false);
+  assertEquals(isTelegramConnectStoreEnabled(null), false);
+  assertEquals(isTelegramConnectStoreEnabled(""), false);
+  assertEquals(isTelegramConnectStoreEnabled("false"), false);
+  assertEquals(isTelegramConnectStoreEnabled("TRUE"), false);
+  assertEquals(isTelegramConnectStoreEnabled("1"), false);
+  assertEquals(isTelegramConnectStoreEnabled("true"), true);
+});
+
 Deno.test("telegram-connect getMe runtime gate off does not call validator", async () => {
   let validatorCalled = false;
 
@@ -809,6 +827,131 @@ Deno.test("telegram-connect mocked token validator success remains inert", async
   );
 });
 
+Deno.test("telegram-connect store dependency runs after ownership and token validation", async () => {
+  const order: string[] = [];
+
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({
+        agentId: testAgentId,
+        botToken: testBotToken,
+      }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => {
+        order.push("session");
+        return { id: testUserId };
+      },
+      lookupAgentOwnership: async (agentId, ownerUserId) => {
+        order.push("ownership");
+        return {
+          agentId,
+          ownerUserId,
+          workspaceId: testWorkspaceId,
+        };
+      },
+      validateTelegramBotToken: async (botToken) => {
+        order.push("validator");
+        assertEquals(botToken, testBotToken);
+        return {
+          telegramBotId: testTelegramBotId,
+          username: "kyra_test_bot",
+          firstName: "Kyra Test",
+        };
+      },
+      storeTelegramBotToken: async (input) => {
+        order.push("store");
+        assertEquals(input.agentId, testAgentId);
+        assertEquals(input.ownerUserId, testUserId);
+        assertEquals(input.telegramBotId, testTelegramBotId);
+        assertEquals(input.botToken, testBotToken);
+        return {
+          tokenSecretRef: testTokenSecretRef,
+          provider: "supabase_vault",
+        };
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(order.join(","), "session,ownership,validator,store");
+  assertEquals(response.status, 501);
+  assertEquals(body.ok, false);
+  assertEquals(body.status, "not_configured");
+  assert(
+    !serializedBody.includes(testBotToken),
+    "Response must not echo botToken.",
+  );
+  assert(
+    !serializedBody.includes(testTokenSecretRef),
+    "Response must not echo tokenSecretRef.",
+  );
+  assert(
+    !serializedBody.includes(testTelegramBotId),
+    "Response must not echo telegramBotId.",
+  );
+  assert(
+    !serializedBody.includes(testUserId),
+    "Response must not echo ownerUserId.",
+  );
+});
+
+Deno.test("telegram-connect store dependency requires prior token validation", async () => {
+  let storeCalled = false;
+
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({
+        agentId: testAgentId,
+        botToken: testBotToken,
+      }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => ({ id: testUserId }),
+      lookupAgentOwnership: async (agentId, ownerUserId) => ({
+        agentId,
+        ownerUserId,
+        workspaceId: testWorkspaceId,
+      }),
+      storeTelegramBotToken: async () => {
+        storeCalled = true;
+        return {
+          tokenSecretRef: testTokenSecretRef,
+          provider: "supabase_vault",
+        };
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(response.status, 500);
+  assertEquals(body.ok, false);
+  assertEquals(body.status, "server_error");
+  assertEquals(
+    body.message,
+    "Telegram token storage is not configured safely.",
+  );
+  assert(!storeCalled, "Store must not run without validated bot metadata.");
+  assert(
+    !serializedBody.includes(testBotToken),
+    "Response must not echo botToken.",
+  );
+  assert(
+    !serializedBody.includes(testTokenSecretRef),
+    "Response must not echo tokenSecretRef.",
+  );
+});
+
 Deno.test("telegram-connect maps mocked token validation failure to 422", async () => {
   const response = await handleTelegramConnectRequest(
     makeConnectRequest({
@@ -895,6 +1038,7 @@ Deno.test("telegram-connect sanitizes unexpected mocked token validator errors",
 
 Deno.test("telegram-connect does not validate botToken before ownership succeeds", async () => {
   let validatorCalled = false;
+  let storeCalled = false;
 
   const response = await handleTelegramConnectRequest(
     makeConnectRequest({
@@ -916,9 +1060,16 @@ Deno.test("telegram-connect does not validate botToken before ownership succeeds
       validateTelegramBotToken: async () => {
         validatorCalled = true;
         return {
-          telegramBotId: "987654321",
+          telegramBotId: testTelegramBotId,
           username: "kyra_test_bot",
           firstName: "Kyra Test",
+        };
+      },
+      storeTelegramBotToken: async () => {
+        storeCalled = true;
+        return {
+          tokenSecretRef: testTokenSecretRef,
+          provider: "supabase_vault",
         };
       },
     },
@@ -929,6 +1080,162 @@ Deno.test("telegram-connect does not validate botToken before ownership succeeds
   assertEquals(response.status, 403);
   assertEquals(body.status, "forbidden");
   assert(!validatorCalled, "Non-owner requests must not validate botToken.");
+  assert(!storeCalled, "Non-owner requests must not store botToken.");
+});
+
+Deno.test("telegram-connect sanitizes unexpected token storage errors", async () => {
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({
+        agentId: testAgentId,
+        botToken: testBotToken,
+      }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => ({ id: testUserId }),
+      lookupAgentOwnership: async (agentId, ownerUserId) => ({
+        agentId,
+        ownerUserId,
+        workspaceId: testWorkspaceId,
+      }),
+      validateTelegramBotToken: async () => ({
+        telegramBotId: testTelegramBotId,
+        username: "kyra_test_bot",
+        firstName: "Kyra Test",
+      }),
+      storeTelegramBotToken: async () => {
+        throw new Error(
+          `raw store failure ${testBotToken} ${testTokenSecretRef} ${testTelegramBotId}`,
+        );
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(response.status, 500);
+  assertEquals(body.ok, false);
+  assertEquals(body.status, "server_error");
+  assertEquals(body.message, "Telegram token storage failed.");
+  assert(
+    !serializedBody.includes(testBotToken),
+    "Response must not echo botToken.",
+  );
+  assert(
+    !serializedBody.includes(testTokenSecretRef),
+    "Response must not echo tokenSecretRef.",
+  );
+  assert(
+    !serializedBody.includes(testTelegramBotId),
+    "Response must not echo telegramBotId.",
+  );
+});
+
+Deno.test("telegram-connect preserves sanitized secret store unavailable errors", async () => {
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({
+        agentId: testAgentId,
+        botToken: testBotToken,
+      }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => ({ id: testUserId }),
+      lookupAgentOwnership: async (agentId, ownerUserId) => ({
+        agentId,
+        ownerUserId,
+        workspaceId: testWorkspaceId,
+      }),
+      validateTelegramBotToken: async () => ({
+        telegramBotId: testTelegramBotId,
+        username: "kyra_test_bot",
+        firstName: "Kyra Test",
+      }),
+      storeTelegramBotToken: async () => {
+        throw new HttpError(
+          503,
+          "secret_store_unavailable",
+          `raw ${testBotToken} ${testTokenSecretRef}`,
+        );
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(response.status, 503);
+  assertEquals(body.ok, false);
+  assertEquals(body.status, "secret_store_unavailable");
+  assertEquals(
+    body.message,
+    "Telegram token secret store is unavailable.",
+  );
+  assert(
+    !serializedBody.includes(testBotToken),
+    "Response must not echo botToken.",
+  );
+  assert(
+    !serializedBody.includes(testTokenSecretRef),
+    "Response must not echo tokenSecretRef.",
+  );
+});
+
+Deno.test("telegram-connect maps duplicate bot storage conflicts to 409", async () => {
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({
+        agentId: testAgentId,
+        botToken: testBotToken,
+      }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => ({ id: testUserId }),
+      lookupAgentOwnership: async (agentId, ownerUserId) => ({
+        agentId,
+        ownerUserId,
+        workspaceId: testWorkspaceId,
+      }),
+      validateTelegramBotToken: async () => ({
+        telegramBotId: testTelegramBotId,
+        username: "kyra_test_bot",
+        firstName: "Kyra Test",
+      }),
+      storeTelegramBotToken: async () => {
+        throw new HttpError(
+          409,
+          "duplicate_bot_active",
+          `duplicate ${testTelegramBotId} ${testBotToken}`,
+        );
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(response.status, 409);
+  assertEquals(body.ok, false);
+  assertEquals(body.status, "duplicate_bot_active");
+  assertEquals(body.message, "Telegram bot is already connected.");
+  assert(
+    !serializedBody.includes(testBotToken),
+    "Response must not echo botToken.",
+  );
+  assert(
+    !serializedBody.includes(testTelegramBotId),
+    "Response must not echo telegramBotId.",
+  );
 });
 
 Deno.test("telegram-connect sanitizes unexpected ownership lookup errors", async () => {

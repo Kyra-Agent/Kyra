@@ -22,8 +22,13 @@ not a live Telegram integration.
   function may validate a token with `getMe` after auth and ownership checks,
   but it still does not persist tokens, access Vault, write database records, or
   register webhooks.
-- Does not access Supabase Vault.
-- Does not create or read secrets.
+- If `KYRA_TELEGRAM_CONNECT_STORE_ENABLED=true` is explicitly enabled later, the
+  function may validate the token with `getMe` and store it through the approved
+  backend-only secret store. The response must still not return the raw token,
+  resolved token, `tokenSecretRef`, owner ID, workspace ID, or Telegram bot ID.
+- The store gate does not make Telegram live by itself.
+- Does not access Supabase Vault by default.
+- Does not create or read secrets by default.
 - Does not write database records.
 - Does not register webhooks.
 
