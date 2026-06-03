@@ -5,6 +5,8 @@ import { spawnSync } from "node:child_process";
 const functionEntrypoints = [
   "supabase/functions/deploy-agent/index.ts",
   "supabase/functions/reset-demo-workspace/index.ts",
+  "supabase/functions/telegram-connect/index.ts",
+  "supabase/functions/telegram-webhook/index.ts",
 ];
 
 const denoCandidates = [
