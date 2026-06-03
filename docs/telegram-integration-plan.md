@@ -699,6 +699,94 @@ Remaining approvals before real token validation:
 - Schema/RLS changes for persistent Telegram bot identity, if needed.
 - Edge Function deploy and production publish.
 
+## Phase 5H Secret Storage And RLS Boundary Plan
+
+Phase 5H is a storage boundary and schema/RLS readiness step. It does not apply
+Supabase Vault, create or read real secrets, change schema/RLS, write Telegram
+session records, call Telegram, deploy Edge Functions, push commits, or publish
+production changes.
+
+Current storage findings:
+
+- The repo does not currently implement Supabase Vault in executable code.
+- The repo has `pgcrypto`, but `pgcrypto` alone is not a complete per-agent
+  token storage design because it does not define key management, secret
+  resolution, or access boundaries.
+- `telegram_sessions.token_secret_ref` already exists and is currently written
+  as `null` for demo sessions.
+- `authenticated` users currently have `select` access to
+  `public.telegram_sessions`.
+- Dashboard code currently fetches Telegram sessions with
+  `telegram_sessions?select=*`.
+- Public agent profile views do not expose `token_secret_ref`.
+
+Important risk before real token storage:
+
+- A real `token_secret_ref` is not the raw BotFather token, but it is still
+  sensitive backend metadata.
+- With the current `select=*` dashboard query and broad authenticated table
+  select, a browser session could receive `token_secret_ref` once it becomes
+  non-null.
+- This must be fixed before any real secret reference is written.
+
+Recommended Phase 5H storage path:
+
+- Use Supabase Vault as the preferred secret store.
+- Put Vault create/update/revoke/resolve behind narrow server-side RPCs.
+- Let `telegram-connect` call only the store RPC after session, ownership, and
+  real Telegram `getMe` validation succeed.
+- Store only the returned opaque `token_secret_ref` in Kyra metadata.
+- Allow only trusted Edge Function runtime/service-role paths to resolve a
+  `token_secret_ref`.
+- Never return a resolved token to browser code, public views, activity logs, or
+  API responses.
+
+Recommended schema/RLS boundary:
+
+1. Preferred: expose Telegram connection metadata through a safe view or RPC.
+   - Example safe fields: `id`, `agent_id`, `bot_handle`, `webhook_status`,
+     `created_at`, `last_event_at`.
+   - Exclude `token_secret_ref`, webhook secrets, chat identifiers, raw webhook
+     payloads, and internal error details.
+   - Update dashboard reads to use the safe view/RPC instead of
+     `telegram_sessions?select=*`.
+
+2. Fallback: use column-level grants on `telegram_sessions`.
+   - Revoke broad authenticated `select`.
+   - Grant authenticated users select only on safe columns.
+   - Keep `token_secret_ref` service-role/server-only.
+   - This is acceptable but more brittle than a dedicated safe view/RPC.
+
+Required future approvals:
+
+- Enable or apply Supabase Vault.
+- Add Vault-backed store/resolve/revoke RPCs.
+- Add a safe Telegram session metadata view/RPC.
+- Change grants/RLS around `telegram_sessions`.
+- Update dashboard/frontend reads away from `select=*`.
+- Add or persist real `token_secret_ref` values.
+- Persist Telegram bot identity columns such as `telegram_bot_id`.
+- Add webhook secret storage fields or references.
+
+Can be implemented before schema/Vault approval:
+
+- Documentation updates.
+- Mocked secret-store adapter interfaces and tests.
+- Tests that assert API responses never include `token_secret_ref`.
+- Planning for dashboard query narrowing.
+
+Must not be touched yet:
+
+- Do not apply the Vault extension.
+- Do not create, read, update, or resolve real secrets.
+- Do not change schema or RLS.
+- Do not write non-null `token_secret_ref`.
+- Do not add live token input.
+- Do not call real Telegram `getMe`.
+- Do not register webhooks.
+- Do not deploy Edge Functions.
+- Do not push or publish production changes.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
