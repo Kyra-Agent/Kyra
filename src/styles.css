@@ -2323,6 +2323,68 @@ h2 {
   margin-top: 1rem;
 }
 
+.telegram-status-panel {
+  background:
+    linear-gradient(135deg, rgba(94, 162, 255, 0.07), transparent 44%),
+    var(--panel);
+}
+
+.telegram-status-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.8rem;
+  border: 1px solid rgba(94, 162, 255, 0.22);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.telegram-status-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(138, 230, 177, 0.26);
+  border-radius: var(--radius);
+  color: var(--green);
+  background: rgba(138, 230, 177, 0.07);
+}
+
+.telegram-status-card small,
+.telegram-status-actions span {
+  color: var(--muted);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.telegram-status-card strong {
+  display: block;
+  margin-top: 0.18rem;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.telegram-status-card p {
+  margin: 0.42rem 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.telegram-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0.8rem;
+}
+
+.telegram-status-actions .button {
+  min-height: 40px;
+}
+
 .queue-list,
 .wallet-policy-list,
 .backend-table-list,

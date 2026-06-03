@@ -938,6 +938,33 @@ export function Dashboard({
             )}
           </section>
 
+          <section className="dashboard-panel telegram-status-panel">
+            <div className="panel-title">
+              <span>Telegram connection</span>
+              <span>coming next</span>
+            </div>
+            <div className="telegram-status-card">
+              <span className="telegram-status-icon">
+                <Bot size={18} />
+              </span>
+              <div>
+                <small>Telegram demo ready</small>
+                <strong>Real Telegram bot not connected</strong>
+                <p>
+                  Current Telegram actions are simulated. The real connect flow will use
+                  backend-only token handling after the next approval.
+                </p>
+              </div>
+            </div>
+            <div className="telegram-status-actions">
+              <button className="button button-ghost" type="button" disabled>
+                <LockKeyhole size={16} />
+                Connect Telegram
+              </button>
+              <span>Coming next</span>
+            </div>
+          </section>
+
           <section className="dashboard-panel" id="approvals">
             <div className="panel-title">
               <span>Approval queue</span>

@@ -34,7 +34,7 @@ interface PublicAgentProps {
 const capabilityRows = [
   {
     title: "Telegram interface",
-    summary: "Preview the chat surface in demo mode. No live bot token is connected.",
+    summary: "Telegram demo ready. Real Telegram bot not connected.",
     icon: Bot,
   },
   {
@@ -249,8 +249,12 @@ export function PublicAgent({
               type="button"
               onClick={() => setTelegramPrimed(true)}
             >
-              Open Telegram Demo
+              Preview Telegram Demo
               <ExternalLink size={16} />
+            </button>
+            <button className="button button-ghost" type="button" disabled>
+              <LockKeyhole size={16} />
+              Connect Telegram
             </button>
             <button className="button button-ghost" type="button" onClick={onBackHome}>
               View Website
@@ -335,6 +339,33 @@ export function PublicAgent({
                 {action}
               </span>
             ))}
+          </div>
+        </article>
+
+        <article className="public-panel telegram-status-panel">
+          <div className="panel-title">
+            <span>Telegram connection</span>
+            <span>coming next</span>
+          </div>
+          <div className="telegram-status-card">
+            <span className="telegram-status-icon">
+              <Bot size={18} />
+            </span>
+            <div>
+              <small>Telegram demo ready</small>
+              <strong>Real Telegram bot not connected</strong>
+              <p>
+                Current Telegram actions are simulated. No live webhook, BotFather token,
+                or command processor is connected in this preview.
+              </p>
+            </div>
+          </div>
+          <div className="telegram-status-actions">
+            <button className="button button-ghost" type="button" disabled>
+              <LockKeyhole size={16} />
+              Connect Telegram
+            </button>
+            <span>Coming next</span>
           </div>
         </article>
 
