@@ -787,6 +787,118 @@ Must not be touched yet:
 - Do not deploy Edge Functions.
 - Do not push or publish production changes.
 
+## Phase 5I Telegram `getMe` HTTP Boundary Plan
+
+Phase 5I is the design boundary for a future real Telegram `getMe` client. It
+does not implement the client, call Telegram, validate a real token, add token
+input, access Vault, store secrets, write database records, deploy Edge
+Functions, push commits, or publish production changes.
+
+Current readiness:
+
+- `telegram-connect` already validates method, bearer auth, content type, body
+  size, Supabase session, UUID `agentId`, and agent ownership.
+- `telegram-connect` already has an optional `validateTelegramBotToken`
+  dependency used only by tests and future approved runtime wiring.
+- Runtime does not currently wire a real validator, so valid owner requests
+  still return inert `501 not_configured`.
+- There is no runtime `fetch`, `api.telegram.org`, `getMe`, Vault access, or DB
+  write path.
+
+Recommended `getMe` helper boundary:
+
+- Implement the real Telegram client as a small isolated helper, not inline in
+  the request handler.
+- Accept only a locally shape-checked BotFather token.
+- Dependency-inject `fetch` for tests.
+- Use `AbortController` and a short timeout.
+- Build the Telegram URL inside the helper and never expose it to logs, errors,
+  responses, or activity records because the URL contains the token.
+- Parse only the minimum Telegram response fields needed for safe bot metadata.
+- Return normalized safe metadata only:
+  - `telegramBotId`
+  - `username`
+  - `firstName`
+  - `canJoinGroups`
+  - `canReadAllGroupMessages`
+- Do not persist the normalized metadata until the later storage/schema slice is
+  separately approved.
+
+Recommended request order when eventually wired:
+
+1. Method, bearer, content type, and body size guards.
+2. Supabase session validation.
+3. JSON body parse.
+4. UUID `agentId` validation.
+5. Read-only ownership lookup.
+6. Local `botToken` shape validation.
+7. Real Telegram `getMe` call.
+8. Return inert `not_configured` until secret storage and DB writes are
+   separately approved.
+
+Recommended error mapping:
+
+- `400 invalid_request`: missing, non-string, empty, or malformed `botToken`.
+- `422 telegram_validation_failed`: Telegram rejects the token, returns
+  unauthorized/not found, returns `ok: false`, or returns incomplete bot
+  metadata.
+- `429 rate_limited`: Telegram returns rate limit.
+- `503 telegram_unavailable`: timeout, network failure, or Telegram 5xx.
+- `500 server_error`: unexpected internal failure with a generic sanitized
+  message.
+
+Security requirements:
+
+- Never log the raw token.
+- Never log the Telegram request URL.
+- Never return Telegram raw response bodies to the browser.
+- Never include the token in thrown error messages.
+- Never persist token or bot metadata in Phase 5I.
+- Never call `getMe` before ownership succeeds.
+- Never call `setWebhook` from the token validator.
+- Keep test fixtures fake and local. Do not use real BotFather tokens.
+
+Test plan for the future implementation slice:
+
+- Successful mocked fetch normalizes Telegram `getMe` response into safe
+  metadata.
+- `ok: false`, `401`, or `404` maps to `422 telegram_validation_failed`.
+- Missing `id`, `username`, or `first_name` maps to
+  `422 telegram_validation_failed`.
+- `429` maps to `429 rate_limited`.
+- Timeout, abort, network error, and Telegram 5xx map to
+  `503 telegram_unavailable`.
+- Unexpected malformed JSON maps to a sanitized failure.
+- Token, request URL, and raw Telegram body never appear in thrown errors or API
+  responses.
+- Runtime remains inert unless the real validator dependency is explicitly
+  wired in a separately approved slice.
+
+Files likely touched later:
+
+- `supabase/functions/telegram-connect/core.ts`
+- `supabase/functions/telegram-connect/index.ts`
+- `supabase/functions/telegram-connect/index_test.ts`
+- Optional isolated helper:
+  `supabase/functions/telegram-connect/telegram-api.ts`
+- Optional isolated tests:
+  `supabase/functions/telegram-connect/telegram-api_test.ts`
+- `supabase/functions/telegram-connect/README.md`
+- `docs/telegram-integration-plan.md`
+
+Must not be touched yet:
+
+- Do not implement real `fetch`/`getMe`.
+- Do not call Telegram.
+- Do not use a real BotFather token.
+- Do not add frontend token input.
+- Do not access Vault.
+- Do not write DB records.
+- Do not change schema/RLS.
+- Do not register webhooks.
+- Do not deploy Edge Functions.
+- Do not push or publish production changes.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
