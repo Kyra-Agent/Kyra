@@ -1,0 +1,178 @@
+-- DRAFT ONLY - DO NOT APPLY.
+-- Phase 5X.5 review artifact for future Telegram Vault RPC work.
+-- This file is intentionally comment-only and contains no executable SQL.
+-- Do not remove comment prefixes or run any adapted SQL without explicit approval.
+
+-- Purpose
+-- - Capture the intended SQL boundary for BotFather token storage via Supabase Vault.
+-- - Keep the production database unchanged until schema, RLS, Vault, and RPC approvals are explicit.
+-- - Give reviewers one stable place to inspect object names, privileges, and failure boundaries.
+
+-- Hard boundaries
+-- - No Vault extension is enabled by this draft.
+-- - No Vault secret is created, read, updated, or revoked by this draft.
+-- - No table, policy, grant, trigger, index, or function is created by this draft.
+-- - No Edge Function, frontend, webhook, or Telegram API behavior is wired by this draft.
+-- - Raw BotFather tokens must never be stored in public tables, logs, responses, or frontend state.
+
+-- Required approvals before converting this draft into executable SQL
+-- - Confirm Supabase Vault availability in the target project.
+-- - Confirm the exact extension statement for the target Supabase project.
+-- - Confirm the exact Vault APIs for create, read/decrypt, and revoke/delete/update operations.
+-- - Confirm whether metadata belongs in a new backend-only table or an existing approved table.
+-- - Confirm duplicate bot identity policy and transfer/reconnect behavior.
+-- - Confirm final grants and verifier expectations before applying.
+-- - Run the verifier before and after any approved migration.
+
+-- Proposed object names
+-- - Metadata table: public.telegram_bot_token_secrets
+-- - Store RPC: public.store_telegram_bot_token(uuid, uuid, text, text)
+-- - Resolve RPC: public.resolve_telegram_bot_token(text)
+-- - Revoke RPC: public.revoke_telegram_bot_token(text)
+
+-- Proposed metadata table shape
+-- - token_secret_ref text primary key
+-- - vault_secret_id uuid or text not null, depending on confirmed Vault return type
+-- - agent_id uuid not null
+-- - owner_user_id uuid not null
+-- - telegram_bot_id text not null
+-- - created_at timestamptz not null default now()
+-- - revoked_at timestamptz null
+-- - Optional audited columns only if separately approved: created_by, revoked_by, reconnect_reason
+
+-- Commented DDL sketch
+-- create table if not exists public.telegram_bot_token_secrets (
+--   token_secret_ref text primary key,
+--   vault_secret_id uuid not null,
+--   agent_id uuid not null,
+--   owner_user_id uuid not null,
+--   telegram_bot_id text not null,
+--   created_at timestamptz not null default now(),
+--   revoked_at timestamptz null
+-- );
+
+-- Browser access boundary
+-- - The metadata table must not be readable or writable by anon/authenticated browser clients.
+-- - Edge Functions must be the only runtime that can resolve token refs.
+-- - Public tables may store token_secret_ref only after explicit schema approval.
+-- - Public tables must never store raw BotFather tokens or decrypted Vault values.
+
+-- Commented RLS/grant sketch
+-- alter table public.telegram_bot_token_secrets enable row level security;
+-- revoke all on public.telegram_bot_token_secrets from anon, authenticated;
+-- grant select, insert, update on public.telegram_bot_token_secrets to service_role;
+
+-- Duplicate bot identity policy
+-- - One telegram_bot_id should not be active across multiple workspaces unless an explicit transfer flow exists.
+-- - The likely DB guard is a partial unique index on active rows.
+-- - This requires final approval because it affects reconnect and migration behavior.
+-- create unique index telegram_bot_token_secrets_active_bot_id_key
+--   on public.telegram_bot_token_secrets (telegram_bot_id)
+--   where revoked_at is null;
+
+-- Store RPC intent
+-- - Input p_bot_token is transient and only accepted from an authenticated Edge Function path.
+-- - RPC should create a Vault secret, store only an opaque token_secret_ref plus Vault id metadata, then return token_secret_ref.
+-- - RPC must not return p_bot_token, decrypted token text, owner_user_id, workspace_id, or raw Vault errors.
+-- - token_secret_ref should use a prefixed opaque format such as vault:telegram:<uuid>.
+-- - p_telegram_bot_id must come from a separately approved getMe validation step, not from user-provided copy.
+
+-- Commented store function sketch
+-- create or replace function public.store_telegram_bot_token(
+--   p_agent_id uuid,
+--   p_owner_user_id uuid,
+--   p_telegram_bot_id text,
+--   p_bot_token text
+-- ) returns text
+-- language plpgsql
+-- security definer
+-- set search_path = public, vault
+-- as $$
+-- declare
+--   v_token_secret_ref text;
+--   v_vault_secret_id uuid;
+-- begin
+--   -- TODO: validate all inputs.
+--   -- TODO: create Vault secret using confirmed Supabase Vault API.
+--   -- TODO: insert metadata row with token_secret_ref and vault_secret_id only.
+--   -- TODO: return token_secret_ref.
+-- end;
+-- $$;
+
+-- Resolve RPC intent
+-- - Input is token_secret_ref only.
+-- - Output is decrypted token text only to service_role callers inside Edge Functions.
+-- - Browser roles must not be able to execute this function.
+-- - Errors must be sanitized so missing/revoked/invalid refs do not leak metadata.
+
+-- Commented resolve function sketch
+-- create or replace function public.resolve_telegram_bot_token(
+--   p_token_secret_ref text
+-- ) returns text
+-- language plpgsql
+-- security definer
+-- set search_path = public, vault
+-- as $$
+-- declare
+--   v_token text;
+-- begin
+--   -- TODO: look up active metadata by token_secret_ref.
+--   -- TODO: read/decrypt Vault secret using confirmed Supabase Vault API.
+--   -- TODO: return decrypted token only to service_role callers.
+-- end;
+-- $$;
+
+-- Revoke RPC intent
+-- - Revoke should mark metadata revoked and revoke/delete/update the Vault secret using the confirmed Vault API.
+-- - Reconnect must avoid breaking the existing active session until the replacement session is fully validated.
+-- - Failure must return a sanitized error to the Edge Function.
+
+-- Commented revoke function sketch
+-- create or replace function public.revoke_telegram_bot_token(
+--   p_token_secret_ref text
+-- ) returns boolean
+-- language plpgsql
+-- security definer
+-- set search_path = public, vault
+-- as $$
+-- begin
+--   -- TODO: lock active metadata row by token_secret_ref.
+--   -- TODO: revoke/delete/update Vault secret using confirmed Supabase Vault API.
+--   -- TODO: mark revoked_at.
+--   -- TODO: return true when an active ref was revoked.
+-- end;
+-- $$;
+
+-- Commented function privilege sketch
+-- revoke execute on function public.store_telegram_bot_token(uuid, uuid, text, text) from anon, authenticated;
+-- revoke execute on function public.resolve_telegram_bot_token(text) from anon, authenticated;
+-- revoke execute on function public.revoke_telegram_bot_token(text) from anon, authenticated;
+-- grant execute on function public.store_telegram_bot_token(uuid, uuid, text, text) to service_role;
+-- grant execute on function public.resolve_telegram_bot_token(text) to service_role;
+-- grant execute on function public.revoke_telegram_bot_token(text) to service_role;
+
+-- Expected verifier checks after an approved apply
+-- - store_telegram_bot_token exists.
+-- - resolve_telegram_bot_token exists.
+-- - revoke_telegram_bot_token exists.
+-- - anon cannot execute any Telegram Vault RPC.
+-- - authenticated cannot execute any Telegram Vault RPC.
+-- - service_role can execute all Telegram Vault RPCs.
+-- - Browser-readable tables do not expose raw tokens or decrypted Vault values.
+
+-- Future implementation order after approval
+-- - Convert this comment-only draft into a reviewed SQL migration draft.
+-- - Apply only in Supabase after explicit approval.
+-- - Run verifier and capture results.
+-- - Wire Edge Function store/resolve/revoke adapters behind tests.
+-- - Add getMe validation and webhook registration only after Telegram API approval.
+-- - Enable token input only after backend storage, ownership validation, and webhook safety are verified.
+
+-- Still blocked until separately approved
+-- - Real Vault access.
+-- - Real BotFather token submit flow.
+-- - Public schema changes for token_secret_ref.
+-- - RLS changes.
+-- - Telegram getMe, setWebhook, or webhook command processing.
+-- - Edge Function deploy.
+-- - Netlify unlock or manual production publish.
