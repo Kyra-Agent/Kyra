@@ -2366,6 +2366,98 @@ Must not be touched yet:
 - Do not deploy Edge Functions.
 - Do not push or publish production changes.
 
+## Phase 5X.6 Vault SQL Migration Approval Checklist
+
+Phase 5X.6 is documentation only. It does not edit executable SQL, apply
+Supabase Vault, create SQL RPCs, change schema/RLS/grants, create/read/update/
+revoke secrets, wire runtime storage, deploy Edge Functions, push commits, or
+publish production.
+
+Current state after the draft artifact:
+
+- `supabase/telegram_vault_rpc_draft.sql` exists as a comment-only review
+  artifact.
+- The draft is intentionally inert and must remain marked `DRAFT ONLY - DO NOT
+  APPLY` until a separate approval converts it into executable SQL.
+- `supabase/verify_authenticated_demo_write_lockdown.sql` can inspect the
+  future Telegram Vault RPC names without failing while the functions are
+  missing.
+- The historical Phase 5X.1 and Phase 5X.3 notes that say not to create a draft
+  SQL file are superseded by this current state section; they remain useful as
+  phase history.
+
+Required approvals before executable SQL exists:
+
+1. Supabase Vault availability and exact extension/API names.
+2. Whether the metadata table is `public.telegram_bot_token_secrets` or another
+   approved backend-only table.
+3. Metadata columns, including `token_secret_ref`, `vault_secret_id`,
+   `agent_id`, `owner_user_id`, `telegram_bot_id`, `created_at`, and
+   `revoked_at`.
+4. Exact `token_secret_ref` format, preferably a prefixed opaque value such as
+   `vault:telegram:<uuid>`.
+5. Duplicate bot identity policy for active `telegram_bot_id` rows.
+6. Reconnect and revoke behavior, including failed reconnect rollback.
+7. Function signatures and return shapes for store, resolve, and revoke.
+8. Grant model and verifier expected results.
+9. Whether the SQL remains a manual runbook file or becomes a formal migration.
+10. Exact production rollout timing, including Edge Function deploy and Netlify
+    publish approval.
+
+Function privilege checklist:
+
+- Executable SQL must revoke `execute` from `public`, not only from `anon` and
+  `authenticated`.
+- Executable SQL must revoke `execute` from `anon`.
+- Executable SQL must revoke `execute` from `authenticated`.
+- Executable SQL must grant `execute` only to `service_role` or another
+  separately approved backend-only role.
+- `resolve_telegram_bot_token` is the most sensitive RPC because it returns a
+  decrypted BotFather token to backend runtime; it must never be browser-callable.
+- Future verifier coverage should include a `public` execute-deny check if the
+  executable SQL relies on revoking default PostgreSQL function privileges.
+
+Executable SQL safety checklist:
+
+- Use `security definer` only with an explicit pinned `search_path`.
+- Validate all inputs before touching Vault or metadata.
+- Do not derive `token_secret_ref` from user IDs, workspace IDs, Telegram
+  usernames, chat IDs, or raw BotFather tokens.
+- Store raw BotFather tokens only in Vault or an explicitly approved secret
+  manager.
+- Store only opaque refs and safe metadata in Kyra tables.
+- Never return raw tokens, resolved tokens, `token_secret_ref`, owner IDs,
+  workspace IDs, Vault internals, Telegram URLs, or raw DB errors in API
+  responses.
+- Keep metadata table access backend-only; browser roles must not read or write
+  it directly.
+- Keep `telegram_sessions.token_secret_ref` unavailable to browser roles before
+  any non-null ref is written.
+
+Verification checklist before any approved apply:
+
+- Static scan the SQL for accidental raw tokens or secret-like test values.
+- Static scan grant statements for `revoke execute ... from public`, `anon`, and
+  `authenticated`.
+- Static scan grant statements for service-role-only execute grants.
+- Run `git diff --check`.
+- Run the Supabase verifier before applying and capture the current baseline.
+- Apply only after explicit approval in the target Supabase project.
+- Run the Supabase verifier after applying.
+- Confirm all Telegram Vault RPC existence checks are `true`.
+- Confirm browser-role execute-deny checks are `true`.
+- Confirm service-role execute checks are `true`.
+- Confirm browser roles still cannot read `telegram_sessions.token_secret_ref`.
+- Do not write any non-null `token_secret_ref` until the verifier passes.
+
+Go/no-go boundary:
+
+- Go: keep refining the comment-only draft and docs.
+- Go: add future verifier checks for `public` execute denial after approval.
+- No-go: executable SQL, Vault apply, schema/RLS changes, runtime storage,
+  token input, Telegram API calls, Edge Function deploy, Netlify publish, or push
+  without separate approval.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
