@@ -1002,6 +1002,156 @@ Must not be touched yet:
 - Do not deploy Edge Functions.
 - Do not push or publish production changes.
 
+## Phase 5K Telegram Metadata Persistence Boundary Plan
+
+Phase 5K is the boundary for future Telegram metadata writes. It does not write
+`telegram_sessions`, update `agent_instances`, change schema/RLS, persist a real
+`token_secret_ref`, wire Vault, call Telegram, deploy Edge Functions, push
+commits, or publish production changes.
+
+Current persistence findings:
+
+- `telegram_sessions` already exists with demo-safe fields and
+  `token_secret_ref`.
+- Demo deploy currently writes `telegram_sessions.token_secret_ref` as `null`.
+- Dashboard reads still use `telegram_sessions?select=*`.
+- Authenticated users currently have broad enough read access to
+  `telegram_sessions` that a non-null `token_secret_ref` could reach browser
+  code.
+- Public agent profile views do not currently expose `token_secret_ref`.
+- The isolated getMe helper and mocked secret-store adapter are not wired into
+  the live `telegram-connect` runtime.
+
+Blocking issue before real metadata writes:
+
+- `token_secret_ref` is sensitive backend metadata even though it is not the raw
+  BotFather token.
+- No real connect flow may write a non-null `token_secret_ref` until frontend
+  reads are moved away from `telegram_sessions?select=*` and schema/RLS exposure
+  is narrowed.
+- The safe exposure boundary must be approved before any real persistence,
+  reconnect, webhook registration, or active Telegram session state.
+
+Recommended safe exposure model:
+
+1. Preferred: add a safe view or RPC for browser-facing Telegram session
+   metadata.
+   - Safe fields: `id`, `agent_id`, `bot_handle`, `webhook_status`,
+     `created_at`, and `last_event_at`.
+   - Excluded fields: `token_secret_ref`, webhook secrets, chat identifiers,
+     raw webhook payloads, internal error details, `owner_user_id`,
+     `workspace_id`, and raw DB errors.
+   - Dashboard code should use this safe view/RPC instead of
+     `telegram_sessions?select=*`.
+
+2. Fallback: use column-level grants on `telegram_sessions`.
+   - Revoke broad authenticated table select.
+   - Grant authenticated users select only on safe columns.
+   - Keep `token_secret_ref` accessible only to trusted server-side paths.
+   - This is more brittle than a dedicated safe view/RPC and should be used only
+     if the view/RPC approach is not practical.
+
+Future write contract for `telegram-connect`:
+
+- Inputs already validated before persistence:
+  - signed-in Supabase user ID
+  - owner-validated `agentId`
+  - normalized Telegram bot metadata from `getMe`
+  - opaque `tokenSecretRef` from the approved secret-store boundary
+- Write target:
+  - upsert one active `telegram_sessions` record for the agent
+  - update `agent_instances.telegram_status` only after safe session metadata is
+    persisted
+- Response to browser:
+  - `ok`
+  - `status`
+  - `agentId`
+  - `botHandle`
+  - `webhookStatus`
+  - optional safe `telegramSessionId`
+- Response must never include:
+  - raw BotFather token
+  - resolved token
+  - `token_secret_ref`
+  - webhook secret
+  - `owner_user_id`
+  - `workspace_id`
+  - raw DB error
+
+Future duplicate and reconnect policy:
+
+- Persist Telegram bot identity, such as `telegram_bot_id`, only after schema
+  approval.
+- One Telegram bot identity should not be active across multiple workspaces
+  unless an explicit transfer flow is approved.
+- Reconnect must not break the existing active session until the new token,
+  ownership, bot identity, secret storage, and webhook registration steps all
+  pass.
+- Failed reconnect should preserve the existing active session and return a
+  sanitized recoverable error.
+- Old webhook revocation must happen in a controlled step before activating the
+  new session.
+
+Recommended implementation order:
+
+1. Document and approve the safe metadata exposure boundary.
+2. Add safe view/RPC or column grants with separate schema/RLS approval.
+3. Update dashboard reads away from `telegram_sessions?select=*`.
+4. Add tests that prove browser-facing reads cannot include `token_secret_ref`.
+5. Add persistence adapter tests with mocked DB writes only.
+6. Wire real metadata writes in `telegram-connect` after token validation and
+   secret storage are separately approved.
+7. Add reconnect/duplicate bot tests before webhook registration becomes live.
+
+Expected error contract:
+
+- `400 invalid_request`: malformed `agentId` or invalid persistence input.
+- `401 unauthorized`: missing or invalid signed-in session.
+- `403 forbidden`: signed-in user does not own the agent workspace.
+- `404 agent_not_found`: ownership lookup cannot find the agent.
+- `409 telegram_bot_conflict`: bot identity is already active elsewhere.
+- `409 reconnect_incomplete`: reconnect cannot safely replace the active
+  session.
+- `503 secret_store_unavailable`: approved secret-store boundary cannot persist
+  or rotate the secret reference.
+- `500 server_error`: unexpected persistence failure, sanitized.
+
+Test plan before real persistence:
+
+- Browser-facing Telegram session reads exclude `token_secret_ref`.
+- Dashboard no longer uses `telegram_sessions?select=*`.
+- Persistence response excludes token, `token_secret_ref`, owner/workspace IDs,
+  and raw DB errors.
+- Successful mocked persistence returns only safe metadata.
+- Duplicate bot identity maps to `409 telegram_bot_conflict`.
+- Failed reconnect preserves the existing active session.
+- Unexpected DB errors map to sanitized `500 server_error`.
+- No tests use real BotFather tokens, Vault, Telegram API, or live DB writes.
+
+Files likely touched later:
+
+- `docs/telegram-integration-plan.md`
+- `supabase/schema.sql` or a future migration file
+- `src/types/database.ts`
+- `src/services/supabaseDashboardService.ts`
+- `supabase/functions/telegram-connect/index.ts`
+- `supabase/functions/telegram-connect/core.ts`
+- `supabase/functions/telegram-connect/index_test.ts`
+- Optional persistence helper/tests under `supabase/functions/telegram-connect/`
+
+Must not be touched yet:
+
+- Do not change schema/RLS.
+- Do not change dashboard queries until the safe view/RPC or grant plan is
+  approved.
+- Do not write non-null `telegram_sessions.token_secret_ref`.
+- Do not persist Telegram bot identity.
+- Do not wire real secret storage into runtime.
+- Do not call real Telegram `getMe` from runtime.
+- Do not register or revoke webhooks.
+- Do not deploy Edge Functions.
+- Do not push or publish production changes.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
