@@ -95,6 +95,48 @@ Required storage rules:
 
 ## Edge Function Plan
 
+## Phase 5B Backend Design Preflight
+
+Phase 5B preflight is audit and contract design only. It does not add Edge
+Functions, token input, Telegram API calls, schema migrations, RLS changes, env
+changes, or production deploys.
+
+### Current Edge Function Patterns
+
+The repo currently has two Supabase Edge Function patterns to reuse.
+
+`deploy-agent` pattern:
+
+- Accepts `OPTIONS`, `GET` health checks, and authenticated `POST` requests.
+- Reads `Authorization: Bearer <supabase-access-token>` from the request.
+- Validates the Supabase session with an anon Supabase client and
+  `auth.getUser()`.
+- Creates a service-role Supabase client only after session validation.
+- Performs production writes through the service-role client, not direct browser
+  table writes.
+- Returns scoped JSON receipts with safe demo metadata.
+
+`reset-demo-workspace` pattern:
+
+- Accepts `OPTIONS` and authenticated `POST` requests.
+- Validates the Supabase session with `auth.getUser()`.
+- Validates server-side admin access with
+  `user.app_metadata?.role === "admin"`.
+- Performs destructive demo reset only through the service-role client.
+- Does not accept arbitrary workspace or target user IDs from the browser.
+- Returns a scoped receipt without secret values, user emails, or raw internal
+  data.
+
+Shared error pattern:
+
+- Uses a small `HttpError` class with `statusCode` and stable `code`.
+- Rejects unsupported methods with `405`.
+- Rejects missing bearer tokens with `401`.
+- Uses `getEnv()` for required Edge Function secrets and returns `missing_env`
+  without exposing secret values.
+- Sanitizes unknown errors before returning them to the browser.
+- Redacts Supabase keys and JWT-like values from error messages.
+
 ### `telegram-connect`
 
 Purpose: connect a user's existing Kyra demo agent to a real Telegram bot.
@@ -102,7 +144,17 @@ Purpose: connect a user's existing Kyra demo agent to a real Telegram bot.
 Expected request:
 
 - `Authorization: Bearer <supabase-access-token>`
-- JSON body with `agentId` and transient `botToken`
+- JSON body with `agentId`, transient `botToken`, and optional `reconnect`
+
+Proposed request body:
+
+```json
+{
+  "agentId": "uuid",
+  "botToken": "transient BotFather token",
+  "reconnect": false
+}
+```
 
 Required behavior:
 
@@ -128,6 +180,50 @@ Required behavior:
   `ok`, `status`, `agentId`, `botHandle`, `webhookStatus`, and a sanitized
   message.
 
+Proposed success response:
+
+```json
+{
+  "ok": true,
+  "status": "queued",
+  "message": "Telegram connection validated. Webhook activation is pending.",
+  "agentId": "uuid",
+  "telegramSessionId": "uuid",
+  "bot": {
+    "id": "telegram-bot-id",
+    "username": "kyra_demo_bot",
+    "firstName": "Kyra Demo"
+  },
+  "webhookStatus": "queued"
+}
+```
+
+Allowed success statuses:
+
+- `queued`: token validated and session staged, webhook activation pending.
+- `active`: token validated and webhook registered.
+- `review`: token validated but connection needs manual or policy review.
+
+Proposed error states:
+
+- `400 invalid_request`: malformed JSON, missing fields, invalid `agentId`, or
+  unsupported reconnect payload.
+- `401 unauthorized`: missing or invalid Supabase bearer token.
+- `403 forbidden`: authenticated user does not own the target agent.
+- `404 agent_not_found`: target agent does not exist or is not connectable.
+- `409 duplicate_bot_active`: Telegram bot identity is already active for
+  another workspace.
+- `409 reconnect_required`: an active session already exists and reconnect was
+  not explicitly requested.
+- `422 telegram_validation_failed`: Telegram `getMe` rejected the token or
+  returned an unusable bot identity.
+- `424 webhook_registration_failed`: token validation succeeded but webhook
+  registration failed.
+- `429 rate_limited`: connect attempts exceeded a server-side limit.
+- `500 missing_env`: required function secret is missing.
+- `503 secret_store_unavailable`: Supabase Vault or the approved fallback secret
+  store is unavailable.
+
 Must not:
 
 - Return the raw token.
@@ -139,6 +235,12 @@ Must not:
 ### `telegram-webhook`
 
 Purpose: receive Telegram updates after webhook registration.
+
+Expected request:
+
+- `POST` from Telegram.
+- `X-Telegram-Bot-Api-Secret-Token` header when header verification is used.
+- Telegram Update JSON body.
 
 Required behavior:
 
@@ -158,12 +260,91 @@ Required behavior:
   sensitive wallet data.
 - Keep onchain execution disabled until the later wallet/Base phase is approved.
 
+Proposed success response:
+
+```json
+{
+  "ok": true,
+  "status": "accepted"
+}
+```
+
+Allowed webhook statuses:
+
+- `accepted`: verified update was accepted for processing.
+- `ignored`: verified update type is unsupported or irrelevant.
+- `noop`: verified update produced no state change.
+
+Proposed error states:
+
+- `401 webhook_verification_failed`: missing or invalid webhook secret.
+- `404 session_not_found`: webhook secret or path does not map to an active
+  Telegram session.
+- `409 session_paused`: Telegram session exists but is paused or not accepting
+  updates.
+- `422 unsupported_update`: update parsed successfully but cannot be handled.
+- `500 server_error`: sanitized unexpected backend failure.
+
 Must not:
 
 - Trust user identity from Telegram message text.
 - Trigger wallet execution directly.
 - Store raw Telegram update payloads if they include private user content.
 - Expose bot token, chat IDs, or private message content in public views.
+
+### Phase 5B Security Checks
+
+- Validate Supabase bearer session before creating any write-capable service-role
+  client in `telegram-connect`.
+- Validate agent ownership with `agent_instances.workspace_id` joined to
+  `workspaces.owner_user_id`.
+- Do not accept workspace IDs, owner user IDs, or target user IDs from the
+  browser.
+- Use Telegram `getMe` before storing any token reference or registering any
+  webhook.
+- Store only a secret reference in Kyra tables; never store or return the raw
+  BotFather token.
+- Prefer Supabase Vault for token storage. Use an encrypted private table or
+  external secret manager only if Vault is unavailable and separately approved.
+- Resolve token references only inside Edge Functions.
+- Verify webhook secret before reading, parsing, processing, or logging the
+  request body.
+- Keep public views free of `token_secret_ref`, webhook secrets, chat IDs, raw
+  Telegram payloads, and internal errors.
+- Require explicit chat authorization before accepting commands.
+- Separate read-only public commands from write, admin, or approval commands.
+- Prevent one Telegram bot identity from being active in multiple workspaces
+  unless a transfer flow is explicitly designed.
+- Stage reconnects so a failed reconnect does not break the existing active
+  session.
+
+### Files Likely Touched Later
+
+- `supabase/functions/telegram-connect/index.ts`
+- `supabase/functions/telegram-connect/README.md`
+- `supabase/functions/telegram-webhook/index.ts`
+- `supabase/functions/telegram-webhook/README.md`
+- `scripts/check-functions.mjs`
+- `src/services/telegramConnectService.ts`
+- `src/config/appConfig.ts`
+- `src/types/database.ts`
+- `src/pages/Dashboard.tsx`
+- `src/pages/PublicAgent.tsx`
+- `supabase/schema.sql` or a migration file, only after separate schema/RLS
+  approval
+
+### What Not To Touch Yet
+
+- Do not implement `telegram-connect`.
+- Do not implement `telegram-webhook`.
+- Do not add a real BotFather token input.
+- Do not add Telegram API calls.
+- Do not add, read, or change env values.
+- Do not change schema or RLS.
+- Do not change quota, auth, deploy, wallet, Base MCP, or onchain execution
+  behavior.
+- Do not deploy Edge Functions.
+- Do not commit or push without approval.
 
 ## Chat Authorization Model
 
