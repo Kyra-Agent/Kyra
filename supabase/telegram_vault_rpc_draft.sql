@@ -144,9 +144,17 @@
 -- $$;
 
 -- Commented function privilege sketch
--- revoke execute on function public.store_telegram_bot_token(uuid, uuid, text, text) from anon, authenticated;
--- revoke execute on function public.resolve_telegram_bot_token(text) from anon, authenticated;
--- revoke execute on function public.revoke_telegram_bot_token(text) from anon, authenticated;
+-- - PostgreSQL may grant execute on functions to PUBLIC by default.
+-- - Future executable SQL must revoke from public before granting backend-only access.
+-- revoke execute on function public.store_telegram_bot_token(uuid, uuid, text, text) from public;
+-- revoke execute on function public.resolve_telegram_bot_token(text) from public;
+-- revoke execute on function public.revoke_telegram_bot_token(text) from public;
+-- revoke execute on function public.store_telegram_bot_token(uuid, uuid, text, text) from anon;
+-- revoke execute on function public.resolve_telegram_bot_token(text) from anon;
+-- revoke execute on function public.revoke_telegram_bot_token(text) from anon;
+-- revoke execute on function public.store_telegram_bot_token(uuid, uuid, text, text) from authenticated;
+-- revoke execute on function public.resolve_telegram_bot_token(text) from authenticated;
+-- revoke execute on function public.revoke_telegram_bot_token(text) from authenticated;
 -- grant execute on function public.store_telegram_bot_token(uuid, uuid, text, text) to service_role;
 -- grant execute on function public.resolve_telegram_bot_token(text) to service_role;
 -- grant execute on function public.revoke_telegram_bot_token(text) to service_role;
@@ -155,10 +163,12 @@
 -- - store_telegram_bot_token exists.
 -- - resolve_telegram_bot_token exists.
 -- - revoke_telegram_bot_token exists.
+-- - public cannot execute any Telegram Vault RPC.
 -- - anon cannot execute any Telegram Vault RPC.
 -- - authenticated cannot execute any Telegram Vault RPC.
 -- - service_role can execute all Telegram Vault RPCs.
 -- - Browser-readable tables do not expose raw tokens or decrypted Vault values.
+-- - If executable SQL relies on default PostgreSQL function privileges, the verifier must include public execute-deny checks.
 
 -- Future implementation order after approval
 -- - Convert this comment-only draft into a reviewed SQL migration draft.
