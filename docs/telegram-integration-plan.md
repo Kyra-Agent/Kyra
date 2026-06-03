@@ -2489,17 +2489,49 @@ Manual Supabase confirmations required before executable SQL:
 
 1. Confirm Supabase Vault is available in the target project.
 2. Confirm the exact Vault extension statement and schema name.
-3. Confirm the exact API for secret create, decrypted read, and revoke/delete or
-   approved revocation alternative.
-4. Confirm the data type returned by Vault for secret identifiers.
-5. Confirm whether `public.telegram_bot_token_secrets` is the approved metadata
+3. Confirm `vault.create_secret(...)` is available and returns a UUID secret
+   identifier in the target project.
+4. Confirm `vault.decrypted_secrets` is available and exposes
+   `decrypted_secret` only to approved backend-only SQL paths.
+5. Confirm `vault.update_secret(...)` is available if secret sanitization on
+   revoke is approved.
+6. Treat physical Vault delete/revoke as unverified until the target project
+   proves an approved delete path exists.
+7. Confirm the exact approved revocation alternative before any executable
+   revoke SQL exists.
+8. Confirm the data type returned by Vault for secret identifiers.
+9. Confirm whether `public.telegram_bot_token_secrets` is the approved metadata
    table name.
-6. Confirm the partial unique index or RPC logic for active `telegram_bot_id`
+10. Confirm the partial unique index or RPC logic for active `telegram_bot_id`
    duplicate prevention.
-7. Confirm whether `revoked_at` is enough lifecycle state or whether a `status`
+11. Confirm whether `revoked_at` is enough lifecycle state or whether a `status`
    column is required.
-8. Confirm the runbook/migration delivery format before any SQL is copied into a
+12. Confirm the runbook/migration delivery format before any SQL is copied into a
    Supabase SQL editor.
+
+Verified Vault API assumptions from official docs:
+
+- `vault.create_secret(...)` creates a secret and returns the new secret UUID.
+- `vault.decrypted_secrets` is the decrypted view and includes
+  `decrypted_secret`.
+- `vault.update_secret(...)` updates an existing secret by UUID.
+- Access to `vault.decrypted_secrets` must be tightly protected because access
+  to the view exposes decrypted secret values.
+- No approved `vault.delete_secret(...)` or `vault.revoke_secret(...)` function
+  is assumed for Kyra until the target Supabase project proves it exists and is
+  safe to use.
+
+Revoke v1 decision:
+
+- `revoke_telegram_bot_token` should be metadata-first.
+- The minimum safe behavior is to mark Kyra metadata `revoked_at` and stop
+  resolving that `token_secret_ref`.
+- Optional Vault sanitization can use `vault.update_secret(...)` only after
+  explicit approval.
+- Physical deletion from `vault.secrets` is out of scope until separately
+  approved.
+- Reconnect must still avoid breaking the existing active session until the new
+  token and session state are fully validated.
 
 Do not enable runtime gates yet:
 
@@ -2534,7 +2566,11 @@ Abort criteria:
 
 - Abort if the Vault extension/API names differ from the assumptions in the
   draft.
-- Abort if Vault does not support an approved revoke/delete/update lifecycle.
+- Abort if `vault.create_secret(...)`, `vault.decrypted_secrets`, or
+  `vault.update_secret(...)` are unavailable when the approved SQL requires
+  them.
+- Abort if executable SQL assumes physical Vault delete/revoke without a proven
+  target-project API.
 - Abort if any browser role can execute `store`, `resolve`, or `revoke`.
 - Abort if `service_role` cannot execute all three RPCs.
 - Abort if `telegram_session_summaries` exposes `token_secret_ref`,
@@ -2546,8 +2582,10 @@ Abort criteria:
 
 Recommended next approval slice:
 
-- Convert the comment-only draft into a separate executable SQL review draft in
-  a new phase.
+- Update the comment-only draft to reflect metadata-first revoke and unverified
+  physical Vault delete.
+- Convert the comment-only draft into a separate executable SQL review draft
+  only after that refinement is reviewed.
 - Keep it local-only until reviewed.
 - Run static scans before any Supabase apply.
 - Apply manually only after explicit approval.
