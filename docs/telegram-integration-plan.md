@@ -706,7 +706,7 @@ Supabase Vault, create or read real secrets, change schema/RLS, write Telegram
 session records, call Telegram, deploy Edge Functions, push commits, or publish
 production changes.
 
-Current storage findings:
+Original storage findings:
 
 - The repo does not currently implement Supabase Vault in executable code.
 - The repo has `pgcrypto`, but `pgcrypto` alone is not a complete per-agent
@@ -714,20 +714,20 @@ Current storage findings:
   resolution, or access boundaries.
 - `telegram_sessions.token_secret_ref` already exists and is currently written
   as `null` for demo sessions.
-- `authenticated` users currently have `select` access to
-  `public.telegram_sessions`.
-- Dashboard code currently fetches Telegram sessions with
+- The initial browser path used broad `telegram_sessions` reads and
   `telegram_sessions?select=*`.
+- The current safe path uses `telegram_session_summaries` and explicit safe
+  columns instead.
 - Public agent profile views do not expose `token_secret_ref`.
 
 Important risk before real token storage:
 
 - A real `token_secret_ref` is not the raw BotFather token, but it is still
   sensitive backend metadata.
-- With the current `select=*` dashboard query and broad authenticated table
-  select, a browser session could receive `token_secret_ref` once it becomes
-  non-null.
-- This must be fixed before any real secret reference is written.
+- A browser session could receive `token_secret_ref` if broad table reads or
+  `select=*` dashboard queries are reintroduced after it becomes non-null.
+- The safe summary path and tightened grants must stay verified before any real
+  secret reference is written.
 
 Recommended Phase 5H storage path:
 
@@ -748,7 +748,7 @@ Recommended schema/RLS boundary:
      `created_at`, `last_event_at`.
    - Exclude `token_secret_ref`, webhook secrets, chat identifiers, raw webhook
      payloads, and internal error details.
-   - Update dashboard reads to use the safe view/RPC instead of
+   - Keep dashboard reads on the safe view/RPC instead of
      `telegram_sessions?select=*`.
 
 2. Fallback: use column-level grants on `telegram_sessions`.
@@ -761,8 +761,9 @@ Required future approvals:
 
 - Enable or apply Supabase Vault.
 - Add Vault-backed store/resolve/revoke RPCs.
-- Add a safe Telegram session metadata view/RPC.
-- Change grants/RLS around `telegram_sessions`.
+- Add or modify a safe Telegram session metadata view/RPC.
+- Change grants/RLS around `telegram_sessions`, if target verification shows
+  drift from the safe model.
 - Update dashboard/frontend reads away from `select=*`.
 - Add or persist real `token_secret_ref` values.
 - Persist Telegram bot identity columns such as `telegram_bot_id`.
@@ -1018,11 +1019,12 @@ Current readiness:
 - The repo still has no executable Supabase Vault implementation.
 - `telegram_sessions.token_secret_ref` exists but is currently `null` for demo
   sessions.
-- Dashboard still uses `telegram_sessions?select=*`, so real secret references
-  must not be written yet.
-- Authenticated table access for `telegram_sessions` is still broad enough that
-  a non-null `token_secret_ref` could reach the browser unless a safe view/RPC
-  or column-level grant change is approved first.
+- Dashboard reads use `telegram_session_summaries`, not
+  `telegram_sessions?select=*`, so browser-facing reads already use the safe
+  metadata path.
+- Authenticated table-level select on `telegram_sessions` must remain revoked,
+  and `token_secret_ref` column access must remain unavailable to browser roles
+  before any non-null secret references are written.
 
 Recommended adapter contract:
 
@@ -1074,8 +1076,8 @@ Recommended future real path:
   call Telegram.
 - `revoke` deletes or deactivates the secret reference before session
   deactivation or transfer.
-- Real storage wiring must happen only after safe Telegram session metadata
-  exposure is approved.
+- Real storage wiring must happen only after the safe Telegram session metadata
+  exposure remains verified in the target Supabase project.
 
 Error mapping:
 
@@ -1102,7 +1104,6 @@ Must not be touched yet:
 - Do not add Vault RPCs.
 - Do not change schema/RLS.
 - Do not write `telegram_sessions.token_secret_ref`.
-- Do not change dashboard queries.
 - Do not wire the adapter into runtime `telegram-connect`.
 - Do not deploy Edge Functions.
 - Do not push or publish production changes.
@@ -1119,10 +1120,9 @@ Current persistence findings:
 - `telegram_sessions` already exists with demo-safe fields and
   `token_secret_ref`.
 - Demo deploy currently writes `telegram_sessions.token_secret_ref` as `null`.
-- Dashboard reads still use `telegram_sessions?select=*`.
-- Authenticated users currently have broad enough read access to
-  `telegram_sessions` that a non-null `token_secret_ref` could reach browser
-  code.
+- Dashboard reads use `telegram_session_summaries` and request only safe fields.
+- Production grants should keep broad authenticated table select revoked and
+  should keep `token_secret_ref` unavailable to browser roles.
 - Public agent profile views do not currently expose `token_secret_ref`.
 - The isolated getMe helper and mocked secret-store adapter are not wired into
   the live `telegram-connect` runtime.
@@ -1131,22 +1131,21 @@ Blocking issue before real metadata writes:
 
 - `token_secret_ref` is sensitive backend metadata even though it is not the raw
   BotFather token.
-- No real connect flow may write a non-null `token_secret_ref` until frontend
-  reads are moved away from `telegram_sessions?select=*` and schema/RLS exposure
-  is narrowed.
+- No real connect flow may write a non-null `token_secret_ref` until safe view
+  usage and schema/RLS exposure are verified in the target Supabase project.
 - The safe exposure boundary must be approved before any real persistence,
   reconnect, webhook registration, or active Telegram session state.
 
 Recommended safe exposure model:
 
-1. Preferred: add a safe view or RPC for browser-facing Telegram session
+1. Preferred: keep using a safe view or RPC for browser-facing Telegram session
    metadata.
    - Safe fields: `id`, `agent_id`, `bot_handle`, `webhook_status`,
      `created_at`, and `last_event_at`.
    - Excluded fields: `token_secret_ref`, webhook secrets, chat identifiers,
      raw webhook payloads, internal error details, `owner_user_id`,
      `workspace_id`, and raw DB errors.
-   - Dashboard code should use this safe view/RPC instead of
+   - Dashboard code must continue using this safe view/RPC instead of
      `telegram_sessions?select=*`.
 
 2. Fallback: use column-level grants on `telegram_sessions`.
@@ -1199,14 +1198,12 @@ Future duplicate and reconnect policy:
 
 Recommended implementation order:
 
-1. Document and approve the safe metadata exposure boundary.
-2. Add safe view/RPC or column grants with separate schema/RLS approval.
-3. Update dashboard reads away from `telegram_sessions?select=*`.
-4. Add tests that prove browser-facing reads cannot include `token_secret_ref`.
-5. Add persistence adapter tests with mocked DB writes only.
-6. Wire real metadata writes in `telegram-connect` after token validation and
+1. Verify the safe metadata exposure boundary in the target Supabase project.
+2. Add tests that prove browser-facing reads cannot include `token_secret_ref`.
+3. Add persistence adapter tests with mocked DB writes only.
+4. Wire real metadata writes in `telegram-connect` after token validation and
    secret storage are separately approved.
-7. Add reconnect/duplicate bot tests before webhook registration becomes live.
+5. Add reconnect/duplicate bot tests before webhook registration becomes live.
 
 Expected error contract:
 
@@ -1247,8 +1244,6 @@ Files likely touched later:
 Must not be touched yet:
 
 - Do not change schema/RLS.
-- Do not change dashboard queries until the safe view/RPC or grant plan is
-  approved.
 - Do not write non-null `telegram_sessions.token_secret_ref`.
 - Do not persist Telegram bot identity.
 - Do not wire real secret storage into runtime.
@@ -1259,24 +1254,26 @@ Must not be touched yet:
 
 ## Phase 5L Safe Telegram Metadata Exposure Plan
 
-Phase 5L defines how browser-facing Telegram session metadata should be exposed
-before real Telegram persistence is enabled. It does not change schema/RLS,
-dashboard queries, Edge Functions, token handling, Vault access, Telegram API
-calls, deploys, pushes, or production behavior.
+Phase 5L defines and tracks the browser-facing Telegram session metadata
+boundary required before real Telegram persistence is enabled. It does not
+change schema/RLS, dashboard queries, Edge Functions, token handling, Vault
+access, Telegram API calls, deploys, pushes, or production behavior.
 
 Current exposure findings:
 
 - `telegram_sessions` includes `token_secret_ref`.
 - RLS limits `telegram_sessions` reads to workspace owners through the existing
   owner policy.
-- Authenticated users currently have broad table-level select on
+- The approved lockdown path revokes broad authenticated table-level select on
   `telegram_sessions`.
-- Dashboard currently fetches Telegram session rows with
-  `telegram_sessions?select=*`.
+- Authenticated browser reads use `telegram_session_summaries` and explicit safe
+  columns.
+- Dashboard fetches Telegram session summaries with
+  `telegram_session_summaries?select=id,agent_id,bot_handle,webhook_status,created_at,last_event_at`.
 - Public agent profile reads use `public_agent_profiles` and do not expose
   `token_secret_ref`.
-- The TypeScript database type model currently covers `Tables`; browser-facing
-  view typing will need either a `Views` section or a local safe row type.
+- The TypeScript frontend uses a local safe row type for browser-facing
+  Telegram summaries.
 
 Why this must be fixed before real connect:
 
@@ -1284,19 +1281,20 @@ Why this must be fixed before real connect:
   backend metadata.
 - Owner-only RLS is not enough for this field because the browser should not
   receive any token reference at all.
-- A non-null `token_secret_ref` must not be written until broad table reads and
-  `select=*` dashboard reads are removed from the browser path.
+- A non-null `token_secret_ref` must not be written until the target Supabase
+  project verifies broad table reads are revoked and dashboard reads use the
+  safe summary path.
 
 Preferred safe exposure approach:
 
-1. Create a browser-facing safe view such as
+1. Keep the browser-facing safe view
    `public.telegram_session_summaries`.
 2. Use `with (security_invoker = true)` so existing RLS still applies.
-3. Revoke broad authenticated select on `telegram_sessions`.
+3. Keep broad authenticated select on `telegram_sessions` revoked.
 4. Grant authenticated select only on safe `telegram_sessions` columns required
    by the view.
 5. Grant authenticated select on the safe view.
-6. Update dashboard reads to use the safe view and explicit column selection.
+6. Keep dashboard reads on the safe view with explicit column selection.
 7. Keep full table access available only to trusted server-side service-role
    paths.
 
@@ -1321,7 +1319,7 @@ Fields that must not be exposed:
 - `workspace_id`
 - raw database or internal error details
 
-Non-applied SQL direction for future approval:
+Reference SQL shape for target verification:
 
 ```sql
 revoke all privileges on public.telegram_sessions from authenticated;
@@ -1351,13 +1349,13 @@ grant select on public.telegram_session_summaries to authenticated;
 grant all on public.telegram_sessions to service_role;
 ```
 
-Dashboard query target after approval:
+Dashboard query target:
 
 ```ts
 telegram_session_summaries?select=id,agent_id,bot_handle,webhook_status,created_at,last_event_at&agent_id=in.(...)
 ```
 
-Do not keep this browser query after safe exposure work:
+Browser query that must stay absent:
 
 ```ts
 telegram_sessions?select=*
@@ -1365,30 +1363,27 @@ telegram_sessions?select=*
 
 TypeScript impact:
 
-- Add a safe row type for `telegram_session_summaries`.
+- The frontend uses a safe row type for `telegram_session_summaries`.
 - Prefer adding `KyraDatabase["public"]["Views"]` typing if more views will be
   used later.
-- A local `TelegramSessionSummaryRow` interface is acceptable for the first
-  narrow dashboard change if generated view typing is not available.
 - Do not reuse `SupabaseTableRow<"telegram_sessions">` for browser-facing
   metadata after the safe view exists, because that table type includes
   `token_secret_ref`.
 
-Verification plan for implementation later:
+Verification plan before real token persistence:
 
 - `rg "telegram_sessions\\?select=\\*" src`
 - `rg "token_secret_ref" src`
 - `npm exec tsc -- --noEmit`
 - `npm run build`
-- Static SQL review confirms authenticated users do not have broad
+- Supabase verifier confirms authenticated users do not have broad
   `telegram_sessions` table select.
-- Static SQL review confirms the safe view excludes `token_secret_ref`.
+- Supabase verifier confirms the safe view excludes `token_secret_ref`.
 - Browser/dashboard smoke confirms Telegram demo metadata still renders.
 
-Approval points before implementation:
+Approval points before real token persistence:
 
-- Schema/RLS approval for grants and safe view.
-- Frontend approval to switch the dashboard query to the safe view.
+- Schema/RLS approval for any additional grant or view changes.
 - Type model approval if `KyraDatabase` gains a `Views` section.
 - Production rollout approval before applying SQL to a live Supabase project.
 
@@ -1401,9 +1396,8 @@ Files likely touched later:
 
 Must not be touched yet:
 
-- Do not change schema/RLS.
-- Do not apply SQL.
-- Do not update dashboard runtime queries.
+- Do not change schema/RLS without separate approval.
+- Do not apply additional SQL without separate approval.
 - Do not write real `token_secret_ref` values.
 - Do not wire token storage.
 - Do not call Telegram.
@@ -1609,6 +1603,144 @@ Enable checklist:
 - Production smoke with a test bot passes.
 - Rollback is simple: remove or set
   `VITE_KYRA_ENABLE_TELEGRAM_CONNECT_TOKEN_INPUT=false`.
+
+## Phase 5T.1 Vault RPC Rollout Plan
+
+Phase 5T.1 is documentation only. It does not enable Supabase Vault, add RPCs,
+change schema/RLS, create/read/update/revoke secrets, write `token_secret_ref`,
+wire runtime storage, deploy Edge Functions, push commits, or publish
+production.
+
+Current readiness:
+
+- `telegram-connect` can validate signed-in ownership and can optionally validate
+  BotFather tokens with `getMe` behind a backend default-off flag.
+- Frontend token input remains behind a separate default-off flag.
+- Dashboard reads Telegram metadata from `telegram_session_summaries`, not
+  `telegram_sessions?select=*`.
+- The repo has a mock secret-store adapter contract, but no executable Vault
+  implementation.
+- The target Supabase project must be verified for Vault support before any real
+  secret storage work starts.
+
+Preferred storage architecture:
+
+- Use Supabase Vault for BotFather tokens.
+- Keep Vault operations behind narrow server-side RPCs.
+- Public tables store only opaque `token_secret_ref` values.
+- Edge Functions are the only runtime allowed to call store/resolve/revoke
+  boundaries.
+- Frontend code, public views, authenticated browser REST calls, dashboard
+  queries, and activity logs must never receive raw tokens or resolved token
+  values.
+
+Proposed RPC boundary:
+
+```sql
+public.store_telegram_bot_token(
+  p_agent_id uuid,
+  p_owner_user_id uuid,
+  p_telegram_bot_id text,
+  p_bot_token text
+) returns text -- token_secret_ref
+
+public.resolve_telegram_bot_token(
+  p_token_secret_ref text
+) returns text -- raw bot token, Edge Function only
+
+public.revoke_telegram_bot_token(
+  p_token_secret_ref text
+) returns boolean
+```
+
+RPC requirements:
+
+- Use `security definer` with a pinned `search_path`.
+- Validate non-empty inputs before touching Vault.
+- Create opaque references that are not derived from the raw token.
+- Store enough Vault metadata to support ownership audit, rotation, and
+  revocation without exposing the token.
+- Return only `token_secret_ref` from store.
+- Return raw token only from resolve, and only to trusted server-side callers.
+- Never raise errors containing the raw token, Vault decrypted value, Telegram
+  request URL, owner ID, workspace ID, or raw Vault details.
+- Revoke should be idempotent or map missing secrets to a safe
+  `secret_not_found`/`false` result, depending on the approved API contract.
+
+Grant model:
+
+- Revoke execute on Vault RPCs from `anon` and `authenticated`.
+- Grant execute only to `service_role` or another approved backend-only role.
+- Keep `telegram_sessions.token_secret_ref` hidden from browser roles.
+- Keep `telegram_session_summaries` as the browser-facing metadata source.
+- Verify `service_role` can still insert/update `telegram_sessions` after grants
+  are tightened.
+
+Approval gates before implementation:
+
+1. Approve using Supabase Vault in the target project.
+2. Approve the SQL migration or manual SQL for Vault extension/RPC setup.
+3. Approve grants/RLS changes for RPC execution and Telegram metadata.
+4. Approve verifier updates that prove browser roles cannot read
+   `token_secret_ref`.
+5. Approve runtime wiring in `telegram-connect`.
+6. Approve Edge Function deploy.
+7. Approve production smoke with a test bot.
+8. Approve frontend token input enablement only after backend storage and
+   webhook readiness are verified.
+
+Fallback only if Vault is unavailable:
+
+- Encrypted private table:
+  - Not exposed through public REST grants.
+  - Encryption key managed outside browser-visible config.
+  - Access only through service-role Edge Functions or backend-only RPCs.
+- External secret manager:
+  - Store only opaque references in Kyra metadata.
+  - Resolve only inside Edge Functions.
+  - Include rotation and revocation operations before production use.
+
+Fallbacks require separate approval and must not be silently substituted for
+Vault.
+
+Implementation order when approved:
+
+1. Add docs/tests for expected RPC signatures and sanitized errors.
+2. Add SQL migration for Vault extension/RPCs and grants.
+3. Extend `supabase/verify_authenticated_demo_write_lockdown.sql` to check:
+   - Vault RPC execute is unavailable to `anon`/`authenticated`
+   - `service_role` can execute approved RPCs
+   - browser roles cannot read `telegram_sessions.token_secret_ref`
+   - `telegram_session_summaries` excludes sensitive columns
+4. Add an Edge Function secret-store adapter for RPC calls.
+5. Unit-test adapter success/failure without real tokens.
+6. Wire store after auth, ownership, and `getMe` validation.
+7. Write only safe Telegram session metadata plus non-raw `token_secret_ref`.
+8. Keep webhook registration separate until secret storage smoke passes.
+
+Required test coverage:
+
+- Store returns only opaque `tokenSecretRef`.
+- Store never returns or logs raw token.
+- Resolve is not reachable by browser-role calls.
+- Revoke handles missing/already-revoked refs safely.
+- Unexpected Vault/RPC errors map to sanitized
+  `503 secret_store_unavailable` or `500 server_error`.
+- API responses never include raw token, resolved token, `token_secret_ref`,
+  owner ID, workspace ID, or Vault internals.
+- Production verifier proves browser-facing reads stay safe before any non-null
+  `token_secret_ref` is written.
+
+Must not be touched until approved:
+
+- Do not enable or apply Supabase Vault.
+- Do not create/read/update/revoke real secrets.
+- Do not add Vault RPCs.
+- Do not modify schema/RLS/grants.
+- Do not wire secret-store runtime.
+- Do not write non-null `token_secret_ref`.
+- Do not deploy Edge Functions.
+- Do not push or publish production changes.
 
 ## Chat Authorization Model
 
