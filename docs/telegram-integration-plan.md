@@ -899,6 +899,111 @@ Must not be touched yet:
 - Do not deploy Edge Functions.
 - Do not push or publish production changes.
 
+## Phase 5S.1 Backend `getMe` Runtime Gate Plan
+
+Phase 5S.1 is the runtime gating plan for wiring the existing Telegram `getMe`
+helper into `telegram-connect` later. It does not change code behavior, call
+Telegram, enable token input, access Vault, write database records, deploy Edge
+Functions, push commits, or publish production changes.
+
+Current readiness:
+
+- `telegram-connect` already validates method, bearer auth, JSON content type,
+  body size, Supabase session, UUID `agentId`, and read-only agent ownership.
+- `validateTelegramBotTokenWithGetMe` exists as an isolated helper with mocked
+  tests for successful metadata normalization and safe error mapping.
+- The live `telegram-connect` runtime does not currently pass
+  `validateTelegramBotToken`, so valid owner requests still return
+  `501 not_configured`.
+- Frontend BotFather token input exists only behind the default-off
+  `VITE_KYRA_ENABLE_TELEGRAM_CONNECT_TOKEN_INPUT` flag.
+
+Recommended backend runtime flag:
+
+- Add a backend-only Edge Function flag such as
+  `KYRA_TELEGRAM_CONNECT_GETME_ENABLED`.
+- The flag must default to off unless its value is exactly `true`.
+- When the flag is off, `telegram-connect` must preserve current inert behavior:
+  auth, body, and ownership checks may run, but no Telegram API call is made and
+  the response remains `501 not_configured`.
+- When the flag is on, `telegram-connect` may validate the submitted token with
+  `getMe` after ownership succeeds, but it must still return `not_configured`
+  until secret storage and metadata persistence are separately approved.
+- The frontend token input flag and backend `getMe` flag are separate controls.
+  Enabling backend `getMe` must not automatically expose the frontend form in
+  production.
+
+Approved future request order for the gated `getMe` slice:
+
+1. `OPTIONS` returns CORS without reading body.
+2. `POST` method guard.
+3. Bearer authorization guard.
+4. JSON content type and body size guards.
+5. Supabase session validation.
+6. JSON body parse.
+7. UUID `agentId` validation.
+8. Read-only ownership lookup.
+9. Backend `getMe` flag check.
+10. If the flag is off, return inert `not_configured`.
+11. If the flag is on, locally shape-check `botToken`.
+12. Call Telegram `getMe` through the isolated helper.
+13. Return safe status only; do not persist token, metadata, or webhook state.
+
+Security requirements for the gated slice:
+
+- Never call `getMe` before session and ownership validation succeed.
+- Never read `.env.local` or expose backend flags through `VITE_` values.
+- Never log the token, Telegram request URL, Telegram response body, owner ID,
+  workspace ID, or `token_secret_ref`.
+- Never return the submitted token, Telegram request URL, raw Telegram response,
+  owner ID, workspace ID, or `token_secret_ref`.
+- Never access Vault, create secrets, resolve secrets, write database records, or
+  register webhooks in this slice.
+- Keep all tests fake and local; do not use real BotFather tokens.
+
+Expected response behavior:
+
+- Flag off + valid owner request: `501 not_configured`.
+- Missing or malformed `botToken` only matters when the backend flag is on:
+  `400 invalid_request`.
+- Telegram rejected token: `422 telegram_validation_failed`.
+- Telegram rate limit: `429 rate_limited`.
+- Telegram timeout, network failure, or 5xx: `503 telegram_unavailable`.
+- Unexpected internal failure: sanitized `500 server_error`.
+
+Test plan for the implementation slice:
+
+- Flag defaults off and does not call the validator.
+- Explicit `KYRA_TELEGRAM_CONNECT_GETME_ENABLED=true` wires the validator after
+  ownership succeeds.
+- Flag values other than exact `true` remain off.
+- Non-owner and missing-agent paths do not call the validator.
+- Missing or malformed `botToken` maps to `400 invalid_request` only when the
+  flag is on.
+- Mocked `getMe` success still returns inert `not_configured`.
+- Mocked `getMe` failures map to sanitized `422`, `429`, or `503` responses.
+- API responses never include the submitted token, `token_secret_ref`, owner ID,
+  workspace ID, Telegram URL, or raw Telegram body.
+
+Files likely touched later:
+
+- `supabase/functions/telegram-connect/index.ts`
+- `supabase/functions/telegram-connect/core.ts`
+- `supabase/functions/telegram-connect/index_test.ts`
+- `supabase/functions/telegram-connect/README.md`
+- `docs/telegram-integration-plan.md`
+
+Still blocked until separate approval:
+
+- Supabase Vault or fallback secret storage.
+- Real secret creation/read/update/revoke.
+- DB writes to `telegram_sessions`.
+- Non-null `token_secret_ref` persistence.
+- Webhook secret generation and webhook registration.
+- Frontend token input enabled in production.
+- Edge Function deployment.
+- Push or production publish.
+
 ## Phase 5J Secret-Store Adapter Boundary Plan
 
 Phase 5J is the boundary for future backend-only token storage. It does not
