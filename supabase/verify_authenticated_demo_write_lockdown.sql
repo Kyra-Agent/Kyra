@@ -1,3 +1,9 @@
+with telegram_vault_rpcs as (
+  select
+    to_regprocedure('public.store_telegram_bot_token(uuid,uuid,text,text)') as store_telegram_bot_token_rpc,
+    to_regprocedure('public.resolve_telegram_bot_token(text)') as resolve_telegram_bot_token_rpc,
+    to_regprocedure('public.revoke_telegram_bot_token(text)') as revoke_telegram_bot_token_rpc
+)
 select
   has_table_privilege('authenticated', 'public.workspaces', 'select') as auth_can_read_workspaces,
   has_table_privilege('authenticated', 'public.workspaces', 'insert') as auth_can_insert_workspaces,
@@ -23,6 +29,81 @@ select
   has_table_privilege('service_role', 'public.agent_instances', 'insert') as service_role_can_insert_agents,
   has_table_privilege('service_role', 'public.telegram_sessions', 'insert') as service_role_can_insert_telegram_sessions,
   has_table_privilege('service_role', 'public.telegram_sessions', 'update') as service_role_can_update_telegram_sessions,
+  telegram_vault_rpcs.store_telegram_bot_token_rpc is not null as store_telegram_bot_token_function_exists,
+  case
+    when telegram_vault_rpcs.store_telegram_bot_token_rpc is null then false
+    else not coalesce(has_function_privilege(
+      'anon',
+      telegram_vault_rpcs.store_telegram_bot_token_rpc::oid,
+      'execute'
+    ), false)
+  end as anon_cannot_execute_store_telegram_bot_token,
+  case
+    when telegram_vault_rpcs.store_telegram_bot_token_rpc is null then false
+    else not coalesce(has_function_privilege(
+      'authenticated',
+      telegram_vault_rpcs.store_telegram_bot_token_rpc::oid,
+      'execute'
+    ), false)
+  end as auth_cannot_execute_store_telegram_bot_token,
+  case
+    when telegram_vault_rpcs.store_telegram_bot_token_rpc is null then false
+    else coalesce(has_function_privilege(
+      'service_role',
+      telegram_vault_rpcs.store_telegram_bot_token_rpc::oid,
+      'execute'
+    ), false)
+  end as service_role_can_execute_store_telegram_bot_token,
+  telegram_vault_rpcs.resolve_telegram_bot_token_rpc is not null as resolve_telegram_bot_token_function_exists,
+  case
+    when telegram_vault_rpcs.resolve_telegram_bot_token_rpc is null then false
+    else not coalesce(has_function_privilege(
+      'anon',
+      telegram_vault_rpcs.resolve_telegram_bot_token_rpc::oid,
+      'execute'
+    ), false)
+  end as anon_cannot_execute_resolve_telegram_bot_token,
+  case
+    when telegram_vault_rpcs.resolve_telegram_bot_token_rpc is null then false
+    else not coalesce(has_function_privilege(
+      'authenticated',
+      telegram_vault_rpcs.resolve_telegram_bot_token_rpc::oid,
+      'execute'
+    ), false)
+  end as auth_cannot_execute_resolve_telegram_bot_token,
+  case
+    when telegram_vault_rpcs.resolve_telegram_bot_token_rpc is null then false
+    else coalesce(has_function_privilege(
+      'service_role',
+      telegram_vault_rpcs.resolve_telegram_bot_token_rpc::oid,
+      'execute'
+    ), false)
+  end as service_role_can_execute_resolve_telegram_bot_token,
+  telegram_vault_rpcs.revoke_telegram_bot_token_rpc is not null as revoke_telegram_bot_token_function_exists,
+  case
+    when telegram_vault_rpcs.revoke_telegram_bot_token_rpc is null then false
+    else not coalesce(has_function_privilege(
+      'anon',
+      telegram_vault_rpcs.revoke_telegram_bot_token_rpc::oid,
+      'execute'
+    ), false)
+  end as anon_cannot_execute_revoke_telegram_bot_token,
+  case
+    when telegram_vault_rpcs.revoke_telegram_bot_token_rpc is null then false
+    else not coalesce(has_function_privilege(
+      'authenticated',
+      telegram_vault_rpcs.revoke_telegram_bot_token_rpc::oid,
+      'execute'
+    ), false)
+  end as auth_cannot_execute_revoke_telegram_bot_token,
+  case
+    when telegram_vault_rpcs.revoke_telegram_bot_token_rpc is null then false
+    else coalesce(has_function_privilege(
+      'service_role',
+      telegram_vault_rpcs.revoke_telegram_bot_token_rpc::oid,
+      'execute'
+    ), false)
+  end as service_role_can_execute_revoke_telegram_bot_token,
   exists (
     select 1
     from pg_policies
@@ -77,4 +158,5 @@ select
       and table_name = 'telegram_sessions'
       and grantee = 'authenticated'
       and privilege_type = 'SELECT'
-  ) as auth_has_no_broad_telegram_sessions_select_grant;
+  ) as auth_has_no_broad_telegram_sessions_select_grant
+from telegram_vault_rpcs;
