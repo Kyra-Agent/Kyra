@@ -1742,6 +1742,129 @@ Must not be touched until approved:
 - Do not deploy Edge Functions.
 - Do not push or publish production changes.
 
+## Phase 5U.1 Secret Store RPC Adapter Contract Plan
+
+Phase 5U.1 is documentation only. It does not implement a real RPC adapter,
+enable Supabase Vault, add SQL functions, change schema/RLS, create/read/update
+secrets, wire runtime storage, write `telegram_sessions`, deploy Edge Functions,
+push commits, or publish production.
+
+Current audit state:
+
+- `supabase/functions/telegram-connect/secret-store.ts` already defines a
+  `TelegramBotTokenSecretStore` interface and a mock in-memory implementation
+  for tests.
+- The mock store is isolated from `telegram-connect` runtime wiring.
+- No executable code currently calls Supabase Vault or a secret-manager RPC.
+- `telegram-connect` validates session and ownership before optional `getMe`
+  validation.
+- Real token persistence is still blocked until Vault/RPC/schema approval.
+
+Recommended next implementation slice:
+
+- Add a pure RPC secret-store adapter that receives an injected RPC client.
+- Keep the adapter unmounted from `telegram-connect` runtime until separate
+  approval.
+- Do not create a Supabase client inside the adapter tests.
+- Do not call a live database in tests.
+- Do not call Supabase Vault, Telegram, or external secret managers.
+- Use mocked RPC responses to prove request/response normalization and error
+  sanitization.
+
+Proposed injected RPC client contract:
+
+```ts
+type TelegramSecretStoreRpcClient = {
+  rpc: (
+    functionName: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: unknown; error: unknown }>;
+};
+```
+
+Adapter mapping:
+
+- `storeTelegramBotToken(input)` calls `store_telegram_bot_token` with:
+  - `p_agent_id`
+  - `p_owner_user_id`
+  - `p_telegram_bot_id`
+  - `p_bot_token`
+- `storeTelegramBotToken(input)` returns only:
+  - `tokenSecretRef`
+  - `provider: "supabase_vault"`
+- `resolveTelegramBotToken(input)` calls `resolve_telegram_bot_token` with:
+  - `p_token_secret_ref`
+- `resolveTelegramBotToken(input)` may return a raw token only to trusted
+  backend runtime code, never to a browser response.
+- `revokeTelegramBotToken(input)` calls `revoke_telegram_bot_token` with:
+  - `p_token_secret_ref`
+- `revokeTelegramBotToken(input)` returns only:
+  - `revoked`
+
+Sanitization requirements:
+
+- Adapter errors must never include raw BotFather tokens.
+- Adapter errors must never include resolved tokens, `token_secret_ref` values,
+  owner IDs, workspace IDs, raw RPC errors, Vault internals, or Telegram URLs.
+- Invalid local inputs should stay `400 invalid_request`.
+- Missing secret refs should map to `404 secret_not_found` only when the RPC
+  contract explicitly returns that safe state.
+- Vault/RPC availability failures should map to
+  `503 secret_store_unavailable`.
+- Unexpected adapter failures should map to sanitized `500 server_error` or the
+  existing secret-store sanitizer contract.
+
+Tests for the next implementation slice:
+
+- Store calls the expected RPC name with expected argument keys.
+- Store returns only an opaque `tokenSecretRef` and provider metadata.
+- Store result does not include raw token, owner ID, workspace ID, or Telegram
+  bot ID.
+- Resolve validates `tokenSecretRef` before calling RPC.
+- Resolve returns the raw token only from the backend-only method result.
+- Revoke validates `tokenSecretRef` and returns a boolean result.
+- RPC errors are sanitized and do not expose raw tokens or raw database errors.
+- Adapter tests use mocks only and do not create a Supabase client.
+- `telegram-connect` valid runtime path still returns `not_configured` because
+  the adapter is not wired yet.
+
+Files likely touched if approved:
+
+- `supabase/functions/telegram-connect/secret-store.ts`
+- `supabase/functions/telegram-connect/secret-store_test.ts`
+- `supabase/functions/telegram-connect/README.md`
+- `docs/telegram-integration-plan.md`
+
+Files not expected to be touched in this slice:
+
+- `supabase/schema.sql`
+- `supabase/lockdown_authenticated_demo_writes.sql`
+- `supabase/verify_authenticated_demo_write_lockdown.sql`
+- `supabase/functions/telegram-connect/index.ts`
+- `src/pages/Dashboard.tsx`
+- frontend token input files
+
+Verification for the next implementation slice:
+
+- `deno check supabase/functions/telegram-connect/index.ts supabase/functions/telegram-webhook/index.ts`
+- `deno test supabase/functions/telegram-connect supabase/functions/telegram-webhook`
+- `npm run check:functions`
+- `git diff --check`
+- Security scan for Vault access, Telegram API calls, DB writes, request body
+  logging, token echo, and runtime secret-store wiring.
+
+Must not be touched until separately approved:
+
+- Do not enable or apply Supabase Vault.
+- Do not add real SQL RPCs.
+- Do not modify schema/RLS/grants.
+- Do not create/read/update/revoke real secrets.
+- Do not create a live Supabase RPC client path.
+- Do not wire the adapter into `telegram-connect` runtime.
+- Do not persist `telegram_sessions.token_secret_ref`.
+- Do not deploy Edge Functions.
+- Do not push or publish production changes.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
