@@ -1995,6 +1995,142 @@ Must not be touched yet:
 - Do not deploy Edge Functions.
 - Do not push or publish production changes.
 
+## Phase 5W.1 Vault RPC Verifier Design
+
+Phase 5W.1 is documentation only. It does not edit verifier SQL, add Vault RPCs,
+change schema/RLS/grants, enable Supabase Vault, create/read/update/revoke
+secrets, wire runtime storage, deploy Edge Functions, push commits, or publish
+production.
+
+Current verifier state:
+
+- `supabase/verify_authenticated_demo_write_lockdown.sql` checks table, column,
+  view, policy, and service-role write readiness for Telegram metadata.
+- It already checks that authenticated users do not have broad
+  `telegram_sessions` table select.
+- It already checks that authenticated users cannot select
+  `telegram_sessions.token_secret_ref`.
+- It already checks that `telegram_session_summaries` exists and excludes
+  sensitive fields.
+- It does not yet check function existence or execute privileges for future
+  Vault RPCs.
+- The Vault RPCs do not exist yet, so verifier changes must be clear about
+  whether missing RPCs are expected or a blocker.
+
+Recommended verifier approach:
+
+- Use `to_regprocedure(...)` to detect whether each approved RPC exists.
+- Use `has_function_privilege(...)` only when the RPC exists, so the verifier
+  does not fail by referencing a missing function.
+- Report explicit booleans for each RPC:
+  - function exists
+  - `anon` cannot execute
+  - `authenticated` cannot execute
+  - `service_role` can execute
+- Keep the existing Telegram metadata checks unchanged.
+- Treat missing RPCs as acceptable before schema approval and as blockers only
+  after the Vault SQL rollout is approved.
+
+Proposed function signatures for verifier checks:
+
+```sql
+public.store_telegram_bot_token(uuid, uuid, text, text)
+public.resolve_telegram_bot_token(text)
+public.revoke_telegram_bot_token(text)
+```
+
+Recommended check shape:
+
+```sql
+case
+  when to_regprocedure('public.store_telegram_bot_token(uuid, uuid, text, text)') is null then false
+  else not has_function_privilege(
+    'authenticated',
+    'public.store_telegram_bot_token(uuid, uuid, text, text)',
+    'execute'
+  )
+end as auth_cannot_execute_store_telegram_bot_token
+```
+
+The same pattern should be used for `anon`, `authenticated`, and `service_role`
+across all three RPCs.
+
+Recommended columns to add after schema approval:
+
+- `store_telegram_bot_token_function_exists`
+- `anon_cannot_execute_store_telegram_bot_token`
+- `auth_cannot_execute_store_telegram_bot_token`
+- `service_role_can_execute_store_telegram_bot_token`
+- `resolve_telegram_bot_token_function_exists`
+- `anon_cannot_execute_resolve_telegram_bot_token`
+- `auth_cannot_execute_resolve_telegram_bot_token`
+- `service_role_can_execute_resolve_telegram_bot_token`
+- `revoke_telegram_bot_token_function_exists`
+- `anon_cannot_execute_revoke_telegram_bot_token`
+- `auth_cannot_execute_revoke_telegram_bot_token`
+- `service_role_can_execute_revoke_telegram_bot_token`
+
+Verifier interpretation:
+
+- Before schema approval:
+  - RPC existence checks may be `false`.
+  - This confirms real Vault storage is not enabled yet.
+  - Browser safety checks for `telegram_sessions` and
+    `telegram_session_summaries` must still pass.
+- After schema approval:
+  - All RPC existence checks must be `true`.
+  - All `anon_cannot_execute_*` checks must be `true`.
+  - All `auth_cannot_execute_*` checks must be `true`.
+  - All `service_role_can_execute_*` checks must be `true`.
+  - Browser safety checks must still pass before any non-null
+    `token_secret_ref` is written.
+
+Security priority:
+
+- `resolve_telegram_bot_token` is the most sensitive RPC because it returns a
+  raw BotFather token to backend runtime.
+- `resolve_telegram_bot_token` must never be executable by `anon` or
+  `authenticated`.
+- `store_telegram_bot_token` must never be executable by browser roles because
+  browser roles could otherwise create secrets outside the Edge Function
+  validation path.
+- `revoke_telegram_bot_token` must also stay backend-only to avoid user-triggered
+  deletion of unrelated token refs.
+
+Files likely touched if verifier implementation is approved:
+
+- `supabase/verify_authenticated_demo_write_lockdown.sql`
+- `docs/telegram-integration-plan.md`
+
+Files not expected to be touched by verifier-only implementation:
+
+- `supabase/schema.sql`
+- `supabase/lockdown_authenticated_demo_writes.sql`
+- `supabase/functions/telegram-connect/index.ts`
+- `supabase/functions/telegram-connect/secret-store.ts`
+- frontend files
+
+Verification for verifier-only implementation:
+
+- Static inspect `supabase/verify_authenticated_demo_write_lockdown.sql`.
+- `git diff --check`.
+- `rg "store_telegram_bot_token|resolve_telegram_bot_token|revoke_telegram_bot_token" supabase/verify_authenticated_demo_write_lockdown.sql`.
+- If run in Supabase before RPC creation, confirm RPC existence checks are
+  `false` and existing browser-safety checks still pass.
+- If run after approved RPC creation, confirm the expected function/grant booleans
+  are all `true`.
+
+Must not be touched yet:
+
+- Do not apply Supabase Vault.
+- Do not create or alter SQL RPCs.
+- Do not change RLS or grants.
+- Do not create/read/update/revoke real secrets.
+- Do not wire runtime storage.
+- Do not write non-null `telegram_sessions.token_secret_ref`.
+- Do not deploy Edge Functions.
+- Do not push or publish production changes.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
