@@ -70,12 +70,25 @@ using (
   )
 );
 
+create or replace view public.telegram_session_summaries
+with (security_invoker = true)
+as
+select
+  sessions.id,
+  sessions.agent_id,
+  sessions.bot_handle,
+  sessions.webhook_status,
+  sessions.created_at,
+  sessions.last_event_at
+from public.telegram_sessions sessions;
+
 revoke all privileges on public.workspaces from authenticated;
 revoke all privileges on public.agent_instances from authenticated;
 revoke all privileges on public.wallet_policies from authenticated;
 revoke all privileges on public.approval_requests from authenticated;
 revoke all privileges on public.activity_logs from authenticated;
 revoke all privileges on public.telegram_sessions from authenticated;
+revoke all privileges on public.telegram_session_summaries from anon, authenticated;
 
 grant usage on schema public to anon, authenticated, service_role;
 grant select on public.agent_templates to anon, authenticated, service_role;
@@ -97,7 +110,15 @@ grant select on public.agent_instances to authenticated;
 grant select on public.wallet_policies to authenticated;
 grant select on public.approval_requests to authenticated;
 grant select on public.activity_logs to authenticated;
-grant select on public.telegram_sessions to authenticated;
+grant select (
+  id,
+  agent_id,
+  bot_handle,
+  webhook_status,
+  created_at,
+  last_event_at
+) on public.telegram_sessions to authenticated;
+grant select on public.telegram_session_summaries to authenticated;
 grant select on public.public_agent_profiles to anon, authenticated;
 grant execute on function public.owns_workspace(uuid) to authenticated;
 
@@ -109,6 +130,7 @@ grant all on public.wallet_policies to service_role;
 grant all on public.approval_requests to service_role;
 grant all on public.activity_logs to service_role;
 grant all on public.telegram_sessions to service_role;
+grant select on public.telegram_session_summaries to service_role;
 grant select on public.public_agent_profiles to service_role;
 grant execute on function public.owns_workspace(uuid) to service_role;
 

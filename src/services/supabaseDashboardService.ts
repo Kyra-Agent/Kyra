@@ -22,8 +22,16 @@ type AgentInstanceRow = SupabaseTableRow<"agent_instances">;
 type ApprovalRequestRow = SupabaseTableRow<"approval_requests">;
 type WalletPolicyRow = SupabaseTableRow<"wallet_policies">;
 type ActivityLogRow = SupabaseTableRow<"activity_logs">;
-type TelegramSessionRow = SupabaseTableRow<"telegram_sessions">;
 type ApprovalStatus = KyraDatabase["public"]["Tables"]["approval_requests"]["Row"]["status"];
+
+interface TelegramSessionSummaryRow {
+  id: string;
+  agent_id: string;
+  bot_handle: string | null;
+  webhook_status: "mocked" | "queued" | "active" | "paused";
+  created_at: string;
+  last_event_at: string | null;
+}
 
 export type SupabaseDashboardStatus = "not-configured" | "loading" | "connected" | "empty" | "error";
 
@@ -243,7 +251,7 @@ function createBackendTables(
   approvals: ApprovalRequestRow[],
   policies: WalletPolicyRow[],
   logs: ActivityLogRow[],
-  telegramSessions: TelegramSessionRow[],
+  telegramSessions: TelegramSessionSummaryRow[],
 ): DemoBackendTable[] {
   return [
     countTable(workspaces, "active", "Account owner, auth mode, and workspace scope.", "workspaces"),
@@ -320,9 +328,9 @@ export async function fetchSupabaseDashboardData(
     const agentIds = agents.map((agent) => agent.id);
     const telegramSessions =
       agentIds.length > 0
-        ? await selectRows<TelegramSessionRow>(
+        ? await selectRows<TelegramSessionSummaryRow>(
             session,
-            `telegram_sessions?select=*&agent_id=in.(${agentIds.map(encodeFilter).join(",")})&order=created_at.desc&limit=20`,
+            `telegram_session_summaries?select=id,agent_id,bot_handle,webhook_status,created_at,last_event_at&agent_id=in.(${agentIds.map(encodeFilter).join(",")})&order=created_at.desc&limit=20`,
           )
         : [];
     const mappedAgents = agents.map(mapAgent);
