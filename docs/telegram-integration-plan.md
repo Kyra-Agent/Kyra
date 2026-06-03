@@ -1422,6 +1422,42 @@ Must not be touched yet:
 - Do not call Telegram APIs.
 - Do not add live token input.
 
+## Phase 5P Local Push Readiness State
+
+Phase 5P confirms the local Phase 5 Telegram preparation stack is safe to push
+to GitHub only while Netlify auto publishing remains locked. This state does not
+mean production is ready to publish.
+
+Push-ready conditions:
+
+- Working tree is clean before push.
+- Local verification has passed for TypeScript, build, Edge Function checks,
+  static SQL scans, and diff whitespace checks.
+- Telegram runtime remains inert:
+  - no live token input
+  - no Vault access
+  - no real token persistence
+  - no webhook registration
+  - no Telegram API call wired into runtime
+- Netlify auto publishing remains locked.
+- No manual Netlify deploy is triggered.
+- User explicitly approves the push.
+
+Production publish remains blocked until:
+
+- Supabase SQL is applied to the production target project.
+- `supabase/verify_authenticated_demo_write_lockdown.sql` confirms the safe
+  Telegram metadata view and grants.
+- Dashboard smoke confirms `telegram_session_summaries` is readable.
+- User explicitly approves spending Netlify build/deploy credits.
+
+Push does not do any of these:
+
+- It does not apply Supabase SQL.
+- It does not deploy Supabase Edge Functions.
+- It does not unlock or publish Netlify.
+- It does not enable real Telegram integration.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
