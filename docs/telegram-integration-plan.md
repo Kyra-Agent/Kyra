@@ -1865,6 +1865,136 @@ Must not be touched until separately approved:
 - Do not deploy Edge Functions.
 - Do not push or publish production changes.
 
+## Phase 5V.1 SQL RPC/Vault Approval Boundary
+
+Phase 5V.1 is documentation only. It does not enable Supabase Vault, add SQL
+functions, modify schema/RLS/grants, create/read/update/revoke real secrets,
+wire secret-store runtime, deploy Edge Functions, push commits, or publish
+production.
+
+Current SQL readiness:
+
+- `telegram_sessions.token_secret_ref` already exists.
+- Demo deploy writes `telegram_sessions.token_secret_ref` as `null`.
+- Dashboard reads Telegram metadata from `telegram_session_summaries`, not
+  `telegram_sessions?select=*`.
+- `telegram_session_summaries` excludes `token_secret_ref`, `owner_user_id`, and
+  `workspace_id`.
+- Authenticated browser grants are limited to safe Telegram session columns.
+- `service_role` retains backend-only access needed for approved Edge Function
+  writes.
+- `supabase/verify_authenticated_demo_write_lockdown.sql` checks safe view
+  existence, expected columns, absence of broad authenticated
+  `telegram_sessions` table select, absence of authenticated
+  `token_secret_ref` column access, and service-role Telegram write access.
+- No `store_telegram_bot_token`, `resolve_telegram_bot_token`, or
+  `revoke_telegram_bot_token` SQL function exists yet.
+- No executable code currently accesses Supabase Vault.
+
+Approved architecture target:
+
+- Use Supabase Vault as the preferred BotFather token store.
+- Keep all Vault operations behind narrow backend-only RPCs.
+- Store only opaque `token_secret_ref` values in public Kyra metadata tables.
+- Let Edge Functions call the RPCs through trusted backend credentials only.
+- Never expose raw tokens, resolved tokens, token refs, owner IDs, workspace IDs,
+  Vault internals, or raw RPC errors to browser responses or public views.
+
+SQL RPCs that require separate schema approval:
+
+```sql
+public.store_telegram_bot_token(
+  p_agent_id uuid,
+  p_owner_user_id uuid,
+  p_telegram_bot_id text,
+  p_bot_token text
+) returns text
+
+public.resolve_telegram_bot_token(
+  p_token_secret_ref text
+) returns text
+
+public.revoke_telegram_bot_token(
+  p_token_secret_ref text
+) returns boolean
+```
+
+RPC hardening requirements:
+
+- Use `security definer`.
+- Pin `search_path` explicitly.
+- Validate non-empty inputs before touching Vault.
+- Generate opaque token refs that are not derived from raw tokens.
+- Store enough non-secret metadata to support audit, rotation, and revocation.
+- Return only `token_secret_ref` from store.
+- Return raw token only from resolve and only to backend-only callers.
+- Avoid `raise exception` messages that include raw tokens, decrypted Vault
+  values, token refs, owner IDs, workspace IDs, Telegram URLs, or Vault internals.
+- Prefer idempotent revoke behavior or a safe `secret_not_found` result for
+  missing refs.
+
+Grant and RLS requirements:
+
+- Revoke execute on Vault RPCs from `anon`.
+- Revoke execute on Vault RPCs from `authenticated`.
+- Grant execute only to `service_role` or another explicitly approved
+  backend-only role.
+- Keep broad authenticated `telegram_sessions` select revoked.
+- Keep `telegram_sessions.token_secret_ref` unavailable to browser roles.
+- Keep `telegram_session_summaries` as the browser-facing Telegram metadata
+  source.
+- Preserve `service_role` insert/update access for approved backend writes.
+
+Verifier changes required before real token persistence:
+
+- Check each approved Vault RPC exists.
+- Check `anon` cannot execute each Vault RPC.
+- Check `authenticated` cannot execute each Vault RPC.
+- Check `service_role` can execute each Vault RPC.
+- Keep existing checks for safe view existence and expected columns.
+- Keep existing checks that browser roles cannot read `token_secret_ref`.
+- Keep existing checks that authenticated users do not have insert/update/delete
+  grants on `telegram_sessions`.
+
+Approval points before implementation:
+
+1. Confirm Supabase Vault availability in the target Supabase project.
+2. Approve the exact SQL migration or manual SQL.
+3. Approve RPC signatures and return types.
+4. Approve execute grants and browser-role revokes.
+5. Approve verifier updates.
+6. Apply SQL only after production rollout order is agreed.
+7. Verify in Supabase before writing any non-null `token_secret_ref`.
+8. Approve runtime wiring after SQL verification passes.
+
+Files likely touched when schema work is approved:
+
+- `supabase/schema.sql` or a dedicated migration file.
+- `supabase/lockdown_authenticated_demo_writes.sql` if the production lockdown
+  script must carry the RPC/grant model.
+- `supabase/verify_authenticated_demo_write_lockdown.sql`.
+- `docs/telegram-integration-plan.md`.
+
+Files not expected to be touched by the SQL approval slice:
+
+- `src/pages/Dashboard.tsx`.
+- `src/services/telegramConnectService.ts`.
+- `supabase/functions/telegram-connect/index.ts`.
+- `supabase/functions/telegram-connect/secret-store.ts`.
+- `supabase/functions/telegram-webhook/index.ts`.
+
+Must not be touched yet:
+
+- Do not apply Supabase Vault.
+- Do not create/read/update/revoke real secrets.
+- Do not add SQL RPCs without explicit schema approval.
+- Do not modify RLS/grants without explicit schema approval.
+- Do not wire the RPC adapter into runtime.
+- Do not write non-null `telegram_sessions.token_secret_ref`.
+- Do not enable frontend token input in production.
+- Do not deploy Edge Functions.
+- Do not push or publish production changes.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
