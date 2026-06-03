@@ -18,7 +18,8 @@
 -- Required approvals before converting this draft into executable SQL
 -- - Confirm Supabase Vault availability in the target project.
 -- - Confirm the exact extension statement for the target Supabase project.
--- - Confirm the exact Vault APIs for create, read/decrypt, and revoke/delete/update operations.
+-- - Confirm the exact Vault APIs for create, read/decrypt, and optional update operations.
+-- - Treat physical Vault delete/revoke as unverified until the target project proves an approved delete path exists.
 -- - Confirm whether metadata belongs in a new backend-only table or an existing approved table.
 -- - Confirm duplicate bot identity policy and transfer/reconnect behavior.
 -- - Confirm final grants and verifier expectations before applying.
@@ -123,7 +124,10 @@
 -- $$;
 
 -- Revoke RPC intent
--- - Revoke should mark metadata revoked and revoke/delete/update the Vault secret using the confirmed Vault API.
+-- - Revoke v1 should be metadata-first.
+-- - Revoke should mark metadata revoked and stop resolving the token_secret_ref.
+-- - Optional Vault sanitization can use vault.update_secret(...) only after separate approval.
+-- - Physical deletion from vault.secrets is out of scope until separately approved.
 -- - Reconnect must avoid breaking the existing active session until the replacement session is fully validated.
 -- - Failure must return a sanitized error to the Edge Function.
 
@@ -137,8 +141,9 @@
 -- as $$
 -- begin
 --   -- TODO: lock active metadata row by token_secret_ref.
---   -- TODO: revoke/delete/update Vault secret using confirmed Supabase Vault API.
 --   -- TODO: mark revoked_at.
+--   -- TODO: stop future resolve calls from returning tokens for revoked refs.
+--   -- TODO: optionally sanitize the Vault secret with vault.update_secret(...) after approval.
 --   -- TODO: return true when an active ref was revoked.
 -- end;
 -- $$;
