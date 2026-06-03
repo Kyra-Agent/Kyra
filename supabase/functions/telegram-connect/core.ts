@@ -3,6 +3,16 @@ export interface TelegramConnectRequest {
   botToken?: unknown;
 }
 
+export interface AuthenticatedUser {
+  id: string;
+}
+
+export interface AgentOwnershipRecord {
+  agentId: string;
+  ownerUserId: string;
+  workspaceId: string;
+}
+
 export class HttpError extends Error {
   readonly statusCode: number;
   readonly code: string;
@@ -25,6 +35,10 @@ export const corsHeaders = {
 export interface TelegramConnectDependencies {
   getEnv: (key: string) => string;
   getUser: (supabaseUrl: string, anonKey: string, authorization: string) => Promise<unknown>;
+  lookupAgentOwnership?: (
+    agentId: string,
+    ownerUserId: string,
+  ) => Promise<AgentOwnershipRecord | null>;
 }
 
 export function jsonResponse(body: Record<string, unknown>, status = 200) {
@@ -172,7 +186,49 @@ export function assertAgentId(value: unknown) {
     throw new HttpError(400, "invalid_request", "agentId is required.");
   }
 
-  return value.trim();
+  const agentId = value.trim();
+
+  if (!/^[A-Za-z0-9_-]{2,128}$/.test(agentId)) {
+    throw new HttpError(400, "invalid_request", "agentId is invalid.");
+  }
+
+  return agentId;
+}
+
+export function assertAuthenticatedUserId(value: unknown) {
+  if (!value || typeof value !== "object") {
+    throw new HttpError(401, "unauthorized", "A valid Supabase session is required.");
+  }
+
+  const user = value as Record<string, unknown>;
+
+  if (typeof user.id !== "string" || !user.id.trim()) {
+    throw new HttpError(401, "unauthorized", "A valid Supabase session is required.");
+  }
+
+  return user.id.trim();
+}
+
+export function assertAgentOwnership(
+  agentId: string,
+  ownerUserId: string,
+  ownership: AgentOwnershipRecord | null,
+) {
+  if (!ownership) {
+    throw new HttpError(404, "agent_not_found", "Agent was not found.");
+  }
+
+  if (ownership.agentId !== agentId) {
+    throw new Error("Ownership lookup returned an unexpected agent.");
+  }
+
+  if (ownership.ownerUserId !== ownerUserId) {
+    throw new HttpError(403, "forbidden", "Agent does not belong to the signed-in user.");
+  }
+
+  return {
+    agentId: ownership.agentId,
+  };
 }
 
 export async function handleTelegramConnectRequest(
@@ -194,11 +250,24 @@ export async function handleTelegramConnectRequest(
     const supabaseUrl = dependencies.getEnv("SUPABASE_URL");
     const anonKey = dependencies.getEnv("SUPABASE_ANON_KEY");
 
-    await dependencies.getUser(supabaseUrl, anonKey, authorization);
+    const user = await dependencies.getUser(supabaseUrl, anonKey, authorization);
+    const userId = assertAuthenticatedUserId(user);
 
     const body = await readTelegramConnectBody(request);
 
-    assertAgentId(body.agentId);
+    const agentId = assertAgentId(body.agentId);
+
+    if (dependencies.lookupAgentOwnership) {
+      let ownership: AgentOwnershipRecord | null;
+
+      try {
+        ownership = await dependencies.lookupAgentOwnership(agentId, userId);
+      } catch {
+        throw new HttpError(500, "server_error", "Telegram connect ownership lookup failed.");
+      }
+
+      assertAgentOwnership(agentId, userId, ownership);
+    }
 
     return jsonResponse(
       {

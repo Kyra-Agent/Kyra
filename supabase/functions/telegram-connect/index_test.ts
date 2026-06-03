@@ -147,6 +147,184 @@ Deno.test("telegram-connect returns unauthorized when session validation rejects
   assertEquals(body.message, "A valid Supabase session is required.");
 });
 
+Deno.test("telegram-connect rejects missing agentId", async () => {
+  let ownershipLookupCalled = false;
+
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({}),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => ({ id: "user_123" }),
+      lookupAgentOwnership: async () => {
+        ownershipLookupCalled = true;
+        return null;
+      },
+    },
+  );
+
+  const body = await readJson(response);
+
+  assertEquals(response.status, 400);
+  assertEquals(body.ok, false);
+  assertEquals(body.status, "invalid_request");
+  assertEquals(body.message, "agentId is required.");
+  assert(!ownershipLookupCalled, "Missing agentId must not run ownership lookup.");
+});
+
+Deno.test("telegram-connect rejects malformed agentId", async () => {
+  let ownershipLookupCalled = false;
+
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({ agentId: "../agent_123" }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => ({ id: "user_123" }),
+      lookupAgentOwnership: async () => {
+        ownershipLookupCalled = true;
+        return null;
+      },
+    },
+  );
+
+  const body = await readJson(response);
+
+  assertEquals(response.status, 400);
+  assertEquals(body.ok, false);
+  assertEquals(body.status, "invalid_request");
+  assertEquals(body.message, "agentId is invalid.");
+  assert(!ownershipLookupCalled, "Malformed agentId must not run ownership lookup.");
+});
+
+Deno.test("telegram-connect returns 404 when ownership lookup misses agent", async () => {
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({ agentId: "agent_123" }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => ({ id: "user_123" }),
+      lookupAgentOwnership: async () => null,
+    },
+  );
+
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(response.status, 404);
+  assertEquals(body.ok, false);
+  assertEquals(body.status, "agent_not_found");
+  assertEquals(body.message, "Agent was not found.");
+  assert(!serializedBody.includes("owner_user_id"), "Response must not expose owner_user_id.");
+  assert(!serializedBody.includes("workspace_id"), "Response must not expose workspace_id.");
+});
+
+Deno.test("telegram-connect returns 403 when ownership owner mismatches", async () => {
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({ agentId: "agent_123" }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => ({ id: "user_123" }),
+      lookupAgentOwnership: async () => ({
+        agentId: "agent_123",
+        ownerUserId: "other_user",
+        workspaceId: "workspace_123",
+      }),
+    },
+  );
+
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(response.status, 403);
+  assertEquals(body.ok, false);
+  assertEquals(body.status, "forbidden");
+  assertEquals(body.message, "Agent does not belong to the signed-in user.");
+  assert(!serializedBody.includes("other_user"), "Response must not expose owner id.");
+  assert(!serializedBody.includes("workspace_123"), "Response must not expose workspace id.");
+});
+
+Deno.test("telegram-connect continues inert not_configured when ownership matches", async () => {
+  let lookupAgentId = "";
+  let lookupOwnerUserId = "";
+
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({ agentId: "agent_123" }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => ({ id: "user_123" }),
+      lookupAgentOwnership: async (agentId, ownerUserId) => {
+        lookupAgentId = agentId;
+        lookupOwnerUserId = ownerUserId;
+
+        return {
+          agentId,
+          ownerUserId,
+          workspaceId: "workspace_123",
+        };
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(lookupAgentId, "agent_123");
+  assertEquals(lookupOwnerUserId, "user_123");
+  assertEquals(response.status, 501);
+  assertEquals(body.ok, false);
+  assertEquals(body.status, "not_configured");
+  assertEquals(body.message, "Telegram connect is planned but not enabled yet.");
+  assert(!serializedBody.includes("user_123"), "Response must not expose owner id.");
+  assert(!serializedBody.includes("workspace_123"), "Response must not expose workspace id.");
+});
+
+Deno.test("telegram-connect sanitizes unexpected ownership lookup errors", async () => {
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({ agentId: "agent_123" }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => ({ id: "user_123" }),
+      lookupAgentOwnership: async () => {
+        throw new Error("raw DB error owner_user_id workspace_123 token_secret_ref");
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(response.status, 500);
+  assertEquals(body.ok, false);
+  assertEquals(body.status, "server_error");
+  assertEquals(body.message, "Telegram connect ownership lookup failed.");
+  assert(!serializedBody.includes("raw DB error"), "Response must not expose raw DB error.");
+  assert(!serializedBody.includes("owner_user_id"), "Response must not expose owner_user_id.");
+  assert(!serializedBody.includes("workspace_123"), "Response must not expose workspace id.");
+  assert(!serializedBody.includes("token_secret_ref"), "Response must not expose token refs.");
+});
+
 Deno.test("telegram-connect rejects unsupported content type before env/session work", async () => {
   let envRead = false;
   let sessionChecked = false;
