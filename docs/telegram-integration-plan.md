@@ -2484,6 +2484,8 @@ Readiness summary:
   Vault, and deployment approvals are complete.
 - `telegram_sessions.token_secret_ref` must stay `null` for demo rows and must
   not be written with a real ref until post-apply verification passes.
+- `supabase/telegram_vault_rpc_review_draft.sql` now exists as a local SQL
+  review draft. It is not applied and must not be run without explicit approval.
 
 Manual Supabase confirmations required before executable SQL:
 
@@ -2493,8 +2495,8 @@ Manual Supabase confirmations required before executable SQL:
    identifier in the target project.
 4. Confirm `vault.decrypted_secrets` is available and exposes
    `decrypted_secret` only to approved backend-only SQL paths.
-5. Confirm `vault.update_secret(...)` is available if secret sanitization on
-   revoke is approved.
+5. Confirm whether `vault.update_secret(...)` should remain out of the first
+   approved SQL apply. The current review draft does not call it.
 6. Treat physical Vault delete/revoke as unverified until the target project
    proves an approved delete path exists.
 7. Confirm the exact approved revocation alternative before any executable
@@ -2514,7 +2516,8 @@ Verified Vault API assumptions from official docs:
 - `vault.create_secret(...)` creates a secret and returns the new secret UUID.
 - `vault.decrypted_secrets` is the decrypted view and includes
   `decrypted_secret`.
-- `vault.update_secret(...)` updates an existing secret by UUID.
+- `vault.update_secret(...)` updates an existing secret by UUID, but the current
+  review draft does not depend on it.
 - Access to `vault.decrypted_secrets` must be tightly protected because access
   to the view exposes decrypted secret values.
 - No approved `vault.delete_secret(...)` or `vault.revoke_secret(...)` function
@@ -2526,8 +2529,8 @@ Revoke v1 decision:
 - `revoke_telegram_bot_token` should be metadata-first.
 - The minimum safe behavior is to mark Kyra metadata `revoked_at` and stop
   resolving that `token_secret_ref`.
-- Optional Vault sanitization can use `vault.update_secret(...)` only after
-  explicit approval.
+- Optional Vault sanitization via `vault.update_secret(...)` is deferred to a
+  later approval and is not part of the current review draft.
 - Physical deletion from `vault.secrets` is out of scope until separately
   approved.
 - Reconnect must still avoid breaking the existing active session until the new
@@ -2566,9 +2569,10 @@ Abort criteria:
 
 - Abort if the Vault extension/API names differ from the assumptions in the
   draft.
-- Abort if `vault.create_secret(...)`, `vault.decrypted_secrets`, or
-  `vault.update_secret(...)` are unavailable when the approved SQL requires
-  them.
+- Abort if `vault.create_secret(...)` or `vault.decrypted_secrets` are
+  unavailable.
+- Abort if the review draft unexpectedly depends on `vault.update_secret(...)`,
+  `vault.delete_secret(...)`, or `vault.revoke_secret(...)`.
 - Abort if executable SQL assumes physical Vault delete/revoke without a proven
   target-project API.
 - Abort if any browser role can execute `store`, `resolve`, or `revoke`.
@@ -2582,14 +2586,35 @@ Abort criteria:
 
 Recommended next approval slice:
 
-- Update the comment-only draft to reflect metadata-first revoke and unverified
-  physical Vault delete.
-- Convert the comment-only draft into a separate executable SQL review draft
-  only after that refinement is reviewed.
-- Keep it local-only until reviewed.
+- Keep `supabase/telegram_vault_rpc_review_draft.sql` local-only until reviewed.
 - Run static scans before any Supabase apply.
 - Apply manually only after explicit approval.
 - Capture verifier output immediately after apply.
+
+Manual Supabase apply checklist for the current review draft:
+
+1. Confirm Netlify publish/deploy remains intentionally separate from SQL apply.
+2. Confirm no runtime gates are enabled before SQL apply.
+3. Run `supabase/verify_authenticated_demo_write_lockdown.sql` first and capture
+   the baseline.
+4. Confirm the baseline still shows browser-safe Telegram session visibility.
+5. Confirm the baseline shows the Telegram Vault RPC existence checks as
+   `false` before apply.
+6. Review `supabase/telegram_vault_rpc_review_draft.sql` in full before copying
+   it into Supabase SQL editor.
+7. Apply only the approved SQL review draft.
+8. Run `supabase/verify_authenticated_demo_write_lockdown.sql` immediately after
+   apply.
+9. Confirm every `*_function_exists` check for store, resolve, and revoke is
+   `true`.
+10. Confirm every `public_cannot_execute_*`, `anon_cannot_execute_*`, and
+    `auth_cannot_execute_*` check is `true`.
+11. Confirm every `service_role_can_execute_*` check is `true`.
+12. Confirm `auth_can_select_telegram_token_secret_ref` remains `false`.
+13. Confirm `telegram_session_summaries_excludes_sensitive_columns` remains
+    `true`.
+14. Do not write non-null `telegram_sessions.token_secret_ref` until all post
+    apply checks pass.
 
 ## Chat Authorization Model
 
