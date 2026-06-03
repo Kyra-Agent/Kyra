@@ -32,6 +32,17 @@ select
   telegram_vault_rpcs.store_telegram_bot_token_rpc is not null as store_telegram_bot_token_function_exists,
   case
     when telegram_vault_rpcs.store_telegram_bot_token_rpc is null then false
+    else not exists (
+      select 1
+      from pg_proc proc
+      cross join aclexplode(coalesce(proc.proacl, acldefault('f', proc.proowner))) as acl
+      where proc.oid = telegram_vault_rpcs.store_telegram_bot_token_rpc::oid
+        and acl.grantee = 0::oid
+        and lower(acl.privilege_type) = 'execute'
+    )
+  end as public_cannot_execute_store_telegram_bot_token,
+  case
+    when telegram_vault_rpcs.store_telegram_bot_token_rpc is null then false
     else not coalesce(has_function_privilege(
       'anon',
       telegram_vault_rpcs.store_telegram_bot_token_rpc::oid,
@@ -57,6 +68,17 @@ select
   telegram_vault_rpcs.resolve_telegram_bot_token_rpc is not null as resolve_telegram_bot_token_function_exists,
   case
     when telegram_vault_rpcs.resolve_telegram_bot_token_rpc is null then false
+    else not exists (
+      select 1
+      from pg_proc proc
+      cross join aclexplode(coalesce(proc.proacl, acldefault('f', proc.proowner))) as acl
+      where proc.oid = telegram_vault_rpcs.resolve_telegram_bot_token_rpc::oid
+        and acl.grantee = 0::oid
+        and lower(acl.privilege_type) = 'execute'
+    )
+  end as public_cannot_execute_resolve_telegram_bot_token,
+  case
+    when telegram_vault_rpcs.resolve_telegram_bot_token_rpc is null then false
     else not coalesce(has_function_privilege(
       'anon',
       telegram_vault_rpcs.resolve_telegram_bot_token_rpc::oid,
@@ -80,6 +102,17 @@ select
     ), false)
   end as service_role_can_execute_resolve_telegram_bot_token,
   telegram_vault_rpcs.revoke_telegram_bot_token_rpc is not null as revoke_telegram_bot_token_function_exists,
+  case
+    when telegram_vault_rpcs.revoke_telegram_bot_token_rpc is null then false
+    else not exists (
+      select 1
+      from pg_proc proc
+      cross join aclexplode(coalesce(proc.proacl, acldefault('f', proc.proowner))) as acl
+      where proc.oid = telegram_vault_rpcs.revoke_telegram_bot_token_rpc::oid
+        and acl.grantee = 0::oid
+        and lower(acl.privilege_type) = 'execute'
+    )
+  end as public_cannot_execute_revoke_telegram_bot_token,
   case
     when telegram_vault_rpcs.revoke_telegram_bot_token_rpc is null then false
     else not coalesce(has_function_privilege(
