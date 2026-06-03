@@ -2269,6 +2269,103 @@ Must not be touched yet:
 - Do not deploy Edge Functions.
 - Do not push or publish production changes.
 
+## Phase 5X.3 Vault SQL Draft Technical Decisions
+
+Phase 5X.3 is documentation only. It does not create a SQL draft file, edit
+`schema.sql`, edit lockdown SQL, enable Supabase Vault, create SQL RPCs, change
+schema/RLS/grants, create/read/update/revoke secrets, wire runtime storage,
+deploy Edge Functions, push commits, or publish production.
+
+Recommended `token_secret_ref` format:
+
+- Use a prefixed opaque reference rather than a raw Vault UUID.
+- Preferred shape: `vault:telegram:<uuid>` or another explicitly approved
+  provider-prefixed equivalent.
+- The ref must not be derived from the raw BotFather token, owner ID, workspace
+  ID, Telegram bot username, or chat ID.
+- The ref must remain compatible with the current `assertTokenSecretRef`
+  validator.
+- The browser must never receive `token_secret_ref`, even though it is not the
+  raw token.
+
+Recommended backend-only metadata:
+
+- Add a backend-only mapping table in the draft SQL if real Vault storage moves
+  forward.
+- The metadata table should not be exposed through public views or browser
+  grants.
+- Minimum useful fields:
+  - `token_secret_ref`
+  - `vault_secret_id`
+  - `agent_id`
+  - `owner_user_id`
+  - `telegram_bot_id`
+  - `created_at`
+  - `revoked_at`
+- This table supports audit, rotation, revoke, duplicate-bot checks, and future
+  reconnect handling without exposing raw tokens.
+
+Recommended duplicate bot policy:
+
+- Do not claim production-ready live Telegram connect until Telegram bot
+  identity is persisted and checked.
+- `telegram_bot_id` should be treated as the stable duplicate-detection key.
+- One Telegram bot identity should not be active across multiple workspaces
+  unless a separate transfer flow is approved.
+- A storage-only Vault RPC can exist before duplicate enforcement, but runtime
+  live connect must not activate a session until duplicate-bot handling is
+  implemented.
+- If duplicate enforcement requires schema changes on `telegram_sessions`, those
+  changes require separate approval.
+
+Recommended reconnect policy:
+
+- Failed reconnect must not break the existing active session.
+- New token validation and secret storage should be staged before replacing an
+  active token ref.
+- Revoke should be safe and either idempotent or return a sanitized `false` for
+  inactive refs.
+- Revoke must not leak whether a token ref belongs to another owner or workspace.
+- Webhook revocation and webhook registration remain a later phase and should
+  not be bundled into the first Vault storage SQL draft.
+
+Recommended SQL draft scope:
+
+- The first draft should focus on Vault-backed token store/resolve/revoke
+  boundaries and backend-only metadata.
+- It should not wire runtime behavior.
+- It should not register webhooks.
+- It should not add frontend token input behavior.
+- It should not write `telegram_sessions.token_secret_ref` from live code.
+- It should not attempt production duplicate-bot enforcement unless the required
+  metadata and constraints are explicitly included and approved.
+
+Open decisions before creating the SQL draft:
+
+- Confirm the exact Vault extension statement in the target Supabase project.
+- Confirm whether Vault secret IDs should be stored as UUIDs internally and
+  exposed to Edge Functions only through prefixed refs.
+- Confirm whether `telegram_bot_id` should live only in backend-only metadata
+  first or also be added to `telegram_sessions`.
+- Confirm whether active duplicate-bot uniqueness belongs in SQL constraints,
+  RPC logic, or both.
+- Confirm whether `revoked_at` is enough for lifecycle state or whether an
+  explicit `status` column is needed.
+
+Must not be touched yet:
+
+- Do not create the draft SQL file yet.
+- Do not apply Supabase Vault.
+- Do not create metadata tables.
+- Do not create SQL RPCs.
+- Do not add `telegram_bot_id` columns or constraints.
+- Do not modify RLS or grants.
+- Do not create/read/update/revoke real secrets.
+- Do not wire runtime storage.
+- Do not write non-null `telegram_sessions.token_secret_ref`.
+- Do not deploy Edge Functions.
+- Do not push or publish production changes.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
