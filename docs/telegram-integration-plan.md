@@ -2052,20 +2052,25 @@ case
 end as auth_cannot_execute_store_telegram_bot_token
 ```
 
-The same pattern should be used for `anon`, `authenticated`, and `service_role`
-across all three RPCs.
+The same missing-RPC-safe pattern should be used for `anon`, `authenticated`,
+and `service_role` across all three RPCs. `PUBLIC` execute defaults should be
+detected through function ACL metadata, because PostgreSQL `PUBLIC` is a
+pseudo-role rather than a normal login role.
 
 Recommended columns to add after schema approval:
 
 - `store_telegram_bot_token_function_exists`
+- `public_cannot_execute_store_telegram_bot_token`
 - `anon_cannot_execute_store_telegram_bot_token`
 - `auth_cannot_execute_store_telegram_bot_token`
 - `service_role_can_execute_store_telegram_bot_token`
 - `resolve_telegram_bot_token_function_exists`
+- `public_cannot_execute_resolve_telegram_bot_token`
 - `anon_cannot_execute_resolve_telegram_bot_token`
 - `auth_cannot_execute_resolve_telegram_bot_token`
 - `service_role_can_execute_resolve_telegram_bot_token`
 - `revoke_telegram_bot_token_function_exists`
+- `public_cannot_execute_revoke_telegram_bot_token`
 - `anon_cannot_execute_revoke_telegram_bot_token`
 - `auth_cannot_execute_revoke_telegram_bot_token`
 - `service_role_can_execute_revoke_telegram_bot_token`
@@ -2079,6 +2084,7 @@ Verifier interpretation:
     `telegram_session_summaries` must still pass.
 - After schema approval:
   - All RPC existence checks must be `true`.
+  - All `public_cannot_execute_*` checks must be `true`.
   - All `anon_cannot_execute_*` checks must be `true`.
   - All `auth_cannot_execute_*` checks must be `true`.
   - All `service_role_can_execute_*` checks must be `true`.
@@ -2414,8 +2420,8 @@ Function privilege checklist:
   separately approved backend-only role.
 - `resolve_telegram_bot_token` is the most sensitive RPC because it returns a
   decrypted BotFather token to backend runtime; it must never be browser-callable.
-- Future verifier coverage should include a `public` execute-deny check if the
-  executable SQL relies on revoking default PostgreSQL function privileges.
+- Verifier coverage includes `public` execute-deny checks so default PostgreSQL
+  function execute privileges are detected before any real token ref is written.
 
 Executable SQL safety checklist:
 
