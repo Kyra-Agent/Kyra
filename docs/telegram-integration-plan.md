@@ -1305,6 +1305,123 @@ Must not be touched yet:
 - Do not deploy Edge Functions.
 - Do not push or publish production changes.
 
+## Phase 5N Supabase-First Rollout Plan
+
+Phase 5N defines the rollout order for the safe Telegram metadata exposure
+change. It does not apply SQL, deploy Edge Functions, push commits, unlock
+Netlify, publish production, call Telegram, access Vault, or enable real
+Telegram behavior.
+
+Current rollout state:
+
+- Local `main` contains a frontend query that expects
+  `public.telegram_session_summaries`.
+- Local SQL files define `public.telegram_session_summaries` and narrow
+  authenticated `telegram_sessions` select grants to safe columns.
+- The production site is intentionally held back while Netlify auto publishing
+  remains locked.
+- Netlify static deploys build and publish `dist`; they do not apply Supabase
+  SQL changes.
+- Supabase Edge Functions are not deployed automatically by a Netlify static
+  deploy unless a separate deployment process is explicitly run.
+
+Main rollout risk:
+
+- If the frontend is published before the Supabase production project has the
+  `telegram_session_summaries` view, signed-in dashboard reads can fail.
+- If broad `telegram_sessions` select remains active when real
+  `token_secret_ref` values are later written, token reference metadata could
+  reach the browser.
+
+Required order before production publish:
+
+1. Keep Netlify auto publishing locked.
+2. Do not trigger a manual Netlify deploy.
+3. Apply the approved SQL changes to the Supabase target project first.
+4. Verify the safe view and grants in Supabase.
+5. Push the code only after the Supabase dependency is understood and approved.
+6. Keep Netlify locked after push until production publish is explicitly
+   approved.
+7. Publish or unlock Netlify only after Supabase verification passes and deploy
+   credits are approved.
+
+Supabase verification requirements:
+
+- `public.telegram_session_summaries` exists.
+- The safe view returns only:
+  - `id`
+  - `agent_id`
+  - `bot_handle`
+  - `webhook_status`
+  - `created_at`
+  - `last_event_at`
+- The safe view excludes:
+  - `token_secret_ref`
+  - webhook secrets
+  - chat identifiers
+  - raw payloads
+  - `owner_user_id`
+  - `workspace_id`
+- Authenticated users can select from `public.telegram_session_summaries`.
+- Authenticated users do not have broad table-level select on
+  `public.telegram_sessions`.
+- Authenticated users do not have insert/update/delete grants on
+  `public.telegram_sessions`.
+- Service-role access remains available for approved backend-only writes.
+
+Recommended future verifier update:
+
+- Extend `supabase/verify_authenticated_demo_write_lockdown.sql` to check:
+  - safe view existence
+  - authenticated select privilege on the safe view
+  - absence of broad authenticated table select on `telegram_sessions`
+  - absence of authenticated access to `telegram_sessions.token_secret_ref`
+  - service-role access for backend write paths
+
+Pre-push checklist:
+
+- Working tree clean.
+- Local verification passed:
+  - `npm exec tsc -- --noEmit`
+  - `npm run check:functions`
+  - `npm run build`
+  - `git diff --check`
+  - `rg "telegram_sessions\\?select=\\*" src`
+  - `rg "grant select on public\\.telegram_sessions to authenticated" supabase`
+- Netlify auto publishing remains locked.
+- User explicitly approves push.
+
+Pre-publish checklist:
+
+- Supabase SQL has been applied to the production target project.
+- Supabase verifier confirms the safe view/grants.
+- Dashboard signed-in smoke can read `telegram_session_summaries`.
+- Public agent page still loads through `public_agent_profiles`.
+- No live Telegram claims are visible.
+- `Connect Telegram` remains disabled or gated until the real connect flow is
+  separately approved.
+- User explicitly approves spending Netlify deploy/build credits.
+
+What a Netlify publish will not do:
+
+- It will not apply Supabase SQL.
+- It will not deploy Supabase Edge Functions.
+- It will not create Vault secrets.
+- It will not register Telegram webhooks.
+- It will not make Telegram live unless frontend and backend runtime behavior
+  are separately enabled.
+
+Must not be touched yet:
+
+- Do not push without explicit approval.
+- Do not unlock Netlify auto publishing.
+- Do not trigger manual Netlify deploy.
+- Do not apply Supabase SQL without explicit production approval.
+- Do not deploy Telegram Edge Functions.
+- Do not create/read/update Vault secrets.
+- Do not call Telegram APIs.
+- Do not add live token input.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
