@@ -46,9 +46,19 @@ export interface TelegramBotTokenSecretStore {
   ) => Promise<RevokeTelegramBotTokenResult>;
 }
 
-const tokenSecretRefPattern = /^[A-Za-z0-9][A-Za-z0-9:_-]{15,255}$/;
+export interface TelegramSecretStoreRpcClient {
+  rpc: (
+    functionName: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: unknown; error: unknown }>;
+}
 
-function assertNonEmptyString(value: string, fieldName: string) {
+const tokenSecretRefPattern = /^[A-Za-z0-9][A-Za-z0-9:_-]{15,255}$/;
+const storeTelegramBotTokenRpcName = "store_telegram_bot_token";
+const resolveTelegramBotTokenRpcName = "resolve_telegram_bot_token";
+const revokeTelegramBotTokenRpcName = "revoke_telegram_bot_token";
+
+function assertNonEmptyString(value: unknown, fieldName: string) {
   if (typeof value !== "string" || !value.trim()) {
     throw new HttpError(400, "invalid_request", `${fieldName} is required.`);
   }
@@ -80,6 +90,162 @@ export function sanitizeSecretStoreError(error: unknown) {
     "server_error",
     "Telegram token secret store failed.",
   );
+}
+
+function sanitizeRpcSecretStoreError(error: unknown) {
+  if (error instanceof HttpError) {
+    return error;
+  }
+
+  const errorCode = typeof error === "object" && error
+    ? (error as Record<string, unknown>).code
+    : undefined;
+
+  if (errorCode === "secret_not_found") {
+    return new HttpError(
+      404,
+      "secret_not_found",
+      "Telegram token secret was not found.",
+    );
+  }
+
+  return new HttpError(
+    503,
+    "secret_store_unavailable",
+    "Telegram token secret store is unavailable.",
+  );
+}
+
+function assertNoRpcError(error: unknown) {
+  if (error) {
+    throw sanitizeRpcSecretStoreError(error);
+  }
+}
+
+function assertRpcTokenSecretRef(value: unknown) {
+  try {
+    return assertTokenSecretRef(value);
+  } catch (error) {
+    if (error instanceof HttpError && error.statusCode === 400) {
+      throw new HttpError(
+        503,
+        "secret_store_unavailable",
+        "Telegram token secret store returned an invalid response.",
+      );
+    }
+
+    throw error;
+  }
+}
+
+function assertRpcBotToken(value: unknown) {
+  try {
+    return assertNonEmptyString(value, "botToken");
+  } catch (error) {
+    if (error instanceof HttpError && error.statusCode === 400) {
+      throw new HttpError(
+        503,
+        "secret_store_unavailable",
+        "Telegram token secret store returned an invalid response.",
+      );
+    }
+
+    throw error;
+  }
+}
+
+function assertRpcRevokeResult(value: unknown) {
+  if (typeof value !== "boolean") {
+    throw new HttpError(
+      503,
+      "secret_store_unavailable",
+      "Telegram token secret store returned an invalid response.",
+    );
+  }
+
+  return value;
+}
+
+export function createRpcTelegramBotTokenSecretStore(
+  rpcClient: TelegramSecretStoreRpcClient,
+): TelegramBotTokenSecretStore {
+  return {
+    async storeTelegramBotToken(input) {
+      const agentId = assertNonEmptyString(input.agentId, "agentId");
+      const ownerUserId = assertNonEmptyString(
+        input.ownerUserId,
+        "ownerUserId",
+      );
+      const telegramBotId = assertNonEmptyString(
+        input.telegramBotId,
+        "telegramBotId",
+      );
+      const botToken = assertNonEmptyString(input.botToken, "botToken");
+
+      try {
+        const { data, error } = await rpcClient.rpc(
+          storeTelegramBotTokenRpcName,
+          {
+            p_agent_id: agentId,
+            p_owner_user_id: ownerUserId,
+            p_telegram_bot_id: telegramBotId,
+            p_bot_token: botToken,
+          },
+        );
+
+        assertNoRpcError(error);
+
+        return {
+          tokenSecretRef: assertRpcTokenSecretRef(data),
+          provider: "supabase_vault",
+        };
+      } catch (error) {
+        throw sanitizeSecretStoreError(error);
+      }
+    },
+
+    async resolveTelegramBotToken(input) {
+      const tokenSecretRef = assertTokenSecretRef(input.tokenSecretRef);
+
+      try {
+        const { data, error } = await rpcClient.rpc(
+          resolveTelegramBotTokenRpcName,
+          {
+            p_token_secret_ref: tokenSecretRef,
+          },
+        );
+
+        assertNoRpcError(error);
+
+        return {
+          botToken: assertRpcBotToken(data),
+        };
+      } catch (error) {
+        throw sanitizeSecretStoreError(error);
+      }
+    },
+
+    async revokeTelegramBotToken(input) {
+      const tokenSecretRef = assertTokenSecretRef(input.tokenSecretRef);
+
+      try {
+        const { data, error } = await rpcClient.rpc(
+          revokeTelegramBotTokenRpcName,
+          {
+            p_token_secret_ref: tokenSecretRef,
+          },
+        );
+
+        assertNoRpcError(error);
+
+        return {
+          revoked: assertRpcRevokeResult(data),
+        };
+      } catch (error) {
+        throw sanitizeSecretStoreError(error);
+      }
+    },
+  };
 }
 
 export function createMockTelegramBotTokenSecretStore(): TelegramBotTokenSecretStore {

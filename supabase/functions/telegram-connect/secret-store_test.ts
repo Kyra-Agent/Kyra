@@ -2,7 +2,9 @@ import { HttpError } from "./core.ts";
 import {
   assertTokenSecretRef,
   createMockTelegramBotTokenSecretStore,
+  createRpcTelegramBotTokenSecretStore,
   sanitizeSecretStoreError,
+  type TelegramSecretStoreRpcClient,
 } from "./secret-store.ts";
 
 function assert(condition: boolean, message: string) {
@@ -33,6 +35,27 @@ const testAgentId = "11111111-1111-4111-8111-111111111111";
 const testOwnerUserId = "33333333-3333-4333-8333-333333333333";
 const testTelegramBotId = "987654321";
 const testBotToken = "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi";
+const testTokenSecretRef = "vault:telegram_token_ref_000001";
+
+interface RpcCall {
+  functionName: string;
+  args: Record<string, unknown>;
+}
+
+function createMockRpcClient(
+  results: Array<{ data: unknown; error: unknown }>,
+) {
+  const calls: RpcCall[] = [];
+  const client: TelegramSecretStoreRpcClient = {
+    async rpc(functionName, args) {
+      calls.push({ functionName, args });
+
+      return results.shift() ?? { data: null, error: null };
+    },
+  };
+
+  return { client, calls };
+}
 
 Deno.test("mock telegram secret store returns opaque token ref", async () => {
   const store = createMockTelegramBotTokenSecretStore();
@@ -177,6 +200,205 @@ Deno.test("secret store sanitizer keeps HttpError but hides unexpected failures"
   assertEquals(unknownResult.message, "Telegram token secret store failed.");
   assert(
     !serializedUnknown.includes(testBotToken),
+    "Sanitized error must not expose botToken.",
+  );
+});
+
+Deno.test("rpc telegram secret store stores through injected rpc and returns only token ref", async () => {
+  const { client, calls } = createMockRpcClient([
+    { data: testTokenSecretRef, error: null },
+  ]);
+  const store = createRpcTelegramBotTokenSecretStore(client);
+
+  const result = await store.storeTelegramBotToken({
+    agentId: testAgentId,
+    ownerUserId: testOwnerUserId,
+    telegramBotId: testTelegramBotId,
+    botToken: testBotToken,
+  });
+  const serializedResult = JSON.stringify(result);
+
+  assertEquals(calls.length, 1);
+  assertEquals(calls[0].functionName, "store_telegram_bot_token");
+  assertEquals(calls[0].args.p_agent_id, testAgentId);
+  assertEquals(calls[0].args.p_owner_user_id, testOwnerUserId);
+  assertEquals(calls[0].args.p_telegram_bot_id, testTelegramBotId);
+  assertEquals(calls[0].args.p_bot_token, testBotToken);
+  assertEquals(result.provider, "supabase_vault");
+  assertEquals(result.tokenSecretRef, testTokenSecretRef);
+  assert(
+    !serializedResult.includes(testBotToken),
+    "Store result must not expose botToken.",
+  );
+  assert(
+    !serializedResult.includes(testAgentId),
+    "Store result must not expose agentId.",
+  );
+  assert(
+    !serializedResult.includes(testOwnerUserId),
+    "Store result must not expose ownerUserId.",
+  );
+  assert(
+    !serializedResult.includes(testTelegramBotId),
+    "Store result must not expose telegramBotId.",
+  );
+});
+
+Deno.test("rpc telegram secret store resolves only after token ref validation", async () => {
+  const { client, calls } = createMockRpcClient([
+    { data: testBotToken, error: null },
+  ]);
+  const store = createRpcTelegramBotTokenSecretStore(client);
+
+  const resolved = await store.resolveTelegramBotToken({
+    tokenSecretRef: testTokenSecretRef,
+  });
+
+  assertEquals(calls.length, 1);
+  assertEquals(calls[0].functionName, "resolve_telegram_bot_token");
+  assertEquals(calls[0].args.p_token_secret_ref, testTokenSecretRef);
+  assertEquals(resolved.botToken, testBotToken);
+});
+
+Deno.test("rpc telegram secret store rejects invalid resolve refs before rpc", async () => {
+  const { client, calls } = createMockRpcClient([
+    { data: testBotToken, error: null },
+  ]);
+  const store = createRpcTelegramBotTokenSecretStore(client);
+
+  const error = await captureError(() =>
+    store.resolveTelegramBotToken({
+      tokenSecretRef: "../secret",
+    })
+  );
+
+  assertEquals(calls.length, 0);
+  assert(error instanceof HttpError, "Invalid ref must throw HttpError.");
+  assertEquals((error as HttpError).statusCode, 400);
+  assertEquals((error as HttpError).code, "invalid_request");
+});
+
+Deno.test("rpc telegram secret store revokes through injected rpc", async () => {
+  const { client, calls } = createMockRpcClient([
+    { data: true, error: null },
+  ]);
+  const store = createRpcTelegramBotTokenSecretStore(client);
+
+  const revoked = await store.revokeTelegramBotToken({
+    tokenSecretRef: testTokenSecretRef,
+  });
+
+  assertEquals(calls.length, 1);
+  assertEquals(calls[0].functionName, "revoke_telegram_bot_token");
+  assertEquals(calls[0].args.p_token_secret_ref, testTokenSecretRef);
+  assertEquals(revoked.revoked, true);
+});
+
+Deno.test("rpc telegram secret store maps missing secret to sanitized 404", async () => {
+  const { client } = createMockRpcClient([
+    {
+      data: null,
+      error: {
+        code: "secret_not_found",
+        message: `raw ${testTokenSecretRef} ${testBotToken}`,
+      },
+    },
+  ]);
+  const store = createRpcTelegramBotTokenSecretStore(client);
+
+  const error = await captureError(() =>
+    store.resolveTelegramBotToken({
+      tokenSecretRef: testTokenSecretRef,
+    })
+  );
+  const serializedError = JSON.stringify(error);
+
+  assert(error instanceof HttpError, "Missing secret must throw HttpError.");
+  assertEquals((error as HttpError).statusCode, 404);
+  assertEquals((error as HttpError).code, "secret_not_found");
+  assertEquals(
+    (error as HttpError).message,
+    "Telegram token secret was not found.",
+  );
+  assert(
+    !serializedError.includes(testTokenSecretRef),
+    "Sanitized error must not expose tokenSecretRef.",
+  );
+  assert(
+    !serializedError.includes(testBotToken),
+    "Sanitized error must not expose botToken.",
+  );
+});
+
+Deno.test("rpc telegram secret store sanitizes rpc availability errors", async () => {
+  const { client } = createMockRpcClient([
+    {
+      data: null,
+      error: {
+        code: "PGRST999",
+        message:
+          `raw db error ${testBotToken} ${testOwnerUserId} ${testTokenSecretRef}`,
+      },
+    },
+  ]);
+  const store = createRpcTelegramBotTokenSecretStore(client);
+
+  const error = await captureError(() =>
+    store.storeTelegramBotToken({
+      agentId: testAgentId,
+      ownerUserId: testOwnerUserId,
+      telegramBotId: testTelegramBotId,
+      botToken: testBotToken,
+    })
+  );
+  const serializedError = JSON.stringify(error);
+
+  assert(error instanceof HttpError, "RPC error must throw HttpError.");
+  assertEquals((error as HttpError).statusCode, 503);
+  assertEquals((error as HttpError).code, "secret_store_unavailable");
+  assertEquals(
+    (error as HttpError).message,
+    "Telegram token secret store is unavailable.",
+  );
+  assert(
+    !serializedError.includes(testBotToken),
+    "Sanitized error must not expose botToken.",
+  );
+  assert(
+    !serializedError.includes(testOwnerUserId),
+    "Sanitized error must not expose ownerUserId.",
+  );
+  assert(
+    !serializedError.includes(testTokenSecretRef),
+    "Sanitized error must not expose tokenSecretRef.",
+  );
+});
+
+Deno.test("rpc telegram secret store sanitizes invalid rpc responses", async () => {
+  const { client } = createMockRpcClient([
+    { data: { token_secret_ref: testTokenSecretRef }, error: null },
+  ]);
+  const store = createRpcTelegramBotTokenSecretStore(client);
+
+  const error = await captureError(() =>
+    store.storeTelegramBotToken({
+      agentId: testAgentId,
+      ownerUserId: testOwnerUserId,
+      telegramBotId: testTelegramBotId,
+      botToken: testBotToken,
+    })
+  );
+  const serializedError = JSON.stringify(error);
+
+  assert(error instanceof HttpError, "Invalid RPC response must throw.");
+  assertEquals((error as HttpError).statusCode, 503);
+  assertEquals((error as HttpError).code, "secret_store_unavailable");
+  assert(
+    !serializedError.includes(testTokenSecretRef),
+    "Sanitized error must not expose tokenSecretRef.",
+  );
+  assert(
+    !serializedError.includes(testBotToken),
     "Sanitized error must not expose botToken.",
   );
 });
