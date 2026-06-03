@@ -2484,8 +2484,8 @@ Readiness summary:
   Vault, and deployment approvals are complete.
 - `telegram_sessions.token_secret_ref` must stay `null` for demo rows and must
   not be written with a real ref until post-apply verification passes.
-- `supabase/telegram_vault_rpc_review_draft.sql` now exists as a local SQL
-  review draft. It is not applied and must not be run without explicit approval.
+- `supabase/telegram_vault_rpc_review_draft.sql` was created as a local SQL
+  review draft and later applied manually in Phase 5Z after explicit approval.
 
 Manual Supabase confirmations required before executable SQL:
 
@@ -2584,14 +2584,14 @@ Abort criteria:
   values.
 - Abort before writing any non-null `token_secret_ref`.
 
-Recommended next approval slice:
+Completed Phase 5Z approval slice:
 
-- Keep `supabase/telegram_vault_rpc_review_draft.sql` local-only until reviewed.
-- Run static scans before any Supabase apply.
-- Apply manually only after explicit approval.
-- Capture verifier output immediately after apply.
+- `supabase/telegram_vault_rpc_review_draft.sql` was reviewed before apply.
+- Static scans were run before Supabase apply.
+- The SQL was applied manually only after explicit approval.
+- Verifier output was captured immediately after apply.
 
-Manual Supabase apply checklist for the current review draft:
+Manual Supabase apply checklist used for the current review draft:
 
 1. Confirm Netlify publish/deploy remains intentionally separate from SQL apply.
 2. Confirm no runtime gates are enabled before SQL apply.
@@ -2615,6 +2615,50 @@ Manual Supabase apply checklist for the current review draft:
     `true`.
 14. Do not write non-null `telegram_sessions.token_secret_ref` until all post
     apply checks pass.
+
+## Phase 5Z Supabase Vault RPC Apply Result
+
+Phase 5Z applied the approved Telegram Vault RPC SQL manually in the target
+Supabase project. The SQL editor reported `Success. No rows returned`.
+
+Post-apply verifier result:
+
+- `store_telegram_bot_token_function_exists` is `true`.
+- `public_cannot_execute_store_telegram_bot_token` is `true`.
+- `anon_cannot_execute_store_telegram_bot_token` is `true`.
+- `auth_cannot_execute_store_telegram_bot_token` is `true`.
+- `service_role_can_execute_store_telegram_bot_token` is `true`.
+- `resolve_telegram_bot_token_function_exists` is `true`.
+- `public_cannot_execute_resolve_telegram_bot_token` is `true`.
+- `anon_cannot_execute_resolve_telegram_bot_token` is `true`.
+- `auth_cannot_execute_resolve_telegram_bot_token` is `true`.
+- `service_role_can_execute_resolve_telegram_bot_token` is `true`.
+- `revoke_telegram_bot_token_function_exists` is `true`.
+- `public_cannot_execute_revoke_telegram_bot_token` is `true`.
+- `anon_cannot_execute_revoke_telegram_bot_token` is `true`.
+- `auth_cannot_execute_revoke_telegram_bot_token` is `true`.
+- `service_role_can_execute_revoke_telegram_bot_token` is `true`.
+- `auth_can_select_telegram_token_secret_ref` remains `false`.
+- `auth_cannot_select_full_telegram_sessions` remains `true`.
+- `auth_has_no_broad_telegram_sessions_select_grant` remains `true`.
+- `telegram_session_summaries_view_exists` remains `true`.
+- `telegram_session_summaries_excludes_sensitive_columns` remains `true`.
+- `telegram_session_summaries_has_expected_columns` remains `true`.
+
+Current safety state after Phase 5Z:
+
+- The Vault RPC/table foundation exists in Supabase.
+- No BotFather token has been submitted.
+- No Vault secret was intentionally created during the apply.
+- No non-null `telegram_sessions.token_secret_ref` has been written.
+- `VITE_KYRA_ENABLE_TELEGRAM_CONNECT_TOKEN_INPUT` must remain disabled.
+- `KYRA_TELEGRAM_CONNECT_GETME_ENABLED` must remain disabled.
+- `telegram-connect` must not be deployed with live token persistence until the
+  next backend wiring phase is reviewed and approved.
+- `telegram-webhook` must remain non-live until webhook registration, secret
+  verification, and command authorization are separately approved.
+- Netlify publishing and Edge Function deployment remain separate approval
+  gates.
 
 ## Chat Authorization Model
 
