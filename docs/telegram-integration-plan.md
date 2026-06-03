@@ -1434,7 +1434,8 @@ Push-ready conditions:
 - Local verification has passed for TypeScript, build, Edge Function checks,
   static SQL scans, and diff whitespace checks.
 - Telegram runtime remains inert:
-  - no live token input
+  - no live token input is enabled by default
+  - any token input UI remains behind an explicit default-off feature flag
   - no Vault access
   - no real token persistence
   - no webhook registration
@@ -1457,6 +1458,52 @@ Push does not do any of these:
 - It does not deploy Supabase Edge Functions.
 - It does not unlock or publish Netlify.
 - It does not enable real Telegram integration.
+
+## Phase 5R.4 Telegram Token Input Release Gate
+
+The dashboard may contain a gated BotFather token form for local or staged
+contract testing, but it must remain disabled by default in production.
+
+Release gate:
+
+- `VITE_KYRA_ENABLE_TELEGRAM_CONNECT_TOKEN_INPUT` must default to off.
+- The token input may be enabled only by explicitly setting
+  `VITE_KYRA_ENABLE_TELEGRAM_CONNECT_TOKEN_INPUT=true`.
+- Production should keep the placeholder copy visible by default:
+  - `Telegram demo ready`
+  - `Real Telegram bot not connected`
+  - disabled `Connect Telegram`
+  - `Coming next`
+- Publishing code that contains the hidden form is acceptable only if the
+  production environment does not enable the flag.
+
+Why the flag stays off:
+
+- The user-facing connect flow is not complete until Vault or an approved secret
+  store is live.
+- `telegram-connect` must validate ownership, validate the BotFather token,
+  persist only a secret reference, and return safe metadata before users are
+  encouraged to submit real tokens.
+- Webhook registration and webhook secret verification must be wired and smoked
+  before Kyra claims a real Telegram bot is connected.
+- Enabling the form too early creates UX risk because users may submit a token
+  even though the backend can still return `not_configured`.
+
+Enable checklist:
+
+- Supabase Vault or the approved fallback secret store is available and verified.
+- `telegram-connect` stores no raw token in database tables, API responses,
+  logs, screenshots, or frontend state.
+- `telegram-connect` validates the signed-in user owns the agent before token
+  validation or persistence.
+- Telegram `getMe` validation is wired with sanitized errors and timeout/rate
+  limit handling.
+- Webhook registration writes only safe metadata and stores webhook secrets
+  backend-only.
+- Failed connect attempts leave the previous active session intact.
+- Production smoke with a test bot passes.
+- Rollback is simple: remove or set
+  `VITE_KYRA_ENABLE_TELEGRAM_CONNECT_TOKEN_INPUT=false`.
 
 ## Chat Authorization Model
 
