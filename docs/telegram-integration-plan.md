@@ -93,6 +93,96 @@ Required storage rules:
 - Token rotation and revocation must be possible without changing public agent
   records.
 
+## Phase 5C Vault Capability Check
+
+Phase 5C is a capability check and design decision only. It does not enable
+Supabase Vault, create or read real secrets, change schema/RLS, implement Edge
+Functions, add live token input, register webhooks, or deploy anything.
+
+### Vault Readiness Assessment
+
+- The repo does not currently implement Supabase Vault.
+- The repo does not reference `vault.secrets`, `vault.decrypted_secrets`,
+  `vault.create_secret()`, `vault.update_secret()`, `supabase_vault`, or
+  `pgsodium` in executable code.
+- The current schema only has `telegram_sessions.token_secret_ref` for future
+  secret references.
+- The current schema has `pgcrypto`, but `pgcrypto` is not enough by itself for
+  safe per-agent BotFather token storage because Kyra would still need a secure
+  key-management and decrypt-access boundary.
+- Supabase Vault remains the preferred path if it is available in the active
+  Supabase project and can be restricted so only server-side functions can create
+  and resolve token references.
+
+### Recommended Path
+
+Use Supabase Vault with a narrow server-side RPC boundary.
+
+Recommended model:
+
+- `telegram-connect` receives the BotFather token only as transient request
+  input.
+- A server-side database function stores the token with Supabase Vault and
+  returns only a Vault secret reference.
+- `telegram_sessions.token_secret_ref` stores only the Vault secret reference.
+- A separate server-side database function resolves the token reference only for
+  trusted Edge Function runtime.
+- No frontend code, public view, authenticated browser request, dashboard query,
+  or public agent profile can access resolved token values.
+
+Edge Function environment secrets are not suitable for per-agent BotFather
+tokens:
+
+- Function secrets are deployment-level configuration, not per-user or per-agent
+  records.
+- They are not a practical dynamic store for many user-created bot tokens.
+- They do not naturally model token rotation, revocation, transfer, or per-agent
+  ownership.
+- Storing user bot tokens as function env values would mix tenant data with
+  infrastructure configuration.
+- Function secrets are still appropriate for server runtime configuration such
+  as service-role keys, fixed API keys, or feature flags.
+
+### Required Future Approvals
+
+Separate explicit approval is required before any of these steps:
+
+- Enable or apply the Supabase Vault extension.
+- Add or modify schema objects for Telegram token references.
+- Add or modify RLS policies or grants around Telegram metadata.
+- Add database functions/RPCs that create, update, resolve, or revoke Vault
+  secrets.
+- Grant Edge Function/service-role access to Vault-backed RPCs.
+- Add uniqueness constraints or policies for Telegram bot identity.
+- Add live BotFather token input to the frontend.
+- Call Telegram `getMe` with a real token.
+- Register a Telegram webhook.
+- Deploy Telegram Edge Functions.
+
+### Can Be Implemented Before Schema Changes
+
+These items can be implemented later before schema/Vault approval, as long as
+they remain mocked or non-secret:
+
+- Edge Function skeleton.
+- Auth/session validation.
+- Ownership validation query design.
+- Request/response validators.
+- Sanitized error contract.
+- Mocked token validator tests.
+- Gated UI state.
+
+### Must Not Be Touched Yet
+
+- Do not read `.env.local` or any secret values.
+- Do not create or read real secrets.
+- Do not change schema or RLS.
+- Do not enable or apply the Vault extension.
+- Do not call real Telegram `getMe`.
+- Do not register webhooks.
+- Do not enable live token input.
+- Do not commit or push without approval.
+
 ## Edge Function Plan
 
 ## Phase 5B Backend Design Preflight
