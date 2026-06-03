@@ -13,6 +13,31 @@ export interface AgentOwnershipRecord {
   workspaceId: string;
 }
 
+export interface OwnershipLookupAgentRow {
+  id: string;
+  workspace_id: string;
+}
+
+export interface OwnershipLookupWorkspaceRow {
+  id: string;
+  owner_user_id: string;
+}
+
+export interface OwnershipLookupResult<T> {
+  data: T | null;
+  error: unknown;
+}
+
+export interface OwnershipLookupBuilder {
+  select: (columns: string) => OwnershipLookupBuilder;
+  eq: (column: string, value: string) => OwnershipLookupBuilder;
+  maybeSingle: <T>() => Promise<OwnershipLookupResult<T>>;
+}
+
+export interface OwnershipLookupClient {
+  from: (table: string) => OwnershipLookupBuilder;
+}
+
 export class HttpError extends Error {
   readonly statusCode: number;
   readonly code: string;
@@ -25,16 +50,23 @@ export class HttpError extends Error {
 }
 
 export const maxTelegramConnectBodyBytes = 8192;
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 export interface TelegramConnectDependencies {
   getEnv: (key: string) => string;
-  getUser: (supabaseUrl: string, anonKey: string, authorization: string) => Promise<unknown>;
+  getUser: (
+    supabaseUrl: string,
+    anonKey: string,
+    authorization: string,
+  ) => Promise<unknown>;
   lookupAgentOwnership?: (
     agentId: string,
     ownerUserId: string,
@@ -55,7 +87,10 @@ export function sanitizeErrorMessage(message: string) {
   return message
     .replace(/sb_secret_[A-Za-z0-9_-]+/g, "sb_secret_[hidden]")
     .replace(/sb_publishable_[A-Za-z0-9_-]+/g, "sb_publishable_[hidden]")
-    .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "jwt_[hidden]")
+    .replace(
+      /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g,
+      "jwt_[hidden]",
+    )
     .slice(0, 240);
 }
 
@@ -67,7 +102,9 @@ export function getUnknownErrorMessage(error: unknown) {
   if (typeof error === "object" && error) {
     const payload = error as Record<string, unknown>;
     const parts = [payload.message, payload.details, payload.hint, payload.code]
-      .filter((part): part is string => typeof part === "string" && Boolean(part.trim()))
+      .filter((part): part is string =>
+        typeof part === "string" && Boolean(part.trim())
+      )
       .map((part) => part.trim());
 
     if (parts.length) {
@@ -80,7 +117,11 @@ export function getUnknownErrorMessage(error: unknown) {
 
 export function assertPostMethod(request: Request, functionName: string) {
   if (request.method !== "POST") {
-    throw new HttpError(405, "method_not_allowed", `Use POST for ${functionName}.`);
+    throw new HttpError(
+      405,
+      "method_not_allowed",
+      `Use POST for ${functionName}.`,
+    );
   }
 }
 
@@ -88,7 +129,11 @@ export function assertBearerAuthorization(request: Request) {
   const authorization = request.headers.get("Authorization") ?? "";
 
   if (!authorization.toLowerCase().startsWith("bearer ")) {
-    throw new HttpError(401, "unauthorized", "A valid Supabase session is required.");
+    throw new HttpError(
+      401,
+      "unauthorized",
+      "A valid Supabase session is required.",
+    );
   }
 
   return authorization;
@@ -99,7 +144,11 @@ export function assertJsonContentType(headers: Headers) {
   const mediaType = contentType.split(";")[0]?.trim().toLowerCase();
 
   if (mediaType !== "application/json" && !mediaType.endsWith("+json")) {
-    throw new HttpError(415, "unsupported_media_type", "Content-Type must be application/json.");
+    throw new HttpError(
+      415,
+      "unsupported_media_type",
+      "Content-Type must be application/json.",
+    );
   }
 }
 
@@ -113,7 +162,11 @@ export function assertBodySizeFromHeaders(headers: Headers, maxBytes: number) {
   const parsedLength = Number(contentLength);
 
   if (!Number.isSafeInteger(parsedLength) || parsedLength < 0) {
-    throw new HttpError(400, "invalid_request", "Content-Length must be a valid byte size.");
+    throw new HttpError(
+      400,
+      "invalid_request",
+      "Content-Length must be a valid byte size.",
+    );
   }
 
   if (parsedLength > maxBytes) {
@@ -141,7 +194,11 @@ async function readTextBodyWithLimit(request: Request, maxBytes: number) {
 
     if (totalBytes > maxBytes) {
       await reader.cancel();
-      throw new HttpError(413, "payload_too_large", "Request body is too large.");
+      throw new HttpError(
+        413,
+        "payload_too_large",
+        "Request body is too large.",
+      );
     }
 
     chunks.push(value);
@@ -173,11 +230,17 @@ export async function readJsonObjectBody(
 
     return payload as Record<string, unknown>;
   } catch {
-    throw new HttpError(400, "invalid_request", "Request body must be valid JSON.");
+    throw new HttpError(
+      400,
+      "invalid_request",
+      "Request body must be valid JSON.",
+    );
   }
 }
 
-export async function readTelegramConnectBody(request: Request): Promise<TelegramConnectRequest> {
+export async function readTelegramConnectBody(
+  request: Request,
+): Promise<TelegramConnectRequest> {
   return await readJsonObjectBody(request, maxTelegramConnectBodyBytes);
 }
 
@@ -188,22 +251,69 @@ export function assertAgentId(value: unknown) {
 
   const agentId = value.trim();
 
-  if (!/^[A-Za-z0-9_-]{2,128}$/.test(agentId)) {
+  if (!uuidPattern.test(agentId)) {
     throw new HttpError(400, "invalid_request", "agentId is invalid.");
   }
 
   return agentId;
 }
 
+export async function lookupAgentOwnershipRecord(
+  serviceClient: OwnershipLookupClient,
+  agentId: string,
+): Promise<AgentOwnershipRecord | null> {
+  const { data: agent, error: agentError } = await serviceClient
+    .from("agent_instances")
+    .select("id,workspace_id")
+    .eq("id", agentId)
+    .maybeSingle<OwnershipLookupAgentRow>();
+
+  if (agentError) {
+    throw agentError;
+  }
+
+  if (!agent) {
+    return null;
+  }
+
+  const { data: workspace, error: workspaceError } = await serviceClient
+    .from("workspaces")
+    .select("id,owner_user_id")
+    .eq("id", agent.workspace_id)
+    .maybeSingle<OwnershipLookupWorkspaceRow>();
+
+  if (workspaceError) {
+    throw workspaceError;
+  }
+
+  if (!workspace) {
+    throw new Error("Ownership workspace was not found.");
+  }
+
+  return {
+    agentId: agent.id,
+    ownerUserId: workspace.owner_user_id,
+    workspaceId: workspace.id,
+  };
+}
+
 export function assertAuthenticatedUserId(value: unknown) {
   if (!value || typeof value !== "object") {
-    throw new HttpError(401, "unauthorized", "A valid Supabase session is required.");
+    throw new HttpError(
+      401,
+      "unauthorized",
+      "A valid Supabase session is required.",
+    );
   }
 
   const user = value as Record<string, unknown>;
 
   if (typeof user.id !== "string" || !user.id.trim()) {
-    throw new HttpError(401, "unauthorized", "A valid Supabase session is required.");
+    throw new HttpError(
+      401,
+      "unauthorized",
+      "A valid Supabase session is required.",
+    );
   }
 
   return user.id.trim();
@@ -223,7 +333,11 @@ export function assertAgentOwnership(
   }
 
   if (ownership.ownerUserId !== ownerUserId) {
-    throw new HttpError(403, "forbidden", "Agent does not belong to the signed-in user.");
+    throw new HttpError(
+      403,
+      "forbidden",
+      "Agent does not belong to the signed-in user.",
+    );
   }
 
   return {
@@ -250,7 +364,11 @@ export async function handleTelegramConnectRequest(
     const supabaseUrl = dependencies.getEnv("SUPABASE_URL");
     const anonKey = dependencies.getEnv("SUPABASE_ANON_KEY");
 
-    const user = await dependencies.getUser(supabaseUrl, anonKey, authorization);
+    const user = await dependencies.getUser(
+      supabaseUrl,
+      anonKey,
+      authorization,
+    );
     const userId = assertAuthenticatedUserId(user);
 
     const body = await readTelegramConnectBody(request);
@@ -263,7 +381,11 @@ export async function handleTelegramConnectRequest(
       try {
         ownership = await dependencies.lookupAgentOwnership(agentId, userId);
       } catch {
-        throw new HttpError(500, "server_error", "Telegram connect ownership lookup failed.");
+        throw new HttpError(
+          500,
+          "server_error",
+          "Telegram connect ownership lookup failed.",
+        );
       }
 
       assertAgentOwnership(agentId, userId, ownership);

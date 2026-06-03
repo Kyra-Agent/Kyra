@@ -560,6 +560,74 @@ What not to touch in this phase:
 - No Edge Function deploy.
 - No push or production publish.
 
+## Phase 5G.5 Read-Only Ownership Lookup State
+
+Phase 5G.5 wires the first real ownership read boundary into the inert
+`telegram-connect` function. It remains preparatory backend work only. It does
+not enable real Telegram connection, token validation, token storage, webhook
+registration, schema/RLS changes, frontend token input, Edge Function deploy, or
+production publish.
+
+Current behavior:
+
+- `telegram-connect` still requires `POST`, bearer auth, JSON content type, body
+  size limits, valid Supabase session, and a valid `agentId`.
+- `agentId` is validated as a UUID before any ownership lookup.
+- After session validation and body validation, the function creates a
+  service-role Supabase client inside trusted Edge Function runtime.
+- The service-role client is used only for read-only ownership lookup.
+- Owner match still returns inert `501 not_configured`.
+- There is still no Telegram API call, no `getMe`, no `setWebhook`, no Vault
+  access, no DB write, and no token persistence.
+
+Implemented lookup contract:
+
+```text
+agent_instances.id = agentId
+agent_instances.workspace_id -> workspaces.id
+workspaces.owner_user_id must equal authenticated user.id
+```
+
+Implemented read shape:
+
+- Read `agent_instances` with `select("id,workspace_id")`.
+- If no agent row exists, return `404 agent_not_found`.
+- Read `workspaces` with `select("id,owner_user_id")`.
+- If the workspace owner does not match the authenticated user, return
+  `403 forbidden`.
+- If ownership lookup throws unexpectedly, return sanitized
+  `500 server_error`.
+
+Response safety rules preserved:
+
+- Do not return `owner_user_id`, `workspace_id`, `ownerUserId`, `workspaceId`,
+  raw database errors, `token_secret_ref`, BotFather tokens, or secret-like
+  values.
+- Do not log request bodies.
+- Do not echo `botToken` if a client sends it early.
+- Do not filter the ownership query by `owner_user_id` before distinguishing
+  `404 agent_not_found` from `403 forbidden`.
+
+Test coverage added:
+
+- Read-only lookup queries `agent_instances` first, then `workspaces`.
+- Missing agent maps to `404 agent_not_found`.
+- Non-owner maps to `403 forbidden`.
+- Owner match remains inert and returns `not_configured`.
+- Non-UUID `agentId` maps to `400 invalid_request`.
+- Unexpected lookup errors map to sanitized `500 server_error`.
+- Responses do not leak owner IDs, workspace IDs, token refs, raw DB errors, or
+  submitted BotFather tokens.
+
+Remaining approvals before real Telegram connect:
+
+- BotFather token input UI.
+- Supabase Vault or approved fallback secret storage.
+- Token validation with Telegram `getMe`.
+- Webhook secret generation and registration.
+- Any schema/RLS changes, including Telegram bot identity columns.
+- Edge Function deploy and production publish.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
