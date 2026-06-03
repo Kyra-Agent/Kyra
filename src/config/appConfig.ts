@@ -15,6 +15,8 @@ const resetDemoWorkspaceFunctionUrl =
 const telegramConnectFunctionUrl =
   readEnv("VITE_KYRA_TELEGRAM_CONNECT_FUNCTION_URL") ||
   (supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/telegram-connect` : "");
+const telegramConnectTokenInputEnabled =
+  readEnv("VITE_KYRA_ENABLE_TELEGRAM_CONNECT_TOKEN_INPUT").toLowerCase() === "true";
 
 export const appConfig = {
   appName: "Kyra Agent",
@@ -34,6 +36,9 @@ export const appConfig = {
     resetDemoWorkspaceConfigured: Boolean(resetDemoWorkspaceFunctionUrl && supabaseConfigured),
     telegramConnectUrl: telegramConnectFunctionUrl,
     telegramConnectConfigured: Boolean(telegramConnectFunctionUrl && supabaseConfigured),
+  },
+  featureFlags: {
+    telegramConnectTokenInput: telegramConnectTokenInputEnabled,
   },
   integrations: {
     auth: requestedDataProvider === "supabase" && supabaseConfigured ? "supabase" : "demo",

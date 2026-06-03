@@ -1034,7 +1034,7 @@ export function Dashboard({
                 </p>
               </div>
             </div>
-            {authSession && agentRecord ? (
+            {authSession && agentRecord && appConfig.featureFlags.telegramConnectTokenInput ? (
               <form className="telegram-connect-gate" onSubmit={handleSubmitTelegramConnect}>
                 <label className="field telegram-token-field">
                   <span>BotFather token</span>
