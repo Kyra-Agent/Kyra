@@ -628,6 +628,77 @@ Remaining approvals before real Telegram connect:
 - Any schema/RLS changes, including Telegram bot identity columns.
 - Edge Function deploy and production publish.
 
+## Phase 5G.7 Mocked Token Validator Contract State
+
+Phase 5G.7 adds a mockable token validation boundary to the inert
+`telegram-connect` core. It does not call Telegram, validate a real BotFather
+token, access Vault, store token data, write database records, deploy Edge
+Functions, or publish production changes.
+
+Current behavior:
+
+- Runtime remains inert because `telegram-connect/index.ts` does not wire a real
+  Telegram validator dependency.
+- Requests that do not provide a validator dependency behave as before and
+  return `501 not_configured` after auth, body validation, and ownership checks.
+- If a test or future approved runtime dependency provides
+  `validateTelegramBotToken`, `botToken` is required and shape-checked only
+  after session validation, UUID `agentId` validation, and ownership match.
+- A successful mocked validator result still returns inert `not_configured`.
+- Validator failures map to safe errors without exposing the submitted token or
+  raw Telegram URL/message content.
+
+Implemented validator contract:
+
+```ts
+validateTelegramBotToken(botToken) -> {
+  telegramBotId: string;
+  username: string;
+  firstName: string;
+  canJoinGroups?: boolean;
+  canReadAllGroupMessages?: boolean;
+}
+```
+
+Implemented error contract:
+
+- `400 invalid_request`: missing, non-string, empty, or malformed `botToken`
+  when the validator dependency is enabled.
+- `422 telegram_validation_failed`: mocked validator rejects the token or
+  returns incomplete bot metadata.
+- `500 server_error`: unexpected validator error, returned with a generic
+  sanitized message.
+
+Security rules preserved:
+
+- Do not call `api.telegram.org`, `getMe`, or `setWebhook` yet.
+- Do not log request bodies or token values.
+- Do not return `botToken`, Telegram raw error bodies, Telegram API URLs,
+  `token_secret_ref`, owner IDs, or workspace IDs.
+- Do not run token validation before the signed-in user owns the target agent.
+- Do not persist token or bot metadata yet.
+
+Test coverage added:
+
+- Missing `botToken` maps to `400 invalid_request` only when the mocked
+  validator dependency is enabled.
+- Malformed `botToken` maps to `400 invalid_request` before validator execution.
+- Mocked validator success remains inert and returns `not_configured`.
+- Mocked validation rejection maps to `422 telegram_validation_failed`.
+- Unexpected validator errors map to sanitized `500 server_error`.
+- Non-owner requests do not run token validation.
+- Responses do not echo the submitted BotFather token or mocked Telegram bot
+  identity.
+
+Remaining approvals before real token validation:
+
+- Real BotFather token input UI.
+- Real Telegram `getMe` HTTP client with timeout and sanitized errors.
+- Supabase Vault or approved fallback secret storage.
+- DB writes for `telegram_sessions.token_secret_ref` and safe bot metadata.
+- Schema/RLS changes for persistent Telegram bot identity, if needed.
+- Edge Function deploy and production publish.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.

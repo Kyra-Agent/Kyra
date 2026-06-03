@@ -1,6 +1,6 @@
 # telegram-connect Edge Function
 
-This is an inert Phase 5D skeleton for the future Telegram connection flow.
+This is an inert Phase 5 skeleton for the future Telegram connection flow.
 It is not a live Telegram integration.
 
 ## Safety Contract
@@ -8,9 +8,14 @@ It is not a live Telegram integration.
 - Accepts `POST` and `OPTIONS` only.
 - Requires a valid Supabase Auth bearer token.
 - Parses JSON safely.
-- Requires an `agentId` string.
-- Ignores any submitted `botToken`.
-- Does not return, log, persist, validate, or use a BotFather token.
+- Requires a UUID `agentId`.
+- Validates the signed-in user owns the target agent with a read-only
+  `agent_instances -> workspaces.owner_user_id` lookup.
+- Includes a mockable BotFather token validator contract for tests and future
+  wiring.
+- Ignores any submitted `botToken` unless a test or future approved runtime
+  dependency explicitly enables the validator.
+- Does not return, log, persist, or use a BotFather token.
 - Does not call Telegram APIs.
 - Does not access Supabase Vault.
 - Does not create or read secrets.
@@ -19,7 +24,7 @@ It is not a live Telegram integration.
 
 ## Current Response
 
-Authenticated requests with a valid JSON body and `agentId` return:
+Authenticated owner requests with a valid JSON body and `agentId` return:
 
 ```json
 {

@@ -13,6 +13,14 @@ export interface AgentOwnershipRecord {
   workspaceId: string;
 }
 
+export interface TelegramBotValidationResult {
+  telegramBotId: string;
+  username: string;
+  firstName: string;
+  canJoinGroups?: boolean;
+  canReadAllGroupMessages?: boolean;
+}
+
 export interface OwnershipLookupAgentRow {
   id: string;
   workspace_id: string;
@@ -52,6 +60,7 @@ export class HttpError extends Error {
 export const maxTelegramConnectBodyBytes = 8192;
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const botTokenPattern = /^\d{5,20}:[A-Za-z0-9_-]{20,128}$/;
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -71,6 +80,9 @@ export interface TelegramConnectDependencies {
     agentId: string,
     ownerUserId: string,
   ) => Promise<AgentOwnershipRecord | null>;
+  validateTelegramBotToken?: (
+    botToken: string,
+  ) => Promise<TelegramBotValidationResult>;
 }
 
 export function jsonResponse(body: Record<string, unknown>, status = 200) {
@@ -258,6 +270,61 @@ export function assertAgentId(value: unknown) {
   return agentId;
 }
 
+export function assertBotToken(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new HttpError(400, "invalid_request", "botToken is required.");
+  }
+
+  const botToken = value.trim();
+
+  if (!botTokenPattern.test(botToken)) {
+    throw new HttpError(400, "invalid_request", "botToken is invalid.");
+  }
+
+  return botToken;
+}
+
+export function assertTelegramBotValidationResult(value: unknown) {
+  if (!value || typeof value !== "object") {
+    throw new HttpError(
+      422,
+      "telegram_validation_failed",
+      "Telegram bot token could not be validated.",
+    );
+  }
+
+  const result = value as Record<string, unknown>;
+  const telegramBotId = typeof result.telegramBotId === "string"
+    ? result.telegramBotId.trim()
+    : "";
+  const username = typeof result.username === "string"
+    ? result.username.trim()
+    : "";
+  const firstName = typeof result.firstName === "string"
+    ? result.firstName.trim()
+    : "";
+
+  if (!telegramBotId || !username || !firstName) {
+    throw new HttpError(
+      422,
+      "telegram_validation_failed",
+      "Telegram bot token could not be validated.",
+    );
+  }
+
+  return {
+    telegramBotId,
+    username,
+    firstName,
+    canJoinGroups: typeof result.canJoinGroups === "boolean"
+      ? result.canJoinGroups
+      : undefined,
+    canReadAllGroupMessages: typeof result.canReadAllGroupMessages === "boolean"
+      ? result.canReadAllGroupMessages
+      : undefined,
+  };
+}
+
 export async function lookupAgentOwnershipRecord(
   serviceClient: OwnershipLookupClient,
   agentId: string,
@@ -389,6 +456,25 @@ export async function handleTelegramConnectRequest(
       }
 
       assertAgentOwnership(agentId, userId, ownership);
+    }
+
+    if (dependencies.validateTelegramBotToken) {
+      const botToken = assertBotToken(body.botToken);
+
+      try {
+        const bot = await dependencies.validateTelegramBotToken(botToken);
+        assertTelegramBotValidationResult(bot);
+      } catch (error) {
+        if (error instanceof HttpError) {
+          throw error;
+        }
+
+        throw new HttpError(
+          500,
+          "server_error",
+          "Telegram bot token validation failed.",
+        );
+      }
     }
 
     return jsonResponse(

@@ -30,6 +30,7 @@ const testAgentId = "11111111-1111-4111-8111-111111111111";
 const testWorkspaceId = "22222222-2222-4222-8222-222222222222";
 const testUserId = "33333333-3333-4333-8333-333333333333";
 const otherUserId = "44444444-4444-4444-8444-444444444444";
+const testBotToken = "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi";
 
 interface LookupCall {
   table: string;
@@ -453,6 +454,279 @@ Deno.test("telegram-connect continues inert not_configured when ownership matche
     !serializedBody.includes(testWorkspaceId),
     "Response must not expose workspace id.",
   );
+});
+
+Deno.test("telegram-connect requires botToken when mocked validator is enabled", async () => {
+  let ownershipLookupCalled = false;
+  let validatorCalled = false;
+
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({ agentId: testAgentId }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => ({ id: testUserId }),
+      lookupAgentOwnership: async (agentId, ownerUserId) => {
+        ownershipLookupCalled = true;
+        return {
+          agentId,
+          ownerUserId,
+          workspaceId: testWorkspaceId,
+        };
+      },
+      validateTelegramBotToken: async () => {
+        validatorCalled = true;
+        return {
+          telegramBotId: "987654321",
+          username: "kyra_test_bot",
+          firstName: "Kyra Test",
+        };
+      },
+    },
+  );
+
+  const body = await readJson(response);
+
+  assertEquals(response.status, 400);
+  assertEquals(body.ok, false);
+  assertEquals(body.status, "invalid_request");
+  assertEquals(body.message, "botToken is required.");
+  assert(
+    ownershipLookupCalled,
+    "Ownership must be checked before token validation.",
+  );
+  assert(!validatorCalled, "Missing botToken must not call token validator.");
+});
+
+Deno.test("telegram-connect rejects malformed botToken before mocked validator call", async () => {
+  let validatorCalled = false;
+
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({
+        agentId: testAgentId,
+        botToken: "not-a-token",
+      }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => ({ id: testUserId }),
+      lookupAgentOwnership: async (agentId, ownerUserId) => ({
+        agentId,
+        ownerUserId,
+        workspaceId: testWorkspaceId,
+      }),
+      validateTelegramBotToken: async () => {
+        validatorCalled = true;
+        return {
+          telegramBotId: "987654321",
+          username: "kyra_test_bot",
+          firstName: "Kyra Test",
+        };
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(response.status, 400);
+  assertEquals(body.ok, false);
+  assertEquals(body.status, "invalid_request");
+  assertEquals(body.message, "botToken is invalid.");
+  assert(!validatorCalled, "Malformed botToken must not call token validator.");
+  assert(
+    !serializedBody.includes("not-a-token"),
+    "Response must not echo invalid botToken.",
+  );
+});
+
+Deno.test("telegram-connect mocked token validator success remains inert", async () => {
+  const order: string[] = [];
+
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({
+        agentId: testAgentId,
+        botToken: testBotToken,
+      }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => {
+        order.push("session");
+        return { id: testUserId };
+      },
+      lookupAgentOwnership: async (agentId, ownerUserId) => {
+        order.push("ownership");
+        return {
+          agentId,
+          ownerUserId,
+          workspaceId: testWorkspaceId,
+        };
+      },
+      validateTelegramBotToken: async (botToken) => {
+        order.push("validator");
+        assertEquals(botToken, testBotToken);
+        return {
+          telegramBotId: "987654321",
+          username: "kyra_test_bot",
+          firstName: "Kyra Test",
+          canJoinGroups: true,
+          canReadAllGroupMessages: false,
+        };
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(order.join(","), "session,ownership,validator");
+  assertEquals(response.status, 501);
+  assertEquals(body.ok, false);
+  assertEquals(body.status, "not_configured");
+  assertEquals(
+    body.message,
+    "Telegram connect is planned but not enabled yet.",
+  );
+  assert(
+    !serializedBody.includes(testBotToken),
+    "Response must not echo botToken.",
+  );
+  assert(
+    !serializedBody.includes("987654321"),
+    "Inert response must not return mocked Telegram bot id.",
+  );
+});
+
+Deno.test("telegram-connect maps mocked token validation failure to 422", async () => {
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({
+        agentId: testAgentId,
+        botToken: testBotToken,
+      }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => ({ id: testUserId }),
+      lookupAgentOwnership: async (agentId, ownerUserId) => ({
+        agentId,
+        ownerUserId,
+        workspaceId: testWorkspaceId,
+      }),
+      validateTelegramBotToken: async () => {
+        throw new HttpError(
+          422,
+          "telegram_validation_failed",
+          "Telegram bot token could not be validated.",
+        );
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(response.status, 422);
+  assertEquals(body.ok, false);
+  assertEquals(body.status, "telegram_validation_failed");
+  assertEquals(body.message, "Telegram bot token could not be validated.");
+  assert(
+    !serializedBody.includes(testBotToken),
+    "Response must not echo botToken.",
+  );
+});
+
+Deno.test("telegram-connect sanitizes unexpected mocked token validator errors", async () => {
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({
+        agentId: testAgentId,
+        botToken: testBotToken,
+      }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => ({ id: testUserId }),
+      lookupAgentOwnership: async (agentId, ownerUserId) => ({
+        agentId,
+        ownerUserId,
+        workspaceId: testWorkspaceId,
+      }),
+      validateTelegramBotToken: async () => {
+        throw new Error(
+          `raw api.telegram.org/bot${testBotToken}/getMe failure`,
+        );
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(response.status, 500);
+  assertEquals(body.ok, false);
+  assertEquals(body.status, "server_error");
+  assertEquals(body.message, "Telegram bot token validation failed.");
+  assert(
+    !serializedBody.includes(testBotToken),
+    "Response must not echo botToken.",
+  );
+  assert(
+    !serializedBody.includes("api.telegram.org"),
+    "Response must not expose Telegram API URL.",
+  );
+});
+
+Deno.test("telegram-connect does not validate botToken before ownership succeeds", async () => {
+  let validatorCalled = false;
+
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({
+        agentId: testAgentId,
+        botToken: testBotToken,
+      }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => ({ id: testUserId }),
+      lookupAgentOwnership: async () => ({
+        agentId: testAgentId,
+        ownerUserId: otherUserId,
+        workspaceId: testWorkspaceId,
+      }),
+      validateTelegramBotToken: async () => {
+        validatorCalled = true;
+        return {
+          telegramBotId: "987654321",
+          username: "kyra_test_bot",
+          firstName: "Kyra Test",
+        };
+      },
+    },
+  );
+
+  const body = await readJson(response);
+
+  assertEquals(response.status, 403);
+  assertEquals(body.status, "forbidden");
+  assert(!validatorCalled, "Non-owner requests must not validate botToken.");
 });
 
 Deno.test("telegram-connect sanitizes unexpected ownership lookup errors", async () => {
