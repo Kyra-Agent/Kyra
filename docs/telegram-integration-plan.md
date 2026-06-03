@@ -899,6 +899,109 @@ Must not be touched yet:
 - Do not deploy Edge Functions.
 - Do not push or publish production changes.
 
+## Phase 5J Secret-Store Adapter Boundary Plan
+
+Phase 5J is the boundary for future backend-only token storage. It does not
+apply Supabase Vault, create/read/update/revoke real secrets, write
+`telegram_sessions.token_secret_ref`, change schema/RLS, deploy Edge Functions,
+push commits, or publish production changes.
+
+Current readiness:
+
+- `telegram-connect` can validate a signed-in owner and has an isolated `getMe`
+  helper available for future approved runtime wiring.
+- The repo still has no executable Supabase Vault implementation.
+- `telegram_sessions.token_secret_ref` exists but is currently `null` for demo
+  sessions.
+- Dashboard still uses `telegram_sessions?select=*`, so real secret references
+  must not be written yet.
+- Authenticated table access for `telegram_sessions` is still broad enough that
+  a non-null `token_secret_ref` could reach the browser unless a safe view/RPC
+  or column-level grant change is approved first.
+
+Recommended adapter contract:
+
+- Keep the storage boundary behind a small dependency-injected interface.
+- Use mocked implementations and unit tests before any real Vault/RPC wiring.
+- Treat `tokenSecretRef` as sensitive backend metadata even though it is not the
+  raw BotFather token.
+- Never expose raw tokens or resolved token values through responses, logs,
+  activity records, frontend state, public views, or dashboard queries.
+
+Proposed adapter shape:
+
+```ts
+storeTelegramBotToken({
+  agentId,
+  ownerUserId,
+  telegramBotId,
+  botToken
+}) -> {
+  tokenSecretRef,
+  provider
+}
+
+resolveTelegramBotToken({ tokenSecretRef }) -> {
+  botToken
+}
+
+revokeTelegramBotToken({ tokenSecretRef }) -> {
+  revoked
+}
+```
+
+Mocked adapter rules:
+
+- Return an opaque fake `tokenSecretRef`, such as
+  `mock_telegram_token_ref_<id>`.
+- Do not derive the reference from the raw token.
+- Do not include the raw token in thrown errors.
+- Do not persist anything.
+- Do not call Vault, Supabase, external secret managers, or the database.
+- Keep the adapter isolated and not wired into `telegram-connect/index.ts`.
+
+Recommended future real path:
+
+- Prefer Supabase Vault through narrow server-side RPCs.
+- `store` creates or rotates a Vault secret and returns only the secret
+  reference.
+- `resolve` is allowed only in trusted Edge Function runtime paths that need to
+  call Telegram.
+- `revoke` deletes or deactivates the secret reference before session
+  deactivation or transfer.
+- Real storage wiring must happen only after safe Telegram session metadata
+  exposure is approved.
+
+Error mapping:
+
+- `503 secret_store_unavailable`: Vault/RPC/secret manager unavailable.
+- `500 server_error`: unexpected sanitized storage failure.
+- `404 secret_not_found`: future resolve/revoke cannot find an expected secret.
+- `409 secret_conflict`: future store detects duplicate or conflicting secret
+  state.
+
+Test plan for the mocked adapter:
+
+- Store returns an opaque reference and provider without exposing the token.
+- Store does not call external dependencies.
+- Resolve returns only to server-side caller tests, never API responses.
+- Revoke returns a safe `{ revoked: true }` style result.
+- Store/resolve/revoke unexpected errors sanitize token-like strings.
+- No tests use real BotFather tokens.
+- No runtime file imports the mocked adapter unless separately approved.
+
+Must not be touched yet:
+
+- Do not enable/apply Supabase Vault.
+- Do not create/read/update/revoke real secrets.
+- Do not add Vault RPCs.
+- Do not change schema/RLS.
+- Do not write `telegram_sessions.token_secret_ref`.
+- Do not change dashboard queries.
+- Do not wire the adapter into runtime `telegram-connect`.
+- Do not deploy Edge Functions.
+- Do not push or publish production changes.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
