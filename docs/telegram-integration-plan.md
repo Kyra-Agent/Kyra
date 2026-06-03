@@ -2464,6 +2464,95 @@ Go/no-go boundary:
   token input, Telegram API calls, Edge Function deploy, Netlify publish, or push
   without separate approval.
 
+## Phase 5Y.1 Executable SQL Readiness Packet
+
+Phase 5Y.1 is documentation only. It does not convert the draft into executable
+SQL, apply Supabase Vault, change schema/RLS/grants, create/read/update/revoke
+secrets, enable runtime gates, wire token persistence, deploy Edge Functions,
+push commits, or publish production.
+
+Readiness summary:
+
+- `supabase/telegram_vault_rpc_draft.sql` is a comment-only artifact and remains
+  `DRAFT ONLY - DO NOT APPLY`.
+- `supabase/verify_authenticated_demo_write_lockdown.sql` can verify future
+  Telegram Vault RPC existence and execute boundaries.
+- The verifier now covers `public`, `anon`, `authenticated`, and `service_role`
+  execute outcomes.
+- `telegram-connect` has gated helper code for future `getMe` validation and
+  RPC-based secret storage, but those paths must remain inactive until SQL,
+  Vault, and deployment approvals are complete.
+- `telegram_sessions.token_secret_ref` must stay `null` for demo rows and must
+  not be written with a real ref until post-apply verification passes.
+
+Manual Supabase confirmations required before executable SQL:
+
+1. Confirm Supabase Vault is available in the target project.
+2. Confirm the exact Vault extension statement and schema name.
+3. Confirm the exact API for secret create, decrypted read, and revoke/delete or
+   approved revocation alternative.
+4. Confirm the data type returned by Vault for secret identifiers.
+5. Confirm whether `public.telegram_bot_token_secrets` is the approved metadata
+   table name.
+6. Confirm the partial unique index or RPC logic for active `telegram_bot_id`
+   duplicate prevention.
+7. Confirm whether `revoked_at` is enough lifecycle state or whether a `status`
+   column is required.
+8. Confirm the runbook/migration delivery format before any SQL is copied into a
+   Supabase SQL editor.
+
+Do not enable runtime gates yet:
+
+- Do not set or enable `KYRA_TELEGRAM_CONNECT_GETME_ENABLED=true` in production.
+- Do not enable any future token persistence gate.
+- Do not expose frontend BotFather token input.
+- Do not deploy `telegram-connect` with live token storage behavior.
+- Do not deploy `telegram-webhook` with live command processing.
+- Do not write non-null `telegram_sessions.token_secret_ref`.
+
+Expected verifier booleans after an approved SQL apply:
+
+- `store_telegram_bot_token_function_exists` must be `true`.
+- `public_cannot_execute_store_telegram_bot_token` must be `true`.
+- `anon_cannot_execute_store_telegram_bot_token` must be `true`.
+- `auth_cannot_execute_store_telegram_bot_token` must be `true`.
+- `service_role_can_execute_store_telegram_bot_token` must be `true`.
+- `resolve_telegram_bot_token_function_exists` must be `true`.
+- `public_cannot_execute_resolve_telegram_bot_token` must be `true`.
+- `anon_cannot_execute_resolve_telegram_bot_token` must be `true`.
+- `auth_cannot_execute_resolve_telegram_bot_token` must be `true`.
+- `service_role_can_execute_resolve_telegram_bot_token` must be `true`.
+- `revoke_telegram_bot_token_function_exists` must be `true`.
+- `public_cannot_execute_revoke_telegram_bot_token` must be `true`.
+- `anon_cannot_execute_revoke_telegram_bot_token` must be `true`.
+- `auth_cannot_execute_revoke_telegram_bot_token` must be `true`.
+- `service_role_can_execute_revoke_telegram_bot_token` must be `true`.
+- Browser-facing Telegram session checks must still prove `token_secret_ref`,
+  owner IDs, workspace IDs, and other sensitive fields are not exposed.
+
+Abort criteria:
+
+- Abort if the Vault extension/API names differ from the assumptions in the
+  draft.
+- Abort if Vault does not support an approved revoke/delete/update lifecycle.
+- Abort if any browser role can execute `store`, `resolve`, or `revoke`.
+- Abort if `service_role` cannot execute all three RPCs.
+- Abort if `telegram_session_summaries` exposes `token_secret_ref`,
+  `owner_user_id`, or `workspace_id`.
+- Abort if the metadata table is browser-readable or browser-writable.
+- Abort if any SQL error output or verifier output includes raw token-like test
+  values.
+- Abort before writing any non-null `token_secret_ref`.
+
+Recommended next approval slice:
+
+- Convert the comment-only draft into a separate executable SQL review draft in
+  a new phase.
+- Keep it local-only until reviewed.
+- Run static scans before any Supabase apply.
+- Apply manually only after explicit approval.
+- Capture verifier output immediately after apply.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
