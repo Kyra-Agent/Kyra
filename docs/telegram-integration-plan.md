@@ -1152,6 +1152,159 @@ Must not be touched yet:
 - Do not deploy Edge Functions.
 - Do not push or publish production changes.
 
+## Phase 5L Safe Telegram Metadata Exposure Plan
+
+Phase 5L defines how browser-facing Telegram session metadata should be exposed
+before real Telegram persistence is enabled. It does not change schema/RLS,
+dashboard queries, Edge Functions, token handling, Vault access, Telegram API
+calls, deploys, pushes, or production behavior.
+
+Current exposure findings:
+
+- `telegram_sessions` includes `token_secret_ref`.
+- RLS limits `telegram_sessions` reads to workspace owners through the existing
+  owner policy.
+- Authenticated users currently have broad table-level select on
+  `telegram_sessions`.
+- Dashboard currently fetches Telegram session rows with
+  `telegram_sessions?select=*`.
+- Public agent profile reads use `public_agent_profiles` and do not expose
+  `token_secret_ref`.
+- The TypeScript database type model currently covers `Tables`; browser-facing
+  view typing will need either a `Views` section or a local safe row type.
+
+Why this must be fixed before real connect:
+
+- `token_secret_ref` is not the raw BotFather token, but it is still sensitive
+  backend metadata.
+- Owner-only RLS is not enough for this field because the browser should not
+  receive any token reference at all.
+- A non-null `token_secret_ref` must not be written until broad table reads and
+  `select=*` dashboard reads are removed from the browser path.
+
+Preferred safe exposure approach:
+
+1. Create a browser-facing safe view such as
+   `public.telegram_session_summaries`.
+2. Use `with (security_invoker = true)` so existing RLS still applies.
+3. Revoke broad authenticated select on `telegram_sessions`.
+4. Grant authenticated select only on safe `telegram_sessions` columns required
+   by the view.
+5. Grant authenticated select on the safe view.
+6. Update dashboard reads to use the safe view and explicit column selection.
+7. Keep full table access available only to trusted server-side service-role
+   paths.
+
+Proposed safe view fields:
+
+- `id`
+- `agent_id`
+- `bot_handle`
+- `webhook_status`
+- `created_at`
+- `last_event_at`
+
+Fields that must not be exposed:
+
+- `token_secret_ref`
+- raw BotFather token
+- resolved token value
+- webhook secret or webhook secret reference
+- Telegram chat IDs
+- raw webhook payloads
+- `owner_user_id`
+- `workspace_id`
+- raw database or internal error details
+
+Non-applied SQL direction for future approval:
+
+```sql
+revoke all privileges on public.telegram_sessions from authenticated;
+
+grant select (
+  id,
+  agent_id,
+  bot_handle,
+  webhook_status,
+  created_at,
+  last_event_at
+) on public.telegram_sessions to authenticated;
+
+create or replace view public.telegram_session_summaries
+with (security_invoker = true)
+as
+select
+  sessions.id,
+  sessions.agent_id,
+  sessions.bot_handle,
+  sessions.webhook_status,
+  sessions.created_at,
+  sessions.last_event_at
+from public.telegram_sessions sessions;
+
+grant select on public.telegram_session_summaries to authenticated;
+grant all on public.telegram_sessions to service_role;
+```
+
+Dashboard query target after approval:
+
+```ts
+telegram_session_summaries?select=id,agent_id,bot_handle,webhook_status,created_at,last_event_at&agent_id=in.(...)
+```
+
+Do not keep this browser query after safe exposure work:
+
+```ts
+telegram_sessions?select=*
+```
+
+TypeScript impact:
+
+- Add a safe row type for `telegram_session_summaries`.
+- Prefer adding `KyraDatabase["public"]["Views"]` typing if more views will be
+  used later.
+- A local `TelegramSessionSummaryRow` interface is acceptable for the first
+  narrow dashboard change if generated view typing is not available.
+- Do not reuse `SupabaseTableRow<"telegram_sessions">` for browser-facing
+  metadata after the safe view exists, because that table type includes
+  `token_secret_ref`.
+
+Verification plan for implementation later:
+
+- `rg "telegram_sessions\\?select=\\*" src`
+- `rg "token_secret_ref" src`
+- `npm exec tsc -- --noEmit`
+- `npm run build`
+- Static SQL review confirms authenticated users do not have broad
+  `telegram_sessions` table select.
+- Static SQL review confirms the safe view excludes `token_secret_ref`.
+- Browser/dashboard smoke confirms Telegram demo metadata still renders.
+
+Approval points before implementation:
+
+- Schema/RLS approval for grants and safe view.
+- Frontend approval to switch the dashboard query to the safe view.
+- Type model approval if `KyraDatabase` gains a `Views` section.
+- Production rollout approval before applying SQL to a live Supabase project.
+
+Files likely touched later:
+
+- `docs/telegram-integration-plan.md`
+- `supabase/schema.sql` or a future migration file
+- `src/types/database.ts`
+- `src/services/supabaseDashboardService.ts`
+
+Must not be touched yet:
+
+- Do not change schema/RLS.
+- Do not apply SQL.
+- Do not update dashboard runtime queries.
+- Do not write real `token_secret_ref` values.
+- Do not wire token storage.
+- Do not call Telegram.
+- Do not deploy Edge Functions.
+- Do not push or publish production changes.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
