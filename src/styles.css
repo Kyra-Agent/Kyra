@@ -2385,6 +2385,44 @@ h2 {
   min-height: 40px;
 }
 
+.telegram-connect-gate {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 0.85rem;
+}
+
+.telegram-token-field {
+  margin: 0;
+}
+
+.telegram-token-field input {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+.telegram-cancel-button {
+  width: 42px;
+  padding-inline: 0;
+}
+
+.telegram-connect-message {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.telegram-connect-running {
+  color: var(--blue);
+}
+
+.telegram-connect-success {
+  color: var(--green);
+}
+
+.telegram-connect-error {
+  color: var(--danger);
+}
+
 .queue-list,
 .wallet-policy-list,
 .backend-table-list,

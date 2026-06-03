@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   ArrowLeft,
@@ -49,6 +49,10 @@ import {
   getSupabaseAdapterStatus,
   type SupabaseConnectionStatus,
 } from "../services/supabaseKyraRepository";
+import {
+  connectTelegramBot,
+  type TelegramConnectStatus,
+} from "../services/telegramConnectService";
 import type { DataProvider } from "../types/api";
 import type { DemoActivityLog, DemoApprovalRequest } from "../types/backend";
 
@@ -169,6 +173,7 @@ function getCatalogValue(status: SupabaseConnectionStatus, templateCount: number
 }
 
 type DeployChecklistState = "complete" | "active" | "blocked" | "todo";
+type TelegramConnectUiStatus = "idle" | "running" | "success" | "error";
 
 interface DeployChecklistItem {
   label: string;
@@ -279,6 +284,12 @@ export function Dashboard({
     appConfig.functions.deployAgentConfigured ? "checking" : "not-configured",
   );
   const [deployFunctionMessage, setDeployFunctionMessage] = useState("");
+  const [telegramConnectToken, setTelegramConnectToken] = useState("");
+  const [telegramConnectStatus, setTelegramConnectStatus] =
+    useState<TelegramConnectUiStatus>("idle");
+  const [telegramConnectMessage, setTelegramConnectMessage] = useState(
+    "Real Telegram connect is gated while backend token storage is being prepared.",
+  );
   const supabaseStatus = getSupabaseAdapterStatus();
 
   useEffect(() => {
@@ -727,6 +738,73 @@ export function Dashboard({
     setDashboardReloadKey((key) => key + 1);
   }
 
+  function getTelegramConnectTone(status: TelegramConnectStatus) {
+    return status === "not_configured" || status === "function_not_configured"
+      ? "success"
+      : "error";
+  }
+
+  function clearTelegramConnectToken() {
+    setTelegramConnectToken("");
+  }
+
+  function handleCancelTelegramConnect() {
+    clearTelegramConnectToken();
+    setTelegramConnectStatus("idle");
+    setTelegramConnectMessage(
+      "Real Telegram connect is gated while backend token storage is being prepared.",
+    );
+  }
+
+  async function handleSubmitTelegramConnect(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!authSession || !agentRecord) {
+      clearTelegramConnectToken();
+      setTelegramConnectStatus("error");
+      setTelegramConnectMessage("Sign in and deploy a demo agent before connecting Telegram.");
+      return;
+    }
+
+    const botToken = telegramConnectToken.trim();
+
+    if (!botToken) {
+      clearTelegramConnectToken();
+      setTelegramConnectStatus("error");
+      setTelegramConnectMessage("Enter a BotFather token to test the secure connect gate.");
+      return;
+    }
+
+    setTelegramConnectStatus("running");
+    setTelegramConnectMessage("Checking the inert Telegram connect gate...");
+
+    try {
+      const freshAuth = await ensureFreshAuthSession(authSession);
+
+      syncFreshAuthSession(authSession, freshAuth);
+
+      if (!freshAuth.session) {
+        setTelegramConnectStatus("error");
+        setTelegramConnectMessage(freshAuth.message);
+        return;
+      }
+
+      const result = await connectTelegramBot({
+        session: freshAuth.session,
+        agentId: agentRecord.id,
+        botToken,
+      });
+
+      setTelegramConnectStatus(getTelegramConnectTone(result.status));
+      setTelegramConnectMessage(result.message);
+    } catch {
+      setTelegramConnectStatus("error");
+      setTelegramConnectMessage("Telegram connect request failed safely.");
+    } finally {
+      clearTelegramConnectToken();
+    }
+  }
+
   return (
     <main className="dashboard-page">
       <aside className="dashboard-sidebar">
@@ -956,13 +1034,58 @@ export function Dashboard({
                 </p>
               </div>
             </div>
-            <div className="telegram-status-actions">
-              <button className="button button-ghost" type="button" disabled>
-                <LockKeyhole size={16} />
-                Connect Telegram
-              </button>
-              <span>Coming next</span>
-            </div>
+            {authSession && agentRecord ? (
+              <form className="telegram-connect-gate" onSubmit={handleSubmitTelegramConnect}>
+                <label className="field telegram-token-field">
+                  <span>BotFather token</span>
+                  <input
+                    type="password"
+                    value={telegramConnectToken}
+                    onChange={(event) => setTelegramConnectToken(event.target.value)}
+                    placeholder="123456:AA..."
+                    autoComplete="new-password"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    disabled={telegramConnectStatus === "running"}
+                  />
+                </label>
+                <div className="telegram-status-actions">
+                  <button
+                    className="button button-ghost"
+                    type="submit"
+                    disabled={telegramConnectStatus === "running" || !telegramConnectToken.trim()}
+                  >
+                    <LockKeyhole size={16} />
+                    {telegramConnectStatus === "running" ? "Checking" : "Connect Telegram"}
+                  </button>
+                  <button
+                    className="button button-ghost telegram-cancel-button"
+                    type="button"
+                    onClick={handleCancelTelegramConnect}
+                    disabled={
+                      telegramConnectStatus === "running" ||
+                      (!telegramConnectToken && telegramConnectStatus === "idle")
+                    }
+                    aria-label="Clear Telegram token input"
+                  >
+                    <X size={16} />
+                  </button>
+                  <span>Coming next</span>
+                </div>
+                <p className={`telegram-connect-message telegram-connect-${telegramConnectStatus}`}>
+                  {telegramConnectMessage}
+                </p>
+              </form>
+            ) : (
+              <div className="telegram-status-actions">
+                <button className="button button-ghost" type="button" disabled>
+                  <LockKeyhole size={16} />
+                  Connect Telegram
+                </button>
+                <span>Coming next</span>
+              </div>
+            )}
           </section>
 
           <section className="dashboard-panel" id="approvals">
