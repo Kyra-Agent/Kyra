@@ -1,3 +1,8 @@
+export interface TelegramConnectRequest {
+  agentId?: unknown;
+  botToken?: unknown;
+}
+
 export class HttpError extends Error {
   readonly statusCode: number;
   readonly code: string;
@@ -9,14 +14,18 @@ export class HttpError extends Error {
   }
 }
 
-const telegramWebhookSecretHeader = "X-Telegram-Bot-Api-Secret-Token";
-export const maxTelegramWebhookBodyBytes = 131072;
+export const maxTelegramConnectBodyBytes = 8192;
 
-const corsHeaders = {
+export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-telegram-bot-api-secret-token",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+export interface TelegramConnectDependencies {
+  getEnv: (key: string) => string;
+  getUser: (supabaseUrl: string, anonKey: string, authorization: string) => Promise<unknown>;
+}
 
 export function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -52,7 +61,7 @@ export function getUnknownErrorMessage(error: unknown) {
     }
   }
 
-  return "Telegram webhook function failed.";
+  return "Telegram connect function failed.";
 }
 
 export function assertPostMethod(request: Request, functionName: string) {
@@ -61,18 +70,14 @@ export function assertPostMethod(request: Request, functionName: string) {
   }
 }
 
-export function assertWebhookSecretHeader(request: Request) {
-  const secret = request.headers.get(telegramWebhookSecretHeader);
+export function assertBearerAuthorization(request: Request) {
+  const authorization = request.headers.get("Authorization") ?? "";
 
-  if (!secret?.trim()) {
-    throw new HttpError(
-      401,
-      "webhook_verification_failed",
-      "Telegram webhook verification failed.",
-    );
+  if (!authorization.toLowerCase().startsWith("bearer ")) {
+    throw new HttpError(401, "unauthorized", "A valid Supabase session is required.");
   }
 
-  return secret.trim();
+  return authorization;
 }
 
 export function assertJsonContentType(headers: Headers) {
@@ -102,23 +107,104 @@ export function assertBodySizeFromHeaders(headers: Headers, maxBytes: number) {
   }
 }
 
-export function handleTelegramWebhookRequest(request: Request) {
+async function readTextBodyWithLimit(request: Request, maxBytes: number) {
+  if (!request.body) {
+    return "";
+  }
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+
+    if (done) {
+      break;
+    }
+
+    totalBytes += value.byteLength;
+
+    if (totalBytes > maxBytes) {
+      await reader.cancel();
+      throw new HttpError(413, "payload_too_large", "Request body is too large.");
+    }
+
+    chunks.push(value);
+  }
+
+  const bodyBytes = new Uint8Array(totalBytes);
+  let offset = 0;
+
+  for (const chunk of chunks) {
+    bodyBytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return new TextDecoder().decode(bodyBytes);
+}
+
+export async function readJsonObjectBody(
+  request: Request,
+  maxBytes: number,
+): Promise<Record<string, unknown>> {
+  const text = await readTextBodyWithLimit(request, maxBytes);
+
+  try {
+    const payload = JSON.parse(text);
+
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      throw new Error("Expected object payload.");
+    }
+
+    return payload as Record<string, unknown>;
+  } catch {
+    throw new HttpError(400, "invalid_request", "Request body must be valid JSON.");
+  }
+}
+
+export async function readTelegramConnectBody(request: Request): Promise<TelegramConnectRequest> {
+  return await readJsonObjectBody(request, maxTelegramConnectBodyBytes);
+}
+
+export function assertAgentId(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new HttpError(400, "invalid_request", "agentId is required.");
+  }
+
+  return value.trim();
+}
+
+export async function handleTelegramConnectRequest(
+  request: Request,
+  dependencies: TelegramConnectDependencies,
+) {
   if (request.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    assertPostMethod(request, "telegram-webhook");
+    assertPostMethod(request, "telegram-connect");
 
-    assertWebhookSecretHeader(request);
+    const authorization = assertBearerAuthorization(request);
+
     assertJsonContentType(request.headers);
-    assertBodySizeFromHeaders(request.headers, maxTelegramWebhookBodyBytes);
+    assertBodySizeFromHeaders(request.headers, maxTelegramConnectBodyBytes);
+
+    const supabaseUrl = dependencies.getEnv("SUPABASE_URL");
+    const anonKey = dependencies.getEnv("SUPABASE_ANON_KEY");
+
+    await dependencies.getUser(supabaseUrl, anonKey, authorization);
+
+    const body = await readTelegramConnectBody(request);
+
+    assertAgentId(body.agentId);
 
     return jsonResponse(
       {
         ok: false,
         status: "not_configured",
-        message: "Telegram webhook is planned but not enabled yet.",
+        message: "Telegram connect is planned but not enabled yet.",
       },
       501,
     );
@@ -143,8 +229,4 @@ export function handleTelegramWebhookRequest(request: Request) {
       500,
     );
   }
-}
-
-if (import.meta.main) {
-  Deno.serve((request) => handleTelegramWebhookRequest(request));
 }
