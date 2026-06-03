@@ -3,9 +3,13 @@ import {
   type AgentOwnershipRecord,
   handleTelegramConnectRequest,
   HttpError,
+  isTelegramConnectGetMeEnabled,
   lookupAgentOwnershipRecord,
   type OwnershipLookupClient,
+  type TelegramConnectDependencies,
+  telegramConnectGetMeEnabledEnvKey,
 } from "./core.ts";
+import { validateTelegramBotTokenWithGetMe } from "./telegram-api.ts";
 
 export * from "./core.ts";
 
@@ -23,6 +27,10 @@ export function getEnv(key: string) {
   }
 
   return value;
+}
+
+export function getOptionalEnv(key: string) {
+  return Deno.env.get(key) ?? "";
 }
 
 export async function getUser(
@@ -76,8 +84,8 @@ export async function lookupAgentOwnership(
   );
 }
 
-if (import.meta.main) {
-  const dependencies = {
+export function createTelegramConnectDependencies(): TelegramConnectDependencies {
+  const dependencies: TelegramConnectDependencies = {
     getEnv,
     getUser,
     lookupAgentOwnership: async (agentId: string) => {
@@ -88,6 +96,20 @@ if (import.meta.main) {
       return await lookupAgentOwnership(serviceClient, agentId);
     },
   };
+
+  if (
+    isTelegramConnectGetMeEnabled(
+      getOptionalEnv(telegramConnectGetMeEnabledEnvKey),
+    )
+  ) {
+    dependencies.validateTelegramBotToken = validateTelegramBotTokenWithGetMe;
+  }
+
+  return dependencies;
+}
+
+if (import.meta.main) {
+  const dependencies = createTelegramConnectDependencies();
 
   Deno.serve((request) => handleTelegramConnectRequest(request, dependencies));
 }

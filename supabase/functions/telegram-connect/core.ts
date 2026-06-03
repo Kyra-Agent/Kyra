@@ -58,6 +58,8 @@ export class HttpError extends Error {
 }
 
 export const maxTelegramConnectBodyBytes = 8192;
+export const telegramConnectGetMeEnabledEnvKey =
+  "KYRA_TELEGRAM_CONNECT_GETME_ENABLED";
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const botTokenPattern = /^\d{5,20}:[A-Za-z0-9_-]{20,128}$/;
@@ -125,6 +127,12 @@ export function getUnknownErrorMessage(error: unknown) {
   }
 
   return "Telegram connect function failed.";
+}
+
+export function isTelegramConnectGetMeEnabled(
+  value: string | null | undefined,
+) {
+  return value === "true";
 }
 
 export function assertPostMethod(request: Request, functionName: string) {

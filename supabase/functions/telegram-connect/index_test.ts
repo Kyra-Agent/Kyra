@@ -2,10 +2,13 @@ import {
   assertBodySizeFromHeaders,
   handleTelegramConnectRequest,
   HttpError,
+  isTelegramConnectGetMeEnabled,
   lookupAgentOwnershipRecord,
   maxTelegramConnectBodyBytes,
   readJsonObjectBody,
   sanitizeErrorMessage,
+  type TelegramConnectDependencies,
+  telegramConnectGetMeEnabledEnvKey,
 } from "./core.ts";
 
 function assert(condition: boolean, message: string) {
@@ -112,6 +115,41 @@ function makeConnectRequest(init: {
     headers,
     body: init.body ?? JSON.stringify({ agentId: testAgentId }),
   });
+}
+
+function makeGatedDependencies(
+  flagValue: string | null | undefined,
+  options: {
+    getUser?: TelegramConnectDependencies["getUser"];
+    lookupAgentOwnership?: NonNullable<
+      TelegramConnectDependencies["lookupAgentOwnership"]
+    >;
+    validateTelegramBotToken?: NonNullable<
+      TelegramConnectDependencies["validateTelegramBotToken"]
+    >;
+  } = {},
+) {
+  const dependencies: TelegramConnectDependencies = {
+    getEnv: () => "test-value",
+    getUser: options.getUser ?? (async () => ({ id: testUserId })),
+    lookupAgentOwnership: options.lookupAgentOwnership ??
+      (async (agentId, ownerUserId) => ({
+        agentId,
+        ownerUserId,
+        workspaceId: testWorkspaceId,
+      })),
+  };
+
+  if (isTelegramConnectGetMeEnabled(flagValue)) {
+    dependencies.validateTelegramBotToken = options.validateTelegramBotToken ??
+      (async () => ({
+        telegramBotId: "987654321",
+        username: "kyra_test_bot",
+        firstName: "Kyra Test",
+      }));
+  }
+
+  return dependencies;
 }
 
 Deno.test("telegram-connect ownership lookup reads agent then workspace", async () => {
@@ -454,6 +492,170 @@ Deno.test("telegram-connect continues inert not_configured when ownership matche
     !serializedBody.includes(testWorkspaceId),
     "Response must not expose workspace id.",
   );
+});
+
+Deno.test("telegram-connect getMe runtime gate defaults off and requires exact true", () => {
+  assertEquals(
+    telegramConnectGetMeEnabledEnvKey,
+    "KYRA_TELEGRAM_CONNECT_GETME_ENABLED",
+  );
+  assertEquals(isTelegramConnectGetMeEnabled(undefined), false);
+  assertEquals(isTelegramConnectGetMeEnabled(null), false);
+  assertEquals(isTelegramConnectGetMeEnabled(""), false);
+  assertEquals(isTelegramConnectGetMeEnabled("false"), false);
+  assertEquals(isTelegramConnectGetMeEnabled("TRUE"), false);
+  assertEquals(isTelegramConnectGetMeEnabled("1"), false);
+  assertEquals(isTelegramConnectGetMeEnabled("true"), true);
+});
+
+Deno.test("telegram-connect getMe runtime gate off does not call validator", async () => {
+  let validatorCalled = false;
+
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({ agentId: testAgentId }),
+    }),
+    makeGatedDependencies(undefined, {
+      validateTelegramBotToken: async () => {
+        validatorCalled = true;
+        return {
+          telegramBotId: "987654321",
+          username: "kyra_test_bot",
+          firstName: "Kyra Test",
+        };
+      },
+    }),
+  );
+
+  const body = await readJson(response);
+
+  assertEquals(response.status, 501);
+  assertEquals(body.status, "not_configured");
+  assert(
+    !validatorCalled,
+    "Default-off runtime gate must not call Telegram token validator.",
+  );
+});
+
+Deno.test("telegram-connect getMe runtime gate ignores non-true flag values", async () => {
+  let validatorCalled = false;
+
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({
+        agentId: testAgentId,
+        botToken: testBotToken,
+      }),
+    }),
+    makeGatedDependencies("TRUE", {
+      validateTelegramBotToken: async () => {
+        validatorCalled = true;
+        return {
+          telegramBotId: "987654321",
+          username: "kyra_test_bot",
+          firstName: "Kyra Test",
+        };
+      },
+    }),
+  );
+
+  const body = await readJson(response);
+
+  assertEquals(response.status, 501);
+  assertEquals(body.status, "not_configured");
+  assert(
+    !validatorCalled,
+    "Only exact string true may enable Telegram token validation.",
+  );
+});
+
+Deno.test("telegram-connect getMe runtime gate true validates after ownership", async () => {
+  const order: string[] = [];
+
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({
+        agentId: testAgentId,
+        botToken: testBotToken,
+      }),
+    }),
+    makeGatedDependencies("true", {
+      getUser: async () => {
+        order.push("session");
+        return { id: testUserId };
+      },
+      lookupAgentOwnership: async (agentId, ownerUserId) => {
+        order.push("ownership");
+        return {
+          agentId,
+          ownerUserId,
+          workspaceId: testWorkspaceId,
+        };
+      },
+      validateTelegramBotToken: async (botToken) => {
+        order.push("validator");
+        assertEquals(botToken, testBotToken);
+        return {
+          telegramBotId: "987654321",
+          username: "kyra_test_bot",
+          firstName: "Kyra Test",
+        };
+      },
+    }),
+  );
+
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(order.join(","), "session,ownership,validator");
+  assertEquals(response.status, 501);
+  assertEquals(body.status, "not_configured");
+  assert(
+    !serializedBody.includes(testBotToken),
+    "Response must not echo botToken after gated validation.",
+  );
+});
+
+Deno.test("telegram-connect getMe runtime gate true does not validate non-owner", async () => {
+  let validatorCalled = false;
+
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({
+        agentId: testAgentId,
+        botToken: testBotToken,
+      }),
+    }),
+    makeGatedDependencies("true", {
+      lookupAgentOwnership: async () => ({
+        agentId: testAgentId,
+        ownerUserId: otherUserId,
+        workspaceId: testWorkspaceId,
+      }),
+      validateTelegramBotToken: async () => {
+        validatorCalled = true;
+        return {
+          telegramBotId: "987654321",
+          username: "kyra_test_bot",
+          firstName: "Kyra Test",
+        };
+      },
+    }),
+  );
+
+  const body = await readJson(response);
+
+  assertEquals(response.status, 403);
+  assertEquals(body.status, "forbidden");
+  assert(!validatorCalled, "Non-owner requests must not call getMe.");
 });
 
 Deno.test("telegram-connect requires botToken when mocked validator is enabled", async () => {
