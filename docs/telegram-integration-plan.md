@@ -3725,6 +3725,129 @@ Next safest slice:
 - After that, Phase 5AO should be audit-only for webhook secret persistence
   finalization after a future successful `setWebhook`.
 
+### Phase 5AO Webhook Secret Persistence Finalization Audit
+
+Phase 5AO is an audit/docs-only checkpoint for the future step that stores the
+Telegram webhook verification secret hash and activates a staged Telegram
+session after Telegram confirms `setWebhook`. It does not apply SQL, change
+schema/RLS/grants, read or create real secrets, call Telegram, deploy Edge
+Functions, publish Netlify, or enable live Telegram behavior.
+
+Current findings:
+
+- `telegram-connect` now has an internal `telegramSessionId` from the session
+  persistence adapter.
+- The current staged session write only moves the eligible demo row from
+  `webhook_status=mocked` to `webhook_status=queued` and stores the opaque
+  `token_secret_ref`.
+- The future `registerTelegramWebhook` dependency receives enough internal
+  context to register a webhook, but it does not store a webhook secret row or
+  activate the session.
+- `registerTelegramWebhookWithSetWebhook` can call Telegram only through the
+  gated runtime path and is already tested with injected `fetch`; it still must
+  remain disabled until the storage/finalization contract is approved.
+- `telegram_webhook_receiver_schema_draft.sql` defines the intended private
+  `telegram_webhook_secrets` table and lookup RPC shape, but that draft remains
+  non-executable and must not be applied without separate approval.
+- `telegram-webhook` still has no live lookup from a verified webhook secret to
+  an active session.
+
+Recommended finalization order:
+
+1. Complete auth, ownership, `getMe`, token secret storage, and session staging.
+2. Generate a raw webhook secret in backend memory only.
+3. Hash the exact raw webhook secret bytes with SHA-256 lowercase hex.
+4. Generate an opaque backend-only `webhook_secret_ref` using the approved
+   `webhook:telegram:<uuid-v4>` format.
+5. Insert a private `telegram_webhook_secrets` row for the staged
+   `telegramSessionId` before calling Telegram. The row must store only
+   `webhook_secret_ref`, `webhook_secret_hash`, `telegram_session_id`,
+   `created_at`, and `revoked_at`.
+6. Call Telegram `setWebhook` with the raw webhook secret in memory only.
+7. Mark `telegram_sessions.webhook_status=active` only after Telegram confirms
+   `setWebhook`.
+8. Return the existing inert/sanitized public response shape until a separate
+   product milestone approves live UI claims.
+
+Why the secret row is created before `setWebhook`:
+
+- Telegram may deliver updates immediately after a successful `setWebhook`.
+- The receiver lookup must already be able to map the verified secret hash to
+  the staged session.
+- The lookup RPC still filters on `telegram_sessions.webhook_status='active'`,
+  so the pre-created secret row is not usable by inbound webhooks until the
+  session activation update succeeds.
+
+Required backend adapter boundaries:
+
+```text
+storeTelegramWebhookSecret({ telegramSessionId, webhookSecretHash }) -> {
+  webhookSecretRef
+}
+activateTelegramSession({ telegramSessionId }) -> void
+revokeTelegramWebhookSecret({ webhookSecretRef }) -> void
+```
+
+The returned `webhookSecretRef` is opaque backend metadata only.
+
+- Optional later:
+  `recordTelegramWebhookRegistrationFailure({ telegramSessionId, reasonCode }) -> void`
+  if failure metadata columns are approved.
+
+Adapter rules:
+
+- Raw webhook secret must never cross into SQL, logs, API responses, public
+  views, activity logs, localStorage, frontend state, or test snapshots that look
+  like production data.
+- SQL adapters receive only `telegramSessionId`, `webhookSecretHash`, and
+  `webhookSecretRef`.
+- `activateTelegramSession` must require the expected queued session id and must
+  reject missing, already-active, ambiguous, or mismatched rows.
+- `revokeTelegramWebhookSecret` should set `revoked_at`, not delete the row.
+- Any unexpected DB/RPC error must be sanitized to a generic server error or
+  `webhook_registration_failed` response without raw DB text.
+
+Failure behavior:
+
+- If webhook secret row creation fails: revoke the token ref if safe, do not call
+  Telegram, do not activate the session, return sanitized failure.
+- If `setWebhook` fails: revoke the newly created webhook secret row, revoke the
+  newly stored token ref if safe, do not activate the session, return sanitized
+  failure.
+- If session activation fails after `setWebhook` succeeds: treat as a blocker
+  requiring an explicit recovery plan before live enablement, because Telegram
+  may already deliver updates. Do not enable the runtime gate until this
+  recovery path is implemented and tested.
+- Failed reconnect must not revoke or overwrite an existing active session
+  unless an explicit transfer/reconnect flow has succeeded end to end.
+
+Security checks for the future implementation:
+
+- No raw BotFather token or raw webhook secret in DB/API/logs.
+- No `webhook_secret_ref` or `webhook_secret_hash` in browser-facing responses
+  or public views.
+- No `telegram_sessions.webhook_status=active` write before Telegram confirms
+  `setWebhook`.
+- No command processing until webhook verification, session lookup, and chat
+  authorization are all active and tested.
+- No live gate enablement until Edge Functions are deployed and production smoke
+  checks are approved.
+
+Phase 5AO go/no-go:
+
+- Go for a next docs-only or pure-helper slice that defines hash/ref helpers and
+  adapter contracts without DB writes.
+- No-go for executable SQL, real webhook secret storage, live `setWebhook`,
+  session activation writes, Edge Function deploy, Netlify publish, or runtime
+  gate enablement.
+
+Next safest slice:
+
+- Phase 5AO.1 should be pure helper/test work only for webhook secret hash/ref
+  generation and sanitized adapter contract shapes.
+- It should not add real DB writes, SQL apply, Telegram API calls, Vault reads,
+  frontend input, deploys, or pushes.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
