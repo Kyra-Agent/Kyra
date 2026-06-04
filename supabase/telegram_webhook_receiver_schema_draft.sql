@@ -25,10 +25,13 @@
 -- Required approvals before converting this draft into executable SQL
 -- - Confirm the session-lookup-only rollout boundary.
 -- - Confirm exact table name, column names, constraints, and indexes.
+-- - Confirm the explicit constraint names in this draft.
 -- - Confirm webhook secret hash algorithm and secret reference format.
 -- - Confirm whether hash generation happens only in Edge Functions or through
 --   an approved server-side RPC.
 -- - Confirm final RLS/grant statements.
+-- - Confirm the privileged migration role that will own the security-definer
+--   RPC. Do not assume the target-project role name.
 -- - Extend the verifier to check RLS state, exact columns and constraints,
 --   partial unique indexes, security-definer state, and restricted search path.
 -- - Confirm verifier expected outputs and a rollback artifact before applying.
@@ -45,25 +48,39 @@
 --   deferred objects belongs to the current slice.
 
 -- Proposed webhook secret table shape
--- - webhook_secret_ref text primary key
+-- - webhook_secret_ref text not null
 -- - webhook_secret_hash text not null
--- - telegram_session_id uuid not null references public.telegram_sessions(id) on delete cascade
+-- - telegram_session_id uuid not null
 -- - created_at timestamptz not null default now()
 -- - revoked_at timestamptz null
 -- - agent_id is intentionally not stored here; the session is the single source
 --   of truth for agent ownership and prevents session/agent drift.
 
+-- Stable constraint names
+-- - telegram_webhook_secrets_pkey
+-- - telegram_webhook_secrets_session_fkey
+-- - telegram_webhook_secrets_ref_not_blank_check
+-- - telegram_webhook_secrets_hash_not_blank_check
+
 -- Commented DDL sketch
 -- - Future executable SQL must fail if this table already exists. Do not use
 --   create table if not exists because it can silently accept a wrong shape.
 -- create table public.telegram_webhook_secrets (
---   webhook_secret_ref text primary key,
+--   webhook_secret_ref text not null,
 --   webhook_secret_hash text not null,
---   telegram_session_id uuid not null references public.telegram_sessions(id) on delete cascade,
+--   telegram_session_id uuid not null,
 --   created_at timestamptz not null default now(),
 --   revoked_at timestamptz null,
---   check (length(btrim(webhook_secret_ref)) > 0),
---   check (length(btrim(webhook_secret_hash)) > 0)
+--   constraint telegram_webhook_secrets_pkey
+--     primary key (webhook_secret_ref),
+--   constraint telegram_webhook_secrets_session_fkey
+--     foreign key (telegram_session_id)
+--     references public.telegram_sessions(id)
+--     on delete cascade,
+--   constraint telegram_webhook_secrets_ref_not_blank_check
+--     check (length(btrim(webhook_secret_ref)) > 0),
+--   constraint telegram_webhook_secrets_hash_not_blank_check
+--     check (length(btrim(webhook_secret_hash)) > 0)
 -- );
 
 -- Index intent
@@ -138,6 +155,17 @@
 --   limit 2;
 -- $$;
 
+-- RPC owner approval boundary
+-- - Approved owner placeholder: <approved_privileged_migration_role>.
+-- - Confirm the exact target-project role before executable SQL is written.
+-- - The owner must not be public, anon, or authenticated.
+-- - service_role should receive execute only and should not be assumed to own
+--   the security-definer RPC.
+-- - Future reviewed SQL should explicitly set the approved owner after function
+--   creation:
+-- alter function public.resolve_telegram_webhook_session(text)
+--   owner to <approved_privileged_migration_role>;
+
 -- Deferred chat authorization boundary
 -- - Do not create telegram_chat_authorizations or its lookup RPC in this slice.
 -- - A later design must define whether user and chat identifiers are matched as
@@ -159,6 +187,7 @@
 -- - telegram_webhook_secrets table exists.
 -- - The table has exactly the approved columns and no redundant agent_id.
 -- - RLS is enabled.
+-- - All four stable named constraints exist with the expected definitions.
 -- - Both approved partial unique indexes exist with the expected predicates.
 -- - public, anon, and authenticated cannot select, insert, update, or delete
 --   the private table.
@@ -166,6 +195,7 @@
 -- - resolve_telegram_webhook_session exists.
 -- - The RPC is stable, security definer, and has the approved restricted
 --   search path.
+-- - The RPC owner matches the explicitly approved privileged migration role.
 -- - public, anon, and authenticated cannot execute the lookup RPC.
 -- - service_role can execute the lookup RPC.
 -- - telegram_session_summaries still excludes token_secret_ref, owner_user_id,
