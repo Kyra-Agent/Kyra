@@ -4652,6 +4652,81 @@ Next safest slice:
   the required order. It must not accept `Request`, perform session lookup,
   send replies, or be wired into the live handler.
 
+### Phase 5AW Verified Read-Only Pipeline Preflight
+
+Phase 5AW prepares a pure pipeline that composes the existing parser, chat
+authorization contract, and static response builder. It does not verify webhook
+headers or sessions itself and is not wired into the live handler.
+
+Required future caller preconditions:
+
+- Telegram webhook secret verification succeeded.
+- Active webhook session lookup succeeded.
+- The caller supplies the expected bot username from the verified active
+  session.
+- The caller supplies an already-resolved chat authorization policy.
+
+Required pure pipeline order:
+
+1. Parse the already-parsed unknown Telegram Update value.
+2. Validate any group command target against the expected bot username.
+3. Authorize the parsed Telegram user/chat identity for `read_only`.
+4. Build the static read-only response only after authorization succeeds.
+5. Return a backend-only response plan without user/chat IDs or policy details.
+
+Proposed input contract:
+
+```ts
+interface TelegramVerifiedReadOnlyPipelineInput {
+  update: unknown;
+  expectedBotUsername?: string | null;
+  chatPolicy: TelegramWebhookChatAuthorizationPolicy;
+}
+```
+
+Proposed result contract:
+
+```ts
+interface TelegramVerifiedReadOnlyPipelineResult {
+  command: "help" | "status";
+  commandKind: "read_only";
+  authorizationRole: "owner" | "admin" | "member" | "public_read_only";
+  response: TelegramReadOnlyCommandResponse;
+}
+```
+
+Security requirements:
+
+- The result must not contain Telegram user/chat IDs, update/message IDs, bot
+  username, owner/workspace IDs, policy contents, raw update text, secrets,
+  token refs, or DB errors.
+- Unauthorized chats must fail before a response plan is returned.
+- Invalid/unsupported updates must fail before chat authorization.
+- Public community access may receive only `read_only` commands.
+- The pipeline must not accept `Request`, headers, raw JSON text, Supabase
+  clients, Telegram clients, or arbitrary response text.
+
+Tests required:
+
+- Owner-authorized personal `/help` succeeds.
+- Community member `/status` succeeds as read-only.
+- Community public read-only access succeeds.
+- Unknown personal chat returns `403 chat_not_authorized`.
+- Missing chat identity returns `400 invalid_update`.
+- Unsupported command returns `422 unsupported_update`.
+- Mismatched bot username returns `422 unsupported_update`.
+- Result shape excludes all identity and policy fields.
+- Live handler remains inert and does not call the pipeline.
+
+What not to touch in Phase 5AW:
+
+- No live handler wiring or request body parsing.
+- No webhook/session lookup or service-role client.
+- No chat authorization DB objects or lookup.
+- No Telegram reply sender/API call.
+- No DB read/write, Vault access, env read, or logging.
+- No SQL apply, Edge Function deploy, Netlify publish/unlock, or push.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
