@@ -1,4 +1,8 @@
-import { HttpError, type TelegramBotValidationResult } from "./core.ts";
+import {
+  assertBotToken,
+  HttpError,
+  type TelegramBotValidationResult,
+} from "./core.ts";
 
 export type TelegramFetch = (
   input: string,
@@ -10,8 +14,25 @@ export interface TelegramGetMeOptions {
   timeoutMs?: number;
 }
 
+export interface TelegramSetWebhookInput {
+  botToken: string;
+  webhookUrl: string;
+  webhookSecretToken: string;
+}
+
+export interface TelegramSetWebhookResult {
+  registered: true;
+}
+
+export interface TelegramSetWebhookOptions {
+  fetch?: TelegramFetch;
+  timeoutMs?: number;
+}
+
 const telegramApiBaseUrl = "https://api.telegram.org";
 const defaultGetMeTimeoutMs = 5000;
+const defaultSetWebhookTimeoutMs = 5000;
+const webhookSecretTokenPattern = /^[A-Za-z0-9_-]{32,256}$/;
 const validationFailedMessage = "Telegram bot token could not be validated.";
 const unavailableMessage = "Telegram is unavailable.";
 
@@ -43,6 +64,76 @@ function throwRateLimited(): never {
     "rate_limited",
     "Telegram validation is rate limited.",
   );
+}
+
+function throwWebhookRegistrationFailed(): never {
+  throw new HttpError(
+    422,
+    "telegram_validation_failed",
+    "Telegram webhook could not be registered.",
+  );
+}
+
+function throwWebhookRateLimited(): never {
+  throw new HttpError(
+    429,
+    "rate_limited",
+    "Telegram webhook registration is rate limited.",
+  );
+}
+
+function assertWebhookUrl(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new HttpError(400, "invalid_request", "webhookUrl is required.");
+  }
+
+  const rawUrl = value.trim();
+
+  if (rawUrl.length > 2048) {
+    throw new HttpError(400, "invalid_request", "webhookUrl is invalid.");
+  }
+
+  let parsedUrl: URL;
+
+  try {
+    parsedUrl = new URL(rawUrl);
+  } catch {
+    throw new HttpError(400, "invalid_request", "webhookUrl is invalid.");
+  }
+
+  if (
+    parsedUrl.protocol !== "https:" ||
+    !parsedUrl.hostname ||
+    parsedUrl.username ||
+    parsedUrl.password ||
+    parsedUrl.hash
+  ) {
+    throw new HttpError(400, "invalid_request", "webhookUrl is invalid.");
+  }
+
+  return parsedUrl.toString();
+}
+
+function assertWebhookSecretToken(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new HttpError(
+      400,
+      "invalid_request",
+      "webhookSecretToken is required.",
+    );
+  }
+
+  const secretToken = value.trim();
+
+  if (!webhookSecretTokenPattern.test(secretToken)) {
+    throw new HttpError(
+      400,
+      "invalid_request",
+      "webhookSecretToken is invalid.",
+    );
+  }
+
+  return secretToken;
 }
 
 function normalizeTelegramBotResult(
@@ -100,6 +191,22 @@ function mapTelegramFailure(status: number): never {
   throwValidationFailed();
 }
 
+function mapSetWebhookFailure(status: number): never {
+  if (status === 429) {
+    throwWebhookRateLimited();
+  }
+
+  if (status === 401 || status === 404) {
+    throwWebhookRegistrationFailed();
+  }
+
+  if (status >= 500) {
+    throwTelegramUnavailable();
+  }
+
+  throwWebhookRegistrationFailed();
+}
+
 export async function validateTelegramBotTokenWithGetMe(
   botToken: string,
   options: TelegramGetMeOptions = {},
@@ -144,6 +251,79 @@ export async function validateTelegramBotTokenWithGetMe(
     }
 
     return normalizeTelegramBotResult(envelope.result);
+  } catch (error) {
+    if (error instanceof HttpError) {
+      throw error;
+    }
+
+    if (error instanceof Error && error.name === "AbortError") {
+      throwTelegramUnavailable();
+    }
+
+    throwTelegramUnavailable();
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+export async function registerTelegramWebhookWithSetWebhook(
+  input: TelegramSetWebhookInput,
+  options: TelegramSetWebhookOptions = {},
+): Promise<TelegramSetWebhookResult> {
+  const botToken = assertBotToken(input.botToken);
+  const webhookUrl = assertWebhookUrl(input.webhookUrl);
+  const webhookSecretToken = assertWebhookSecretToken(
+    input.webhookSecretToken,
+  );
+  const fetchTelegram = options.fetch ?? fetch;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    getTimeoutMs(options.timeoutMs ?? defaultSetWebhookTimeoutMs),
+  );
+  const setWebhookUrl = `${telegramApiBaseUrl}/bot${botToken}/setWebhook`;
+
+  try {
+    const response = await fetchTelegram(setWebhookUrl, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        url: webhookUrl,
+        secret_token: webhookSecretToken,
+        allowed_updates: ["message", "callback_query"],
+        drop_pending_updates: false,
+      }),
+    });
+
+    if (!response.ok) {
+      mapSetWebhookFailure(response.status);
+    }
+
+    let payload: unknown;
+
+    try {
+      payload = await response.json();
+    } catch {
+      throwTelegramUnavailable();
+    }
+
+    if (!payload || typeof payload !== "object") {
+      throwWebhookRegistrationFailed();
+    }
+
+    const envelope = payload as Record<string, unknown>;
+    const errorCode = typeof envelope.error_code === "number"
+      ? envelope.error_code
+      : response.status;
+
+    if (envelope.ok !== true || envelope.result !== true) {
+      mapSetWebhookFailure(errorCode);
+    }
+
+    return { registered: true };
   } catch (error) {
     if (error instanceof HttpError) {
       throw error;
