@@ -5340,6 +5340,131 @@ Go/no-go:
   applying SQL, inserting rows, runtime DB wiring, request body parsing,
   Telegram API calls, deployment, Netlify changes, or push.
 
+### Phase 5BD Database Verifier Extension Closeout
+
+Phase 5BD extends `supabase/verify_authenticated_demo_write_lockdown.sql` with
+guarded read-only checks for the future chat authorization and atomic update
+claim objects.
+
+Completed verifier coverage:
+
+- Adds guarded references for `public.telegram_processed_updates` and
+  `public.claim_telegram_update(uuid,bigint)`.
+- Confirms exact table shape, RLS/no-policy state, named constraints, approved
+  indexes, minimum role privileges, RPC security properties, result contracts,
+  execute grants, and required function-definition behavior.
+- Strengthens chat authorization checks for exact same-row agent/user/chat
+  matching, owner/read-only/active requirements, and browser-role denial.
+- Preserves existing demo-write lockdown, Telegram Vault, webhook receiver,
+  summary-view, and browser-safety checks.
+- Keeps missing future objects guarded so the verifier returns `false` for
+  unapplied objects rather than raising object-not-found errors.
+
+Verifier safety result:
+
+- The verifier remains one read-only `WITH ... SELECT` statement.
+- It contains no executable DDL or DML.
+- Static structure checks, repository function checks, Deno checks/tests,
+  TypeScript checks, build, and `git diff --check` passed locally.
+- The expanded verifier has not been executed against Supabase.
+- No schema/RLS/grant change, row write, secret access, runtime wiring, deploy,
+  publish, or push occurred in this slice.
+
+### Phase 5BE Forward And Rollback Packet Preflight
+
+Phase 5BE defines how the two new database slices may later become local
+review-only forward and rollback SQL packets. It does not create those packet
+files, approve applying SQL, or modify remote database state.
+
+Required future packet files:
+
+- `supabase/telegram_chat_authorization_forward_review.sql`
+- `supabase/telegram_chat_authorization_rollback_review.sql`
+- `supabase/telegram_update_claim_forward_review.sql`
+- `supabase/telegram_update_claim_rollback_review.sql`
+
+Packet separation rule:
+
+- Chat authorization and atomic update claim must remain separate packets.
+- Neither packet may be combined with
+  `supabase/telegram_webhook_receiver_forward_review.sql`.
+- Each packet requires its own baseline, full-file review, rollback review,
+  apply approval, post-apply verifier capture, and no-runtime-wiring stop.
+- Recommended review/apply order is chat authorization first, then atomic
+  update claim, while all webhook runtime gates remain disabled.
+
+Required forward-packet contract:
+
+- Mark the file `REVIEW DRAFT - DO NOT APPLY WITHOUT EXPLICIT APPROVAL`.
+- Use one transaction and abort if either exact future object already exists.
+- Create only the table, constraints/indexes, RLS state, minimum grants, and
+  exact RPC belonging to that packet.
+- Revoke all relevant table/function privileges before granting the approved
+  minimum to `service_role`.
+- Create no browser-readable policies and grant no browser-role table or RPC
+  access.
+- Use SQL `SECURITY INVOKER`, an empty search path, and fully qualified relation
+  names for both RPCs.
+- Insert no authorization, claim, session, secret, token, or test rows.
+- End with a verifier-required stop condition before any runtime wiring.
+
+Required rollback-packet contract:
+
+- Mark the file `REVIEW DRAFT - DO NOT APPLY WITHOUT EXPLICIT APPROVAL`.
+- Use one transaction and never use `CASCADE`.
+- Refuse destructive rollback if the packet table contains any rows.
+- Require all relevant Telegram runtime gates to remain disabled.
+- Revoke execute before dropping the exact RPC signature.
+- Revoke table privileges before dropping the exact table.
+- Run the verifier after rollback and capture the expected absent-object state.
+- If rows exist, runtime was enabled, or target drift is unknown, use a
+  separately reviewed forward fix instead of rollback.
+
+Chat authorization packet boundary:
+
+- Creates only `public.telegram_chat_authorizations` and
+  `public.resolve_telegram_chat_authorization(uuid,text,text,text)`.
+- Preserves the owner-only, exact same-row user-plus-chat, read-only-only
+  contract from the comment-only draft.
+- Creates no authorization rows and does not define owner-linking runtime.
+- Rollback must refuse to drop the table when any authorization row exists.
+
+Atomic update claim packet boundary:
+
+- Creates only `public.telegram_processed_updates` and
+  `public.claim_telegram_update(uuid,bigint)`.
+- Preserves the active-session, nonnegative update ID, composite-primary-key,
+  and one atomic insert-on-conflict contract from the comment-only draft.
+- Creates no claim rows and adds no retention/delete behavior.
+- Rollback must refuse to drop the table when any processed-update row exists.
+
+Required pre-apply approval and evidence for each packet:
+
+1. Confirm the exact Supabase project and branch.
+2. Confirm all Telegram runtime gates remain disabled.
+3. Review the exact forward and rollback files together.
+4. Run and capture the current read-only verifier baseline.
+5. Confirm the packet objects are absent and existing browser-safety results
+   remain true.
+6. Approve the exact packet and a separate manual SQL apply window.
+7. Run and capture the verifier immediately after apply.
+8. Stop before runtime wiring if any required result is false.
+
+Phase 5BE go/no-go:
+
+- Go for creating the four separate local review-only packet files in later
+  slices, one packet pair at a time, followed by static review.
+- No-go for SQL apply, `schema.sql` edits, row insertion, service-role runtime
+  adapters, request body parsing, Telegram API calls, reply delivery, Edge
+  Function deploy, Netlify changes, or push.
+
+Next safest slice:
+
+- Phase 5BE.1 may create only the local chat authorization forward and rollback
+  review packet files.
+- The atomic update claim packet pair should wait until the chat authorization
+  pair is reviewed and committed locally.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
