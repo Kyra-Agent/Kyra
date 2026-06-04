@@ -2660,6 +2660,101 @@ Current safety state after Phase 5Z:
 - Netlify publishing and Edge Function deployment remain separate approval
   gates.
 
+## Phase 5AB Webhook Registration Readiness Audit
+
+Phase 5AB is an audit-only checkpoint for the future Telegram webhook
+registration step. It does not approve live webhook registration, Edge Function
+deployment, runtime gate changes, schema/RLS changes, or Netlify publishing.
+
+Current backend state:
+
+- `telegram-connect` can validate auth, ownership, request shape, optional
+  `getMe`, optional Vault-backed token storage, and optional session staging
+  behind backend-only runtime gates.
+- The latest staged connect path can update exactly one existing
+  `telegram_sessions` row from `webhook_status=mocked` to
+  `webhook_status=queued` and attach an opaque `token_secret_ref`.
+- The valid connect response remains inert `not_configured`; it does not claim a
+  live Telegram connection.
+- `telegram-webhook` still only checks
+  `X-Telegram-Bot-Api-Secret-Token` presence before body access, then returns
+  inert `not_configured`.
+- `telegram-webhook` does not parse Telegram update bodies, perform session
+  lookup, resolve tokens, write database records, route commands, or call
+  Telegram APIs.
+- `resolveTelegramBotToken` exists in the backend-only secret-store boundary,
+  but it is not wired into webhook registration or command handling.
+
+Webhook registration blockers before any live `setWebhook` path:
+
+- There is no approved webhook registration helper yet.
+- There is no approved runtime gate such as
+  `KYRA_TELEGRAM_CONNECT_WEBHOOK_REGISTER_ENABLED`.
+- There is no approved webhook URL source or deployment contract for the public
+  Supabase Edge Function URL.
+- There is no approved per-session webhook secret storage model yet.
+- There is no schema field for `webhook_secret_ref`, `webhook_secret_hash`,
+  `webhook_url`, `last_webhook_error`, or `last_webhook_error_at`.
+- There is no session lookup contract for mapping a verified webhook secret to
+  exactly one active Telegram session.
+- There is no live command authorization model wired to Telegram chat/user IDs.
+- There is no rollback or recoverable failure policy for a failed
+  `setWebhook` call after token storage and session staging.
+- Reconnect and duplicate-bot transfer behavior must remain unresolved for live
+  activation until the explicit reconnect policy is approved.
+
+Recommended future webhook registration architecture:
+
+1. Keep `setWebhook` isolated in a pure Telegram API helper with injectable
+   `fetch` and tests.
+2. Keep the helper unwired until a separate runtime gate is approved.
+3. Validate webhook URL, webhook secret token, and bot token before calling
+   Telegram.
+4. Use Telegram `secret_token` for
+   `X-Telegram-Bot-Api-Secret-Token` verification.
+5. Never log or return the raw BotFather token, resolved token, webhook secret,
+   request body, `token_secret_ref`, owner ID, workspace ID, or raw Telegram
+   response body.
+6. If registration is attempted inside `telegram-connect`, it must run only
+   after auth, ownership, `getMe`, token storage, and safe session staging
+   succeed.
+7. A failed registration must not leave a browser-visible token reference or a
+   false `active` status.
+8. Old active sessions must not be broken by reconnect unless the new token,
+   token storage, webhook registration, and session activation all succeed.
+9. `telegram_sessions.webhook_status=active` must not be written until Telegram
+   confirms webhook registration and verification state is ready.
+10. Webhook command processing must remain a later phase after secret
+    verification, session lookup, and chat authorization are implemented.
+
+Recommended next implementation slice:
+
+- Phase 5AB.2 should be helper/test only.
+- Add a pure Telegram `setWebhook` helper with injected `fetch`, timeout, URL
+  validation, secret-token validation, sanitized errors, and tests.
+- Keep the helper unused by `telegram-connect` runtime.
+- Do not read `.env.local` or secret values.
+- Do not add frontend token input.
+- Do not access Vault or resolve real tokens.
+- Do not write `telegram_sessions`.
+- Do not register or revoke real Telegram webhooks.
+- Do not deploy Edge Functions.
+- Do not push or publish.
+
+Expected Phase 5AB.2 test coverage:
+
+- Valid `setWebhook` request builds the expected Telegram API call without
+  logging or returning sensitive input.
+- Invalid bot token is rejected before `fetch`.
+- Invalid or non-HTTPS webhook URL is rejected before `fetch`.
+- Missing or malformed webhook secret token is rejected before `fetch`.
+- Telegram `401`/`404` maps to a sanitized validation failure.
+- Telegram `429` maps to a sanitized rate-limit error.
+- Telegram `5xx`, malformed JSON, network failure, and timeout map to a
+  sanitized unavailable error.
+- Unexpected errors do not expose bot token, webhook URL, webhook secret,
+  `token_secret_ref`, owner ID, workspace ID, or raw response body.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
