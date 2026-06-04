@@ -5566,6 +5566,157 @@ Phase 5BE.2 go/no-go:
   service-role claim adapter, wiring live webhook processing, calling Telegram,
   deploying, publishing Netlify, or pushing.
 
+### Phase 5BE.2 Atomic Update Claim Review Packet Closeout
+
+Phase 5BE.2 adds two local review-only SQL packet files:
+
+- `supabase/telegram_update_claim_forward_review.sql`
+- `supabase/telegram_update_claim_rollback_review.sql`
+
+Current state:
+
+- Both files are marked `REVIEW DRAFT - DO NOT APPLY WITHOUT EXPLICIT
+  APPROVAL`.
+- The forward packet creates only the minimal processed-update table and exact
+  atomic claim RPC.
+- The claim function contains exactly one processed-update insert, uses the
+  approved primary-key conflict boundary, and performs no processed-update
+  pre-read.
+- The rollback packet refuses to drop the table when any claim row exists and
+  does not use `CASCADE`.
+- Static packet checks, repository checks, Deno checks/tests, TypeScript
+  checks, build, and `git diff --check` passed locally.
+- No SQL was applied, no claim row was created, `schema.sql` was not modified,
+  and no runtime/deploy/publish/push occurred.
+
+### Phase 5BF Database Apply Operator Checklist
+
+Phase 5BF is documentation only. It defines two separate future manual SQL
+apply windows for the chat authorization and atomic update claim packets. It
+does not approve either apply window and does not change Supabase state.
+
+Global pre-apply checklist:
+
+1. Confirm the exact Supabase project and branch.
+2. Confirm no Edge Function deploy, Netlify publish, or unrelated database
+   change is included in the window.
+3. Confirm all Telegram connect, webhook lookup, chat authorization, claim,
+   command, and reply-delivery runtime gates remain disabled.
+4. Review the exact forward and rollback files for only the packet being
+   applied.
+5. Run `supabase/verify_authenticated_demo_write_lockdown.sql` read-only and
+   capture the full baseline.
+6. Confirm existing browser-safety, webhook receiver, Vault, and Telegram
+   summary-view results match the approved baseline.
+7. Confirm the packet table and exact RPC signature are absent.
+8. Confirm the packet rollback file is available and reviewed.
+9. Stop if target-project drift, unexpected privileges, or unexpected objects
+   are found.
+
+Apply window 1: chat authorization packet:
+
+1. Apply only `supabase/telegram_chat_authorization_forward_review.sql`.
+2. Do not combine it with webhook receiver, atomic claim, owner-linking rows,
+   runtime adapters, or deployment.
+3. If the packet aborts because an object already exists, stop and audit
+   instead of retrying or replacing the object.
+4. Insert no chat authorization rows during schema apply.
+5. Run and capture the verifier immediately after apply.
+
+Required chat authorization post-apply results:
+
+- `telegram_chat_authorizations_table_exists`
+- `telegram_chat_authorizations_table_contract_is_expected`
+- `telegram_chat_authorizations_constraints_are_expected`
+- `telegram_chat_authorizations_active_agent_index_is_expected`
+- `public_has_no_direct_telegram_chat_authorizations_privileges`
+- `anon_has_no_direct_telegram_chat_authorizations_privileges`
+- `auth_has_no_direct_telegram_chat_authorizations_privileges`
+- `service_role_can_select_telegram_chat_authorizations`
+- `service_role_can_insert_telegram_chat_authorizations`
+- `service_role_can_update_telegram_chat_authorizations`
+- `service_role_has_no_extra_telegram_chat_authorizations_privileges`
+- `resolve_telegram_chat_authorization_function_exists`
+- `resolve_telegram_chat_authorization_security_contract_is_expected`
+- `resolve_telegram_chat_authorization_result_contract_is_expected`
+- `resolve_telegram_chat_authorization_matching_contract_is_expected`
+- `public_cannot_execute_resolve_telegram_chat_authorization`
+- `anon_cannot_execute_resolve_telegram_chat_authorization`
+- `auth_cannot_execute_resolve_telegram_chat_authorization`
+- `service_role_can_execute_resolve_telegram_chat_authorization`
+
+All required chat authorization results must be `true`. Atomic update claim
+object-existence results must remain `false` until its separate apply window.
+All unrelated verifier results must remain unchanged from the approved
+baseline.
+
+Apply window 2: atomic update claim packet:
+
+1. Start only after the chat authorization apply result was captured and
+   accepted, while runtime gates remain disabled.
+2. Re-run and capture the verifier baseline for this second window.
+3. Apply only `supabase/telegram_update_claim_forward_review.sql`.
+4. Do not combine it with claim adapter wiring, webhook processing, response
+   delivery, retention behavior, or deployment.
+5. If the packet aborts because an object already exists, stop and audit
+   instead of retrying or replacing the object.
+6. Create no processed-update rows during schema apply.
+7. Run and capture the verifier immediately after apply.
+
+Required atomic update claim post-apply results:
+
+- `telegram_processed_updates_table_exists`
+- `telegram_processed_updates_table_contract_is_expected`
+- `telegram_processed_updates_constraints_are_expected`
+- `public_has_no_direct_telegram_processed_updates_privileges`
+- `anon_has_no_direct_telegram_processed_updates_privileges`
+- `auth_has_no_direct_telegram_processed_updates_privileges`
+- `service_role_telegram_processed_updates_privileges_are_expected`
+- `claim_telegram_update_function_exists`
+- `claim_telegram_update_security_contract_is_expected`
+- `claim_telegram_update_result_contract_is_expected`
+- `claim_telegram_update_definition_contract_is_expected`
+- `public_cannot_execute_claim_telegram_update`
+- `anon_cannot_execute_claim_telegram_update`
+- `auth_cannot_execute_claim_telegram_update`
+- `service_role_can_execute_claim_telegram_update`
+
+All required atomic update claim results and all previously accepted chat
+authorization results must be `true`. All unrelated verifier results must
+remain unchanged from the approved baseline.
+
+Post-apply stop condition:
+
+- Stop after verifier capture and review.
+- Do not create owner-linking authorization rows.
+- Do not create synthetic or real processed-update rows.
+- Do not edit `schema.sql` until a separate applied-schema synchronization is
+  approved.
+- Do not wire service-role chat lookup or claim adapters.
+- Do not parse live Telegram update bodies, deliver replies, deploy functions,
+  publish Netlify, or enable runtime gates.
+
+Rollback decision rules:
+
+- Prefer transaction rollback for any failure during an initial packet apply.
+- After commit, run rollback only when all relevant runtime gates remain
+  disabled and the packet table contains zero rows.
+- If both packets must be rolled back and both tables are empty, use reverse
+  apply order: atomic update claim first, then chat authorization.
+- Run the verifier after each rollback and capture the expected absent-object
+  state.
+- If any relevant row exists, runtime was enabled, or drift is uncertain, use
+  a separately reviewed forward fix instead of destructive rollback.
+
+Phase 5BF approval boundary:
+
+- The local review artifacts and operator checklist are ready for full-file
+  review.
+- SQL apply remains blocked until the user explicitly approves the exact target
+  project, exact packet, and manual apply window.
+- Broad approval to continue local Phase 5 work does not authorize remote SQL
+  apply, runtime enablement, deploy, publish, or push.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
