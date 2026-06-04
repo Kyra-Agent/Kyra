@@ -1,0 +1,242 @@
+-- DRAFT ONLY - DO NOT APPLY.
+-- Phase 5BB comment-only design for the first live Telegram chat authorization
+-- boundary. This file intentionally contains no executable SQL.
+-- Do not remove comment prefixes or adapt this draft for Supabase without a
+-- separately reviewed forward packet, rollback packet, verifier update, target
+-- baseline, and explicit schema/RLS/apply approval.
+
+-- Purpose
+-- - Authorize the first owner-only read-only Telegram smoke.
+-- - Require one exact Telegram user and chat pair on the same active row.
+-- - Keep Telegram identifiers and authorization policy backend-only.
+-- - Defer community, public, admin, write, and approval authorization.
+
+-- Hard boundaries
+-- - No table, index, policy, grant, function, trigger, or row is created.
+-- - No existing schema.sql or verifier SQL is changed.
+-- - No browser role receives access to Telegram authorization data.
+-- - No service-role adapter, request body parser, webhook runtime, Telegram API,
+--   reply sender, Edge Function deploy, Netlify change, or push is enabled.
+-- - This draft must not be applied in Supabase.
+
+-- Objects in this future slice
+-- - Private table: public.telegram_chat_authorizations
+-- - Lookup RPC:
+--   public.resolve_telegram_chat_authorization(uuid,text,text,text)
+
+-- Initial rollout boundary
+-- - Personal owner authorization only.
+-- - One active owner authorization per agent.
+-- - One exact user-plus-chat pair must match on the same row.
+-- - Read-only command kind only.
+-- - Unknown, revoked, mismatched, write, and approval requests return no
+--   authorization result.
+
+-- Explicitly deferred behavior
+-- - Community/project allowlists.
+-- - Public read-only access.
+-- - Admin and member roles.
+-- - User-only or chat-only matching.
+-- - Write, approval, wallet, admin, or onchain command scope.
+-- - Browser-managed authorization rows.
+
+-- Proposed exact table shape
+-- - id uuid not null default gen_random_uuid()
+-- - agent_id uuid not null
+-- - telegram_user_id text not null
+-- - telegram_chat_id text not null
+-- - role text not null default 'owner'
+-- - command_scope text not null default 'read_only'
+-- - created_at timestamptz not null default now()
+-- - revoked_at timestamptz null
+
+-- Canonical identifier contract
+-- - telegram_user_id is a positive base-10 integer string:
+--   ^[1-9][0-9]*$
+-- - telegram_chat_id is a signed non-zero base-10 integer string:
+--   ^-?[1-9][0-9]*$
+-- - Inputs are compared exactly. The lookup RPC must not trim, cast,
+--   case-fold, or otherwise normalize presented identifiers.
+-- - Raw Telegram user/chat identifiers must never be returned to browser
+--   clients, public views, API responses, or logs.
+
+-- Stable future constraint names
+-- - telegram_chat_authorizations_pkey
+-- - telegram_chat_authorizations_agent_fkey
+-- - telegram_chat_authorizations_user_not_blank_check
+-- - telegram_chat_authorizations_user_format_check
+-- - telegram_chat_authorizations_chat_not_blank_check
+-- - telegram_chat_authorizations_chat_format_check
+-- - telegram_chat_authorizations_owner_role_check
+-- - telegram_chat_authorizations_read_only_scope_check
+
+-- Commented DDL sketch
+-- - A future initial apply must fail if this table already exists.
+-- - Do not use create table if not exists.
+-- create table public.telegram_chat_authorizations (
+--   id uuid not null default gen_random_uuid(),
+--   agent_id uuid not null,
+--   telegram_user_id text not null,
+--   telegram_chat_id text not null,
+--   role text not null default 'owner',
+--   command_scope text not null default 'read_only',
+--   created_at timestamptz not null default now(),
+--   revoked_at timestamptz null,
+--   constraint telegram_chat_authorizations_pkey
+--     primary key (id),
+--   constraint telegram_chat_authorizations_agent_fkey
+--     foreign key (agent_id)
+--     references public.agent_instances(id)
+--     on delete cascade,
+--   constraint telegram_chat_authorizations_user_not_blank_check
+--     check (length(btrim(telegram_user_id)) > 0),
+--   constraint telegram_chat_authorizations_user_format_check
+--     check (telegram_user_id ~ '^[1-9][0-9]*$'),
+--   constraint telegram_chat_authorizations_chat_not_blank_check
+--     check (length(btrim(telegram_chat_id)) > 0),
+--   constraint telegram_chat_authorizations_chat_format_check
+--     check (telegram_chat_id ~ '^-?[1-9][0-9]*$'),
+--   constraint telegram_chat_authorizations_owner_role_check
+--     check (role = 'owner'),
+--   constraint telegram_chat_authorizations_read_only_scope_check
+--     check (command_scope = 'read_only')
+-- );
+
+-- Index intent
+-- - Exactly one active owner-linked pair per agent.
+-- - The unique agent index also bounds lookup cardinality to at most one active
+--   row before exact user/chat matching.
+-- create unique index telegram_chat_authorizations_active_agent_key
+--   on public.telegram_chat_authorizations (agent_id)
+--   where revoked_at is null;
+
+-- Browser access boundary
+-- - public, anon, and authenticated must have no direct table privileges.
+-- - RLS must be enabled with no browser-readable policies.
+-- - service_role receives only select, insert, and update for a later approved
+--   owner-linking and lookup flow.
+-- - service_role must not receive delete, truncate, references, or trigger.
+
+-- Commented RLS/grant sketch
+-- alter table public.telegram_chat_authorizations enable row level security;
+-- revoke all on public.telegram_chat_authorizations from public;
+-- revoke all on public.telegram_chat_authorizations from anon;
+-- revoke all on public.telegram_chat_authorizations from authenticated;
+-- revoke all on public.telegram_chat_authorizations from service_role;
+-- grant select, insert, update on public.telegram_chat_authorizations
+--   to service_role;
+
+-- Lookup RPC intent
+-- - Input:
+--   p_agent_id uuid
+--   p_telegram_user_id text
+--   p_telegram_chat_id text
+--   p_command_kind text
+-- - Output:
+--   authorized boolean
+--   role text
+-- - Return one row only when the exact active owner pair matches and
+--   p_command_kind equals read_only.
+-- - Return zero rows for unknown, revoked, mismatched, write, or approval
+--   requests.
+-- - Do not return Telegram IDs, agent/workspace/owner IDs, policy rows, raw
+--   errors, tokens, secrets, or refs.
+
+-- Commented lookup function sketch
+-- - A future initial apply must fail if this exact RPC already exists.
+-- - Do not use create or replace function for the initial apply.
+-- create function public.resolve_telegram_chat_authorization(
+--   p_agent_id uuid,
+--   p_telegram_user_id text,
+--   p_telegram_chat_id text,
+--   p_command_kind text
+-- ) returns table (
+--   authorized boolean,
+--   role text
+-- )
+-- language sql
+-- stable
+-- security invoker
+-- set search_path = ''
+-- as $$
+--   select
+--     true as authorized,
+--     authorizations.role
+--   from public.telegram_chat_authorizations authorizations
+--   where authorizations.agent_id = p_agent_id
+--     and authorizations.telegram_user_id = p_telegram_user_id
+--     and authorizations.telegram_chat_id = p_telegram_chat_id
+--     and authorizations.role = 'owner'
+--     and authorizations.command_scope = 'read_only'
+--     and p_command_kind = 'read_only'
+--     and authorizations.revoked_at is null
+--   limit 2;
+-- $$;
+
+-- RPC privilege model
+-- - The RPC is stable SQL SECURITY INVOKER.
+-- - The RPC has an empty search path and uses fully qualified relation names.
+-- - Only service_role may execute the RPC.
+-- - PostgreSQL PUBLIC execute defaults must be explicitly revoked.
+
+-- Commented function privilege sketch
+-- revoke all on function
+--   public.resolve_telegram_chat_authorization(uuid,text,text,text)
+--   from public, anon, authenticated, service_role;
+-- grant execute on function
+--   public.resolve_telegram_chat_authorization(uuid,text,text,text)
+--   to service_role;
+
+-- Required verifier coverage before any apply
+-- - Exact table and RPC signatures exist after apply.
+-- - Table has exactly the approved columns and nullability.
+-- - All stable named constraints have the approved definitions.
+-- - Active-agent partial unique index is unique, valid, ready, and uses the
+--   exact revoked_at is null predicate.
+-- - RLS is enabled and no policies exist.
+-- - public, anon, and authenticated have no direct table privileges.
+-- - service_role has select, insert, and update only.
+-- - RPC is SQL, stable, SECURITY INVOKER, and has an empty search path.
+-- - RPC returns only authorized boolean and role text.
+-- - RPC uses exact same-row user-plus-chat matching.
+-- - RPC requires owner role, read_only scope, read_only command kind, and an
+--   active row.
+-- - public, anon, and authenticated cannot execute the RPC.
+-- - service_role can execute the RPC.
+-- - Existing Telegram session summary/browser safety checks remain true.
+
+-- Required tests before runtime wiring
+-- - Exact owner user-plus-chat pair resolves one owner result.
+-- - Matching user with a different chat returns no result.
+-- - Matching chat with a different user returns no result.
+-- - Revoked row returns no result.
+-- - Unsupported command kind returns no result.
+-- - Duplicate active rows cannot be created for one agent.
+-- - Browser roles cannot read or write the table or execute the RPC.
+-- - Lookup results and errors never expose Telegram IDs or private metadata.
+
+-- Required future owner-linking approval
+-- - Authorization rows may be inserted only after a signed-in Kyra owner is
+--   validated against agent_instances.workspace_id -> workspaces.owner_user_id.
+-- - The Telegram user/chat pair linking proof requires a separately reviewed
+--   flow.
+-- - Reconnect or transfer must revoke the old active row before activating a
+--   replacement without leaving the agent unauthorized on failure.
+
+-- Rollback boundary
+-- - Prefer transaction rollback for apply-time failure.
+-- - Post-commit rollback is allowed only while runtime remains disabled and the
+--   table contains no required authorization rows.
+-- - Revoke RPC execute before dropping the exact RPC signature.
+-- - Revoke table privileges before dropping the table.
+-- - Do not use CASCADE.
+-- - If rows exist or runtime was enabled, use a reviewed forward fix.
+
+-- Still blocked until separately approved
+-- - Executable forward or rollback SQL.
+-- - Verifier SQL or schema.sql edits.
+-- - Supabase SQL apply.
+-- - Authorization row creation.
+-- - Service-role adapter or live lookup wiring.
+-- - Request body parsing, Telegram API calls, reply delivery, deployment, or
+--   push.
