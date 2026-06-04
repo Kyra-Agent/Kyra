@@ -4534,6 +4534,76 @@ Next safest slice:
   metadata, remain disconnected from Telegram API reply sending, and avoid DB
   writes or command execution.
 
+### Phase 5AV Read-Only Command Response Preflight
+
+Phase 5AV prepares a pure response builder for the allowlisted `/help` and
+`/status` commands. It does not send Telegram messages and does not wire command
+processing into the live webhook handler.
+
+Current findings:
+
+- The update parser can produce only `help` or `status` with
+  `commandKind=read_only`.
+- There is no response builder or Telegram reply sender.
+- Dynamic agent metadata is not required for the first safe response contract.
+- Using dynamic names, IDs, logs, approvals, balances, or wallet state would
+  create unnecessary disclosure and sanitization risk.
+
+Recommended first response scope:
+
+- Accept only a parsed `help` or `status` command.
+- Return a plain-text response plan only.
+- Keep response text static and bounded.
+- Do not use Telegram Markdown or HTML parse modes.
+- Do not include links, usernames, user/chat IDs, agent/workspace IDs, token
+  refs, secrets, balances, approval details, logs, or message text.
+- Do not accept arbitrary strings or metadata in the first response builder.
+
+Proposed response contract:
+
+```ts
+interface TelegramReadOnlyCommandResponse {
+  command: "help" | "status";
+  text: string;
+}
+```
+
+Proposed static messages:
+
+- `/help`: list only `/help` and `/status`, and state that write, approval,
+  wallet, and onchain actions are disabled.
+- `/status`: state that the verified Telegram session is active, command access
+  is read-only, and wallet/onchain actions are disabled.
+
+Required caller preconditions for future runtime wiring:
+
+- Webhook secret verification succeeded.
+- Active session lookup succeeded.
+- Update parsing succeeded.
+- Chat authorization succeeded for a read-only command.
+- The response builder must not be callable as proof that Telegram reply sending
+  is enabled.
+
+Tests required:
+
+- `/help` returns only the allowlisted commands and disabled-action notice.
+- `/status` returns only static active/read-only/disabled state.
+- Both responses are bounded plain text.
+- Neither response contains Telegram IDs, usernames, token/ref terminology,
+  approval details, balances, raw update text, URLs, Markdown, or HTML.
+- Unknown commands cannot reach the builder.
+- The live handler remains inert and does not send a reply.
+
+What not to touch in Phase 5AV:
+
+- No Telegram API `sendMessage` helper.
+- No reply sending or response delivery.
+- No dynamic status lookup.
+- No DB read/write, Vault access, service-role client, or env read.
+- No command execution, approval creation, wallet action, or activity logging.
+- No handler body parsing or runtime wiring.
+- No SQL apply, Edge Function deploy, Netlify publish/unlock, or push.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
