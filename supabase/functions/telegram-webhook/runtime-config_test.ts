@@ -1,14 +1,17 @@
 import {
   createTelegramWebhookChatAuthRuntimeConfig,
   createTelegramWebhookClaimRuntimeConfig,
+  createTelegramWebhookDeliveryRuntimeConfig,
   createTelegramWebhookLookupRuntimeConfig,
   createTelegramWebhookParseRuntimeConfig,
   isTelegramWebhookChatAuthEnabled,
   isTelegramWebhookClaimEnabled,
+  isTelegramWebhookDeliveryEnabled,
   isTelegramWebhookLookupEnabled,
   isTelegramWebhookParseEnabled,
   telegramWebhookChatAuthEnabledEnvKey,
   telegramWebhookClaimEnabledEnvKey,
+  telegramWebhookDeliveryEnabledEnvKey,
   telegramWebhookLookupEnabledEnvKey,
   telegramWebhookParseEnabledEnvKey,
 } from "./index.ts";
@@ -174,4 +177,35 @@ Deno.test("telegram webhook claim runtime config reads only the claim gate key",
 
   assertEquals(config.enabled, false);
   assertEquals(keys.join(","), telegramWebhookClaimEnabledEnvKey);
+});
+
+Deno.test("telegram webhook delivery runtime gate defaults off and requires exact true", () => {
+  const disabledValues = [
+    undefined,
+    null,
+    "",
+    " ",
+    "false",
+    "1",
+    "yes",
+    "TRUE",
+    " true ",
+  ];
+
+  for (const value of disabledValues) {
+    assertEquals(isTelegramWebhookDeliveryEnabled(value), false);
+  }
+
+  assertEquals(isTelegramWebhookDeliveryEnabled("true"), true);
+});
+
+Deno.test("telegram webhook delivery runtime config reads only the delivery gate key", () => {
+  const keys: string[] = [];
+  const config = createTelegramWebhookDeliveryRuntimeConfig((key) => {
+    keys.push(key);
+    return "";
+  });
+
+  assertEquals(config.enabled, false);
+  assertEquals(keys.join(","), telegramWebhookDeliveryEnabledEnvKey);
 });

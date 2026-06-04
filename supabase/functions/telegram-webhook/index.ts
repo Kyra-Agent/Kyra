@@ -26,16 +26,19 @@ import {
 import {
   claimTelegramUpdate,
   sanitizeTelegramUpdateClaimRpcError,
+  type TelegramUpdateClaimResult,
   type TelegramUpdateClaimRpcClient,
 } from "./idempotency.ts";
 import {
   createTelegramWebhookChatAuthRuntimeConfig,
   createTelegramWebhookClaimRuntimeConfig,
+  createTelegramWebhookDeliveryRuntimeConfig,
   createTelegramWebhookLookupRuntimeConfig,
   createTelegramWebhookParseRuntimeConfig,
   type OptionalEnvReader,
   type TelegramWebhookChatAuthRuntimeConfig,
   type TelegramWebhookClaimRuntimeConfig,
+  type TelegramWebhookDeliveryRuntimeConfig,
   type TelegramWebhookLookupRuntimeConfig,
   type TelegramWebhookParseRuntimeConfig,
 } from "./runtime-config.ts";
@@ -43,6 +46,9 @@ import {
   parseTelegramWebhookUpdate,
   type TelegramWebhookParsedCommand,
 } from "./update-parser.ts";
+import { planTelegramClaimedReadOnlyResponse } from "./claim-aware-response.ts";
+import type { TelegramReadOnlyCommandResponse } from "./read-only-response.ts";
+import { sanitizeTelegramResponseDeliveryError } from "./response-delivery.ts";
 
 export {
   assertActiveTelegramWebhookSession,
@@ -109,6 +115,7 @@ export {
   assertTelegramDeliveryChatId,
   assertTelegramDeliveryResponse,
   deliverTelegramReadOnlyResponse,
+  sanitizeTelegramResponseDeliveryError,
 } from "./response-delivery.ts";
 export type {
   TelegramResponseDeliveryFetch,
@@ -136,14 +143,17 @@ export type {
 export {
   createTelegramWebhookChatAuthRuntimeConfig,
   createTelegramWebhookClaimRuntimeConfig,
+  createTelegramWebhookDeliveryRuntimeConfig,
   createTelegramWebhookLookupRuntimeConfig,
   createTelegramWebhookParseRuntimeConfig,
   isTelegramWebhookChatAuthEnabled,
   isTelegramWebhookClaimEnabled,
+  isTelegramWebhookDeliveryEnabled,
   isTelegramWebhookLookupEnabled,
   isTelegramWebhookParseEnabled,
   telegramWebhookChatAuthEnabledEnvKey,
   telegramWebhookClaimEnabledEnvKey,
+  telegramWebhookDeliveryEnabledEnvKey,
   telegramWebhookLookupEnabledEnvKey,
   telegramWebhookParseEnabledEnvKey,
 } from "./runtime-config.ts";
@@ -151,6 +161,7 @@ export type {
   OptionalEnvReader,
   TelegramWebhookChatAuthRuntimeConfig,
   TelegramWebhookClaimRuntimeConfig,
+  TelegramWebhookDeliveryRuntimeConfig,
   TelegramWebhookLookupRuntimeConfig,
   TelegramWebhookParseRuntimeConfig,
 } from "./runtime-config.ts";
@@ -165,6 +176,7 @@ export interface TelegramWebhookDependencies {
   parseRuntimeConfig?: TelegramWebhookParseRuntimeConfig;
   chatAuthRuntimeConfig?: TelegramWebhookChatAuthRuntimeConfig;
   claimRuntimeConfig?: TelegramWebhookClaimRuntimeConfig;
+  deliveryRuntimeConfig?: TelegramWebhookDeliveryRuntimeConfig;
   lookupTelegramWebhookSession?: (
     webhookSecretHeader: string,
   ) => Promise<TelegramWebhookSessionLookupRecord>;
@@ -177,6 +189,11 @@ export interface TelegramWebhookDependencies {
   claimTelegramUpdate?: (input: {
     telegramSessionId: string;
     telegramUpdateId: string;
+  }) => Promise<TelegramUpdateClaimResult>;
+  deliverTelegramReadOnlyResponse?: (input: {
+    telegramSessionId: string;
+    telegramChatId: string;
+    response: TelegramReadOnlyCommandResponse;
   }) => Promise<unknown>;
 }
 
@@ -188,6 +205,8 @@ const disabledTelegramWebhookChatAuthRuntimeConfig:
   TelegramWebhookChatAuthRuntimeConfig = { enabled: false };
 const disabledTelegramWebhookClaimRuntimeConfig:
   TelegramWebhookClaimRuntimeConfig = { enabled: false };
+const disabledTelegramWebhookDeliveryRuntimeConfig:
+  TelegramWebhookDeliveryRuntimeConfig = { enabled: false };
 
 export function getEnv(key: string) {
   const value = Deno.env.get(key);
@@ -267,11 +286,15 @@ export function createTelegramWebhookDependencies(
   const claimRuntimeConfig = createTelegramWebhookClaimRuntimeConfig(
     readOptionalEnv,
   );
+  const deliveryRuntimeConfig = createTelegramWebhookDeliveryRuntimeConfig(
+    readOptionalEnv,
+  );
   const dependencies: TelegramWebhookDependencies = {
     lookupRuntimeConfig,
     parseRuntimeConfig,
     chatAuthRuntimeConfig,
     claimRuntimeConfig,
+    deliveryRuntimeConfig,
   };
 
   if (!lookupRuntimeConfig.enabled) {
@@ -346,9 +369,12 @@ export async function handleTelegramWebhookRequest(
       disabledTelegramWebhookChatAuthRuntimeConfig;
     const claimRuntimeConfig = dependencies.claimRuntimeConfig ??
       disabledTelegramWebhookClaimRuntimeConfig;
+    const deliveryRuntimeConfig = dependencies.deliveryRuntimeConfig ??
+      disabledTelegramWebhookDeliveryRuntimeConfig;
     let lookupSession: TelegramWebhookSessionLookupRecord | null = null;
     let parsedUpdate: TelegramWebhookParsedCommand | null = null;
     let chatAuthorization: TelegramWebhookChatAuthorization | null = null;
+    let claimResult: TelegramUpdateClaimResult | null = null;
 
     if (lookupRuntimeConfig.enabled) {
       if (!dependencies.lookupTelegramWebhookSession) {
@@ -422,7 +448,7 @@ export async function handleTelegramWebhookRequest(
       }
 
       try {
-        await dependencies.claimTelegramUpdate({
+        claimResult = await dependencies.claimTelegramUpdate({
           telegramSessionId: lookupSession.sessionId,
           telegramUpdateId: parsedUpdate.updateId,
         });
@@ -433,6 +459,63 @@ export async function handleTelegramWebhookRequest(
 
         throw sanitizeTelegramUpdateClaimRpcError(error);
       }
+    }
+
+    if (deliveryRuntimeConfig.enabled) {
+      if (!lookupSession || !parsedUpdate || !claimResult) {
+        throw new HttpError(
+          500,
+          "server_error",
+          "Telegram response delivery requires a claimed update.",
+        );
+      }
+
+      const deliveryPlan = planTelegramClaimedReadOnlyResponse(
+        claimResult,
+        parsedUpdate.command,
+      );
+
+      if (!deliveryPlan.shouldDeliver) {
+        return jsonResponse(
+          {
+            ok: true,
+            status: "duplicate",
+            message: "Telegram update was already processed.",
+          },
+          200,
+        );
+      }
+
+      if (!dependencies.deliverTelegramReadOnlyResponse) {
+        throw new HttpError(
+          500,
+          "server_error",
+          "Telegram response delivery is not configured.",
+        );
+      }
+
+      try {
+        await dependencies.deliverTelegramReadOnlyResponse({
+          telegramSessionId: lookupSession.sessionId,
+          telegramChatId: parsedUpdate.telegramChatId,
+          response: deliveryPlan.response,
+        });
+      } catch (error) {
+        if (error instanceof HttpError) {
+          throw error;
+        }
+
+        throw sanitizeTelegramResponseDeliveryError(error);
+      }
+
+      return jsonResponse(
+        {
+          ok: true,
+          status: "delivered",
+          message: "Telegram response delivered.",
+        },
+        200,
+      );
     }
 
     return jsonResponse(

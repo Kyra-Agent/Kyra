@@ -14,6 +14,7 @@ import {
   sanitizeTelegramWebhookSessionLookupError,
   telegramWebhookChatAuthEnabledEnvKey,
   telegramWebhookClaimEnabledEnvKey,
+  telegramWebhookDeliveryEnabledEnvKey,
   telegramWebhookLookupEnabledEnvKey,
   telegramWebhookParseEnabledEnvKey,
 } from "./index.ts";
@@ -816,6 +817,219 @@ Deno.test("telegram-webhook unexpected claim failure is sanitized", async () => 
   assert(!serialized.includes("owner-1"), "Owner id must not be echoed.");
 });
 
+Deno.test("telegram-webhook disabled delivery gate does not call delivery dependency", async () => {
+  let deliveryCalled = false;
+
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("/status@kyra_test_bot")),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      parseRuntimeConfig: { enabled: true },
+      chatAuthRuntimeConfig: { enabled: true },
+      claimRuntimeConfig: { enabled: true },
+      deliveryRuntimeConfig: { enabled: false },
+      lookupTelegramWebhookSession: async () => ({
+        sessionId: "telegram-session-1",
+        agentId: "agent-1",
+        workspaceId: "workspace-1",
+        ownerUserId: "owner-1",
+        botHandle: "@kyra_test_bot",
+        webhookStatus: "active",
+      }),
+      lookupTelegramChatAuthorization: async () => ({
+        authorized: true,
+        role: "owner",
+      }),
+      claimTelegramUpdate: async () => ({ claimed: true, status: "claimed" }),
+      deliverTelegramReadOnlyResponse: async () => {
+        deliveryCalled = true;
+        throw new Error("Disabled delivery must not run.");
+      },
+    },
+  );
+
+  const body = await readJson(response);
+
+  assertEquals(response.status, 501);
+  assertEquals(body.status, "not_configured");
+  assert(
+    !deliveryCalled,
+    "Disabled delivery gate must not call delivery dependency.",
+  );
+});
+
+Deno.test("telegram-webhook delivery gate requires a claimed update", async () => {
+  let bodyRead = false;
+  let deliveryCalled = false;
+
+  const response = await handleTelegramWebhookRequest(
+    requestThatFailsIfBodyIsRead(
+      {
+        "content-type": "application/json",
+        "x-telegram-bot-api-secret-token": "test-webhook-secret",
+      },
+      () => {
+        bodyRead = true;
+      },
+    ),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      parseRuntimeConfig: { enabled: false },
+      chatAuthRuntimeConfig: { enabled: false },
+      claimRuntimeConfig: { enabled: false },
+      deliveryRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => ({
+        sessionId: "telegram-session-1",
+        agentId: "agent-1",
+        workspaceId: "workspace-1",
+        ownerUserId: "owner-1",
+        botHandle: "@kyra_test_bot",
+        webhookStatus: "active",
+      }),
+      deliverTelegramReadOnlyResponse: async () => {
+        deliveryCalled = true;
+        throw new Error("Delivery must not run before claim.");
+      },
+    },
+  );
+
+  const body = await readJson(response);
+
+  assertEquals(response.status, 500);
+  assertEquals(body.status, "server_error");
+  assertEquals(
+    body.message,
+    "Telegram response delivery requires a claimed update.",
+  );
+  assert(!deliveryCalled, "Delivery must not run before claim result.");
+  assert(!bodyRead, "Delivery prerequisite failure must not read body.");
+});
+
+Deno.test("telegram-webhook delivery gate sends claimed read-only response", async () => {
+  const deliveries: Array<Record<string, unknown>> = [];
+
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("/status@kyra_test_bot")),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      parseRuntimeConfig: { enabled: true },
+      chatAuthRuntimeConfig: { enabled: true },
+      claimRuntimeConfig: { enabled: true },
+      deliveryRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => ({
+        sessionId: "telegram-session-1",
+        agentId: "agent-1",
+        workspaceId: "workspace-1",
+        ownerUserId: "owner-1",
+        botHandle: "@kyra_test_bot",
+        webhookStatus: "active",
+      }),
+      lookupTelegramChatAuthorization: async () => ({
+        authorized: true,
+        role: "owner",
+      }),
+      claimTelegramUpdate: async () => ({ claimed: true, status: "claimed" }),
+      deliverTelegramReadOnlyResponse: async (input) => {
+        deliveries.push(input);
+        return { delivered: true };
+      },
+    },
+  );
+
+  const body = await readJson(response);
+
+  assertEquals(response.status, 200);
+  assertEquals(body.ok, true);
+  assertEquals(body.status, "delivered");
+  assertEquals(deliveries.length, 1);
+  assertEquals(deliveries[0]?.telegramSessionId, "telegram-session-1");
+  assertEquals(deliveries[0]?.telegramChatId, "-987654");
+  assertEquals(
+    (deliveries[0]?.response as Record<string, unknown> | undefined)?.command,
+    "status",
+  );
+});
+
+Deno.test("telegram-webhook duplicate claim skips delivery", async () => {
+  let deliveryCalled = false;
+
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("/help@kyra_test_bot")),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      parseRuntimeConfig: { enabled: true },
+      chatAuthRuntimeConfig: { enabled: true },
+      claimRuntimeConfig: { enabled: true },
+      deliveryRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => ({
+        sessionId: "telegram-session-1",
+        agentId: "agent-1",
+        workspaceId: "workspace-1",
+        ownerUserId: "owner-1",
+        botHandle: "@kyra_test_bot",
+        webhookStatus: "active",
+      }),
+      lookupTelegramChatAuthorization: async () => ({
+        authorized: true,
+        role: "owner",
+      }),
+      claimTelegramUpdate: async () => ({
+        claimed: false,
+        status: "duplicate",
+      }),
+      deliverTelegramReadOnlyResponse: async () => {
+        deliveryCalled = true;
+        throw new Error("Duplicate update must not deliver.");
+      },
+    },
+  );
+
+  const body = await readJson(response);
+
+  assertEquals(response.status, 200);
+  assertEquals(body.ok, true);
+  assertEquals(body.status, "duplicate");
+  assert(!deliveryCalled, "Duplicate claim must skip delivery.");
+});
+
+Deno.test("telegram-webhook unexpected delivery failure is sanitized", async () => {
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("/help@kyra_test_bot")),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      parseRuntimeConfig: { enabled: true },
+      chatAuthRuntimeConfig: { enabled: true },
+      claimRuntimeConfig: { enabled: true },
+      deliveryRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => ({
+        sessionId: "telegram-session-1",
+        agentId: "agent-1",
+        workspaceId: "workspace-1",
+        ownerUserId: "owner-1",
+        botHandle: "@kyra_test_bot",
+        webhookStatus: "active",
+      }),
+      lookupTelegramChatAuthorization: async () => ({
+        authorized: true,
+        role: "owner",
+      }),
+      claimTelegramUpdate: async () => ({ claimed: true, status: "claimed" }),
+      deliverTelegramReadOnlyResponse: async () => {
+        throw new Error("raw delivery token chat -987654 owner-1");
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const serialized = JSON.stringify(body);
+
+  assertEquals(response.status, 503);
+  assertEquals(body.status, "telegram_unavailable");
+  assertEquals(body.message, "Telegram is unavailable.");
+  assert(!serialized.includes("-987654"), "Chat id must not be echoed.");
+  assert(!serialized.includes("owner-1"), "Owner id must not be echoed.");
+});
+
 Deno.test("telegram-webhook parse failure prevents chat auth lookup", async () => {
   let authCalled = false;
 
@@ -908,11 +1122,13 @@ Deno.test("telegram-webhook runtime dependencies keep lookup disabled without se
   assertEquals(dependencies.parseRuntimeConfig?.enabled, false);
   assertEquals(dependencies.chatAuthRuntimeConfig?.enabled, false);
   assertEquals(dependencies.claimRuntimeConfig?.enabled, false);
+  assertEquals(dependencies.deliveryRuntimeConfig?.enabled, false);
   assertEquals(dependencies.lookupTelegramWebhookSession, undefined);
   assertEquals(dependencies.claimTelegramUpdate, undefined);
+  assertEquals(dependencies.deliverTelegramReadOnlyResponse, undefined);
   assertEquals(
     keys.join(","),
-    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey}`,
+    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey}`,
   );
 });
 
@@ -929,12 +1145,14 @@ Deno.test("telegram-webhook runtime dependencies enable lookup lazily", () => {
   assertEquals(dependencies.parseRuntimeConfig?.enabled, true);
   assertEquals(dependencies.chatAuthRuntimeConfig?.enabled, true);
   assertEquals(dependencies.claimRuntimeConfig?.enabled, true);
+  assertEquals(dependencies.deliveryRuntimeConfig?.enabled, true);
   assertEquals(typeof dependencies.lookupTelegramWebhookSession, "function");
   assertEquals(typeof dependencies.lookupTelegramChatAuthorization, "function");
   assertEquals(typeof dependencies.claimTelegramUpdate, "function");
+  assertEquals(dependencies.deliverTelegramReadOnlyResponse, undefined);
   assertEquals(
     keys.join(","),
-    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey}`,
+    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey}`,
   );
 });
 

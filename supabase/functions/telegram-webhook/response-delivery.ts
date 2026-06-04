@@ -174,6 +174,14 @@ export function assertTelegramDeliveryResponse(
   };
 }
 
+export function sanitizeTelegramResponseDeliveryError(_error: unknown) {
+  return new HttpError(
+    503,
+    "telegram_unavailable",
+    "Telegram is unavailable.",
+  );
+}
+
 function getTimeoutMs(timeoutMs: number | undefined) {
   if (
     !Number.isFinite(timeoutMs) || timeoutMs === undefined || timeoutMs <= 0

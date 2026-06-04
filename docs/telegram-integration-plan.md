@@ -6534,3 +6534,56 @@ Still not included:
 - No schema/RLS changes.
 - No Edge Function deploy.
 - No Netlify publish/unlock.
+
+## Phase 5BU Combined - Webhook Response Delivery Runtime Gate
+
+Phase 5BU mounts read-only response planning and delivery orchestration into the
+webhook handler behind a new default-off gate:
+
+- `KYRA_TELEGRAM_WEBHOOK_DELIVERY_ENABLED`
+
+The handler still remains inert unless all prior gates are explicitly enabled
+and a delivery dependency is injected. The default production dependency setup
+does not resolve tokens and does not create a live delivery dependency yet.
+
+Runtime order:
+
+1. Verify webhook secret.
+2. Resolve active webhook session.
+3. Parse update.
+4. Authorize chat.
+5. Claim update idempotently.
+6. Build a read-only response plan from the claim and parsed command.
+7. Deliver only if the claim is new and delivery dependency is configured.
+
+Duplicate update behavior:
+
+- Duplicate claims return a bounded `duplicate` no-op response.
+- Duplicate claims must not call delivery.
+
+Security rules:
+
+- Delivery must never run before claim success.
+- Delivery must never run before chat authorization.
+- The default runtime must not resolve BotFather tokens yet.
+- Unexpected delivery dependency failures must map to sanitized Telegram
+  unavailable errors.
+- Handler responses must not expose token, chat id, session id, agent id,
+  workspace id, owner id, or Telegram raw error bodies.
+
+Files touched:
+
+- `supabase/functions/telegram-webhook/runtime-config.ts`
+- `supabase/functions/telegram-webhook/runtime-config_test.ts`
+- `supabase/functions/telegram-webhook/index.ts`
+- `supabase/functions/telegram-webhook/index_test.ts`
+- `supabase/functions/telegram-webhook/response-delivery.ts`
+- `docs/telegram-integration-plan.md`
+
+Still not included:
+
+- No token secret resolution.
+- No runtime `sendMessage` dependency from production env.
+- No Edge Function deploy.
+- No Netlify publish/unlock.
+- No schema/RLS changes.
