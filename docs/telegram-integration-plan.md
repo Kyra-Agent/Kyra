@@ -4839,6 +4839,102 @@ What not to touch yet:
 - No request body parsing or live handler wiring.
 - No reply sender, Telegram API call, deploy, Netlify publish/unlock, or push.
 
+### Phase 5AX.1 Telegram Update Claim Contract Closeout
+
+Phase 5AX.1 adds a pure validator for the future atomic update-claim RPC result.
+It does not call a database or participate in the live webhook handler.
+
+Implemented files:
+
+- `supabase/functions/telegram-webhook/idempotency.ts`
+- `supabase/functions/telegram-webhook/idempotency_test.ts`
+- `supabase/functions/telegram-webhook/index.ts` for exports only
+
+Implemented behavior:
+
+- Accepts only the exact safe result shapes:
+  - `{ claimed: true, status: "claimed" }`
+  - `{ claimed: false, status: "duplicate" }`
+- Maps a duplicate result to a no-processing decision.
+- Rejects inconsistent, malformed, or extra-field results.
+- Sanitizes every unexpected validation failure to
+  `500 server_error: Telegram update claim validation failed.`
+- Does not return update IDs, session IDs, raw RPC results, raw errors, tokens,
+  secrets, or other private values.
+
+Verification result:
+
+- `npm run check:functions` passed.
+- Deno checks passed.
+- Telegram connect and webhook Deno tests passed: `157 passed`, `0 failed`.
+- `npm exec tsc -- --noEmit` passed.
+- `npm run build` passed.
+- Deno format check passed.
+- `git diff --check` passed.
+
+Runtime and security status:
+
+- `handleTelegramWebhookRequest` remains inert and does not call the validator.
+- The existing read-only pipeline remains unchanged and is not wired live.
+- No DB/RPC call, DB read/write, schema/RLS change, service-role client, Vault
+  access, env read, request body parsing/logging, Telegram API call, or reply
+  delivery was added.
+- No SQL apply, Edge Function deploy, Netlify publish/unlock, or push happened.
+
+### Phase 5AY Claim-Aware Read-Only Response Planning Preflight
+
+Phase 5AY prepares a pure post-claim response-planning boundary. Its purpose is
+to prove that duplicate updates cannot build or deliver a response before any
+live persistence or handler wiring is approved.
+
+Recommended pure contract:
+
+```ts
+type TelegramClaimedReadOnlyResponsePlan =
+  | {
+      status: "claimed";
+      shouldDeliver: true;
+      response: TelegramReadOnlyCommandResponse;
+    }
+  | {
+      status: "duplicate";
+      shouldDeliver: false;
+    };
+```
+
+Recommended behavior:
+
+- Validate the claim result before inspecting or building the response.
+- Return a bounded duplicate no-op plan when the result is `duplicate`.
+- Do not call the response builder for duplicate updates.
+- Build a static read-only response only when the result is `claimed`.
+- Preserve sanitized errors from the existing claim validator and response
+  builder.
+- Return no update ID, session ID, Telegram identity, policy, raw command text,
+  raw claim result, or raw error.
+
+Recommended tests:
+
+- Claimed result builds one expected static response.
+- Duplicate result returns a no-op plan and never calls the response builder.
+- Invalid claim result fails before response building.
+- Unsupported claimed command remains a sanitized `422 unsupported_update`.
+- Result shapes contain only the approved bounded fields.
+
+Files likely touched:
+
+- `supabase/functions/telegram-webhook/claim-aware-response.ts`
+- `supabase/functions/telegram-webhook/claim-aware-response_test.ts`
+- `supabase/functions/telegram-webhook/index.ts` for exports only
+
+What not to touch in Phase 5AY:
+
+- No existing read-only pipeline refactor or live handler wiring.
+- No dedupe table/RPC, DB read/write, schema/RLS, or service-role client.
+- No request body parsing/logging, Vault access, env read, Telegram API call,
+  reply sender, or command execution.
+- No SQL apply, Edge Function deploy, Netlify publish/unlock, or push.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
