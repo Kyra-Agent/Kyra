@@ -60,6 +60,8 @@ export {
   shouldProcessTelegramUpdateClaim,
 } from "./idempotency.ts";
 export type { TelegramUpdateClaimResult } from "./idempotency.ts";
+export { planTelegramClaimedReadOnlyResponse } from "./claim-aware-response.ts";
+export type { TelegramClaimedReadOnlyResponsePlan } from "./claim-aware-response.ts";
 
 export function handleTelegramWebhookRequest(request: Request) {
   if (request.method === "OPTIONS") {
