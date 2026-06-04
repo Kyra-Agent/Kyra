@@ -4119,6 +4119,58 @@ Next safest slice:
 - The files must remain unapplied, must be verified by static checks, and must
   not modify `schema.sql` until a separate generated-schema update is approved.
 
+### Phase 5AR.1 SQL Review Packet Closeout
+
+Phase 5AR.1 adds local review-only SQL packet files for the future Telegram
+webhook receiver lookup:
+
+- `supabase/telegram_webhook_receiver_forward_review.sql`
+- `supabase/telegram_webhook_receiver_rollback_review.sql`
+
+Current state:
+
+- The SQL packet is committed as repo documentation/review material only.
+- No SQL was applied to Supabase.
+- No schema/RLS state was changed in the remote project.
+- `schema.sql` was not modified.
+- Runtime gates remain disabled.
+- No Edge Function was deployed.
+- No Netlify publish/unlock was triggered.
+- No secrets, tokens, or environment values were read or included.
+
+Forward packet summary:
+
+- Creates `public.telegram_webhook_secrets`.
+- Enables RLS on the private webhook secret lookup table.
+- Grants table access only to `service_role`.
+- Creates `public.resolve_telegram_webhook_session(text)` as stable SQL
+  `SECURITY INVOKER` with empty search path.
+- Grants RPC execute only to `service_role`.
+- Does not create chat authorization tables or command processing objects.
+
+Rollback packet summary:
+
+- Refuses rollback if `public.telegram_webhook_secrets` contains rows.
+- Revokes RPC privileges before dropping the exact RPC signature.
+- Revokes table privileges before dropping the exact private table.
+- Avoids broad destructive rollback behavior.
+
+Required approval before applying this packet later:
+
+- Confirm target Supabase project and branch.
+- Re-run and capture the baseline verifier output immediately before apply.
+- Approve the exact forward SQL file.
+- Approve the exact rollback SQL file.
+- Confirm runtime gates remain disabled during apply.
+- Confirm the post-apply verifier output before any runtime wiring.
+
+Next safest slice:
+
+- Phase 5AS should remain audit/docs-only and define the operator apply
+  checklist for this SQL packet, including pre-apply screenshots/results,
+  post-apply verifier expectations, rollback decision points, and the
+  no-runtime-wiring stop condition.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
