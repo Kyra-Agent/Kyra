@@ -5,6 +5,7 @@ import {
   isTelegramConnectGetMeEnabled,
   isTelegramConnectSessionWriteEnabled,
   isTelegramConnectStoreEnabled,
+  isTelegramConnectWebhookRegisterEnabled,
   lookupAgentOwnershipRecord,
   maxTelegramConnectBodyBytes,
   persistTelegramSessionRecord,
@@ -14,6 +15,7 @@ import {
   telegramConnectGetMeEnabledEnvKey,
   telegramConnectSessionWriteEnabledEnvKey,
   telegramConnectStoreEnabledEnvKey,
+  telegramConnectWebhookRegisterEnabledEnvKey,
 } from "./core.ts";
 
 function assert(condition: boolean, message: string) {
@@ -53,6 +55,9 @@ const testTokenSecretRef =
   "vault:telegram:55555555-5555-4555-8555-555555555555";
 const testSessionId = "66666666-6666-4666-8666-666666666666";
 const testBotToken = "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi";
+const testWebhookUrl =
+  "https://kyraagent.xyz/functions/v1/telegram-webhook/session-123";
+const testWebhookSecretToken = "telegram_secret_token_123456789012";
 
 interface LookupCall {
   table: string;
@@ -356,6 +361,9 @@ Deno.test("telegram-connect rejects invalid JSON with sanitized 400 behavior", a
 Deno.test("telegram-connect rejects missing bearer authorization", async () => {
   let envRead = false;
   let sessionChecked = false;
+  let webhookUrlRead = false;
+  let webhookSecretGenerated = false;
+  let webhookRegistered = false;
 
   const response = await handleTelegramConnectRequest(
     makeConnectRequest({
@@ -370,6 +378,17 @@ Deno.test("telegram-connect rejects missing bearer authorization", async () => {
       getUser: async () => {
         sessionChecked = true;
       },
+      getTelegramWebhookUrl: () => {
+        webhookUrlRead = true;
+        return testWebhookUrl;
+      },
+      generateTelegramWebhookSecret: () => {
+        webhookSecretGenerated = true;
+        return testWebhookSecretToken;
+      },
+      registerTelegramWebhook: async () => {
+        webhookRegistered = true;
+      },
     },
   );
 
@@ -381,6 +400,12 @@ Deno.test("telegram-connect rejects missing bearer authorization", async () => {
   assertEquals(body.message, "A valid Supabase session is required.");
   assert(!envRead, "Missing bearer must not read Edge Function env.");
   assert(!sessionChecked, "Missing bearer must not validate a session.");
+  assert(!webhookUrlRead, "Missing bearer must not read webhook URL.");
+  assert(
+    !webhookSecretGenerated,
+    "Missing bearer must not generate webhook secrets.",
+  );
+  assert(!webhookRegistered, "Missing bearer must not register webhooks.");
 });
 
 Deno.test("telegram-connect returns unauthorized when session validation rejects", async () => {
@@ -626,6 +651,20 @@ Deno.test("telegram-connect session write runtime gate defaults off and requires
   assertEquals(isTelegramConnectSessionWriteEnabled("TRUE"), false);
   assertEquals(isTelegramConnectSessionWriteEnabled("1"), false);
   assertEquals(isTelegramConnectSessionWriteEnabled("true"), true);
+});
+
+Deno.test("telegram-connect webhook register runtime gate defaults off and requires exact true", () => {
+  assertEquals(
+    telegramConnectWebhookRegisterEnabledEnvKey,
+    "KYRA_TELEGRAM_CONNECT_WEBHOOK_REGISTER_ENABLED",
+  );
+  assertEquals(isTelegramConnectWebhookRegisterEnabled(undefined), false);
+  assertEquals(isTelegramConnectWebhookRegisterEnabled(null), false);
+  assertEquals(isTelegramConnectWebhookRegisterEnabled(""), false);
+  assertEquals(isTelegramConnectWebhookRegisterEnabled("false"), false);
+  assertEquals(isTelegramConnectWebhookRegisterEnabled("TRUE"), false);
+  assertEquals(isTelegramConnectWebhookRegisterEnabled("1"), false);
+  assertEquals(isTelegramConnectWebhookRegisterEnabled("true"), true);
 });
 
 Deno.test("telegram-connect getMe runtime gate off does not call validator", async () => {
@@ -1085,6 +1124,280 @@ Deno.test("telegram-connect session persistence runs after token storage and rem
   );
 });
 
+Deno.test("telegram-connect webhook registration contract runs after session persistence and remains inert", async () => {
+  const order: string[] = [];
+
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({
+        agentId: testAgentId,
+        botToken: testBotToken,
+      }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => {
+        order.push("session");
+        return { id: testUserId };
+      },
+      lookupAgentOwnership: async (agentId, ownerUserId) => {
+        order.push("ownership");
+        return {
+          agentId,
+          ownerUserId,
+          workspaceId: testWorkspaceId,
+        };
+      },
+      validateTelegramBotToken: async () => {
+        order.push("validator");
+        return {
+          telegramBotId: testTelegramBotId,
+          username: "kyra_test_bot",
+          firstName: "Kyra Test",
+        };
+      },
+      storeTelegramBotToken: async () => {
+        order.push("store");
+        return {
+          tokenSecretRef: testTokenSecretRef,
+          provider: "supabase_vault",
+        };
+      },
+      persistTelegramSession: async () => {
+        order.push("persist");
+      },
+      getTelegramWebhookUrl: () => {
+        order.push("url");
+        return testWebhookUrl;
+      },
+      generateTelegramWebhookSecret: () => {
+        order.push("secret");
+        return testWebhookSecretToken;
+      },
+      registerTelegramWebhook: async (input) => {
+        order.push("register");
+        assertEquals(input.agentId, testAgentId);
+        assertEquals(input.ownerUserId, testUserId);
+        assertEquals(input.telegramBotId, testTelegramBotId);
+        assertEquals(input.botHandle, "@kyra_test_bot");
+        assertEquals(input.botToken, testBotToken);
+        assertEquals(input.tokenSecretRef, testTokenSecretRef);
+        assertEquals(input.webhookUrl, testWebhookUrl);
+        assertEquals(input.webhookSecretToken, testWebhookSecretToken);
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(
+    order.join(","),
+    "session,ownership,validator,store,persist,url,secret,register",
+  );
+  assertEquals(response.status, 501);
+  assertEquals(body.status, "not_configured");
+  assert(
+    !serializedBody.includes(testBotToken),
+    "Response must not echo botToken.",
+  );
+  assert(
+    !serializedBody.includes(testTokenSecretRef),
+    "Response must not echo tokenSecretRef.",
+  );
+  assert(
+    !serializedBody.includes(testWebhookUrl),
+    "Response must not echo webhook URL.",
+  );
+  assert(
+    !serializedBody.includes(testWebhookSecretToken),
+    "Response must not echo webhook secret.",
+  );
+  assert(
+    !serializedBody.includes(testTelegramBotId),
+    "Response must not echo telegramBotId.",
+  );
+  assert(
+    !serializedBody.includes(testUserId),
+    "Response must not echo ownerUserId.",
+  );
+});
+
+Deno.test("telegram-connect webhook registration contract requires prior session persistence", async () => {
+  let registerCalled = false;
+
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({
+        agentId: testAgentId,
+        botToken: testBotToken,
+      }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => ({ id: testUserId }),
+      lookupAgentOwnership: async (agentId, ownerUserId) => ({
+        agentId,
+        ownerUserId,
+        workspaceId: testWorkspaceId,
+      }),
+      validateTelegramBotToken: async () => ({
+        telegramBotId: testTelegramBotId,
+        username: "kyra_test_bot",
+        firstName: "Kyra Test",
+      }),
+      storeTelegramBotToken: async () => ({
+        tokenSecretRef: testTokenSecretRef,
+        provider: "supabase_vault",
+      }),
+      getTelegramWebhookUrl: () => testWebhookUrl,
+      generateTelegramWebhookSecret: () => testWebhookSecretToken,
+      registerTelegramWebhook: async () => {
+        registerCalled = true;
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(response.status, 500);
+  assertEquals(body.status, "server_error");
+  assertEquals(
+    body.message,
+    "Telegram webhook registration is not configured safely.",
+  );
+  assert(
+    !registerCalled,
+    "Webhook registration must not run before session persistence is configured.",
+  );
+  assert(
+    !serializedBody.includes(testBotToken),
+    "Response must not echo botToken.",
+  );
+});
+
+Deno.test("telegram-connect webhook registration contract is not called when persistence fails", async () => {
+  let registerCalled = false;
+
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({
+        agentId: testAgentId,
+        botToken: testBotToken,
+      }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => ({ id: testUserId }),
+      lookupAgentOwnership: async (agentId, ownerUserId) => ({
+        agentId,
+        ownerUserId,
+        workspaceId: testWorkspaceId,
+      }),
+      validateTelegramBotToken: async () => ({
+        telegramBotId: testTelegramBotId,
+        username: "kyra_test_bot",
+        firstName: "Kyra Test",
+      }),
+      storeTelegramBotToken: async () => ({
+        tokenSecretRef: testTokenSecretRef,
+        provider: "supabase_vault",
+      }),
+      persistTelegramSession: async () => {
+        throw new Error(`raw persist ${testTokenSecretRef}`);
+      },
+      getTelegramWebhookUrl: () => testWebhookUrl,
+      generateTelegramWebhookSecret: () => testWebhookSecretToken,
+      registerTelegramWebhook: async () => {
+        registerCalled = true;
+      },
+    },
+  );
+
+  const body = await readJson(response);
+
+  assertEquals(response.status, 500);
+  assertEquals(body.status, "server_error");
+  assertEquals(body.message, "Telegram session persistence failed.");
+  assert(
+    !registerCalled,
+    "Webhook registration must not run when session persistence fails.",
+  );
+});
+
+Deno.test("telegram-connect webhook registration dependency failure is sanitized", async () => {
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({
+        agentId: testAgentId,
+        botToken: testBotToken,
+      }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => ({ id: testUserId }),
+      lookupAgentOwnership: async (agentId, ownerUserId) => ({
+        agentId,
+        ownerUserId,
+        workspaceId: testWorkspaceId,
+      }),
+      validateTelegramBotToken: async () => ({
+        telegramBotId: testTelegramBotId,
+        username: "kyra_test_bot",
+        firstName: "Kyra Test",
+      }),
+      storeTelegramBotToken: async () => ({
+        tokenSecretRef: testTokenSecretRef,
+        provider: "supabase_vault",
+      }),
+      persistTelegramSession: async () => {},
+      getTelegramWebhookUrl: () => testWebhookUrl,
+      generateTelegramWebhookSecret: () => testWebhookSecretToken,
+      registerTelegramWebhook: async () => {
+        throw new Error(
+          `raw setWebhook ${testBotToken} ${testTokenSecretRef} ${testWebhookUrl} ${testWebhookSecretToken}`,
+        );
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(response.status, 424);
+  assertEquals(body.status, "webhook_registration_failed");
+  assertEquals(body.message, "Telegram webhook registration failed.");
+  assert(
+    !serializedBody.includes(testBotToken),
+    "Response must not echo botToken.",
+  );
+  assert(
+    !serializedBody.includes(testTokenSecretRef),
+    "Response must not echo tokenSecretRef.",
+  );
+  assert(
+    !serializedBody.includes(testWebhookUrl),
+    "Response must not echo webhook URL.",
+  );
+  assert(
+    !serializedBody.includes(testWebhookSecretToken),
+    "Response must not echo webhook secret.",
+  );
+  assert(
+    !serializedBody.includes("raw setWebhook"),
+    "Response must not expose raw webhook registration errors.",
+  );
+});
+
 Deno.test("telegram-connect session persistence requires prior token storage", async () => {
   let persistCalled = false;
 
@@ -1438,6 +1751,9 @@ Deno.test("telegram-connect does not validate botToken before ownership succeeds
   let storeCalled = false;
   let persistCalled = false;
   let revokeCalled = false;
+  let getWebhookUrlCalled = false;
+  let generateWebhookSecretCalled = false;
+  let registerWebhookCalled = false;
 
   const response = await handleTelegramConnectRequest(
     makeConnectRequest({
@@ -1477,6 +1793,17 @@ Deno.test("telegram-connect does not validate botToken before ownership succeeds
       revokeTelegramBotToken: async () => {
         revokeCalled = true;
       },
+      getTelegramWebhookUrl: () => {
+        getWebhookUrlCalled = true;
+        return testWebhookUrl;
+      },
+      generateTelegramWebhookSecret: () => {
+        generateWebhookSecretCalled = true;
+        return testWebhookSecretToken;
+      },
+      registerTelegramWebhook: async () => {
+        registerWebhookCalled = true;
+      },
     },
   );
 
@@ -1488,6 +1815,18 @@ Deno.test("telegram-connect does not validate botToken before ownership succeeds
   assert(!storeCalled, "Non-owner requests must not store botToken.");
   assert(!persistCalled, "Non-owner requests must not persist a session.");
   assert(!revokeCalled, "Non-owner requests must not revoke a token ref.");
+  assert(
+    !getWebhookUrlCalled,
+    "Non-owner requests must not read webhook URL.",
+  );
+  assert(
+    !generateWebhookSecretCalled,
+    "Non-owner requests must not generate webhook secrets.",
+  );
+  assert(
+    !registerWebhookCalled,
+    "Non-owner requests must not register webhooks.",
+  );
 });
 
 Deno.test("telegram-connect sanitizes unexpected token storage errors", async () => {

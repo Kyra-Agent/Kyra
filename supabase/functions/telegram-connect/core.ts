@@ -43,6 +43,17 @@ export interface RevokeTelegramBotTokenInput {
   tokenSecretRef: string;
 }
 
+export interface RegisterTelegramWebhookInput {
+  agentId: string;
+  ownerUserId: string;
+  telegramBotId: string;
+  botHandle: string;
+  botToken: string;
+  tokenSecretRef: string;
+  webhookUrl: string;
+  webhookSecretToken: string;
+}
+
 export interface OwnershipLookupAgentRow {
   id: string;
   workspace_id: string;
@@ -118,6 +129,8 @@ export const telegramConnectStoreEnabledEnvKey =
   "KYRA_TELEGRAM_CONNECT_STORE_ENABLED";
 export const telegramConnectSessionWriteEnabledEnvKey =
   "KYRA_TELEGRAM_CONNECT_SESSION_WRITE_ENABLED";
+export const telegramConnectWebhookRegisterEnabledEnvKey =
+  "KYRA_TELEGRAM_CONNECT_WEBHOOK_REGISTER_ENABLED";
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const botTokenPattern = /^\d{5,20}:[A-Za-z0-9_-]{20,128}$/;
@@ -152,6 +165,11 @@ export interface TelegramConnectDependencies {
   ) => Promise<void>;
   revokeTelegramBotToken?: (
     input: RevokeTelegramBotTokenInput,
+  ) => Promise<void>;
+  getTelegramWebhookUrl?: () => Promise<string> | string;
+  generateTelegramWebhookSecret?: () => Promise<string> | string;
+  registerTelegramWebhook?: (
+    input: RegisterTelegramWebhookInput,
   ) => Promise<void>;
 }
 
@@ -210,6 +228,12 @@ export function isTelegramConnectStoreEnabled(
 }
 
 export function isTelegramConnectSessionWriteEnabled(
+  value: string | null | undefined,
+) {
+  return value === "true";
+}
+
+export function isTelegramConnectWebhookRegisterEnabled(
   value: string | null | undefined,
 ) {
   return value === "true";
@@ -484,6 +508,14 @@ export function sanitizeTelegramSessionPersistenceError(_error: unknown) {
   );
 }
 
+export function sanitizeTelegramWebhookRegistrationError(_error: unknown) {
+  return new HttpError(
+    424,
+    "webhook_registration_failed",
+    "Telegram webhook registration failed.",
+  );
+}
+
 export async function lookupAgentOwnershipRecord(
   serviceClient: OwnershipLookupClient,
   agentId: string,
@@ -620,6 +652,22 @@ export function assertAgentOwnership(
   };
 }
 
+function throwWebhookRegistrationNotConfigured(): never {
+  throw new HttpError(
+    500,
+    "server_error",
+    "Telegram webhook registration is not configured safely.",
+  );
+}
+
+function assertWebhookRegistrationRuntimeValue(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) {
+    throwWebhookRegistrationNotConfigured();
+  }
+
+  return value.trim();
+}
+
 export async function handleTelegramConnectRequest(
   request: Request,
   dependencies: TelegramConnectDependencies,
@@ -668,6 +716,7 @@ export async function handleTelegramConnectRequest(
 
     let botToken: string | null = null;
     let telegramBot: TelegramBotValidationResult | null = null;
+    let botHandle: string | null = null;
     let tokenSecretRef: string | null = null;
 
     if (dependencies.validateTelegramBotToken) {
@@ -723,9 +772,10 @@ export async function handleTelegramConnectRequest(
       }
 
       try {
+        botHandle = formatTelegramBotHandle(telegramBot.username);
         await dependencies.persistTelegramSession({
           agentId,
-          botHandle: formatTelegramBotHandle(telegramBot.username),
+          botHandle,
           tokenSecretRef,
         });
       } catch (error) {
@@ -738,6 +788,55 @@ export async function handleTelegramConnectRequest(
         }
 
         throw sanitizeTelegramSessionPersistenceError(error);
+      }
+    }
+
+    if (
+      dependencies.getTelegramWebhookUrl ||
+      dependencies.generateTelegramWebhookSecret ||
+      dependencies.registerTelegramWebhook
+    ) {
+      if (
+        !botToken ||
+        !telegramBot ||
+        !botHandle ||
+        !tokenSecretRef ||
+        !dependencies.persistTelegramSession ||
+        !dependencies.getTelegramWebhookUrl ||
+        !dependencies.generateTelegramWebhookSecret ||
+        !dependencies.registerTelegramWebhook
+      ) {
+        throwWebhookRegistrationNotConfigured();
+      }
+
+      try {
+        const webhookUrl = assertWebhookRegistrationRuntimeValue(
+          await dependencies.getTelegramWebhookUrl(),
+        );
+        const webhookSecretToken = assertWebhookRegistrationRuntimeValue(
+          await dependencies.generateTelegramWebhookSecret(),
+        );
+
+        await dependencies.registerTelegramWebhook({
+          agentId,
+          ownerUserId: userId,
+          telegramBotId: telegramBot.telegramBotId,
+          botHandle,
+          botToken,
+          tokenSecretRef,
+          webhookUrl,
+          webhookSecretToken,
+        });
+      } catch (error) {
+        if (
+          error instanceof HttpError &&
+          error.message ===
+            "Telegram webhook registration is not configured safely."
+        ) {
+          throw error;
+        }
+
+        throw sanitizeTelegramWebhookRegistrationError(error);
       }
     }
 
