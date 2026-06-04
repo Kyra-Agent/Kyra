@@ -186,6 +186,27 @@ select
     when telegram_webhook_receiver_objects.telegram_webhook_secrets_table is null then false
     else exists (
       select 1
+      from pg_constraint con
+      where con.conrelid = telegram_webhook_receiver_objects.telegram_webhook_secrets_table::oid
+        and con.conname = 'telegram_webhook_secrets_hash_format_check'
+        and con.contype = 'c'
+        and con.convalidated
+        and replace(
+          regexp_replace(
+            lower(pg_get_constraintdef(con.oid)),
+            '[[:space:]()]',
+            '',
+            'g'
+          ),
+          '::text',
+          ''
+        ) = 'checkwebhook_secret_hash~''^[0-9a-f]{64}$'''
+    )
+  end as telegram_webhook_secrets_hash_format_check_is_expected,
+  case
+    when telegram_webhook_receiver_objects.telegram_webhook_secrets_table is null then false
+    else exists (
+      select 1
       from pg_index idx
       join pg_class index_rel on index_rel.oid = idx.indexrelid
       where idx.indrelid = telegram_webhook_receiver_objects.telegram_webhook_secrets_table::oid
@@ -639,9 +660,9 @@ select
       select 1
       from pg_proc proc
       where proc.oid = telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc::oid
-        and proc.prosecdef
+        and not proc.prosecdef
     )
-  end as resolve_telegram_webhook_session_is_security_definer,
+  end as resolve_telegram_webhook_session_is_security_invoker,
   case
     when telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc is null then false
     else exists (
@@ -651,11 +672,14 @@ select
         and exists (
           select 1
           from unnest(coalesce(proc.proconfig, array[]::text[])) as config(setting)
-          where regexp_replace(lower(config.setting), '[[:space:]]+', '', 'g')
-            = 'search_path=pg_catalog,public,pg_temp'
+          where lower(split_part(config.setting, '=', 1)) = 'search_path'
+            and btrim(
+              substring(config.setting from position('=' in config.setting) + 1),
+              ' "'
+            ) = ''
         )
     )
-  end as resolve_telegram_webhook_session_has_restricted_search_path,
+  end as resolve_telegram_webhook_session_has_empty_search_path,
   case
     when telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc is null then false
     else exists (
@@ -698,26 +722,6 @@ select
         ]::text[]
     )
   end as resolve_telegram_webhook_session_has_expected_result_contract,
-  case
-    when telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc is null then null
-    else (
-      select pg_get_userbyid(proc.proowner)
-      from pg_proc proc
-      where proc.oid = telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc::oid
-    )
-  end as resolve_telegram_webhook_session_owner_name,
-  case
-    when telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc is null then false
-    else coalesce(
-      (
-        select pg_get_userbyid(proc.proowner)
-          not in ('anon', 'authenticated', 'service_role')
-        from pg_proc proc
-        where proc.oid = telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc::oid
-      ),
-      false
-    )
-  end as resolve_telegram_webhook_session_owner_is_not_runtime_role,
   case
     when telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc is null then false
     else not exists (

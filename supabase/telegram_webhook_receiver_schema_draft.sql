@@ -30,10 +30,8 @@
 -- - Confirm whether hash generation happens only in Edge Functions or through
 --   an approved server-side RPC.
 -- - Confirm final RLS/grant statements.
--- - Confirm the privileged migration role that will own the security-definer
---   RPC. Do not assume the target-project role name.
 -- - Extend the verifier to check RLS state, exact columns and constraints,
---   partial unique indexes, security-definer state, and restricted search path.
+--   partial unique indexes, security-invoker state, and empty search path.
 -- - Confirm verifier expected outputs and a rollback artifact before applying.
 -- - Run the verifier before and after any approved migration.
 
@@ -56,11 +54,22 @@
 -- - agent_id is intentionally not stored here; the session is the single source
 --   of truth for agent ownership and prevents session/agent drift.
 
+-- Proposed exact webhook secret hash contract
+-- - Generate the raw Telegram webhook secret from 32 cryptographically random
+--   bytes encoded as 64 lowercase hexadecimal characters.
+-- - Store only the lowercase hexadecimal SHA-256 digest of the exact UTF-8
+--   bytes received from the Telegram verification header.
+-- - Hashing must happen in an approved backend-only Edge Function boundary.
+-- - Never store, return, or log the raw webhook secret.
+-- - webhook_secret_ref remains an opaque backend-only reference. Its exact
+--   format and lifecycle require separate approval before executable SQL.
+
 -- Stable constraint names
 -- - telegram_webhook_secrets_pkey
 -- - telegram_webhook_secrets_session_fkey
 -- - telegram_webhook_secrets_ref_not_blank_check
 -- - telegram_webhook_secrets_hash_not_blank_check
+-- - telegram_webhook_secrets_hash_format_check
 
 -- Commented DDL sketch
 -- - Future executable SQL must fail if this table already exists. Do not use
@@ -80,7 +89,9 @@
 --   constraint telegram_webhook_secrets_ref_not_blank_check
 --     check (length(btrim(webhook_secret_ref)) > 0),
 --   constraint telegram_webhook_secrets_hash_not_blank_check
---     check (length(btrim(webhook_secret_hash)) > 0)
+--     check (length(btrim(webhook_secret_hash)) > 0),
+--   constraint telegram_webhook_secrets_hash_format_check
+--     check (webhook_secret_hash ~ '^[0-9a-f]{64}$')
 -- );
 
 -- Index intent
@@ -106,6 +117,7 @@
 -- revoke all on public.telegram_webhook_secrets from public;
 -- revoke all on public.telegram_webhook_secrets from anon;
 -- revoke all on public.telegram_webhook_secrets from authenticated;
+-- revoke all on public.telegram_webhook_secrets from service_role;
 -- grant select, insert, update on public.telegram_webhook_secrets to service_role;
 
 -- Webhook session lookup RPC intent
@@ -132,8 +144,8 @@
 -- )
 -- language sql
 -- stable
--- security definer
--- set search_path = pg_catalog, public, pg_temp
+-- security invoker
+-- set search_path = ''
 -- as $$
 --   select
 --     sessions.id as session_id,
@@ -155,16 +167,13 @@
 --   limit 2;
 -- $$;
 
--- RPC owner approval boundary
--- - Approved owner placeholder: <approved_privileged_migration_role>.
--- - Confirm the exact target-project role before executable SQL is written.
--- - The owner must not be public, anon, or authenticated.
--- - service_role should receive execute only and should not be assumed to own
---   the security-definer RPC.
--- - Future reviewed SQL should explicitly set the approved owner after function
---   creation:
--- alter function public.resolve_telegram_webhook_session(text)
---   owner to <approved_privileged_migration_role>;
+-- RPC privilege model
+-- - The lookup is security invoker because only service_role may execute it and
+--   service_role receives the minimum direct table privileges required by the
+--   query.
+-- - The empty search path plus fully qualified relation names prevents
+--   unexpected object resolution.
+-- - The function owner is not used as a runtime privilege boundary.
 
 -- Deferred chat authorization boundary
 -- - Do not create telegram_chat_authorizations or its lookup RPC in this slice.
@@ -176,26 +185,23 @@
 
 -- Commented function privilege sketch
 -- - PostgreSQL may grant execute on functions to PUBLIC by default.
--- - Future executable SQL must revoke from public before granting backend-only
---   access.
--- revoke execute on function public.resolve_telegram_webhook_session(text) from public;
--- revoke execute on function public.resolve_telegram_webhook_session(text) from anon;
--- revoke execute on function public.resolve_telegram_webhook_session(text) from authenticated;
+-- - Future executable SQL must revoke all existing execute grants before
+--   granting backend-only access.
+-- revoke all on function public.resolve_telegram_webhook_session(text)
+--   from public, anon, authenticated, service_role;
 -- grant execute on function public.resolve_telegram_webhook_session(text) to service_role;
 
 -- Expected verifier checks after an approved apply
 -- - telegram_webhook_secrets table exists.
 -- - The table has exactly the approved columns and no redundant agent_id.
 -- - RLS is enabled.
--- - All four stable named constraints exist with the expected definitions.
+-- - All five stable named constraints exist with the expected definitions.
 -- - Both approved partial unique indexes exist with the expected predicates.
 -- - public, anon, and authenticated cannot select, insert, update, or delete
 --   the private table.
 -- - service_role has only the required direct table privileges.
 -- - resolve_telegram_webhook_session exists.
--- - The RPC is stable, security definer, and has the approved restricted
---   search path.
--- - The RPC owner matches the explicitly approved privileged migration role.
+-- - The RPC is stable, security invoker, and has an empty search path.
 -- - public, anon, and authenticated cannot execute the lookup RPC.
 -- - service_role can execute the lookup RPC.
 -- - telegram_session_summaries still excludes token_secret_ref, owner_user_id,
