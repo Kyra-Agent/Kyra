@@ -5465,6 +5465,107 @@ Next safest slice:
 - The atomic update claim packet pair should wait until the chat authorization
   pair is reviewed and committed locally.
 
+### Phase 5BE.1 Chat Authorization Review Packet Closeout
+
+Phase 5BE.1 adds two local review-only SQL packet files:
+
+- `supabase/telegram_chat_authorization_forward_review.sql`
+- `supabase/telegram_chat_authorization_rollback_review.sql`
+
+Current state:
+
+- Both files are marked `REVIEW DRAFT - DO NOT APPLY WITHOUT EXPLICIT
+  APPROVAL`.
+- The forward packet creates only the private chat authorization table and its
+  exact owner-only read-only lookup RPC.
+- The rollback packet refuses to drop the table when any authorization row
+  exists and does not use `CASCADE`.
+- The packet agrees with the comment-only draft and guarded verifier contract.
+- Static packet checks, repository checks, Deno checks/tests, TypeScript
+  checks, build, and `git diff --check` passed locally.
+- No SQL was applied, no authorization row was created, `schema.sql` was not
+  modified, and no runtime/deploy/publish/push occurred.
+
+Still blocked before chat authorization SQL apply:
+
+- Exact target-project and branch confirmation.
+- Captured read-only verifier baseline.
+- Full-file forward and rollback review together.
+- Separate schema/RLS/grant and SQL apply approval.
+- Post-apply verifier capture with every required chat authorization result
+  true.
+- Separate owner-linking and runtime lookup design/approval.
+
+### Phase 5BE.2 Atomic Update Claim Review Packet Preflight
+
+Phase 5BE.2 audits the local review-packet contract for future atomic Telegram
+update claims. It does not create the packet files or approve SQL apply.
+
+Readiness findings:
+
+- `supabase/telegram_update_claim_schema_draft.sql` defines the exact table,
+  constraint, privilege, and RPC contract.
+- `supabase/verify_authenticated_demo_write_lockdown.sql` contains guarded
+  checks for the future table and RPC.
+- The runtime idempotency result validator and duplicate no-op response plan
+  already exist as inert tested contracts.
+- The live webhook handler remains inert and does not call the claim RPC.
+
+Required future packet files:
+
+- `supabase/telegram_update_claim_forward_review.sql`
+- `supabase/telegram_update_claim_rollback_review.sql`
+
+Required forward-packet behavior:
+
+- Abort if `public.telegram_processed_updates` or
+  `public.claim_telegram_update(uuid,bigint)` already exists.
+- Create exactly the three-column private table, composite primary key, session
+  foreign key, and nonnegative update-ID constraint.
+- Create no extra indexes, status columns, payload columns, identity columns,
+  response columns, retention behavior, or rows.
+- Enable RLS with no browser-readable policies.
+- Revoke all relevant table privileges before granting only select and insert
+  to `service_role`.
+- Create the volatile SQL `SECURITY INVOKER` claim RPC with an empty search
+  path and fully qualified relation names.
+- Use one atomic insert with
+  `ON CONFLICT ON CONSTRAINT telegram_processed_updates_pkey DO NOTHING`.
+- Perform no separate pre-insert processed-update lookup.
+- Return only `claimed boolean` and `status text`.
+- Revoke all relevant function privileges before granting execute only to
+  `service_role`.
+
+Required rollback-packet behavior:
+
+- Refuse rollback if `public.telegram_processed_updates` contains any row.
+- Require webhook runtime and claim adapter gates to remain disabled.
+- Revoke execute before dropping the exact claim RPC signature.
+- Revoke table privileges before dropping the exact table.
+- Use no `CASCADE` and do not touch chat authorization or webhook receiver
+  objects.
+- Require a forward fix instead when claim rows exist, runtime was enabled, or
+  target drift is unknown.
+
+Concurrency and failure contract:
+
+- One session/update pair can be claimed once through the composite primary
+  key.
+- Concurrent duplicate deliveries must produce one claimed result and bounded
+  duplicate results for the rest.
+- Unknown session, inactive session, negative update ID, or malformed RPC
+  result must not be treated as duplicate.
+- Duplicate must remain a no-op before response building and any future
+  outbound Telegram call.
+
+Phase 5BE.2 go/no-go:
+
+- Go for creating only the two local atomic update claim review packet files,
+  followed by static and repository verification.
+- No-go for applying SQL, editing `schema.sql`, creating claim rows, adding a
+  service-role claim adapter, wiring live webhook processing, calling Telegram,
+  deploying, publishing Netlify, or pushing.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
