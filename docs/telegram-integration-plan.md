@@ -2807,6 +2807,73 @@ Recommended next implementation slice:
 - Do not deploy Edge Functions.
 - Do not push or publish.
 
+## Phase 5AC Current Local State After Webhook Registration Contract
+
+Phase 5AC is a documentation-only state update. It does not change runtime
+behavior, enable live Telegram connectivity, deploy Edge Functions, publish
+Netlify, read environment secrets, apply schema/RLS changes, create/read Vault
+secrets, or push local commits.
+
+Current local implementation state:
+
+- Local `main` has the inert webhook registration contract committed on top of
+  the existing Phase 5 preparation stack.
+- The latest local commit is `217e637 Wire inert Telegram webhook registration
+  contract`.
+- Local `main` is ahead of `origin/main` by 30 commits at the time this state
+  note was written.
+- Those commits remain intentionally unpushed until a separate push approval and
+  Netlify credit/publishing decision.
+- `telegram-connect/index.ts` still does not wire
+  `registerTelegramWebhookWithSetWebhook` into production runtime
+  dependencies.
+- The new `KYRA_TELEGRAM_CONNECT_WEBHOOK_REGISTER_ENABLED` parser exists in the
+  core contract layer, but the live runtime does not read or act on that gate
+  yet.
+- Future webhook registration dependencies are represented as injected
+  contracts only: webhook URL provider, webhook secret generator, and webhook
+  registration callback.
+- A valid owner connect path still returns inert `501 not_configured` and does
+  not claim a live Telegram connection.
+- The setWebhook helper remains isolated in the Telegram API helper/test layer.
+
+Security state:
+
+- No `.env.local` or secret values were read.
+- No BotFather token was submitted to a live runtime.
+- No raw token is stored, logged, returned, or rendered by this state.
+- No Vault secret was created, read, resolved, or revoked by this state.
+- No Telegram API call is active from `telegram-connect` runtime.
+- No real `setWebhook` or webhook revocation is performed.
+- No `webhook_status=active` write exists in the connect runtime path.
+- No schema/RLS change is included in this state update.
+- No frontend token input is enabled.
+- No Edge Function deployment or Netlify publish is included.
+
+Phase 5AC verification baseline:
+
+- `git diff --check` passed before the local contract commit.
+- `npm run check:functions` passed before the local contract commit.
+- `deno check supabase/functions/telegram-connect/index.ts
+  supabase/functions/telegram-webhook/index.ts` passed before the local
+  contract commit.
+- `deno test` for Telegram connect/webhook tests passed with 92 tests before
+  the local contract commit.
+- `npm exec tsc -- --noEmit` passed before the local contract commit.
+- `npm run build` passed before the local contract commit.
+
+Recommended next checkpoint:
+
+- Phase 5AD should be a final local readiness audit before deciding whether to
+  keep holding the local stack, push while Netlify publishing is controlled, or
+  proceed to a live runtime wiring phase.
+- Phase 5AD should re-check local/remote commit state, expected changed files
+  versus `origin/main`, full verification commands, and a security scan covering
+  secret reads, Telegram API activation, Vault access, DB writes, frontend token
+  input, request-body logging, and token/ref echo.
+- Live runtime wiring should remain blocked until Phase 5AD confirms the local
+  stack is clean and the user explicitly approves the next implementation slice.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
