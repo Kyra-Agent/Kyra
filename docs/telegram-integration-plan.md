@@ -3903,6 +3903,98 @@ Next safest slice:
 - No runtime wiring, DB writes, SQL apply, Telegram calls, deploys, pushes, or
   gate enablement should happen in that audit.
 
+### Phase 5AQ Runtime Wiring Readiness Audit
+
+Phase 5AQ audits where the webhook secret helper and adapter contracts should
+fit into `telegram-connect` later. It does not wire runtime behavior, apply SQL,
+write DB rows, call Telegram, read Vault, read `.env.local`, deploy, publish, or
+enable live gates.
+
+Current runtime findings:
+
+- `handleTelegramConnectRequest` already enforces the correct front half of the
+  flow: auth, ownership, optional `getMe`, token secret storage, and session
+  staging.
+- `telegramSessionId` is now available after session staging and is validated
+  before webhook registration can run.
+- `registerTelegramWebhook` in `index.ts` is currently a thin wrapper around
+  `registerTelegramWebhookWithSetWebhook`.
+- The current wrapper calls Telegram but does not store a webhook secret hash,
+  create a backend-only `webhookSecretRef`, revoke webhook secret rows, or
+  activate a session.
+- The pure helper layer now has the pieces needed for a future finalization
+  orchestrator, but those helpers are intentionally unwired.
+
+Recommended future wiring shape:
+
+```text
+prepareWebhookSecretMaterial()
+storeTelegramWebhookSecret()
+registerTelegramWebhookWithSetWebhook()
+activateTelegramSession()
+```
+
+This should be wrapped by a single future finalization dependency, not scattered
+across `handleTelegramConnectRequest`:
+
+```text
+finalizeTelegramWebhookRegistration({
+  telegramSessionId,
+  botToken,
+  webhookUrl,
+  webhookSecretMaterial
+}) -> {
+  registered: true
+}
+```
+
+Why use a finalization dependency:
+
+- Keeps raw webhook secret token handling inside one backend-only boundary.
+- Keeps SQL-facing adapters limited to `telegramSessionId`,
+  `webhookSecretHash`, and `webhookSecretRef`.
+- Keeps rollback order testable without calling Telegram or writing DB rows in
+  core request tests.
+- Prevents `handleTelegramConnectRequest` from growing direct knowledge of
+  private tables or activation SQL.
+
+Required future dependency gates:
+
+- `KYRA_TELEGRAM_CONNECT_WEBHOOK_REGISTER_ENABLED` must remain default-off.
+- A future storage/finalization gate should not enable unless token storage and
+  session write gates are also explicitly enabled.
+- A future runtime must require the approved webhook secret table/RPC migration
+  and verifier to pass before the gate is enabled.
+- Edge Function deployment and production smoke must be separate approvals.
+
+Recommended rollback order:
+
+- If webhook secret store fails: revoke newly stored bot token ref if safe,
+  leave session queued or recoverable, do not call Telegram, do not activate.
+- If `setWebhook` fails: revoke newly stored webhook secret ref, revoke newly
+  stored bot token ref if safe, do not activate.
+- If activation fails after `setWebhook` succeeds: treat as a live-blocking
+  recovery case. Do not enable the runtime gate until there is a tested recovery
+  path that either deactivates the Telegram webhook or retries activation
+  safely.
+
+What must not be wired yet:
+
+- No SQL adapter for `telegram_webhook_secrets`.
+- No activation write to `telegram_sessions.webhook_status=active`.
+- No `finalizeTelegramWebhookRegistration` runtime dependency.
+- No real `setWebhook` gate enablement.
+- No browser-visible connection success copy.
+- No webhook receiver command processing.
+
+Next safest slice:
+
+- Phase 5AQ.1 can add a pure finalization-order helper/test that accepts
+  injected functions and proves call order plus rollback behavior without real
+  DB writes, Telegram calls, env reads, or runtime wiring.
+- It must remain unused by `telegram-connect/index.ts` until schema/RLS and
+  runtime gate approvals are explicit.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
