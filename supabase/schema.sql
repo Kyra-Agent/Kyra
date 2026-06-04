@@ -108,6 +108,49 @@ create table if not exists public.telegram_sessions (
   last_event_at timestamptz
 );
 
+create table if not exists public.telegram_chat_authorizations (
+  id uuid not null default gen_random_uuid(),
+  agent_id uuid not null,
+  telegram_user_id text not null,
+  telegram_chat_id text not null,
+  role text not null default 'owner',
+  command_scope text not null default 'read_only',
+  created_at timestamptz not null default now(),
+  revoked_at timestamptz,
+  constraint telegram_chat_authorizations_pkey
+    primary key (id),
+  constraint telegram_chat_authorizations_agent_fkey
+    foreign key (agent_id)
+    references public.agent_instances(id)
+    on delete cascade,
+  constraint telegram_chat_authorizations_user_not_blank_check
+    check (length(btrim(telegram_user_id)) > 0),
+  constraint telegram_chat_authorizations_user_format_check
+    check (telegram_user_id ~ '^[1-9][0-9]*$'),
+  constraint telegram_chat_authorizations_chat_not_blank_check
+    check (length(btrim(telegram_chat_id)) > 0),
+  constraint telegram_chat_authorizations_chat_format_check
+    check (telegram_chat_id ~ '^-?[1-9][0-9]*$'),
+  constraint telegram_chat_authorizations_owner_role_check
+    check (role = 'owner'),
+  constraint telegram_chat_authorizations_read_only_scope_check
+    check (command_scope = 'read_only')
+);
+
+create table if not exists public.telegram_processed_updates (
+  telegram_session_id uuid not null,
+  telegram_update_id bigint not null,
+  created_at timestamptz not null default now(),
+  constraint telegram_processed_updates_pkey
+    primary key (telegram_session_id, telegram_update_id),
+  constraint telegram_processed_updates_session_fkey
+    foreign key (telegram_session_id)
+    references public.telegram_sessions(id)
+    on delete cascade,
+  constraint telegram_processed_updates_id_nonnegative_check
+    check (telegram_update_id >= 0)
+);
+
 create index if not exists workspaces_owner_user_id_idx on public.workspaces(owner_user_id);
 create unique index if not exists workspaces_owner_demo_unique_idx
 on public.workspaces(owner_user_id)
@@ -117,6 +160,9 @@ create index if not exists agent_instances_public_slug_idx on public.agent_insta
 create index if not exists wallet_policies_workspace_id_idx on public.wallet_policies(workspace_id);
 create index if not exists approval_requests_agent_id_idx on public.approval_requests(agent_id);
 create index if not exists activity_logs_agent_id_created_at_idx on public.activity_logs(agent_id, created_at desc);
+create unique index if not exists telegram_chat_authorizations_active_agent_key
+on public.telegram_chat_authorizations(agent_id)
+where revoked_at is null;
 
 create or replace function public.enforce_demo_agent_limit()
 returns trigger
@@ -163,6 +209,74 @@ as $$
   );
 $$;
 
+create or replace function public.resolve_telegram_chat_authorization(
+  p_agent_id uuid,
+  p_telegram_user_id text,
+  p_telegram_chat_id text,
+  p_command_kind text
+) returns table (
+  authorized boolean,
+  role text
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select
+    true as authorized,
+    authorizations.role
+  from public.telegram_chat_authorizations authorizations
+  where authorizations.agent_id = p_agent_id
+    and authorizations.telegram_user_id = p_telegram_user_id
+    and authorizations.telegram_chat_id = p_telegram_chat_id
+    and authorizations.role = 'owner'
+    and authorizations.command_scope = 'read_only'
+    and p_command_kind = 'read_only'
+    and authorizations.revoked_at is null
+  limit 2;
+$$;
+
+create or replace function public.claim_telegram_update(
+  p_telegram_session_id uuid,
+  p_telegram_update_id bigint
+) returns table (
+  claimed boolean,
+  status text
+)
+language sql
+volatile
+security invoker
+set search_path = ''
+as $$
+  with eligible_session as (
+    select sessions.id
+    from public.telegram_sessions sessions
+    where sessions.id = p_telegram_session_id
+      and sessions.webhook_status = 'active'
+      and p_telegram_update_id >= 0
+  ),
+  inserted as (
+    insert into public.telegram_processed_updates (
+      telegram_session_id,
+      telegram_update_id
+    )
+    select
+      eligible_session.id,
+      p_telegram_update_id
+    from eligible_session
+    on conflict on constraint telegram_processed_updates_pkey do nothing
+    returning true
+  )
+  select
+    exists(select 1 from inserted) as claimed,
+    case
+      when exists(select 1 from inserted) then 'claimed'
+      else 'duplicate'
+    end as status
+  from eligible_session;
+$$;
+
 alter table public.workspaces enable row level security;
 alter table public.agent_templates enable row level security;
 alter table public.agent_instances enable row level security;
@@ -170,6 +284,8 @@ alter table public.wallet_policies enable row level security;
 alter table public.approval_requests enable row level security;
 alter table public.activity_logs enable row level security;
 alter table public.telegram_sessions enable row level security;
+alter table public.telegram_chat_authorizations enable row level security;
+alter table public.telegram_processed_updates enable row level security;
 
 drop policy if exists "Templates are public readable" on public.agent_templates;
 create policy "Templates are public readable"
@@ -281,7 +397,13 @@ revoke all privileges on public.wallet_policies from authenticated;
 revoke all privileges on public.approval_requests from authenticated;
 revoke all privileges on public.activity_logs from authenticated;
 revoke all privileges on public.telegram_sessions from authenticated;
+revoke all privileges on public.telegram_chat_authorizations from public, anon, authenticated, service_role;
+revoke all privileges on public.telegram_processed_updates from public, anon, authenticated, service_role;
 revoke all privileges on public.telegram_session_summaries from anon, authenticated;
+revoke all on function public.resolve_telegram_chat_authorization(uuid,text,text,text)
+  from public, anon, authenticated, service_role;
+revoke all on function public.claim_telegram_update(uuid,bigint)
+  from public, anon, authenticated, service_role;
 
 grant select on public.workspaces to authenticated;
 grant select (
@@ -319,6 +441,12 @@ grant all on public.wallet_policies to service_role;
 grant all on public.approval_requests to service_role;
 grant all on public.activity_logs to service_role;
 grant all on public.telegram_sessions to service_role;
+grant select, insert, update on public.telegram_chat_authorizations to service_role;
+grant select, insert on public.telegram_processed_updates to service_role;
 grant select on public.telegram_session_summaries to service_role;
 grant select on public.public_agent_profiles to service_role;
 grant execute on function public.owns_workspace(uuid) to service_role;
+grant execute on function public.resolve_telegram_chat_authorization(uuid,text,text,text)
+  to service_role;
+grant execute on function public.claim_telegram_update(uuid,bigint)
+  to service_role;
