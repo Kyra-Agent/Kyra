@@ -3112,9 +3112,10 @@ Recommended webhook secret storage:
   - `webhook_secret_ref text primary key`
   - `webhook_secret_hash text not null`
   - `telegram_session_id uuid not null references public.telegram_sessions(id)`
-  - `agent_id uuid not null references public.agent_instances(id)`
   - `created_at timestamptz not null default now()`
   - `revoked_at timestamptz null`
+- Do not store a redundant `agent_id`; derive it through `telegram_session_id`
+  so session and agent identity cannot drift.
 - Add a partial unique index so only one active webhook secret exists per
   Telegram session.
 - The hash algorithm and secret generation format require separate approval
@@ -3122,6 +3123,7 @@ Recommended webhook secret storage:
 
 Recommended chat authorization storage:
 
+- This boundary is deferred from the webhook session-lookup schema slice.
 - Keep Telegram chat/user identifiers out of public views and browser-readable
   tables.
 - Proposed private table: `public.telegram_chat_authorizations`.
@@ -3154,33 +3156,40 @@ Recommended lookup boundary:
   - `owner_user_id`
   - `bot_handle`
   - `webhook_status`
-  - minimal chat authorization policy fields needed by the receiver
+- Chat authorization policy fields must come from a separately approved lookup
+  boundary and must not be added to the session lookup result implicitly.
 - Public/API responses must never include webhook secret refs/hashes,
   `token_secret_ref`, owner IDs, workspace IDs, Telegram user/chat identifiers,
   raw DB errors, or raw Telegram payloads.
 
 Recommended RLS/grants:
 
-- Enable RLS on both private tables.
-- Revoke all privileges on both private tables from `public`, `anon`, and
-  `authenticated`.
-- Grant only the approved minimum privileges to `service_role`.
-- Revoke execute on future lookup RPCs from `public`, `anon`, and
-  `authenticated`.
-- Grant execute on future lookup RPCs only to `service_role`.
+- For the current session-lookup slice, enable RLS on
+  `telegram_webhook_secrets`.
+- Revoke all privileges on `telegram_webhook_secrets` from `public`, `anon`,
+  and `authenticated`.
+- Grant only `select`, `insert`, and `update` on
+  `telegram_webhook_secrets` to `service_role`.
+- Revoke execute on `resolve_telegram_webhook_session(text)` from `public`,
+  `anon`, and `authenticated`.
+- Grant execute on `resolve_telegram_webhook_session(text)` only to
+  `service_role`.
+- Define chat authorization RLS/grants only in its separately approved slice.
 - Keep `telegram_session_summaries` unchanged unless a separate browser-facing
   metadata need is approved.
 
 Recommended verifier additions:
 
 - Confirm `telegram_webhook_secrets` exists after approved SQL apply.
-- Confirm `telegram_chat_authorizations` exists after approved SQL apply.
-- Confirm `anon` and `authenticated` cannot select, insert, update, or delete
-  rows in either private table.
-- Confirm `service_role` has the required privileges on both private tables.
-- Confirm future webhook lookup RPCs are not executable by `public`, `anon`, or
-  `authenticated`.
-- Confirm future webhook lookup RPCs are executable by `service_role`.
+- Confirm `telegram_webhook_secrets` has the exact approved shape, RLS state,
+  constraints, partial indexes, and grants.
+- Confirm `public`, `anon`, and `authenticated` cannot select, insert, update,
+  or delete rows in `telegram_webhook_secrets`.
+- Confirm `service_role` has only the required direct table privileges.
+- Confirm `resolve_telegram_webhook_session(text)` has the approved signature,
+  output shape, security properties, owner, and execute grants.
+- Treat chat authorization object-existence checks as deferred `false` values,
+  not session-lookup apply failures.
 - Confirm `telegram_session_summaries` still excludes `token_secret_ref`,
   webhook secret refs/hashes, owner IDs, workspace IDs, chat identifiers, and raw
   Telegram payloads.
@@ -3189,7 +3198,9 @@ Recommended verifier additions:
 Approval points before executable SQL:
 
 - Approve exact table names and column names.
+- Approve stable explicit constraint names.
 - Approve webhook secret hash algorithm and secret reference format.
+- Approve the expected privileged owner for the `security definer` RPC.
 - Approve personal owner-linking flow.
 - Approve community/project allowlist/admin policy scope.
 - Approve RLS/grant statements.
@@ -3197,9 +3208,9 @@ Approval points before executable SQL:
 - Approve whether SQL belongs in a draft file first or directly in a reviewed
   migration/apply packet.
 
-Safe next slice after this docs update:
+Original Phase 5AI follow-up, now completed:
 
-- Phase 5AI audit/draft-only SQL boundary for
+- Phase 5AI created an audit/draft-only SQL boundary for
   `telegram_webhook_secrets`, `telegram_chat_authorizations`, grants, and
   verifier checks.
 - No executable SQL should be applied until that draft is reviewed and explicitly
@@ -3212,13 +3223,18 @@ schema boundary:
 
 - `supabase/telegram_webhook_receiver_schema_draft.sql`
 
-The draft captures proposed private tables, indexes, RLS/grants, lookup RPCs,
-verifier checks, approval points, and rollout order for:
+The original draft captured proposed private tables, indexes, RLS/grants,
+lookup RPCs, verifier checks, approval points, and rollout order for:
 
 - `public.telegram_webhook_secrets`
 - `public.telegram_chat_authorizations`
 - `public.resolve_telegram_webhook_session(text)`
 - optional `public.resolve_telegram_chat_authorization(uuid,text,text,text)`
+
+Phase 5AK.2 later narrowed the active draft boundary to
+`telegram_webhook_secrets` and `resolve_telegram_webhook_session(text)`.
+Chat authorization objects remain listed only as explicitly deferred future
+work.
 
 This draft must remain non-executable until separately approved. It does not
 edit `schema.sql`, apply SQL in Supabase, change RLS/grants, create/read secrets,
@@ -3310,24 +3326,27 @@ Current verdict:
 - Webhook session lookup and chat authorization must use separate approval and
   rollout slices.
 
-Blocking design issues:
+Audit findings and resolution status:
 
-- `telegram_webhook_secrets.agent_id` can drift from the agent referenced by
-  `telegram_session_id`. Remove the redundant field or enforce an approved
-  consistency boundary before apply.
-- The proposed chat authorization lookup matches Telegram user ID or chat ID.
-  The identity matching rule must be made explicit so one matching identifier
-  cannot unintentionally broaden authorization.
-- The proposed role/scope model does not yet prevent a `member` row from
-  receiving `write` or `approval` scope.
-- Future `security definer` lookup RPCs need an approved restricted search path,
-  such as `pg_catalog, public, pg_temp`, rather than relying only on `public`.
-- `create table if not exists` must not silently accept an existing object with
-  an incompatible shape.
+- Resolved in the Phase 5AK.2 draft: redundant
+  `telegram_webhook_secrets.agent_id` was removed so agent resolution comes
+  through `telegram_session_id`.
+- Deferred with chat authorization: the identity matching rule must prevent one
+  matching Telegram user or chat identifier from unintentionally broadening
+  authorization.
+- Deferred with chat authorization: the role/scope model must prevent a
+  `member` row from receiving `write` or `approval` scope.
+- Resolved in the Phase 5AK.2 draft: the future `security definer` session
+  lookup RPC uses the proposed restricted search path
+  `pg_catalog, public, pg_temp`.
+- Resolved in the Phase 5AK.2 draft: the initial apply must fail on an existing
+  table or function instead of silently accepting or replacing an incompatible
+  object.
 - The current verifier confirms object existence and privileges, but it does not
   yet prove RLS state, required columns and constraints, partial unique indexes,
   or RPC security-definer/search-path properties.
-- No approved rollback script or destructive-action guard exists yet.
+- A rollback policy and destructive-action guard are documented, but an exact
+  reviewed rollback artifact does not exist yet.
 
 Split rollout decision:
 
@@ -3385,12 +3404,115 @@ Rollback policy:
 - If data exists or runtime has been enabled, use a forward-fix migration
   instead of destructive rollback.
 
-Next safest slice:
+Phase 5AK.2 follow-up:
 
-- Phase 5AK.2 should refine the comment-only webhook schema draft for the
+- Phase 5AK.2 refined the comment-only webhook schema draft for the
   session-lookup slice only.
 - Do not create executable SQL, apply schema/RLS/grants, wire runtime lookup,
   enable webhook processing, deploy, publish, or push without separate approval.
+
+### Phase 5AK.2 Session Lookup Draft State
+
+The comment-only webhook schema draft is now limited to the session-lookup
+slice:
+
+- `public.telegram_webhook_secrets`
+- `public.resolve_telegram_webhook_session(text)`
+
+The refined draft removes redundant `telegram_webhook_secrets.agent_id`, uses
+`telegram_session_id` as the single source for agent resolution, requires a
+restricted RPC search path, rejects silent `if not exists` or
+`create or replace` behavior for the initial apply, and documents a
+non-`CASCADE` rollback boundary.
+
+`telegram_chat_authorizations` and
+`resolve_telegram_chat_authorization(uuid,text,text,text)` remain explicitly
+deferred. Their absence must not block an approved session-lookup-only rollout.
+
+### Phase 5AK.3 Session Lookup Verifier Contract
+
+Phase 5AK.3 completed an audit-only verifier coverage design. It did not edit
+the verifier, schema draft, runtime, Edge Functions, schema/RLS, secrets,
+deployment, or Netlify state.
+
+Required guarded verifier results for `telegram_webhook_secrets`:
+
+- `telegram_webhook_secrets_table_exists` is true after approved apply.
+- The table has exactly these columns:
+  - `webhook_secret_ref text not null`
+  - `webhook_secret_hash text not null`
+  - `telegram_session_id uuid not null`
+  - `created_at timestamptz not null`
+  - `revoked_at timestamptz null`
+- No `agent_id` column exists.
+- RLS is enabled and no browser-readable policy exists.
+- The primary key is on `webhook_secret_ref`.
+- The foreign key targets `public.telegram_sessions(id)` with
+  `ON DELETE CASCADE`.
+- Stable, explicitly named constraints prove non-empty trimmed secret refs and
+  hashes.
+- `telegram_webhook_secrets_active_session_key` is unique, valid, ready, uses
+  `telegram_session_id`, and has predicate `revoked_at IS NULL`.
+- `telegram_webhook_secrets_active_hash_key` is unique, valid, ready, uses
+  `webhook_secret_hash`, and has predicate `revoked_at IS NULL`.
+- `public`, `anon`, and `authenticated` have no direct table privileges.
+- `service_role` has `select`, `insert`, and `update`, but not `delete`,
+  `truncate`, `references`, or `trigger`.
+
+Required guarded verifier results for
+`resolve_telegram_webhook_session(text)`:
+
+- The exact function signature exists.
+- The function language is SQL, volatility is stable, and
+  `security definer` is enabled.
+- The configured search path is restricted to the approved equivalent of
+  `pg_catalog, public, pg_temp`.
+- The function owner matches the separately approved privileged migration role.
+- The result contract contains only `session_id`, `agent_id`, `workspace_id`,
+  `owner_user_id`, `bot_handle`, and `webhook_status`.
+- `public`, `anon`, and `authenticated` cannot execute the RPC.
+- `service_role` can execute the RPC.
+
+Recommended PostgreSQL catalogs for verifier implementation:
+
+- `information_schema.columns` for exact columns, data types, nullability, and
+  absence of `agent_id`.
+- `pg_class.relrowsecurity` and `pg_policies` for RLS and policy state.
+- `pg_constraint`, `pg_attribute`, and `pg_get_constraintdef(...)` for primary
+  key, foreign key, delete behavior, and named checks.
+- `pg_index`, `pg_class`, `pg_attribute`, and `pg_get_expr(...)` for index
+  uniqueness, validity, readiness, key columns, and partial predicates.
+- `pg_proc`, `pg_language`, `pg_get_userbyid(...)`, and function argument/output
+  metadata for RPC language, volatility, security-definer state, owner, search
+  path, and result contract.
+- `has_table_privilege(...)`, `has_function_privilege(...)`, and ACL inspection
+  for role privilege boundaries.
+
+Deferred check interpretation:
+
+- `telegram_chat_authorizations_table_exists` and
+  `resolve_telegram_chat_authorization_function_exists` should remain false
+  until their separate rollout is approved.
+- All chat authorization privilege checks remain informational and must not be
+  included in the session-lookup apply success gate.
+
+Blockers before verifier-only implementation:
+
+- Add stable explicit names for the primary key, foreign key, and non-empty
+  checks in the comment-only schema draft.
+- Confirm the expected privileged owner for the future `security definer` RPC.
+  The expected role may be `postgres` in the target project, but it must be
+  confirmed rather than assumed.
+- Define normalized comparisons for index predicates and function search-path
+  configuration so harmless PostgreSQL formatting differences do not create
+  false verifier failures.
+
+Next safest slice:
+
+- Phase 5AK.4 should refine the comment-only schema draft with explicit
+  constraint names and an RPC owner approval placeholder.
+- Do not edit the verifier or create executable SQL until that draft-only slice
+  is reviewed.
 
 ## Chat Authorization Model
 
