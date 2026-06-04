@@ -12,6 +12,19 @@ export interface TelegramWebhookSecretStoreInput {
   webhookSecretRef: string;
 }
 
+export interface StoreTelegramWebhookSecretResult {
+  webhookSecretRef: string;
+}
+
+export interface RevokeTelegramWebhookSecretResult {
+  revoked: boolean;
+}
+
+export interface ActivateTelegramSessionResult {
+  activated: boolean;
+  telegramSessionId: string;
+}
+
 export interface CreateTelegramWebhookSecretMaterialOptions {
   getRandomValues?: (bytes: Uint8Array) => Uint8Array;
   randomUUID?: () => string;
@@ -177,4 +190,97 @@ export function createTelegramWebhookSecretStoreInput(input: {
     ),
     webhookSecretRef: assertTelegramWebhookSecretRef(input.webhookSecretRef),
   };
+}
+
+export function assertStoreTelegramWebhookSecretResult(
+  value: unknown,
+  expectedWebhookSecretRef?: string,
+): StoreTelegramWebhookSecretResult {
+  if (!value || typeof value !== "object") {
+    throw new Error("Telegram webhook secret store result was invalid.");
+  }
+
+  const webhookSecretRef = assertTelegramWebhookSecretRef(
+    (value as Record<string, unknown>).webhookSecretRef,
+  );
+
+  if (
+    expectedWebhookSecretRef !== undefined &&
+    webhookSecretRef !==
+      assertTelegramWebhookSecretRef(expectedWebhookSecretRef)
+  ) {
+    throw new Error(
+      "Telegram webhook secret store returned an unexpected ref.",
+    );
+  }
+
+  return { webhookSecretRef };
+}
+
+export function assertRevokeTelegramWebhookSecretResult(
+  value: unknown,
+): RevokeTelegramWebhookSecretResult {
+  if (!value || typeof value !== "object") {
+    throw new Error("Telegram webhook secret revoke result was invalid.");
+  }
+
+  const revoked = (value as Record<string, unknown>).revoked;
+
+  if (revoked !== true) {
+    throw new Error("Telegram webhook secret was not revoked.");
+  }
+
+  return { revoked };
+}
+
+export function assertActivateTelegramSessionResult(
+  value: unknown,
+  expectedTelegramSessionId: unknown,
+): ActivateTelegramSessionResult {
+  if (!value || typeof value !== "object") {
+    throw new Error("Telegram session activation result was invalid.");
+  }
+
+  const expectedSessionId = assertTelegramSessionId(expectedTelegramSessionId);
+  const telegramSessionId = assertTelegramSessionId(
+    (value as Record<string, unknown>).telegramSessionId,
+  );
+  const activated = (value as Record<string, unknown>).activated;
+
+  if (telegramSessionId !== expectedSessionId) {
+    throw new Error("Telegram session activation returned an unexpected row.");
+  }
+
+  if (activated !== true) {
+    throw new Error("Telegram session was not activated.");
+  }
+
+  return {
+    activated,
+    telegramSessionId,
+  };
+}
+
+export function sanitizeTelegramWebhookSecretPersistenceError(error: unknown) {
+  if (error instanceof HttpError) {
+    return error;
+  }
+
+  return new HttpError(
+    500,
+    "server_error",
+    "Telegram webhook secret persistence failed.",
+  );
+}
+
+export function sanitizeTelegramSessionActivationError(error: unknown) {
+  if (error instanceof HttpError) {
+    return error;
+  }
+
+  return new HttpError(
+    500,
+    "server_error",
+    "Telegram session activation failed.",
+  );
 }

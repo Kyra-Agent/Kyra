@@ -1,4 +1,7 @@
 import {
+  assertActivateTelegramSessionResult,
+  assertRevokeTelegramWebhookSecretResult,
+  assertStoreTelegramWebhookSecretResult,
   assertTelegramSessionId,
   assertTelegramWebhookSecretHash,
   assertTelegramWebhookSecretRef,
@@ -8,6 +11,8 @@ import {
   generateTelegramWebhookSecretRef,
   generateTelegramWebhookSecretToken,
   hashTelegramWebhookSecretToken,
+  sanitizeTelegramSessionActivationError,
+  sanitizeTelegramWebhookSecretPersistenceError,
 } from "./webhook-secret.ts";
 import { HttpError } from "./core.ts";
 
@@ -179,5 +184,121 @@ Deno.test("telegram webhook secret store input validates session id and hashes s
   assertEquals(
     (badHashError as HttpError).message,
     "webhookSecretHash is invalid.",
+  );
+});
+
+Deno.test("telegram webhook secret store result validates expected opaque ref", async () => {
+  const result = assertStoreTelegramWebhookSecretResult(
+    { webhookSecretRef: testWebhookSecretRef },
+    testWebhookSecretRef,
+  );
+  const wrongRefError = await captureError(() =>
+    assertStoreTelegramWebhookSecretResult(
+      { webhookSecretRef: testWebhookSecretRef },
+      "webhook:telegram:88888888-8888-4888-8888-888888888888",
+    )
+  );
+
+  assertEquals(result.webhookSecretRef, testWebhookSecretRef);
+  assert(
+    wrongRefError instanceof Error,
+    "Unexpected webhook secret ref must reject.",
+  );
+  assert(
+    !String((wrongRefError as Error).message).includes(testWebhookSecretRef),
+    "Unexpected ref errors must not expose webhookSecretRef.",
+  );
+});
+
+Deno.test("telegram webhook secret revoke result requires explicit revoked true", async () => {
+  assertEquals(
+    assertRevokeTelegramWebhookSecretResult({ revoked: true }).revoked,
+    true,
+  );
+
+  const notRevokedError = await captureError(() =>
+    assertRevokeTelegramWebhookSecretResult({ revoked: false })
+  );
+
+  assert(
+    notRevokedError instanceof Error,
+    "Non-revoked result must reject.",
+  );
+  assertEquals(
+    (notRevokedError as Error).message,
+    "Telegram webhook secret was not revoked.",
+  );
+});
+
+Deno.test("telegram session activation result requires exact expected session id", async () => {
+  const result = assertActivateTelegramSessionResult(
+    { activated: true, telegramSessionId: testSessionId },
+    testSessionId,
+  );
+  const mismatchError = await captureError(() =>
+    assertActivateTelegramSessionResult(
+      {
+        activated: true,
+        telegramSessionId: "88888888-8888-4888-8888-888888888888",
+      },
+      testSessionId,
+    )
+  );
+  const inactiveError = await captureError(() =>
+    assertActivateTelegramSessionResult(
+      { activated: false, telegramSessionId: testSessionId },
+      testSessionId,
+    )
+  );
+
+  assertEquals(result.activated, true);
+  assertEquals(result.telegramSessionId, testSessionId);
+  assert(mismatchError instanceof Error, "Mismatched activation must reject.");
+  assert(inactiveError instanceof Error, "Inactive activation must reject.");
+  assert(
+    !String((mismatchError as Error).message).includes(testSessionId),
+    "Activation mismatch errors must not expose session id.",
+  );
+});
+
+Deno.test("telegram webhook secret persistence sanitizers hide raw internals", () => {
+  const rawSecretError = new Error(
+    `raw ${testWebhookSecretRef} ${testWebhookSecretHash} ${testSessionId}`,
+  );
+  const persistenceError = sanitizeTelegramWebhookSecretPersistenceError(
+    rawSecretError,
+  );
+  const activationError = sanitizeTelegramSessionActivationError(
+    rawSecretError,
+  );
+  const serialized = JSON.stringify({
+    persistence: {
+      code: persistenceError.code,
+      message: persistenceError.message,
+    },
+    activation: {
+      code: activationError.code,
+      message: activationError.message,
+    },
+  });
+
+  assertEquals(persistenceError.statusCode, 500);
+  assertEquals(
+    persistenceError.message,
+    "Telegram webhook secret persistence failed.",
+  );
+  assertEquals(activationError.statusCode, 500);
+  assertEquals(activationError.message, "Telegram session activation failed.");
+  assert(
+    !serialized.includes(testWebhookSecretRef),
+    "Sanitized errors must not expose webhookSecretRef.",
+  );
+  assert(
+    !serialized.includes(testWebhookSecretHash),
+    "Sanitized errors must not expose webhookSecretHash.",
+  );
+  assert(
+    !serialized.includes(testSessionId),
+    "Sanitized errors must not expose telegramSessionId.",
   );
 });
