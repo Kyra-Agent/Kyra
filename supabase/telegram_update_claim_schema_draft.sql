@@ -1,0 +1,219 @@
+-- DRAFT ONLY - DO NOT APPLY.
+-- Phase 5BC comment-only design for atomic Telegram update idempotency.
+-- This file intentionally contains no executable SQL.
+-- Do not remove comment prefixes or adapt this draft for Supabase without a
+-- separately reviewed forward packet, rollback packet, verifier update, target
+-- baseline, and explicit schema/RLS/apply approval.
+
+-- Purpose
+-- - Atomically claim one Telegram update per active Telegram session.
+-- - Make duplicate updates a bounded no-op before response building or delivery.
+-- - Store only the minimum metadata required for at-most-once read-only reply
+--   planning.
+
+-- Hard boundaries
+-- - No table, index, policy, grant, function, trigger, or row is created.
+-- - No existing schema.sql or verifier SQL is changed.
+-- - No Telegram payload, message, identity, command, response, token, secret,
+--   secret ref, or raw error is stored.
+-- - No service-role adapter, webhook runtime, request body parser, Telegram API,
+--   reply sender, Edge Function deploy, Netlify change, or push is enabled.
+-- - This draft must not be applied in Supabase.
+
+-- Objects in this future slice
+-- - Private table: public.telegram_processed_updates
+-- - Atomic claim RPC: public.claim_telegram_update(uuid,bigint)
+
+-- Initial rollout boundary
+-- - At-most-once claim for owner-only read-only /help and /status responses.
+-- - One session/update pair is claimed once.
+-- - A duplicate returns a safe no-op result.
+-- - Unknown, inactive, or malformed session/update input returns no result and
+--   must be treated as a sanitized runtime failure, never as a duplicate.
+
+-- Explicitly deferred behavior
+-- - Processing leases or retry ownership.
+-- - Completion, failed, or delivery status columns.
+-- - Automatic retention cleanup.
+-- - Write, approval, wallet, admin, or onchain command idempotency.
+-- - Browser-visible processing history.
+
+-- Proposed exact table shape
+-- - telegram_session_id uuid not null
+-- - telegram_update_id bigint not null
+-- - created_at timestamptz not null default now()
+
+-- Stable future constraint names
+-- - telegram_processed_updates_pkey
+-- - telegram_processed_updates_session_fkey
+-- - telegram_processed_updates_id_nonnegative_check
+
+-- Commented DDL sketch
+-- - A future initial apply must fail if this table already exists.
+-- - Do not use create table if not exists.
+-- create table public.telegram_processed_updates (
+--   telegram_session_id uuid not null,
+--   telegram_update_id bigint not null,
+--   created_at timestamptz not null default now(),
+--   constraint telegram_processed_updates_pkey
+--     primary key (telegram_session_id, telegram_update_id),
+--   constraint telegram_processed_updates_session_fkey
+--     foreign key (telegram_session_id)
+--     references public.telegram_sessions(id)
+--     on delete cascade,
+--   constraint telegram_processed_updates_id_nonnegative_check
+--     check (telegram_update_id >= 0)
+-- );
+
+-- Index intent
+-- - The composite primary key is the only required initial index.
+-- - Do not add payload, identity, command, status, or response indexes.
+-- - Retention indexes require a separate cleanup design and approval.
+
+-- Browser access boundary
+-- - public, anon, and authenticated must have no direct table privileges.
+-- - RLS must be enabled with no browser-readable policies.
+-- - service_role receives only select and insert for the future claim RPC.
+-- - service_role must not receive update, delete, truncate, references, or
+--   trigger privileges.
+
+-- Commented RLS/grant sketch
+-- alter table public.telegram_processed_updates enable row level security;
+-- revoke all on public.telegram_processed_updates from public;
+-- revoke all on public.telegram_processed_updates from anon;
+-- revoke all on public.telegram_processed_updates from authenticated;
+-- revoke all on public.telegram_processed_updates from service_role;
+-- grant select, insert on public.telegram_processed_updates to service_role;
+
+-- Atomic claim RPC intent
+-- - Input:
+--   p_telegram_session_id uuid
+--   p_telegram_update_id bigint
+-- - Output:
+--   claimed boolean
+--   status text
+-- - Return exactly one row for an existing active session and a nonnegative
+--   update ID.
+-- - Return zero rows for an unknown session, inactive session, or negative
+--   update ID.
+-- - Return claimed=true/status=claimed only for the first atomic insert.
+-- - Return claimed=false/status=duplicate only for a primary-key conflict.
+-- - Do not return session/update IDs, private metadata, or raw DB errors.
+
+-- Commented claim function sketch
+-- - A future initial apply must fail if this exact RPC already exists.
+-- - Do not use create or replace function for the initial apply.
+-- create function public.claim_telegram_update(
+--   p_telegram_session_id uuid,
+--   p_telegram_update_id bigint
+-- ) returns table (
+--   claimed boolean,
+--   status text
+-- )
+-- language sql
+-- volatile
+-- security invoker
+-- set search_path = ''
+-- as $$
+--   with eligible_session as (
+--     select sessions.id
+--     from public.telegram_sessions sessions
+--     where sessions.id = p_telegram_session_id
+--       and sessions.webhook_status = 'active'
+--       and p_telegram_update_id >= 0
+--   ),
+--   inserted as (
+--     insert into public.telegram_processed_updates (
+--       telegram_session_id,
+--       telegram_update_id
+--     )
+--     select
+--       eligible_session.id,
+--       p_telegram_update_id
+--     from eligible_session
+--     on conflict on constraint telegram_processed_updates_pkey do nothing
+--     returning true
+--   )
+--   select
+--     exists(select 1 from inserted) as claimed,
+--     case
+--       when exists(select 1 from inserted) then 'claimed'
+--       else 'duplicate'
+--     end as status
+--   from eligible_session;
+-- $$;
+
+-- Concurrency contract
+-- - The primary key plus one insert-on-conflict statement is the atomic
+--   boundary.
+-- - Concurrent deliveries of the same session/update pair produce one claimed
+--   result and duplicate results for the rest.
+-- - The RPC must not perform a separate pre-insert existence check.
+-- - Duplicate results must no-op before response building and outbound calls.
+
+-- RPC privilege model
+-- - The RPC is volatile SQL SECURITY INVOKER.
+-- - The RPC has an empty search path and uses fully qualified relation names.
+-- - Only service_role may execute the RPC.
+-- - PostgreSQL PUBLIC execute defaults must be explicitly revoked.
+
+-- Commented function privilege sketch
+-- revoke all on function public.claim_telegram_update(uuid,bigint)
+--   from public, anon, authenticated, service_role;
+-- grant execute on function public.claim_telegram_update(uuid,bigint)
+--   to service_role;
+
+-- Required verifier coverage before any apply
+-- - Exact table and RPC signatures exist after apply.
+-- - Table has exactly the approved three columns and nullability.
+-- - No raw payload, identity, command, response, token, secret, ref, error, or
+--   processing-status columns exist.
+-- - Composite primary key and session foreign key have approved definitions.
+-- - Nonnegative update ID constraint has the approved definition.
+-- - RLS is enabled and no policies exist.
+-- - public, anon, and authenticated have no direct table privileges.
+-- - service_role has select and insert only.
+-- - RPC is SQL, volatile, SECURITY INVOKER, and has an empty search path.
+-- - RPC returns only claimed boolean and status text.
+-- - RPC checks exact active-session eligibility and nonnegative update ID.
+-- - RPC uses insert with on conflict on the approved primary-key constraint and
+--   does not perform a separate existence check.
+-- - public, anon, and authenticated cannot execute the RPC.
+-- - service_role can execute the RPC.
+-- - Existing Telegram session summary/browser safety checks remain true.
+
+-- Required tests before runtime wiring
+-- - First active session/update claim returns claimed.
+-- - Second identical claim returns duplicate.
+-- - Concurrent identical claims produce exactly one claimed result.
+-- - Same update ID for different sessions can be claimed independently.
+-- - Unknown or inactive session returns no result, not duplicate.
+-- - Negative update ID returns no result.
+-- - Browser roles cannot read or write the table or execute the RPC.
+-- - Claim results and errors never expose session/update IDs or private
+--   metadata.
+-- - Duplicate result stops before response building and reply delivery.
+
+-- Retention boundary
+-- - Initial webhook runtime receives no delete or update privilege.
+-- - Retention cleanup requires a separately reviewed maintenance boundary.
+-- - Do not reuse activity_logs as an idempotency store.
+-- - Do not add cleanup behavior before first read-only smoke readiness is
+--   proven.
+
+-- Rollback boundary
+-- - Prefer transaction rollback for apply-time failure.
+-- - Post-commit rollback is allowed only while runtime remains disabled and the
+--   table contains no required claim rows.
+-- - Revoke RPC execute before dropping the exact RPC signature.
+-- - Revoke table privileges before dropping the table.
+-- - Do not use CASCADE.
+-- - If rows exist or runtime was enabled, use a reviewed forward fix.
+
+-- Still blocked until separately approved
+-- - Executable forward or rollback SQL.
+-- - Verifier SQL or schema.sql edits.
+-- - Supabase SQL apply.
+-- - Service-role claim adapter or live runtime wiring.
+-- - Request body parsing, Telegram API calls, reply delivery, deployment, or
+--   push.
