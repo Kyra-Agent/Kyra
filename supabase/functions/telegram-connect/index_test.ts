@@ -60,6 +60,7 @@ const testTelegramBotId = "987654321";
 const testTokenSecretRef =
   "vault:telegram:55555555-5555-4555-8555-555555555555";
 const testSessionId = "66666666-6666-4666-8666-666666666666";
+const otherSessionId = "77777777-7777-4777-8777-777777777777";
 const testBotToken = "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi";
 const testWebhookUrl =
   "https://kyraagent.xyz/functions/v1/telegram-webhook/session-123";
@@ -1114,6 +1115,10 @@ Deno.test("telegram-connect store dependency runs after ownership and token vali
     "Response must not echo telegramBotId.",
   );
   assert(
+    !serializedBody.includes(testSessionId),
+    "Response must not echo telegramSessionId.",
+  );
+  assert(
     !serializedBody.includes(testUserId),
     "Response must not echo ownerUserId.",
   );
@@ -1166,6 +1171,7 @@ Deno.test("telegram-connect session persistence runs after token storage and rem
         assertEquals(input.agentId, testAgentId);
         assertEquals(input.botHandle, "@kyra_test_bot");
         assertEquals(input.tokenSecretRef, testTokenSecretRef);
+        return { telegramSessionId: testSessionId };
       },
       revokeTelegramBotToken: async () => {
         revokeCalled = true;
@@ -1244,6 +1250,7 @@ Deno.test("telegram-connect webhook registration contract runs after session per
       },
       persistTelegramSession: async () => {
         order.push("persist");
+        return { telegramSessionId: testSessionId };
       },
       getTelegramWebhookUrl: () => {
         order.push("url");
@@ -1255,6 +1262,7 @@ Deno.test("telegram-connect webhook registration contract runs after session per
       },
       registerTelegramWebhook: async (input) => {
         order.push("register");
+        assertEquals(input.telegramSessionId, testSessionId);
         assertEquals(input.agentId, testAgentId);
         assertEquals(input.ownerUserId, testUserId);
         assertEquals(input.telegramBotId, testTelegramBotId);
@@ -1409,6 +1417,60 @@ Deno.test("telegram-connect webhook registration contract is not called when per
   );
 });
 
+Deno.test("telegram-connect invalid persisted session id is sanitized", async () => {
+  let registerCalled = false;
+
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({
+        agentId: testAgentId,
+        botToken: testBotToken,
+      }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => ({ id: testUserId }),
+      lookupAgentOwnership: async (agentId, ownerUserId) => ({
+        agentId,
+        ownerUserId,
+        workspaceId: testWorkspaceId,
+      }),
+      validateTelegramBotToken: async () => ({
+        telegramBotId: testTelegramBotId,
+        username: "kyra_test_bot",
+        firstName: "Kyra Test",
+      }),
+      storeTelegramBotToken: async () => ({
+        tokenSecretRef: testTokenSecretRef,
+        provider: "supabase_vault",
+      }),
+      persistTelegramSession: async () => ({ telegramSessionId: "bad" }),
+      getTelegramWebhookUrl: () => testWebhookUrl,
+      generateTelegramWebhookSecret: () => testWebhookSecretToken,
+      registerTelegramWebhook: async () => {
+        registerCalled = true;
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(response.status, 500);
+  assertEquals(body.status, "server_error");
+  assertEquals(body.message, "Telegram session persistence failed.");
+  assert(
+    !registerCalled,
+    "Webhook registration must not run after invalid persisted session id.",
+  );
+  assert(
+    !serializedBody.includes("bad"),
+    "Response must not expose invalid persisted session id.",
+  );
+});
+
 Deno.test("telegram-connect webhook registration dependency failure is sanitized", async () => {
   const response = await handleTelegramConnectRequest(
     makeConnectRequest({
@@ -1436,7 +1498,7 @@ Deno.test("telegram-connect webhook registration dependency failure is sanitized
         tokenSecretRef: testTokenSecretRef,
         provider: "supabase_vault",
       }),
-      persistTelegramSession: async () => {},
+      persistTelegramSession: async () => ({ telegramSessionId: testSessionId }),
       getTelegramWebhookUrl: () => testWebhookUrl,
       generateTelegramWebhookSecret: () => testWebhookSecretToken,
       registerTelegramWebhook: async () => {
@@ -1502,6 +1564,7 @@ Deno.test("telegram-connect session persistence requires prior token storage", a
       }),
       persistTelegramSession: async () => {
         persistCalled = true;
+        return { telegramSessionId: testSessionId };
       },
     },
   );
@@ -1676,6 +1739,7 @@ Deno.test("telegram-connect invalid stored token ref prevents session persistenc
       }),
       persistTelegramSession: async () => {
         persistCalled = true;
+        return { telegramSessionId: testSessionId };
       },
     },
   );
@@ -1866,6 +1930,7 @@ Deno.test("telegram-connect does not validate botToken before ownership succeeds
       },
       persistTelegramSession: async () => {
         persistCalled = true;
+        return { telegramSessionId: testSessionId };
       },
       revokeTelegramBotToken: async () => {
         revokeCalled = true;
@@ -2107,12 +2172,13 @@ Deno.test("telegram-connect sanitizes unexpected ownership lookup errors", async
 Deno.test("telegram-connect session persistence adapter updates one eligible mock row", async () => {
   const { client, calls } = makeSessionPersistenceClient();
 
-  await persistTelegramSessionRecord(client, {
+  const result = await persistTelegramSessionRecord(client, {
     agentId: testAgentId,
     botHandle: "@kyra_test_bot",
     tokenSecretRef: testTokenSecretRef,
   });
 
+  assertEquals(result.telegramSessionId, testSessionId);
   assertEquals(calls.length, 2);
   assertEquals(calls[0].table, "telegram_sessions");
   assertEquals(calls[0].operation, "lookup");
@@ -2191,6 +2257,23 @@ Deno.test("telegram-connect session persistence adapter rejects lost update", as
   );
 
   assert(error instanceof Error, "Lost update must reject.");
+  assertEquals(calls.length, 2);
+  assertEquals(calls[1].operation, "update");
+});
+
+Deno.test("telegram-connect session persistence adapter rejects unexpected updated row", async () => {
+  const { client, calls } = makeSessionPersistenceClient({
+    updated: { id: otherSessionId },
+  });
+  const error = await captureError(() =>
+    persistTelegramSessionRecord(client, {
+      agentId: testAgentId,
+      botHandle: "@kyra_test_bot",
+      tokenSecretRef: testTokenSecretRef,
+    })
+  );
+
+  assert(error instanceof Error, "Unexpected update row must reject.");
   assertEquals(calls.length, 2);
   assertEquals(calls[1].operation, "update");
 });

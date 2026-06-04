@@ -39,11 +39,16 @@ export interface PersistTelegramSessionInput {
   tokenSecretRef: string;
 }
 
+export interface PersistTelegramSessionResult {
+  telegramSessionId: string;
+}
+
 export interface RevokeTelegramBotTokenInput {
   tokenSecretRef: string;
 }
 
 export interface RegisterTelegramWebhookInput {
+  telegramSessionId: string;
   agentId: string;
   ownerUserId: string;
   telegramBotId: string;
@@ -162,7 +167,7 @@ export interface TelegramConnectDependencies {
   ) => Promise<StoreTelegramBotTokenResult>;
   persistTelegramSession?: (
     input: PersistTelegramSessionInput,
-  ) => Promise<void>;
+  ) => Promise<PersistTelegramSessionResult>;
   revokeTelegramBotToken?: (
     input: RevokeTelegramBotTokenInput,
   ) => Promise<void>;
@@ -602,6 +607,20 @@ export async function persistTelegramSessionRecord(
   if (!updated) {
     throw new Error("Telegram session was not updated.");
   }
+
+  if (updated.id !== sessionId) {
+    throw new Error("Telegram session update returned an unexpected row.");
+  }
+
+  return { telegramSessionId: updated.id };
+}
+
+function assertTelegramSessionId(value: unknown) {
+  if (typeof value !== "string" || !uuidPattern.test(value)) {
+    throw new Error("Telegram session id was invalid.");
+  }
+
+  return value;
 }
 
 export function assertAuthenticatedUserId(value: unknown) {
@@ -718,6 +737,7 @@ export async function handleTelegramConnectRequest(
     let telegramBot: TelegramBotValidationResult | null = null;
     let botHandle: string | null = null;
     let tokenSecretRef: string | null = null;
+    let telegramSessionId: string | null = null;
 
     if (dependencies.validateTelegramBotToken) {
       botToken = assertBotToken(body.botToken);
@@ -773,11 +793,14 @@ export async function handleTelegramConnectRequest(
 
       try {
         botHandle = formatTelegramBotHandle(telegramBot.username);
-        await dependencies.persistTelegramSession({
+        const persistedSession = await dependencies.persistTelegramSession({
           agentId,
           botHandle,
           tokenSecretRef,
         });
+        telegramSessionId = assertTelegramSessionId(
+          persistedSession.telegramSessionId,
+        );
       } catch (error) {
         if (dependencies.revokeTelegramBotToken) {
           try {
@@ -801,6 +824,7 @@ export async function handleTelegramConnectRequest(
         !telegramBot ||
         !botHandle ||
         !tokenSecretRef ||
+        !telegramSessionId ||
         !dependencies.persistTelegramSession ||
         !dependencies.getTelegramWebhookUrl ||
         !dependencies.generateTelegramWebhookSecret ||
@@ -818,6 +842,7 @@ export async function handleTelegramConnectRequest(
         );
 
         await dependencies.registerTelegramWebhook({
+          telegramSessionId,
           agentId,
           ownerUserId: userId,
           telegramBotId: telegramBot.telegramBotId,
