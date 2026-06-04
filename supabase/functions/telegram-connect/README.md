@@ -16,7 +16,7 @@ not a live Telegram integration.
 - Ignores any submitted `botToken` unless a test or the backend-only
   `KYRA_TELEGRAM_CONNECT_GETME_ENABLED=true` runtime gate explicitly enables
   validation.
-- Does not return, log, persist, or use a BotFather token.
+- By default, does not return, log, persist, or use a BotFather token.
 - Does not call Telegram APIs by default.
 - If `KYRA_TELEGRAM_CONNECT_GETME_ENABLED=true` is explicitly enabled later, the
   function may validate a token with `getMe` after auth and ownership checks,
@@ -26,10 +26,21 @@ not a live Telegram integration.
   function may validate the token with `getMe` and store it through the approved
   backend-only secret store. The response must still not return the raw token,
   resolved token, `tokenSecretRef`, owner ID, workspace ID, or Telegram bot ID.
+- If both `KYRA_TELEGRAM_CONNECT_STORE_ENABLED=true` and
+  `KYRA_TELEGRAM_CONNECT_SESSION_WRITE_ENABLED=true` are explicitly enabled
+  later, the function may update exactly one existing mock `telegram_sessions`
+  row for the owned agent to `webhook_status=queued`, set its validated bot
+  handle, and attach the opaque `tokenSecretRef`.
+- Session persistence never inserts or upserts a Telegram session, never marks
+  it active, and still returns the inert `not_configured` response.
+- If session persistence fails after token storage, the function makes a
+  best-effort backend-only revoke call and returns a sanitized error.
 - The store gate does not make Telegram live by itself.
+- The session-write gate does not make Telegram live by itself and has no effect
+  unless the store gate is also enabled.
 - Does not access Supabase Vault by default.
 - Does not create or read secrets by default.
-- Does not write database records.
+- Does not write database records by default.
 - Does not register webhooks.
 
 ## Current Response

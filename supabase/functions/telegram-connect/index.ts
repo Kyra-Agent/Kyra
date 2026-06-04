@@ -4,12 +4,17 @@ import {
   handleTelegramConnectRequest,
   HttpError,
   isTelegramConnectGetMeEnabled,
+  isTelegramConnectSessionWriteEnabled,
   isTelegramConnectStoreEnabled,
   lookupAgentOwnershipRecord,
   type OwnershipLookupClient,
+  type PersistTelegramSessionInput,
+  persistTelegramSessionRecord,
   type TelegramConnectDependencies,
   telegramConnectGetMeEnabledEnvKey,
+  telegramConnectSessionWriteEnabledEnvKey,
   telegramConnectStoreEnabledEnvKey,
+  type TelegramSessionPersistenceClient,
 } from "./core.ts";
 import { createRpcTelegramBotTokenSecretStore } from "./secret-store.ts";
 import { validateTelegramBotTokenWithGetMe } from "./telegram-api.ts";
@@ -87,6 +92,16 @@ export async function lookupAgentOwnership(
   );
 }
 
+export async function persistTelegramSession(
+  serviceClient: KyraSupabaseClient,
+  input: PersistTelegramSessionInput,
+) {
+  return await persistTelegramSessionRecord(
+    serviceClient as unknown as TelegramSessionPersistenceClient,
+    input,
+  );
+}
+
 export function createTelegramConnectDependencies(): TelegramConnectDependencies {
   let serviceClient: KyraSupabaseClient | null = null;
   const getServiceClient = () => {
@@ -103,6 +118,9 @@ export function createTelegramConnectDependencies(): TelegramConnectDependencies
   );
   const storeEnabled = isTelegramConnectStoreEnabled(
     getOptionalEnv(telegramConnectStoreEnabledEnvKey),
+  );
+  const sessionWriteEnabled = isTelegramConnectSessionWriteEnabled(
+    getOptionalEnv(telegramConnectSessionWriteEnabledEnvKey),
   );
   const dependencies: TelegramConnectDependencies = {
     getEnv,
@@ -124,6 +142,14 @@ export function createTelegramConnectDependencies(): TelegramConnectDependencies
     });
     dependencies.storeTelegramBotToken = (input) =>
       secretStore.storeTelegramBotToken(input);
+
+    if (sessionWriteEnabled) {
+      dependencies.persistTelegramSession = (input) =>
+        persistTelegramSession(getServiceClient(), input);
+      dependencies.revokeTelegramBotToken = async (input) => {
+        await secretStore.revokeTelegramBotToken(input);
+      };
+    }
   }
 
   return dependencies;

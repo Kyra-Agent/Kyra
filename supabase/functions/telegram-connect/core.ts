@@ -33,6 +33,16 @@ export interface StoreTelegramBotTokenResult {
   provider?: string;
 }
 
+export interface PersistTelegramSessionInput {
+  agentId: string;
+  botHandle: string;
+  tokenSecretRef: string;
+}
+
+export interface RevokeTelegramBotTokenInput {
+  tokenSecretRef: string;
+}
+
 export interface OwnershipLookupAgentRow {
   id: string;
   workspace_id: string;
@@ -58,6 +68,38 @@ export interface OwnershipLookupClient {
   from: (table: string) => OwnershipLookupBuilder;
 }
 
+export interface TelegramSessionPersistenceRow {
+  id: string;
+}
+
+export interface TelegramSessionPersistenceResult<T> {
+  data: T | null;
+  error: unknown;
+}
+
+export interface TelegramSessionPersistenceBuilder {
+  select: (columns: string) => TelegramSessionPersistenceBuilder;
+  update: (
+    values: Record<string, unknown>,
+  ) => TelegramSessionPersistenceBuilder;
+  eq: (
+    column: string,
+    value: unknown,
+  ) => TelegramSessionPersistenceBuilder;
+  is: (
+    column: string,
+    value: unknown,
+  ) => TelegramSessionPersistenceBuilder;
+  limit: <T>(
+    count: number,
+  ) => Promise<TelegramSessionPersistenceResult<T[]>>;
+  maybeSingle: <T>() => Promise<TelegramSessionPersistenceResult<T>>;
+}
+
+export interface TelegramSessionPersistenceClient {
+  from: (table: string) => TelegramSessionPersistenceBuilder;
+}
+
 export class HttpError extends Error {
   readonly statusCode: number;
   readonly code: string;
@@ -74,9 +116,12 @@ export const telegramConnectGetMeEnabledEnvKey =
   "KYRA_TELEGRAM_CONNECT_GETME_ENABLED";
 export const telegramConnectStoreEnabledEnvKey =
   "KYRA_TELEGRAM_CONNECT_STORE_ENABLED";
+export const telegramConnectSessionWriteEnabledEnvKey =
+  "KYRA_TELEGRAM_CONNECT_SESSION_WRITE_ENABLED";
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const botTokenPattern = /^\d{5,20}:[A-Za-z0-9_-]{20,128}$/;
+const tokenSecretRefPattern = /^[A-Za-z0-9][A-Za-z0-9:_-]{15,255}$/;
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -102,6 +147,12 @@ export interface TelegramConnectDependencies {
   storeTelegramBotToken?: (
     input: StoreTelegramBotTokenInput,
   ) => Promise<StoreTelegramBotTokenResult>;
+  persistTelegramSession?: (
+    input: PersistTelegramSessionInput,
+  ) => Promise<void>;
+  revokeTelegramBotToken?: (
+    input: RevokeTelegramBotTokenInput,
+  ) => Promise<void>;
 }
 
 export function jsonResponse(body: Record<string, unknown>, status = 200) {
@@ -153,6 +204,12 @@ export function isTelegramConnectGetMeEnabled(
 }
 
 export function isTelegramConnectStoreEnabled(
+  value: string | null | undefined,
+) {
+  return value === "true";
+}
+
+export function isTelegramConnectSessionWriteEnabled(
   value: string | null | undefined,
 ) {
   return value === "true";
@@ -356,6 +413,42 @@ export function assertTelegramBotValidationResult(value: unknown) {
   };
 }
 
+export function assertStoredTokenSecretRef(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new HttpError(
+      503,
+      "secret_store_unavailable",
+      "Telegram token secret store returned an invalid response.",
+    );
+  }
+
+  const tokenSecretRef = value.trim();
+
+  if (!tokenSecretRefPattern.test(tokenSecretRef)) {
+    throw new HttpError(
+      503,
+      "secret_store_unavailable",
+      "Telegram token secret store returned an invalid response.",
+    );
+  }
+
+  return tokenSecretRef;
+}
+
+export function formatTelegramBotHandle(username: string) {
+  const handle = username.trim().replace(/^@+/, "");
+
+  if (!handle) {
+    throw new HttpError(
+      422,
+      "telegram_validation_failed",
+      "Telegram bot token could not be validated.",
+    );
+  }
+
+  return `@${handle}`;
+}
+
 export function sanitizeTelegramTokenStorageError(error: unknown) {
   if (error instanceof HttpError && error.code === "secret_store_unavailable") {
     return new HttpError(
@@ -380,6 +473,14 @@ export function sanitizeTelegramTokenStorageError(error: unknown) {
     500,
     "server_error",
     "Telegram token storage failed.",
+  );
+}
+
+export function sanitizeTelegramSessionPersistenceError(_error: unknown) {
+  return new HttpError(
+    500,
+    "server_error",
+    "Telegram session persistence failed.",
   );
 }
 
@@ -420,6 +521,55 @@ export async function lookupAgentOwnershipRecord(
     ownerUserId: workspace.owner_user_id,
     workspaceId: workspace.id,
   };
+}
+
+export async function persistTelegramSessionRecord(
+  serviceClient: TelegramSessionPersistenceClient,
+  input: PersistTelegramSessionInput,
+) {
+  const { data: sessions, error: lookupError } = await serviceClient
+    .from("telegram_sessions")
+    .select("id")
+    .eq("agent_id", input.agentId)
+    .eq("webhook_status", "mocked")
+    .is("token_secret_ref", null)
+    .limit<TelegramSessionPersistenceRow>(2);
+
+  if (lookupError) {
+    throw lookupError;
+  }
+
+  if (!Array.isArray(sessions) || sessions.length !== 1) {
+    throw new Error("Expected one mock Telegram session.");
+  }
+
+  const sessionId = sessions[0]?.id;
+
+  if (typeof sessionId !== "string" || !sessionId) {
+    throw new Error("Telegram session id was not found.");
+  }
+
+  const { data: updated, error: updateError } = await serviceClient
+    .from("telegram_sessions")
+    .update({
+      bot_handle: input.botHandle,
+      webhook_status: "queued",
+      token_secret_ref: input.tokenSecretRef,
+    })
+    .eq("id", sessionId)
+    .eq("agent_id", input.agentId)
+    .eq("webhook_status", "mocked")
+    .is("token_secret_ref", null)
+    .select("id")
+    .maybeSingle<TelegramSessionPersistenceRow>();
+
+  if (updateError) {
+    throw updateError;
+  }
+
+  if (!updated) {
+    throw new Error("Telegram session was not updated.");
+  }
 }
 
 export function assertAuthenticatedUserId(value: unknown) {
@@ -518,6 +668,7 @@ export async function handleTelegramConnectRequest(
 
     let botToken: string | null = null;
     let telegramBot: TelegramBotValidationResult | null = null;
+    let tokenSecretRef: string | null = null;
 
     if (dependencies.validateTelegramBotToken) {
       botToken = assertBotToken(body.botToken);
@@ -548,14 +699,45 @@ export async function handleTelegramConnectRequest(
       }
 
       try {
-        await dependencies.storeTelegramBotToken({
+        const storedToken = await dependencies.storeTelegramBotToken({
           agentId,
           ownerUserId: userId,
           telegramBotId: telegramBot.telegramBotId,
           botToken,
         });
+        tokenSecretRef = assertStoredTokenSecretRef(
+          storedToken.tokenSecretRef,
+        );
       } catch (error) {
         throw sanitizeTelegramTokenStorageError(error);
+      }
+    }
+
+    if (dependencies.persistTelegramSession) {
+      if (!telegramBot || !tokenSecretRef) {
+        throw new HttpError(
+          500,
+          "server_error",
+          "Telegram session persistence is not configured safely.",
+        );
+      }
+
+      try {
+        await dependencies.persistTelegramSession({
+          agentId,
+          botHandle: formatTelegramBotHandle(telegramBot.username),
+          tokenSecretRef,
+        });
+      } catch (error) {
+        if (dependencies.revokeTelegramBotToken) {
+          try {
+            await dependencies.revokeTelegramBotToken({ tokenSecretRef });
+          } catch {
+            // Best-effort cleanup only. Never expose rollback internals.
+          }
+        }
+
+        throw sanitizeTelegramSessionPersistenceError(error);
       }
     }
 
