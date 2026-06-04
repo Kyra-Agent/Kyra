@@ -3015,6 +3015,69 @@ Safe next implementation slice:
 - Keep runtime inert: no DB reads, DB writes, Vault access, Telegram API calls,
   command writes, body logging, deploy, or production enablement.
 
+### Phase 5AG.2 Inert Contract State
+
+Phase 5AG.2 adds pure webhook receiver contracts and tests only. It does not
+enable real Telegram webhook processing, parse request bodies, perform DB
+lookups, write DB records, access Vault, call Telegram APIs, deploy Edge
+Functions, publish Netlify, or enable command processing.
+
+Current code state:
+
+- `telegram-webhook/index.ts` remains a thin inert entrypoint.
+- `telegram-webhook/core.ts` now contains pure helpers for:
+  - existing method, content-type, body-size, and webhook secret header guards
+  - active webhook session result handling
+  - sanitized future session lookup failures
+  - personal agent chat authorization
+  - community/project chat authorization
+  - read-only versus write/approval command separation
+- Missing `X-Telegram-Bot-Api-Secret-Token` still rejects before any body
+  access.
+- Valid inert requests still return `not_configured`.
+- The new helpers are not wired to a real Supabase lookup, command parser,
+  Telegram reply sender, Vault resolver, or DB writer.
+
+Test coverage added:
+
+- Missing webhook secret rejects before body access.
+- Inert valid webhook path returns `not_configured` without reading body.
+- Unsupported content type and oversized content length reject before body read.
+- Missing or inactive session lookup results map to sanitized
+  `session_not_found`.
+- Unexpected session lookup failures map to sanitized `server_error`.
+- Personal owner-linked Telegram user/chat is authorized.
+- Unknown personal chats are denied without echoing chat/user IDs.
+- Community members are limited to read-only commands.
+- Community admins can pass write/approval authorization.
+- Optional public community access is read-only only.
+- Missing Telegram chat identity maps to `invalid_update`.
+
+Verification baseline after Phase 5AG.2:
+
+- `npm run check:functions` passed.
+- `deno check supabase/functions/telegram-connect/index.ts
+  supabase/functions/telegram-webhook/index.ts` passed.
+- `deno test` for Telegram connect and webhook tests passed with `103 passed |
+  0 failed`.
+- `npm exec tsc -- --noEmit` passed.
+- `npm run build` passed.
+- `git diff --check` passed.
+- Runtime scan of `telegram-webhook/index.ts` and `telegram-webhook/core.ts`
+  found no Telegram API calls, Vault access, service-role use, DB writes,
+  `request.json`, console logging, BotFather token handling, token ref access,
+  or `.env.local` reads.
+
+Remaining blockers before live webhook processing:
+
+- No approved schema/RLS for webhook secret hash/reference lookup.
+- No approved schema/RLS for Telegram chat authorization storage.
+- No runtime session lookup from webhook secret to active `telegram_sessions`.
+- No Telegram update parser.
+- No command processor.
+- No Telegram reply sender.
+- No Edge Function deployment or production smoke for real Telegram webhooks.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
