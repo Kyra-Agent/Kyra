@@ -54,6 +54,12 @@ export type {
   TelegramVerifiedReadOnlyPipelineInput,
   TelegramVerifiedReadOnlyPipelineResult,
 } from "./read-only-pipeline.ts";
+export {
+  assertTelegramUpdateClaimResult,
+  sanitizeTelegramUpdateClaimError,
+  shouldProcessTelegramUpdateClaim,
+} from "./idempotency.ts";
+export type { TelegramUpdateClaimResult } from "./idempotency.ts";
 
 export function handleTelegramWebhookRequest(request: Request) {
   if (request.method === "OPTIONS") {
