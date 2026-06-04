@@ -3995,6 +3995,38 @@ Next safest slice:
 - It must remain unused by `telegram-connect/index.ts` until schema/RLS and
   runtime gate approvals are explicit.
 
+### Phase 5AQ.1 Finalization Contract Closeout
+
+Phase 5AQ.1 added a pure finalization-order contract for webhook registration.
+It remains unwired from `telegram-connect` runtime and does not add SQL apply,
+real DB writes, Telegram API calls, Vault reads, env reads, deploys, pushes, or
+gate enablement.
+
+Completed pure behavior:
+
+- `finalizeTelegramWebhookRegistration` validates `telegramSessionId`, raw
+  webhook secret token shape, webhook secret hash, and webhook secret ref before
+  sequencing injected dependencies.
+- Success order is fixed as:
+  `storeTelegramWebhookSecret -> registerTelegramWebhook -> activateTelegramSession`.
+- Store failure is sanitized and prevents Telegram registration, activation, and
+  webhook-secret revoke.
+- Registration failure revokes the stored webhook secret ref on a best-effort
+  basis, hides rollback internals, and returns a sanitized registration failure.
+- Activation failure is sanitized and does not attempt to revoke the webhook
+  secret because Telegram may already be configured.
+- Tests cover success order, store failure, registration failure rollback,
+  rollback failure hiding, activation failure sanitization, and sensitive value
+  non-disclosure.
+
+Next safest slice:
+
+- Phase 5AR should be audit-only for executable SQL readiness: compare the
+  webhook secret table/RPC draft, verifier expectations, and rollback needs
+  before any SQL apply is considered.
+- No SQL apply, Supabase dashboard action, runtime wiring, deploy, push, or gate
+  enablement belongs in that audit.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
