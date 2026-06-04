@@ -5234,6 +5234,112 @@ Go/no-go:
   webhook bodies, outbound Telegram calls, deployment, Netlify changes, or
   push.
 
+### Phase 5BB And 5BC Database Draft Closeout
+
+Phase 5BB and Phase 5BC add separate comment-only design artifacts:
+
+- `supabase/telegram_chat_authorization_schema_draft.sql`
+- `supabase/telegram_update_claim_schema_draft.sql`
+
+Both files:
+
+- Are fully comment-only and contain no executable SQL.
+- Are explicitly marked `DRAFT ONLY - DO NOT APPLY`.
+- Do not modify `schema.sql`, verifier SQL, schema/RLS/grants, or Supabase.
+- Do not create tables, functions, policies, grants, rows, secrets, or runtime
+  behavior.
+- Do not wire service-role adapters, parse webhook bodies, call Telegram APIs,
+  deliver replies, deploy, publish, or push.
+
+Chat authorization draft decisions:
+
+- First smoke is personal owner-only and read-only-only.
+- Exact Telegram user and chat IDs must match on the same active row.
+- One active owner authorization is allowed per agent.
+- Community, public, admin, member, write, and approval behavior remains
+  deferred.
+- Future lookup result is bounded to authorization metadata and returns no
+  Telegram IDs or private ownership/session fields.
+
+Atomic update claim draft decisions:
+
+- Composite `(telegram_session_id, telegram_update_id)` primary key is the
+  atomic boundary.
+- The claim RPC uses one insert-on-conflict operation and no pre-insert
+  existence check.
+- Unknown, inactive, or malformed input returns no result and must not be
+  reported as duplicate.
+- Runtime receives no update/delete/retention privilege.
+- No Telegram payload, identity, command, response, token, secret, ref, or raw
+  error is stored.
+
+### Phase 5BD Database Verifier Extension Preflight
+
+Phase 5BD prepares guarded read-only verifier coverage for the two new future
+database slices. It does not approve applying their schema.
+
+Current verifier findings:
+
+- Chat authorization object references and basic privilege/execute checks
+  already exist.
+- Chat authorization exact shape, constraints, RLS/no-policy state, unique
+  active-agent index, RPC security properties, result contract, and exact
+  same-row matching are not yet verified.
+- Atomic update claim objects have no verifier references or checks.
+- The verifier is designed to tolerate unapplied future objects by returning
+  guarded `false` values instead of raising object-not-found errors.
+
+Required chat authorization verifier additions:
+
+- Confirm regular table, exact columns/nullability, RLS enabled, and no policies.
+- Confirm all stable named constraints and the active-agent partial unique
+  index.
+- Confirm `service_role` has only select/insert/update and lacks
+  delete/truncate/references/trigger.
+- Confirm lookup RPC is SQL, stable, `SECURITY INVOKER`, and has an empty search
+  path.
+- Confirm lookup RPC returns only `authorized boolean` and `role text`.
+- Confirm function definition uses exact same-row agent/user/chat matching,
+  owner role, read-only scope, read-only command kind, and active row.
+
+Required atomic update claim verifier additions:
+
+- Add guarded references for:
+  - `public.telegram_processed_updates`
+  - `public.claim_telegram_update(uuid,bigint)`
+- Confirm regular table, exact three columns/nullability, RLS enabled, and no
+  policies.
+- Confirm composite primary key, session foreign key, and nonnegative update-ID
+  constraint.
+- Confirm no browser role has direct privileges.
+- Confirm `service_role` has only select/insert and lacks
+  update/delete/truncate/references/trigger.
+- Confirm claim RPC is SQL, volatile, `SECURITY INVOKER`, and has an empty
+  search path.
+- Confirm claim RPC returns only `claimed boolean` and `status text`.
+- Confirm function definition checks active session and nonnegative input, uses
+  `ON CONFLICT ON CONSTRAINT telegram_processed_updates_pkey DO NOTHING`, and
+  does not return session/update IDs.
+
+Verifier safety rules:
+
+- Keep the verifier as a single read-only query with no DDL or DML.
+- Guard every future-object check so missing draft-only objects produce `false`
+  rather than an error.
+- Do not require draft-only object existence in the current production
+  baseline.
+- Preserve all existing demo-write lockdown, Telegram Vault, webhook session
+  lookup, Telegram summary-view, and browser-safety checks.
+- Do not run the verifier against Supabase without separate target-project and
+  read-only audit approval.
+
+Go/no-go:
+
+- Go for a local guarded verifier-only extension after static review.
+- No-go for editing `schema.sql`, creating executable forward/rollback packets,
+  applying SQL, inserting rows, runtime DB wiring, request body parsing,
+  Telegram API calls, deployment, Netlify changes, or push.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
