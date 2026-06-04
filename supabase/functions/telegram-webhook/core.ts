@@ -10,6 +10,7 @@ export class HttpError extends Error {
 }
 
 const telegramWebhookSecretHeader = "X-Telegram-Bot-Api-Secret-Token";
+const telegramWebhookSecretHashPattern = /^[0-9a-f]{64}$/;
 export const maxTelegramWebhookBodyBytes = 131072;
 
 export const corsHeaders = {
@@ -26,6 +27,20 @@ export interface TelegramWebhookSessionLookupRecord {
   ownerUserId: string;
   botHandle?: string | null;
   webhookStatus: string;
+}
+
+export interface TelegramWebhookSessionLookupRpcRow {
+  session_id?: unknown;
+  agent_id?: unknown;
+  workspace_id?: unknown;
+  owner_user_id?: unknown;
+  bot_handle?: unknown;
+  webhook_status?: unknown;
+}
+
+export interface TelegramWebhookSessionLookupRpcResult {
+  data?: unknown;
+  error?: unknown | null;
 }
 
 export type TelegramWebhookCommandKind = "read_only" | "write" | "approval";
@@ -164,6 +179,28 @@ export function assertBodySizeFromHeaders(headers: Headers, maxBytes: number) {
   }
 }
 
+export function assertTelegramWebhookSecretHash(value: unknown) {
+  if (typeof value !== "string") {
+    throw new HttpError(
+      400,
+      "invalid_request",
+      "webhookSecretHash is invalid.",
+    );
+  }
+
+  const webhookSecretHash = value.trim();
+
+  if (!telegramWebhookSecretHashPattern.test(webhookSecretHash)) {
+    throw new HttpError(
+      400,
+      "invalid_request",
+      "webhookSecretHash is invalid.",
+    );
+  }
+
+  return webhookSecretHash;
+}
+
 export function assertActiveTelegramWebhookSession(
   session: TelegramWebhookSessionLookupRecord | null,
 ) {
@@ -176,6 +213,44 @@ export function assertActiveTelegramWebhookSession(
   }
 
   return session;
+}
+
+export function assertTelegramWebhookSessionLookupRows(
+  rows: unknown,
+) {
+  if (rows === null || rows === undefined) {
+    return assertActiveTelegramWebhookSession(null);
+  }
+
+  if (!Array.isArray(rows)) {
+    throw sanitizeTelegramWebhookSessionLookupError(
+      new Error("Unexpected Telegram webhook session lookup result."),
+    );
+  }
+
+  if (!rows.length) {
+    return assertActiveTelegramWebhookSession(null);
+  }
+
+  if (rows.length > 1) {
+    throw sanitizeTelegramWebhookSessionLookupError(
+      new Error("Unexpected Telegram webhook session lookup result."),
+    );
+  }
+
+  return assertActiveTelegramWebhookSession(
+    mapTelegramWebhookSessionRow(rows[0]),
+  );
+}
+
+export function assertTelegramWebhookSessionLookupResult(
+  result: TelegramWebhookSessionLookupRpcResult,
+) {
+  if (result.error) {
+    throw sanitizeTelegramWebhookSessionLookupError(result.error);
+  }
+
+  return assertTelegramWebhookSessionLookupRows(result.data);
 }
 
 export function sanitizeTelegramWebhookSessionLookupError(_error: unknown) {
@@ -255,6 +330,50 @@ export function assertTelegramWebhookChatAuthorized(
     "chat_not_authorized",
     "Telegram chat is not authorized.",
   );
+}
+
+function mapTelegramWebhookSessionRow(
+  row: TelegramWebhookSessionLookupRpcRow | undefined,
+): TelegramWebhookSessionLookupRecord {
+  try {
+    if (!row) {
+      throw new Error("Missing row.");
+    }
+
+    const botHandle = row.bot_handle;
+
+    if (
+      botHandle !== undefined && botHandle !== null &&
+      typeof botHandle !== "string"
+    ) {
+      throw new Error("Invalid bot handle.");
+    }
+
+    return {
+      sessionId: readRequiredLookupString(row.session_id),
+      agentId: readRequiredLookupString(row.agent_id),
+      workspaceId: readRequiredLookupString(row.workspace_id),
+      ownerUserId: readRequiredLookupString(row.owner_user_id),
+      botHandle: botHandle ?? null,
+      webhookStatus: readRequiredLookupString(row.webhook_status),
+    };
+  } catch (error) {
+    throw sanitizeTelegramWebhookSessionLookupError(error);
+  }
+}
+
+function readRequiredLookupString(value: unknown) {
+  if (typeof value !== "string") {
+    throw new Error("Expected string.");
+  }
+
+  const normalized = value.trim();
+
+  if (!normalized) {
+    throw new Error("Expected non-empty string.");
+  }
+
+  return normalized;
 }
 
 function normalizeTelegramId(value: string | number | null | undefined) {

@@ -17,7 +17,10 @@ export {
   assertBodySizeFromHeaders,
   assertJsonContentType,
   assertPostMethod,
+  assertTelegramWebhookSecretHash,
   assertTelegramWebhookChatAuthorized,
+  assertTelegramWebhookSessionLookupResult,
+  assertTelegramWebhookSessionLookupRows,
   assertWebhookSecretHeader,
   corsHeaders,
   getUnknownErrorMessage,
@@ -35,6 +38,8 @@ export type {
   TelegramWebhookCommunityChatPolicy,
   TelegramWebhookPersonalChatPolicy,
   TelegramWebhookSessionLookupRecord,
+  TelegramWebhookSessionLookupRpcResult,
+  TelegramWebhookSessionLookupRpcRow,
 } from "./core.ts";
 
 export function handleTelegramWebhookRequest(request: Request) {

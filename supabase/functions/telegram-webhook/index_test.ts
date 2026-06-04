@@ -2,6 +2,9 @@ import {
   assertActiveTelegramWebhookSession,
   assertBodySizeFromHeaders,
   assertTelegramWebhookChatAuthorized,
+  assertTelegramWebhookSecretHash,
+  assertTelegramWebhookSessionLookupResult,
+  assertTelegramWebhookSessionLookupRows,
   handleTelegramWebhookRequest,
   HttpError,
   maxTelegramWebhookBodyBytes,
@@ -72,6 +75,18 @@ function requestThatFailsIfBodyIsRead(
     },
   } as unknown as Request;
 }
+
+const testWebhookSecretHash =
+  "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+const activeLookupRow = {
+  session_id: "telegram-session-1",
+  agent_id: "agent-1",
+  workspace_id: "workspace-1",
+  owner_user_id: "owner-1",
+  bot_handle: "@kyra_test_bot",
+  webhook_status: "active",
+};
 
 Deno.test("telegram-webhook rejects missing Telegram secret before body read", async () => {
   let bodyRead = false;
@@ -174,6 +189,28 @@ Deno.test("telegram-webhook body size header validator rejects oversized request
   assertEquals((error as HttpError).code, "payload_too_large");
 });
 
+Deno.test("telegram-webhook secret hash validator accepts lowercase sha256 hex only", () => {
+  assertEquals(
+    assertTelegramWebhookSecretHash(testWebhookSecretHash),
+    testWebhookSecretHash,
+  );
+
+  assertThrowsHttpError(
+    () => assertTelegramWebhookSecretHash("test-webhook-secret"),
+    400,
+    "invalid_request",
+  );
+
+  assertThrowsHttpError(
+    () =>
+      assertTelegramWebhookSecretHash(
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      ),
+    400,
+    "invalid_request",
+  );
+});
+
 Deno.test("telegram-webhook sanitizer redacts secret-like server errors", () => {
   const sanitized = sanitizeErrorMessage(
     "raw sb_secret_testvalue and jwt eyJabc.def.ghi leaked",
@@ -208,6 +245,153 @@ Deno.test("telegram-webhook session contract returns active session only", () =>
   };
 
   assertEquals(assertActiveTelegramWebhookSession(session), session);
+});
+
+Deno.test("telegram-webhook session lookup result maps one active row", () => {
+  const session = assertTelegramWebhookSessionLookupResult({
+    data: [activeLookupRow],
+  });
+
+  assertEquals(session.sessionId, "telegram-session-1");
+  assertEquals(session.agentId, "agent-1");
+  assertEquals(session.workspaceId, "workspace-1");
+  assertEquals(session.ownerUserId, "owner-1");
+  assertEquals(session.botHandle, "@kyra_test_bot");
+  assertEquals(session.webhookStatus, "active");
+});
+
+Deno.test("telegram-webhook session lookup result hides missing rows as not found", () => {
+  assertThrowsHttpError(
+    () => assertTelegramWebhookSessionLookupRows([]),
+    404,
+    "session_not_found",
+  );
+
+  assertThrowsHttpError(
+    () => assertTelegramWebhookSessionLookupResult({ data: null }),
+    404,
+    "session_not_found",
+  );
+});
+
+Deno.test("telegram-webhook session lookup result rejects inactive row as not found", () => {
+  const error = assertThrowsHttpError(
+    () =>
+      assertTelegramWebhookSessionLookupResult({
+        data: [{ ...activeLookupRow, webhook_status: "paused" }],
+      }),
+    404,
+    "session_not_found",
+  );
+
+  assertEquals(error.message, "Telegram webhook session was not found.");
+});
+
+Deno.test("telegram-webhook session lookup result sanitizes duplicate rows", () => {
+  const error = assertThrowsHttpError(
+    () =>
+      assertTelegramWebhookSessionLookupResult({
+        data: [activeLookupRow, activeLookupRow],
+      }),
+    500,
+    "server_error",
+  );
+
+  const serialized = JSON.stringify({
+    code: error.code,
+    message: error.message,
+    statusCode: error.statusCode,
+  });
+
+  assertEquals(error.message, "Telegram webhook session lookup failed.");
+  assert(
+    !serialized.includes("owner-1"),
+    "Duplicate lookup errors must not expose owner id.",
+  );
+  assert(
+    !serialized.includes("workspace-1"),
+    "Duplicate lookup errors must not expose workspace id.",
+  );
+});
+
+Deno.test("telegram-webhook session lookup result sanitizes non-array data", () => {
+  const error = assertThrowsHttpError(
+    () =>
+      assertTelegramWebhookSessionLookupResult({
+        data: {
+          owner_user_id: "owner-1",
+          workspace_id: "workspace-1",
+        },
+      }),
+    500,
+    "server_error",
+  );
+
+  assertEquals(error.message, "Telegram webhook session lookup failed.");
+});
+
+Deno.test("telegram-webhook session lookup result sanitizes rpc errors", () => {
+  const error = assertThrowsHttpError(
+    () =>
+      assertTelegramWebhookSessionLookupResult({
+        data: null,
+        error: {
+          message:
+            "raw rpc owner_user_id workspace-1 token_secret_ref webhook_secret_hash",
+        },
+      }),
+    500,
+    "server_error",
+  );
+
+  const serialized = JSON.stringify({
+    code: error.code,
+    message: error.message,
+    statusCode: error.statusCode,
+  });
+
+  assertEquals(error.message, "Telegram webhook session lookup failed.");
+  assert(
+    !serialized.includes("owner_user_id"),
+    "RPC errors must not expose owner column names.",
+  );
+  assert(
+    !serialized.includes("token_secret_ref"),
+    "RPC errors must not expose token refs.",
+  );
+  assert(
+    !serialized.includes("webhook_secret_hash"),
+    "RPC errors must not expose webhook hashes.",
+  );
+});
+
+Deno.test("telegram-webhook session lookup result sanitizes invalid row shape", () => {
+  const error = assertThrowsHttpError(
+    () =>
+      assertTelegramWebhookSessionLookupResult({
+        data: [
+          {
+            ...activeLookupRow,
+            workspace_id: "",
+            owner_user_id: testWebhookSecretHash,
+          },
+        ],
+      }),
+    500,
+    "server_error",
+  );
+
+  const serialized = JSON.stringify({
+    code: error.code,
+    message: error.message,
+    statusCode: error.statusCode,
+  });
+
+  assertEquals(error.message, "Telegram webhook session lookup failed.");
+  assert(
+    !serialized.includes(testWebhookSecretHash),
+    "Invalid row errors must not expose webhook secret hashes.",
+  );
 });
 
 Deno.test("telegram-webhook session contract hides missing or inactive sessions", () => {
