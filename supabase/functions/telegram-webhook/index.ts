@@ -11,6 +11,8 @@ import {
   readTelegramWebhookUpdateBody,
   sanitizeErrorMessage,
   sanitizeTelegramWebhookSessionLookupError,
+  type TelegramWebhookChatAuthorization,
+  type TelegramWebhookCommandKind,
   type TelegramWebhookSessionLookupRecord,
 } from "./core.ts";
 import {
@@ -18,13 +20,22 @@ import {
   type TelegramWebhookSessionLookupRpcClient,
 } from "./session-lookup.ts";
 import {
+  lookupTelegramChatAuthorization,
+  type TelegramChatAuthorizationLookupRpcClient,
+} from "./chat-authorization-lookup.ts";
+import {
+  createTelegramWebhookChatAuthRuntimeConfig,
   createTelegramWebhookLookupRuntimeConfig,
   createTelegramWebhookParseRuntimeConfig,
   type OptionalEnvReader,
+  type TelegramWebhookChatAuthRuntimeConfig,
   type TelegramWebhookLookupRuntimeConfig,
   type TelegramWebhookParseRuntimeConfig,
 } from "./runtime-config.ts";
-import { parseTelegramWebhookUpdate } from "./update-parser.ts";
+import {
+  parseTelegramWebhookUpdate,
+  type TelegramWebhookParsedCommand,
+} from "./update-parser.ts";
 
 export {
   assertActiveTelegramWebhookSession,
@@ -96,15 +107,19 @@ export type {
   TelegramChatAuthorizationLookupRpcRow,
 } from "./chat-authorization-lookup.ts";
 export {
+  createTelegramWebhookChatAuthRuntimeConfig,
   createTelegramWebhookLookupRuntimeConfig,
   createTelegramWebhookParseRuntimeConfig,
+  isTelegramWebhookChatAuthEnabled,
   isTelegramWebhookLookupEnabled,
   isTelegramWebhookParseEnabled,
+  telegramWebhookChatAuthEnabledEnvKey,
   telegramWebhookLookupEnabledEnvKey,
   telegramWebhookParseEnabledEnvKey,
 } from "./runtime-config.ts";
 export type {
   OptionalEnvReader,
+  TelegramWebhookChatAuthRuntimeConfig,
   TelegramWebhookLookupRuntimeConfig,
   TelegramWebhookParseRuntimeConfig,
 } from "./runtime-config.ts";
@@ -117,15 +132,24 @@ export interface TelegramWebhookRuntimeOptions {
 export interface TelegramWebhookDependencies {
   lookupRuntimeConfig?: TelegramWebhookLookupRuntimeConfig;
   parseRuntimeConfig?: TelegramWebhookParseRuntimeConfig;
+  chatAuthRuntimeConfig?: TelegramWebhookChatAuthRuntimeConfig;
   lookupTelegramWebhookSession?: (
     webhookSecretHeader: string,
   ) => Promise<TelegramWebhookSessionLookupRecord>;
+  lookupTelegramChatAuthorization?: (input: {
+    agentId: string;
+    telegramUserId: string;
+    telegramChatId: string;
+    commandKind: TelegramWebhookCommandKind;
+  }) => Promise<TelegramWebhookChatAuthorization>;
 }
 
 const disabledTelegramWebhookLookupRuntimeConfig:
   TelegramWebhookLookupRuntimeConfig = { enabled: false };
 const disabledTelegramWebhookParseRuntimeConfig:
   TelegramWebhookParseRuntimeConfig = { enabled: false };
+const disabledTelegramWebhookChatAuthRuntimeConfig:
+  TelegramWebhookChatAuthRuntimeConfig = { enabled: false };
 
 export function getEnv(key: string) {
   const value = Deno.env.get(key);
@@ -197,9 +221,12 @@ export function createTelegramWebhookDependencies(
     createTelegramWebhookLookupRuntimeConfig(readOptionalEnv);
   const parseRuntimeConfig =
     createTelegramWebhookParseRuntimeConfig(readOptionalEnv);
+  const chatAuthRuntimeConfig =
+    createTelegramWebhookChatAuthRuntimeConfig(readOptionalEnv);
   const dependencies: TelegramWebhookDependencies = {
     lookupRuntimeConfig,
     parseRuntimeConfig,
+    chatAuthRuntimeConfig,
   };
 
   if (!lookupRuntimeConfig.enabled) {
@@ -229,6 +256,16 @@ export function createTelegramWebhookDependencies(
     });
   };
 
+  if (chatAuthRuntimeConfig.enabled) {
+    dependencies.lookupTelegramChatAuthorization = async (input) => {
+      return await lookupTelegramChatAuthorization({
+        ...input,
+        rpcClient: getRpcClient() as unknown as
+          TelegramChatAuthorizationLookupRpcClient,
+      });
+    };
+  }
+
   return dependencies;
 }
 
@@ -251,7 +288,10 @@ export async function handleTelegramWebhookRequest(
       disabledTelegramWebhookLookupRuntimeConfig;
     const parseRuntimeConfig = dependencies.parseRuntimeConfig ??
       disabledTelegramWebhookParseRuntimeConfig;
+    const chatAuthRuntimeConfig = dependencies.chatAuthRuntimeConfig ??
+      disabledTelegramWebhookChatAuthRuntimeConfig;
     let lookupSession: TelegramWebhookSessionLookupRecord | null = null;
+    let parsedUpdate: TelegramWebhookParsedCommand | null = null;
 
     if (lookupRuntimeConfig.enabled) {
       if (!dependencies.lookupTelegramWebhookSession) {
@@ -277,8 +317,33 @@ export async function handleTelegramWebhookRequest(
       }
 
       const update = await readTelegramWebhookUpdateBody(request);
-      parseTelegramWebhookUpdate(update, {
+      parsedUpdate = parseTelegramWebhookUpdate(update, {
         expectedBotUsername: lookupSession.botHandle,
+      });
+    }
+
+    if (chatAuthRuntimeConfig.enabled) {
+      if (!lookupSession || !parsedUpdate) {
+        throw new HttpError(
+          500,
+          "server_error",
+          "Telegram chat authorization requires parsed update.",
+        );
+      }
+
+      if (!dependencies.lookupTelegramChatAuthorization) {
+        throw new HttpError(
+          500,
+          "server_error",
+          "Telegram chat authorization is not configured.",
+        );
+      }
+
+      await dependencies.lookupTelegramChatAuthorization({
+        agentId: lookupSession.agentId,
+        telegramUserId: parsedUpdate.telegramUserId,
+        telegramChatId: parsedUpdate.telegramChatId,
+        commandKind: parsedUpdate.commandKind,
       });
     }
 

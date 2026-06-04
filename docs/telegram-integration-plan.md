@@ -6198,6 +6198,58 @@ Still blocked after Phase 5BP:
 - Idempotency claim, response planning, Telegram reply delivery, Edge Function
   deploy, Netlify publish, or Git push without explicit approval.
 
+### Phase 5BQ Chat Authorization Runtime Mount
+
+Phase 5BQ mounts the chat authorization adapter behind a separate default-off
+runtime gate. It still does not claim Telegram updates, plan live responses,
+send Telegram replies, call Telegram API, write DB rows, deploy Edge Functions,
+publish Netlify, or push Git commits.
+
+Recommended gate:
+
+- `KYRA_TELEGRAM_WEBHOOK_CHAT_AUTH_ENABLED`
+- Enabled only when the exact string is `true`.
+- This gate is backend-only and must not be exposed through frontend config.
+
+Runtime order:
+
+- Verify method, webhook secret header, content type, and body size headers.
+- Resolve active webhook session only when lookup gate is enabled.
+- Parse the bounded JSON update only when parse gate is enabled.
+- Chat authorization may run only after both session lookup and update parsing
+  succeed.
+- Chat authorization calls only
+  `resolve_telegram_chat_authorization(uuid,text,text,text)`.
+- After authorization succeeds, the handler still returns `501 not_configured`.
+
+Security requirements:
+
+- Disabled authorization gate must not call the authorization adapter.
+- Authorization gate enabled without a lookup session or parsed update must fail
+  safely before doing the wrong step.
+- Parse failures must prevent authorization lookup.
+- Authorization errors must never echo Telegram user/chat IDs, owner IDs,
+  workspace IDs, webhook secrets, webhook hashes, token refs, raw DB errors, or
+  raw message text.
+
+Tests required:
+
+- Gate defaults off and requires exact `true`.
+- Runtime dependencies read lookup, parse, and authorization gate keys.
+- Disabled authorization gate ignores a supplied authorization dependency.
+- Authorization enabled without parsed update returns sanitized server error.
+- Valid lookup + parse + authorization still returns `not_configured`.
+- Unauthorized chat maps to `403 chat_not_authorized`.
+- Parse failure prevents authorization lookup.
+
+Still blocked after Phase 5BQ:
+
+- Enabling lookup/parse/chat authorization gates in production.
+- Idempotency claim in the live handler.
+- Response planning and Telegram reply delivery in the live handler.
+- Telegram API calls, Edge Function deploy, Netlify publish, or Git push without
+  explicit approval.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.

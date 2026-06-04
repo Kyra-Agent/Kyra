@@ -1,8 +1,11 @@
 import {
+  createTelegramWebhookChatAuthRuntimeConfig,
   createTelegramWebhookLookupRuntimeConfig,
   createTelegramWebhookParseRuntimeConfig,
+  isTelegramWebhookChatAuthEnabled,
   isTelegramWebhookLookupEnabled,
   isTelegramWebhookParseEnabled,
+  telegramWebhookChatAuthEnabledEnvKey,
   telegramWebhookLookupEnabledEnvKey,
   telegramWebhookParseEnabledEnvKey,
 } from "./index.ts";
@@ -106,4 +109,35 @@ Deno.test("telegram webhook parse runtime config reads only the parse gate key",
 
   assertEquals(config.enabled, false);
   assertEquals(keys.join(","), telegramWebhookParseEnabledEnvKey);
+});
+
+Deno.test("telegram webhook chat auth runtime gate defaults off and requires exact true", () => {
+  const disabledValues = [
+    undefined,
+    null,
+    "",
+    " ",
+    "false",
+    "1",
+    "yes",
+    "TRUE",
+    " true ",
+  ];
+
+  for (const value of disabledValues) {
+    assertEquals(isTelegramWebhookChatAuthEnabled(value), false);
+  }
+
+  assertEquals(isTelegramWebhookChatAuthEnabled("true"), true);
+});
+
+Deno.test("telegram webhook chat auth runtime config reads only the chat auth gate key", () => {
+  const keys: string[] = [];
+  const config = createTelegramWebhookChatAuthRuntimeConfig((key) => {
+    keys.push(key);
+    return "";
+  });
+
+  assertEquals(config.enabled, false);
+  assertEquals(keys.join(","), telegramWebhookChatAuthEnabledEnvKey);
 });
