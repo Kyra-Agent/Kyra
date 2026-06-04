@@ -5717,6 +5717,80 @@ Phase 5BF approval boundary:
 - Broad approval to continue local Phase 5 work does not authorize remote SQL
   apply, runtime enablement, deploy, publish, or push.
 
+### Phase 5BJ Manual Apply State And Schema Sync Preflight
+
+Phase 5BJ records the post-apply state after the two approved manual Supabase
+SQL windows. It does not make another remote database change and does not enable
+any Telegram runtime behavior.
+
+Manual apply state:
+
+- `supabase/telegram_chat_authorization_forward_review.sql` was applied manually
+  in Supabase SQL Editor and returned success.
+- `supabase/telegram_update_claim_forward_review.sql` was applied manually in
+  Supabase SQL Editor and returned success.
+- The operator captured verifier CSV exports after each manual apply.
+- Runtime gates remain disabled: no Telegram API call, no webhook parsing, no
+  reply delivery, no token input, no Edge Function deploy, and no Netlify deploy
+  action was performed as part of these database applies.
+
+Accepted verifier state:
+
+- Chat authorization verifier results are all accepted as `true` for table
+  existence, table contract, constraints, active-agent index, direct browser
+  privilege denial, service-role-only table privileges, exact RPC existence,
+  security contract, result contract, matching contract, browser-role execute
+  denial, and service-role execute privilege.
+- Atomic update claim verifier results are all accepted as `true` for processed
+  update table existence, table contract, constraints, direct browser privilege
+  denial, service-role-only privileges, exact RPC existence, security contract,
+  result contract, atomic definition contract, browser-role execute denial, and
+  service-role execute privilege.
+- Existing Telegram session token safety results remain accepted, including no
+  authenticated access to `token_secret_ref`, no broad authenticated
+  `telegram_sessions` select grant, and service-role-only Vault token RPC
+  access.
+- Webhook receiver objects remain intentionally absent at this point:
+  `telegram_webhook_secrets` and `resolve_telegram_webhook_session` are not part
+  of the chat authorization or atomic update claim applies.
+
+Repository drift after manual apply:
+
+- The remote Supabase database now contains applied Telegram chat authorization
+  and processed-update claim objects that are not yet represented in
+  `supabase/schema.sql`.
+- `supabase/schema.sql` still contains the earlier Telegram session and summary
+  view baseline, but not:
+  - `public.telegram_chat_authorizations`
+  - `public.resolve_telegram_chat_authorization(uuid,text,text,text)`
+  - `public.telegram_processed_updates`
+  - `public.claim_telegram_update(uuid,bigint)`
+- This drift is expected immediately after manual SQL apply, but should not
+  remain unresolved before runtime wiring begins.
+
+Recommended next boundary:
+
+- Sync only the two already-applied object groups into `supabase/schema.sql`.
+- Keep webhook receiver objects out of `schema.sql` until their own separately
+  approved apply window succeeds.
+- Keep the schema snapshot backend-only: no browser grants, no public policies,
+  no token exposure, and no command-processing behavior.
+- Run repository checks after the local schema sync, then commit locally.
+- Do not push until the user explicitly accepts the schema-sync diff and the
+  Netlify credit tradeoff.
+
+What remains blocked:
+
+- Real Telegram `getMe` or `setWebhook`.
+- Edge Function deployment.
+- Token input or token storage in the frontend.
+- Creation, readback, or inspection of real secrets.
+- Owner-linking authorization row creation.
+- Live webhook parsing, chat authorization runtime lookup, processed-update
+  claim adapter wiring, command execution, or reply delivery.
+- Any additional schema/RLS/RPC object beyond the two already-applied packets.
+- Netlify unlock, manual publish, or Git push without explicit approval.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
