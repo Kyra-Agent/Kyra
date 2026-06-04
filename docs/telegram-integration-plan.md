@@ -5029,6 +5029,211 @@ Explicit stop conditions:
 - Do not push, apply SQL, deploy Edge Functions, or publish/unlock Netlify as
   part of this prep-only checkpoint.
 
+### Phase 5BA Database Gate Preflight
+
+Phase 5BA audits the exact database boundary required before the first
+owner-only read-only Telegram smoke. It does not modify schema/RLS/verifier SQL,
+apply SQL, create rows, wire runtime DB access, deploy, or push.
+
+Current findings:
+
+- The repo already has a reviewed local session-lookup packet:
+  - `supabase/telegram_webhook_receiver_forward_review.sql`
+  - `supabase/telegram_webhook_receiver_rollback_review.sql`
+- That packet creates only `public.telegram_webhook_secrets` and
+  `public.resolve_telegram_webhook_session(text)`.
+- `supabase/verify_authenticated_demo_write_lockdown.sql` already has detailed
+  guarded checks for the session-lookup table/RPC.
+- Chat authorization remains intentionally deferred. The verifier currently
+  checks only its future object existence, basic browser-deny/service-role table
+  privileges, and RPC execute grants; it does not yet prove exact columns,
+  constraints, RLS state, matching semantics, or role/scope behavior.
+- Atomic update idempotency has no table, RPC, SQL review packet, or verifier
+  coverage yet.
+- The target Supabase state is not inferred from local files. A fresh target
+  baseline is mandatory before any later apply.
+
+Database rollout decision:
+
+1. Keep the existing webhook session-lookup packet as a standalone apply.
+2. Prepare owner-only read-only chat authorization as a separate packet.
+3. Prepare atomic Telegram update claim as a separate packet.
+4. Apply and verify each packet in its own controlled window.
+5. Stop before runtime wiring after every database apply.
+
+Do not combine these packets. A combined apply would make rollback, verifier
+interpretation, and privilege review unnecessarily broad.
+
+#### Session Lookup Packet Decision
+
+The existing session-lookup packet remains the recommended first database
+packet. It must not be changed or applied as part of Phase 5BA.
+
+Before a later approved apply:
+
+- Confirm `public.telegram_webhook_secrets` and
+  `public.resolve_telegram_webhook_session(text)` do not already exist.
+- Capture the target verifier baseline immediately before apply.
+- Review the existing forward and rollback packets together.
+- Keep all webhook runtime and deployment gates disabled.
+- Apply no chat authorization or idempotency objects in the same transaction.
+- Run the verifier after apply and stop if any required result is false.
+
+#### Owner-Only Read-Only Chat Authorization Decision
+
+The first live smoke should not introduce community allowlists, public
+read-only access, admin roles, write scope, or approval scope. Its database
+authorization boundary should support exactly one active owner-linked
+Telegram user/chat pair per agent.
+
+Recommended future private table:
+
+- `public.telegram_chat_authorizations`
+
+Recommended initial columns:
+
+- `id uuid primary key default gen_random_uuid()`
+- `agent_id uuid not null references public.agent_instances(id) on delete cascade`
+- `telegram_user_id text not null`
+- `telegram_chat_id text not null`
+- `role text not null default 'owner'`
+- `command_scope text not null default 'read_only'`
+- `created_at timestamptz not null default now()`
+- `revoked_at timestamptz null`
+
+Required initial constraints:
+
+- `telegram_user_id` must be a canonical positive integer string.
+- `telegram_chat_id` must be a canonical signed non-zero integer string.
+- `role` must equal `owner`.
+- `command_scope` must equal `read_only`.
+- One active authorization row per agent.
+- Exact matching must require both `telegram_user_id` and `telegram_chat_id` on
+  the same active row. Independent user-or-chat matching is not allowed in the
+  first live rollout.
+
+Recommended future lookup RPC:
+
+```sql
+public.resolve_telegram_chat_authorization(
+  p_agent_id uuid,
+  p_telegram_user_id text,
+  p_telegram_chat_id text,
+  p_command_kind text
+)
+```
+
+Required lookup behavior:
+
+- Use exact input matching without trimming or implicit normalization.
+- Return exactly one safe row only for an active owner pair and
+  `p_command_kind = 'read_only'`.
+- Return only bounded authorization metadata such as `authorized` and `role`.
+- Never return Telegram user/chat IDs, agent/workspace/owner IDs, raw errors,
+  secrets, refs, or policy rows.
+- Unknown, revoked, mismatched, write, or approval requests must return no
+  authorization result and map to a safe denial.
+
+Required RLS/grant model:
+
+- Enable RLS and create no browser-readable policy.
+- Revoke all direct privileges from `public`, `anon`, and `authenticated`.
+- Grant only the minimum `select`, `insert`, and `update` privileges required by
+  the approved backend flow to `service_role`.
+- Grant execute on the lookup RPC only to `service_role`.
+- Use a stable SQL `SECURITY INVOKER` function with an empty search path and
+  fully qualified relation names.
+
+Community/project authorization, admin roles, public read-only access, and
+write/approval scopes require a later schema expansion and separate approval.
+
+#### Atomic Telegram Update Claim Decision
+
+Recommended future private table:
+
+- `public.telegram_processed_updates`
+
+Recommended initial columns:
+
+- `telegram_session_id uuid not null references public.telegram_sessions(id) on delete cascade`
+- `telegram_update_id bigint not null`
+- `created_at timestamptz not null default now()`
+
+Required initial constraints:
+
+- Primary key on `(telegram_session_id, telegram_update_id)`.
+- `telegram_update_id >= 0`.
+- No raw Telegram payload, message text, Telegram user/chat ID, command,
+  response text, token, secret, secret ref, or error detail column.
+
+Recommended future atomic claim RPC:
+
+```sql
+public.claim_telegram_update(
+  p_telegram_session_id uuid,
+  p_telegram_update_id bigint
+) returns table (
+  claimed boolean,
+  status text
+)
+```
+
+Required claim behavior:
+
+- Use one atomic `insert ... on conflict do nothing` boundary.
+- Produce exactly one of:
+  - `{ claimed: true, status: 'claimed' }`
+  - `{ claimed: false, status: 'duplicate' }`
+- Only return a result for an existing active Telegram session.
+- An unknown or inactive session must not be reported as a duplicate.
+- Never return session/update IDs or raw DB errors.
+- Duplicate results must no-op before response building and outbound delivery.
+
+Required RLS/grant model:
+
+- Enable RLS and create no browser-readable policy.
+- Revoke all direct privileges from `public`, `anon`, and `authenticated`.
+- Grant only minimum `select` and `insert` access to `service_role`.
+- Do not grant runtime `update`, `delete`, `truncate`, `references`, or trigger
+  privileges.
+- Grant execute on `claim_telegram_update(uuid,bigint)` only to `service_role`.
+- Use a volatile SQL `SECURITY INVOKER` function with an empty search path and
+  fully qualified relation names.
+- Retention cleanup requires a separate maintenance design and must not broaden
+  the webhook runtime role.
+
+Required future verifier coverage:
+
+- Exact object signatures, columns, nullability, constraints, indexes, RLS
+  state, and absence of browser policies.
+- No direct privileges for `public`, `anon`, or `authenticated`.
+- Exact minimum direct privileges for `service_role`.
+- Exact RPC language, volatility, security-invoker state, empty search path,
+  result contract, and execute grants.
+- Chat authorization lookup requires exact user-plus-chat pair matching and
+  read-only command kind.
+- Atomic claim uses `on conflict do nothing`, returns no IDs, and checks active
+  session eligibility.
+- Existing `telegram_session_summaries` and authenticated Telegram-session
+  safety checks remain unchanged.
+
+Files likely touched in later separately approved slices:
+
+- A comment-only chat authorization schema draft.
+- Chat authorization forward and rollback review packets.
+- A comment-only atomic update claim schema draft.
+- Atomic update claim forward and rollback review packets.
+- `supabase/verify_authenticated_demo_write_lockdown.sql`.
+- `supabase/schema.sql` only after a separately approved applied-schema sync.
+
+Go/no-go:
+
+- Go for separate local comment-only drafts and verifier-contract design.
+- No-go for applying any SQL, editing `schema.sql`, changing RLS/grants,
+  inserting authorization rows, wiring service-role adapters, parsing live
+  webhook bodies, outbound Telegram calls, deployment, Netlify changes, or
+  push.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
