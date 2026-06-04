@@ -6151,6 +6151,53 @@ Still blocked after Phase 5BO:
 - Telegram API calls.
 - Edge Function deploy, Netlify publish, or Git push without explicit approval.
 
+### Phase 5BP Chat Authorization Lookup Adapter
+
+Phase 5BP prepares the backend-only adapter for the already-applied
+`resolve_telegram_chat_authorization(uuid,text,text,text)` RPC. It does not
+mount chat authorization in the live webhook handler yet.
+
+Adapter contract:
+
+- Input comes from an already-resolved webhook session and an already-parsed
+  Telegram update.
+- Call only `resolve_telegram_chat_authorization` with:
+  - `p_agent_id`
+  - `p_telegram_user_id`
+  - `p_telegram_chat_id`
+  - `p_command_kind`
+- Return only bounded authorization metadata compatible with the webhook
+  authorization model.
+- Missing rows or `authorized=false` map to `403 chat_not_authorized`.
+- Duplicate rows, invalid row shapes, RPC errors, and unexpected exceptions map
+  to sanitized `500 server_error`.
+
+Security requirements:
+
+- The adapter must never return or log raw Telegram message text, raw DB errors,
+  owner IDs, workspace IDs, token refs, webhook secret hashes, or raw webhook
+  secret headers.
+- The adapter must not use browser credentials.
+- The adapter must not write DB rows.
+- The live handler must not call the adapter until a separate default-off
+  runtime gate/mount slice is approved and tested.
+
+Tests required:
+
+- Exact RPC function name and argument names.
+- One authorized owner row maps to `{ authorized: true, role: "owner" }`.
+- Empty rows and false authorization map to `403 chat_not_authorized`.
+- Duplicate rows, invalid role, non-array data, RPC errors, and thrown adapter
+  errors are sanitized.
+
+Still blocked after Phase 5BP:
+
+- Creating a live handler dependency for chat authorization.
+- Calling chat authorization lookup from `handleTelegramWebhookRequest`.
+- Enabling parse/authorization gates in production.
+- Idempotency claim, response planning, Telegram reply delivery, Edge Function
+  deploy, Netlify publish, or Git push without explicit approval.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.

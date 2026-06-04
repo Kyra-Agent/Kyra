@@ -85,6 +85,17 @@ export {
 } from "./session-lookup.ts";
 export type { TelegramWebhookSessionLookupRpcClient } from "./session-lookup.ts";
 export {
+  assertTelegramChatAuthorizationLookupResult,
+  assertTelegramChatAuthorizationLookupRows,
+  lookupTelegramChatAuthorization,
+  sanitizeTelegramChatAuthorizationLookupError,
+} from "./chat-authorization-lookup.ts";
+export type {
+  TelegramChatAuthorizationLookupRpcClient,
+  TelegramChatAuthorizationLookupRpcResult,
+  TelegramChatAuthorizationLookupRpcRow,
+} from "./chat-authorization-lookup.ts";
+export {
   createTelegramWebhookLookupRuntimeConfig,
   createTelegramWebhookParseRuntimeConfig,
   isTelegramWebhookLookupEnabled,
