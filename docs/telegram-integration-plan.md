@@ -3520,16 +3520,17 @@ for the future Telegram webhook session-lookup boundary:
 
 - The comment-only schema draft now has stable explicit names for the webhook
   secret table constraints and partial unique indexes.
-- The draft keeps the future security-definer RPC owner as an approval
-  placeholder instead of assuming a target-project role.
+- Phase 5AK initially kept the future security-definer RPC owner as an approval
+  placeholder instead of assuming a target-project role. Phase 5AL.1 later
+  replaced that design with a narrower security-invoker contract.
 - Commit `af0bbe8` extends
   `supabase/verify_authenticated_demo_write_lockdown.sql` with guarded,
   read-only checks for `public.telegram_webhook_secrets` and
   `public.resolve_telegram_webhook_session(text)`.
 - The verifier checks exact columns, absence of redundant `agent_id`, RLS and
   policy state, named constraints, partial indexes, role privileges, RPC
-  language and volatility, security-definer state, restricted search path,
-  result contract, and execute grants.
+  language and volatility, RPC security mode, search-path configuration, result
+  contract, and execute grants.
 - Missing future objects produce guarded false or null results instead of
   causing the verifier query to fail.
 
@@ -3543,13 +3544,12 @@ The verifier implementation remains local validation tooling only:
 - No schema, RLS, grant, Vault, secret, Edge Function runtime, Telegram API,
   webhook registration, deploy, or production behavior changed.
 
-Required decisions before any executable session-lookup migration:
+Decisions that remained open at the Phase 5AK closeout:
 
-- Confirm the exact privileged migration role that will own
-  `resolve_telegram_webhook_session(text)`.
 - Approve the opaque `webhook_secret_ref` format and lifecycle.
-- Approve the webhook secret hash algorithm, normalization rules, and the
-  backend-only component responsible for hashing.
+- Approve the webhook secret hash algorithm, normalization rules, and
+  backend-only hashing boundary. Phase 5AL.1 later approved the draft contract
+  for this item.
 - Review the exact forward migration and exact non-`CASCADE` rollback together.
 - Approve schema, RLS, grants, and the controlled Supabase SQL apply separately.
 
@@ -3564,6 +3564,90 @@ Next safest slice:
 - Keep chat authorization schema, runtime lookup wiring, Telegram update
   parsing, command processing, reply sending, deployment, and production
   enablement deferred.
+
+### Phase 5AL.2 Session Lookup Security Contract Closeout
+
+Phase 5AL completed the audit and approved draft/verifier refinement for the
+future webhook session-lookup migration. Commit `b5ed09d` contains the reviewed
+contract changes only. It did not create an executable migration or apply SQL.
+
+Approved security contract:
+
+- `public.resolve_telegram_webhook_session(text)` should be `SECURITY INVOKER`,
+  not `SECURITY DEFINER`.
+- Only `service_role` may execute the lookup RPC.
+- The RPC uses an empty `search_path` and fully qualified relation names.
+- The function owner is not used as a runtime privilege boundary.
+- The raw webhook secret is generated from 32 cryptographically random bytes
+  encoded as 64 lowercase hexadecimal characters.
+- Store only the lowercase hexadecimal SHA-256 digest of the exact UTF-8 bytes
+  received from the Telegram verification header.
+- Hashing belongs in an approved backend-only Edge Function boundary.
+- Never store, return, or log the raw webhook secret.
+- `webhook_secret_hash` must satisfy the named exact-format constraint for
+  `^[0-9a-f]{64}$`.
+- `webhook_secret_ref` remains an opaque backend-only reference whose exact
+  format and lifecycle still require separate approval.
+- Revoke all table privileges from `public`, `anon`, `authenticated`, and
+  `service_role` before granting only `select`, `insert`, and `update` to
+  `service_role`.
+- Revoke all function privileges from `public`, `anon`, `authenticated`, and
+  `service_role` before granting execute only to `service_role`.
+
+Exact forward migration order for a future reviewed artifact:
+
+1. Confirm the target project, capture verifier baseline, confirm runtime gates
+   remain disabled, and abort if either target object already exists.
+2. Begin one transaction.
+3. Create `public.telegram_webhook_secrets` with the five approved named
+   constraints.
+4. Create the two approved partial unique indexes.
+5. Enable RLS and create no browser-readable policy.
+6. Revoke all table privileges from all runtime roles, then grant the minimum
+   three privileges to `service_role`.
+7. Create the stable SQL security-invoker lookup RPC with empty `search_path`
+   and fully qualified relations.
+8. Revoke all function privileges from all runtime roles, then grant execute
+   only to `service_role`.
+9. Commit the transaction.
+10. Run the verifier immediately and stop before runtime wiring if any required
+    result is false.
+
+Exact rollback order for a future reviewed artifact:
+
+1. Confirm webhook runtime remains disabled and the private table contains no
+   required production data.
+2. Begin one transaction.
+3. Revoke execute on the exact RPC signature.
+4. Drop the exact RPC signature without `CASCADE`.
+5. Revoke all privileges on the private table.
+6. Drop the exact private table without `CASCADE`.
+7. Commit the transaction.
+8. Run the verifier and capture the post-rollback state.
+
+Current boundary:
+
+- The schema draft remains comment-only.
+- The verifier remains read-only and guarded when future objects are absent.
+- No executable session-lookup migration or rollback artifact exists yet.
+- No SQL has been applied to Supabase.
+- No webhook secret has been created, hashed, stored, read, returned, or logged.
+- No runtime lookup, Telegram update parsing, command handling, reply sending,
+  Edge Function deployment, Netlify publish, or production enablement occurred.
+
+Required approvals before executable migration artifacts:
+
+- Approve the opaque `webhook_secret_ref` format and lifecycle.
+- Review the exact executable forward migration and rollback artifacts together.
+- Confirm target-project baseline and expected verifier results.
+- Approve schema, RLS, grants, and controlled Supabase SQL apply separately.
+
+Next safest slice:
+
+- Phase 5AM should remain audit/plan only for the opaque
+  `webhook_secret_ref` lifecycle and exact executable migration/rollback packet.
+- Do not apply SQL, wire runtime lookup, deploy, publish, or enable live webhook
+  behavior without separate explicit approval.
 
 ## Chat Authorization Model
 
