@@ -3867,6 +3867,42 @@ Next safest slice:
 - It should not add SQL apply, real DB writes, Telegram API calls, Vault reads,
   frontend input, deploys, pushes, or runtime gate enablement.
 
+### Phase 5AP Webhook Secret Adapter Contract Closeout
+
+Phase 5AP added pure result contracts for the future webhook secret persistence
+and session activation path. It does not add Supabase client writes, SQL apply,
+Telegram calls, Vault reads, runtime wiring, frontend input, deploys, or pushes.
+
+Completed pure contracts:
+
+- `assertStoreTelegramWebhookSecretResult` validates the returned
+  `webhookSecretRef` and can enforce that it matches the expected generated ref.
+- `assertRevokeTelegramWebhookSecretResult` requires explicit
+  `{ revoked: true }`.
+- `assertActivateTelegramSessionResult` requires explicit `{ activated: true }`
+  and the exact expected `telegramSessionId`.
+- `sanitizeTelegramWebhookSecretPersistenceError` hides raw webhook refs, hashes,
+  DB/RPC text, and session ids behind a generic persistence failure.
+- `sanitizeTelegramSessionActivationError` hides raw activation internals behind
+  a generic activation failure.
+
+Security result:
+
+- The adapter contract still has no real DB write and no Supabase client.
+- It does not import or call Telegram APIs.
+- It does not read `.env.local`, runtime env values, Vault secrets, or token
+  refs.
+- It does not expose raw webhook secret tokens, webhook secret refs/hashes, or
+  session ids in sanitized error messages.
+
+Next safest slice:
+
+- Phase 5AQ should be audit-only for where these pure helper contracts could be
+  wired in `telegram-connect` after schema/RLS and webhook secret storage are
+  explicitly approved.
+- No runtime wiring, DB writes, SQL apply, Telegram calls, deploys, pushes, or
+  gate enablement should happen in that audit.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
