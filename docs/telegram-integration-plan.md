@@ -2684,10 +2684,14 @@ Current backend state:
   Telegram APIs.
 - `resolveTelegramBotToken` exists in the backend-only secret-store boundary,
   but it is not wired into webhook registration or command handling.
+- A pure `registerTelegramWebhookWithSetWebhook` helper exists with injected
+  `fetch`, timeout handling, HTTPS webhook URL validation, webhook secret token
+  validation, and sanitized tests.
+- The `setWebhook` helper remains unused by runtime code and is not wired into
+  `telegram-connect`.
 
 Webhook registration blockers before any live `setWebhook` path:
 
-- There is no approved webhook registration helper yet.
 - There is no approved runtime gate such as
   `KYRA_TELEGRAM_CONNECT_WEBHOOK_REGISTER_ENABLED`.
 - There is no approved webhook URL source or deployment contract for the public
@@ -2702,6 +2706,41 @@ Webhook registration blockers before any live `setWebhook` path:
   `setWebhook` call after token storage and session staging.
 - Reconnect and duplicate-bot transfer behavior must remain unresolved for live
   activation until the explicit reconnect policy is approved.
+
+Phase 5AB.3 wiring audit recommendation:
+
+- Future runtime wiring should add
+  `KYRA_TELEGRAM_CONNECT_WEBHOOK_REGISTER_ENABLED`, default off.
+- The webhook registration gate must be inert unless
+  `KYRA_TELEGRAM_CONNECT_GETME_ENABLED`,
+  `KYRA_TELEGRAM_CONNECT_STORE_ENABLED`, and
+  `KYRA_TELEGRAM_CONNECT_SESSION_WRITE_ENABLED` are also explicitly enabled.
+- The webhook URL must come from a backend-only non-secret runtime setting, for
+  example `KYRA_TELEGRAM_WEBHOOK_URL`, not from browser state or frontend
+  `VITE_` configuration.
+- The webhook URL setting should point to the deployed Supabase Edge Function
+  URL for `telegram-webhook`; this requires separate Edge Function deployment
+  approval.
+- Webhook secret tokens must be generated server-side per connection/session.
+  They must never come from browser input, localStorage, logs, API responses, or
+  global frontend state.
+- Webhook secret storage/lookup needs separate approval. Preferred design is a
+  server-only hash or secret reference that lets `telegram-webhook` map a
+  verified `X-Telegram-Bot-Api-Secret-Token` value to exactly one active
+  session.
+- Real activation order should remain:
+  auth -> ownership -> `getMe` -> token store -> session queued ->
+  `setWebhook` -> session active.
+- `telegram_sessions.webhook_status=active` must remain impossible until
+  Telegram confirms `setWebhook`, the webhook secret has a verified lookup path,
+  and reconnect safety is approved.
+- If `setWebhook` fails after token storage/session staging, return a sanitized
+  failure, best-effort revoke the token ref if safe, and do not mark the session
+  active.
+- Failed registration must not break an existing active session or overwrite a
+  prior active token ref.
+- Do not deploy or enable any webhook registration gate until command handling,
+  chat authorization, and webhook session lookup have their own reviewed plan.
 
 Recommended future webhook registration architecture:
 
@@ -2727,33 +2766,46 @@ Recommended future webhook registration architecture:
 10. Webhook command processing must remain a later phase after secret
     verification, session lookup, and chat authorization are implemented.
 
+Completed Phase 5AB.2 helper/test slice:
+
+- Added a pure Telegram `setWebhook` helper with injected `fetch`, timeout, URL
+  validation, secret-token validation, sanitized errors, and tests.
+- The helper remains unused by `telegram-connect` runtime.
+- Tests cover valid request shape, invalid token, invalid/non-HTTPS URL,
+  invalid webhook secret, Telegram `401`/`404`, `429`, `5xx`, malformed JSON,
+  network failure, timeout, and sensitive-value non-disclosure.
+- No `.env.local` or secret values were read.
+- No frontend token input was added.
+- No Vault secret was resolved.
+- No `telegram_sessions` write was added.
+- No real Telegram webhook was registered or revoked.
+- No Edge Function was deployed.
+- No push or publish happened as part of the helper/test slice.
+
 Recommended next implementation slice:
 
-- Phase 5AB.2 should be helper/test only.
-- Add a pure Telegram `setWebhook` helper with injected `fetch`, timeout, URL
-  validation, secret-token validation, sanitized errors, and tests.
-- Keep the helper unused by `telegram-connect` runtime.
+- Phase 5AB.5 should add only inert runtime contract wiring for webhook
+  registration.
+- Add a default-off gate parser for
+  `KYRA_TELEGRAM_CONNECT_WEBHOOK_REGISTER_ENABLED`.
+- Add dependency-contract types for future webhook URL provider, webhook secret
+  generator, and webhook registration function.
+- Add tests proving the webhook registration dependency is never called unless
+  auth, ownership, `getMe`, token store, and session persistence have already
+  succeeded.
+- Keep `registerTelegramWebhookWithSetWebhook` unused by production
+  dependencies unless a later live wiring phase is explicitly approved.
+- Keep responses `not_configured`; do not return webhook URL, webhook secret,
+  raw token, resolved token, `token_secret_ref`, owner ID, workspace ID, or raw
+  Telegram body.
 - Do not read `.env.local` or secret values.
 - Do not add frontend token input.
-- Do not access Vault or resolve real tokens.
-- Do not write `telegram_sessions`.
+- Do not access Vault beyond already-approved token store boundaries.
+- Do not resolve real tokens for webhook registration.
+- Do not write `webhook_status=active`.
 - Do not register or revoke real Telegram webhooks.
 - Do not deploy Edge Functions.
 - Do not push or publish.
-
-Expected Phase 5AB.2 test coverage:
-
-- Valid `setWebhook` request builds the expected Telegram API call without
-  logging or returning sensitive input.
-- Invalid bot token is rejected before `fetch`.
-- Invalid or non-HTTPS webhook URL is rejected before `fetch`.
-- Missing or malformed webhook secret token is rejected before `fetch`.
-- Telegram `401`/`404` maps to a sanitized validation failure.
-- Telegram `429` maps to a sanitized rate-limit error.
-- Telegram `5xx`, malformed JSON, network failure, and timeout map to a
-  sanitized unavailable error.
-- Unexpected errors do not expose bot token, webhook URL, webhook secret,
-  `token_secret_ref`, owner ID, workspace ID, or raw response body.
 
 ## Chat Authorization Model
 
