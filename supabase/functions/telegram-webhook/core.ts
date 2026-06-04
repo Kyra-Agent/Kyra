@@ -179,6 +179,74 @@ export function assertBodySizeFromHeaders(headers: Headers, maxBytes: number) {
   }
 }
 
+async function readTextBodyWithLimit(request: Request, maxBytes: number) {
+  if (!request.body) {
+    return "";
+  }
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+
+    if (done) {
+      break;
+    }
+
+    totalBytes += value.byteLength;
+
+    if (totalBytes > maxBytes) {
+      await reader.cancel();
+      throw new HttpError(
+        413,
+        "payload_too_large",
+        "Request body is too large.",
+      );
+    }
+
+    chunks.push(value);
+  }
+
+  const bodyBytes = new Uint8Array(totalBytes);
+  let offset = 0;
+
+  for (const chunk of chunks) {
+    bodyBytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return new TextDecoder().decode(bodyBytes);
+}
+
+export async function readJsonObjectBody(
+  request: Request,
+  maxBytes: number,
+): Promise<Record<string, unknown>> {
+  const text = await readTextBodyWithLimit(request, maxBytes);
+
+  try {
+    const payload = JSON.parse(text);
+
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      throw new Error("Expected object payload.");
+    }
+
+    return payload as Record<string, unknown>;
+  } catch {
+    throw new HttpError(
+      400,
+      "invalid_request",
+      "Request body must be valid JSON.",
+    );
+  }
+}
+
+export async function readTelegramWebhookUpdateBody(request: Request) {
+  return await readJsonObjectBody(request, maxTelegramWebhookBodyBytes);
+}
+
 export function assertTelegramWebhookSecretHash(value: unknown) {
   if (typeof value !== "string") {
     throw new HttpError(

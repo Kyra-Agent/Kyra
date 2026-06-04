@@ -9,9 +9,11 @@ import {
   handleTelegramWebhookRequest,
   HttpError,
   maxTelegramWebhookBodyBytes,
+  readTelegramWebhookUpdateBody,
   sanitizeErrorMessage,
   sanitizeTelegramWebhookSessionLookupError,
   telegramWebhookLookupEnabledEnvKey,
+  telegramWebhookParseEnabledEnvKey,
 } from "./index.ts";
 
 function assert(condition: boolean, message: string) {
@@ -52,6 +54,16 @@ async function readJson(response: Response) {
   return await response.json() as Record<string, unknown>;
 }
 
+async function captureError(action: () => Promise<unknown> | unknown) {
+  try {
+    await action();
+  } catch (error) {
+    return error;
+  }
+
+  throw new Error("Expected action to throw.");
+}
+
 function requestThatFailsIfBodyIsRead(
   headers: HeadersInit,
   onRead: () => void,
@@ -76,6 +88,30 @@ function requestThatFailsIfBodyIsRead(
       throw new Error("Request body must not be read as bytes.");
     },
   } as unknown as Request;
+}
+
+function createWebhookUpdate(text: string = "/status") {
+  return {
+    update_id: 9001,
+    message: {
+      message_id: 42,
+      from: { id: 123456 },
+      chat: { id: -987654 },
+      text,
+    },
+  };
+}
+
+function createJsonWebhookRequest(body: unknown, headers: HeadersInit = {}) {
+  return new Request("https://kyra.test/functions/v1/telegram-webhook", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-telegram-bot-api-secret-token": "test-webhook-secret",
+      ...headers,
+    },
+    body: typeof body === "string" ? body : JSON.stringify(body),
+  });
 }
 
 const testWebhookSecretHash =
@@ -314,6 +350,136 @@ Deno.test("telegram-webhook enabled lookup returns sanitized session miss before
   assert(!bodyRead, "Lookup failures must not read request body.");
 });
 
+Deno.test("telegram-webhook parse gate requires lookup before body read", async () => {
+  let bodyRead = false;
+
+  const response = await handleTelegramWebhookRequest(
+    requestThatFailsIfBodyIsRead(
+      {
+        "content-type": "application/json",
+        "x-telegram-bot-api-secret-token": "test-webhook-secret",
+      },
+      () => {
+        bodyRead = true;
+      },
+    ),
+    {
+      lookupRuntimeConfig: { enabled: false },
+      parseRuntimeConfig: { enabled: true },
+    },
+  );
+
+  const body = await readJson(response);
+
+  assertEquals(response.status, 500);
+  assertEquals(body.status, "server_error");
+  assertEquals(
+    body.message,
+    "Telegram webhook parsing requires session lookup.",
+  );
+  assert(!bodyRead, "Parse gate must not read body without session lookup.");
+});
+
+Deno.test("telegram-webhook parse gate parses valid update and remains inert", async () => {
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("/status@kyra_test_bot")),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      parseRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => ({
+        sessionId: "telegram-session-1",
+        agentId: "agent-1",
+        workspaceId: "workspace-1",
+        ownerUserId: "owner-1",
+        botHandle: "@kyra_test_bot",
+        webhookStatus: "active",
+      }),
+    },
+  );
+
+  const body = await readJson(response);
+
+  assertEquals(response.status, 501);
+  assertEquals(body.status, "not_configured");
+});
+
+Deno.test("telegram-webhook parse gate sanitizes invalid JSON", async () => {
+  const rawBody = "{private malformed json";
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(rawBody),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      parseRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => ({
+        sessionId: "telegram-session-1",
+        agentId: "agent-1",
+        workspaceId: "workspace-1",
+        ownerUserId: "owner-1",
+        botHandle: "@kyra_test_bot",
+        webhookStatus: "active",
+      }),
+    },
+  );
+
+  const body = await readJson(response);
+  const serialized = JSON.stringify(body);
+
+  assertEquals(response.status, 400);
+  assertEquals(body.status, "invalid_request");
+  assert(!serialized.includes(rawBody), "Invalid JSON must not be echoed.");
+});
+
+Deno.test("telegram-webhook parse gate sanitizes unsupported updates", async () => {
+  const rawCommand = "/approve private-wallet";
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate(rawCommand)),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      parseRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => ({
+        sessionId: "telegram-session-1",
+        agentId: "agent-1",
+        workspaceId: "workspace-1",
+        ownerUserId: "owner-1",
+        botHandle: "@kyra_test_bot",
+        webhookStatus: "active",
+      }),
+    },
+  );
+
+  const body = await readJson(response);
+  const serialized = JSON.stringify(body);
+
+  assertEquals(response.status, 422);
+  assertEquals(body.status, "unsupported_update");
+  assert(!serialized.includes(rawCommand), "Raw command must not be echoed.");
+  assert(!serialized.includes("123456"), "Telegram user id must not be echoed.");
+  assert(!serialized.includes("-987654"), "Telegram chat id must not be echoed.");
+});
+
+Deno.test("telegram-webhook streaming body reader enforces max bytes", async () => {
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest("x".repeat(maxTelegramWebhookBodyBytes + 1)),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      parseRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => ({
+        sessionId: "telegram-session-1",
+        agentId: "agent-1",
+        workspaceId: "workspace-1",
+        ownerUserId: "owner-1",
+        botHandle: "@kyra_test_bot",
+        webhookStatus: "active",
+      }),
+    },
+  );
+
+  const body = await readJson(response);
+
+  assertEquals(response.status, 413);
+  assertEquals(body.status, "payload_too_large");
+});
+
 Deno.test("telegram-webhook rejects unsupported content type after secret verification", async () => {
   let bodyRead = false;
 
@@ -349,8 +515,12 @@ Deno.test("telegram-webhook runtime dependencies keep lookup disabled without se
   });
 
   assertEquals(dependencies.lookupRuntimeConfig?.enabled, false);
+  assertEquals(dependencies.parseRuntimeConfig?.enabled, false);
   assertEquals(dependencies.lookupTelegramWebhookSession, undefined);
-  assertEquals(keys.join(","), telegramWebhookLookupEnabledEnvKey);
+  assertEquals(
+    keys.join(","),
+    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey}`,
+  );
 });
 
 Deno.test("telegram-webhook runtime dependencies enable lookup lazily", () => {
@@ -363,8 +533,12 @@ Deno.test("telegram-webhook runtime dependencies enable lookup lazily", () => {
   });
 
   assertEquals(dependencies.lookupRuntimeConfig?.enabled, true);
+  assertEquals(dependencies.parseRuntimeConfig?.enabled, true);
   assertEquals(typeof dependencies.lookupTelegramWebhookSession, "function");
-  assertEquals(keys.join(","), telegramWebhookLookupEnabledEnvKey);
+  assertEquals(
+    keys.join(","),
+    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey}`,
+  );
 });
 
 Deno.test("telegram-webhook body size header validator rejects oversized requests", () => {
@@ -387,6 +561,18 @@ Deno.test("telegram-webhook body size header validator rejects oversized request
   );
   assertEquals((error as HttpError).statusCode, 413);
   assertEquals((error as HttpError).code, "payload_too_large");
+});
+
+Deno.test("telegram-webhook JSON body reader rejects invalid object payloads", async () => {
+  const error = await captureError(async () => {
+    await readTelegramWebhookUpdateBody(
+      createJsonWebhookRequest(["not", "an", "object"]),
+    );
+  });
+
+  assert(error instanceof HttpError, "Expected invalid body HttpError.");
+  assertEquals((error as HttpError).statusCode, 400);
+  assertEquals((error as HttpError).code, "invalid_request");
 });
 
 Deno.test("telegram-webhook secret hash validator accepts lowercase sha256 hex only", () => {

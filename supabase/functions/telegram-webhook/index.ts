@@ -8,6 +8,7 @@ import {
   HttpError,
   jsonResponse,
   maxTelegramWebhookBodyBytes,
+  readTelegramWebhookUpdateBody,
   sanitizeErrorMessage,
   sanitizeTelegramWebhookSessionLookupError,
   type TelegramWebhookSessionLookupRecord,
@@ -18,9 +19,12 @@ import {
 } from "./session-lookup.ts";
 import {
   createTelegramWebhookLookupRuntimeConfig,
+  createTelegramWebhookParseRuntimeConfig,
   type OptionalEnvReader,
   type TelegramWebhookLookupRuntimeConfig,
+  type TelegramWebhookParseRuntimeConfig,
 } from "./runtime-config.ts";
+import { parseTelegramWebhookUpdate } from "./update-parser.ts";
 
 export {
   assertActiveTelegramWebhookSession,
@@ -37,6 +41,8 @@ export {
   HttpError,
   jsonResponse,
   maxTelegramWebhookBodyBytes,
+  readJsonObjectBody,
+  readTelegramWebhookUpdateBody,
   sanitizeErrorMessage,
   sanitizeTelegramWebhookSessionLookupError,
 } from "./core.ts";
@@ -80,12 +86,16 @@ export {
 export type { TelegramWebhookSessionLookupRpcClient } from "./session-lookup.ts";
 export {
   createTelegramWebhookLookupRuntimeConfig,
+  createTelegramWebhookParseRuntimeConfig,
   isTelegramWebhookLookupEnabled,
+  isTelegramWebhookParseEnabled,
   telegramWebhookLookupEnabledEnvKey,
+  telegramWebhookParseEnabledEnvKey,
 } from "./runtime-config.ts";
 export type {
   OptionalEnvReader,
   TelegramWebhookLookupRuntimeConfig,
+  TelegramWebhookParseRuntimeConfig,
 } from "./runtime-config.ts";
 
 export interface TelegramWebhookRuntimeOptions {
@@ -95,6 +105,7 @@ export interface TelegramWebhookRuntimeOptions {
 
 export interface TelegramWebhookDependencies {
   lookupRuntimeConfig?: TelegramWebhookLookupRuntimeConfig;
+  parseRuntimeConfig?: TelegramWebhookParseRuntimeConfig;
   lookupTelegramWebhookSession?: (
     webhookSecretHeader: string,
   ) => Promise<TelegramWebhookSessionLookupRecord>;
@@ -102,6 +113,8 @@ export interface TelegramWebhookDependencies {
 
 const disabledTelegramWebhookLookupRuntimeConfig:
   TelegramWebhookLookupRuntimeConfig = { enabled: false };
+const disabledTelegramWebhookParseRuntimeConfig:
+  TelegramWebhookParseRuntimeConfig = { enabled: false };
 
 export function getEnv(key: string) {
   const value = Deno.env.get(key);
@@ -171,7 +184,12 @@ export function createTelegramWebhookDependencies(
   const readOptionalEnv = options.getOptionalEnv ?? getOptionalEnv;
   const lookupRuntimeConfig =
     createTelegramWebhookLookupRuntimeConfig(readOptionalEnv);
-  const dependencies: TelegramWebhookDependencies = { lookupRuntimeConfig };
+  const parseRuntimeConfig =
+    createTelegramWebhookParseRuntimeConfig(readOptionalEnv);
+  const dependencies: TelegramWebhookDependencies = {
+    lookupRuntimeConfig,
+    parseRuntimeConfig,
+  };
 
   if (!lookupRuntimeConfig.enabled) {
     return dependencies;
@@ -220,6 +238,9 @@ export async function handleTelegramWebhookRequest(
 
     const lookupRuntimeConfig = dependencies.lookupRuntimeConfig ??
       disabledTelegramWebhookLookupRuntimeConfig;
+    const parseRuntimeConfig = dependencies.parseRuntimeConfig ??
+      disabledTelegramWebhookParseRuntimeConfig;
+    let lookupSession: TelegramWebhookSessionLookupRecord | null = null;
 
     if (lookupRuntimeConfig.enabled) {
       if (!dependencies.lookupTelegramWebhookSession) {
@@ -230,7 +251,24 @@ export async function handleTelegramWebhookRequest(
         );
       }
 
-      await dependencies.lookupTelegramWebhookSession(webhookSecretHeader);
+      lookupSession = await dependencies.lookupTelegramWebhookSession(
+        webhookSecretHeader,
+      );
+    }
+
+    if (parseRuntimeConfig.enabled) {
+      if (!lookupSession) {
+        throw new HttpError(
+          500,
+          "server_error",
+          "Telegram webhook parsing requires session lookup.",
+        );
+      }
+
+      const update = await readTelegramWebhookUpdateBody(request);
+      parseTelegramWebhookUpdate(update, {
+        expectedBotUsername: lookupSession.botHandle,
+      });
     }
 
     return jsonResponse(

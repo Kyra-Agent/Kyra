@@ -6093,6 +6093,64 @@ Still blocked after Phase 5BN:
 - Reading `.env.local` or real secret values during local development.
 - Netlify unlock/publish or Git push without explicit approval.
 
+### Phase 5BO Webhook Body Parse Runtime Mount
+
+Phase 5BO mounts the pure Telegram update parser behind a separate default-off
+runtime gate. It still does not authorize chats through DB, claim updates,
+build a live response, send Telegram messages, call Telegram API, write DB rows,
+deploy Edge Functions, publish Netlify, or push Git commits.
+
+Recommended gate:
+
+- `KYRA_TELEGRAM_WEBHOOK_PARSE_ENABLED`
+- Enabled only when the exact string is `true`.
+- This gate is backend-only and must not be exposed through frontend config.
+
+Runtime order:
+
+- Run method, webhook secret header, content-type, and content-length guards.
+- Run webhook session lookup only when
+  `KYRA_TELEGRAM_WEBHOOK_LOOKUP_ENABLED=true`.
+- Parsing may run only after a successful active session lookup.
+- If parsing is enabled without a lookup session, return a sanitized
+  `500 server_error` before reading the body.
+- Read the Telegram update body through a bounded streaming JSON helper, not
+  through raw `request.json()`.
+- Parse with the resolved session `bot_handle` as the expected bot username.
+- After parsing succeeds, still return `501 not_configured`.
+
+Security requirements:
+
+- Disabled parse gate must not read the request body.
+- Missing webhook secret, unsupported content type, and oversized
+  `Content-Length` must reject before body access.
+- The streaming body reader must enforce `maxTelegramWebhookBodyBytes` even when
+  `Content-Length` is absent.
+- Parser errors must not echo raw message text, Telegram user/chat IDs, bot
+  usernames, webhook secret headers, hashes, owner IDs, workspace IDs, token
+  refs, or raw DB errors.
+
+Tests required:
+
+- Parse gate defaults off and requires exact `true`.
+- Runtime dependencies read only lookup and parse gate keys during creation.
+- Disabled parse gate keeps handler body-safe.
+- Parse gate enabled without lookup returns sanitized server error before body
+  read.
+- Parse gate enabled with lookup success reads and parses a valid read-only
+  update, then still returns `not_configured`.
+- Invalid JSON, unsupported updates, and over-limit streaming bodies return
+  sanitized errors.
+
+Still blocked after Phase 5BO:
+
+- Enabling parse in production.
+- Chat authorization DB lookup in live handler.
+- Idempotency claim in live handler.
+- Response planning or Telegram reply delivery.
+- Telegram API calls.
+- Edge Function deploy, Netlify publish, or Git push without explicit approval.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.

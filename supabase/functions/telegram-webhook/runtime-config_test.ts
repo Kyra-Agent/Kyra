@@ -1,7 +1,10 @@
 import {
   createTelegramWebhookLookupRuntimeConfig,
+  createTelegramWebhookParseRuntimeConfig,
   isTelegramWebhookLookupEnabled,
+  isTelegramWebhookParseEnabled,
   telegramWebhookLookupEnabledEnvKey,
+  telegramWebhookParseEnabledEnvKey,
 } from "./index.ts";
 
 function assert(condition: boolean, message: string) {
@@ -72,4 +75,35 @@ Deno.test("telegram webhook lookup runtime config enables only on exact true", (
   });
 
   assertEquals(config.enabled, true);
+});
+
+Deno.test("telegram webhook parse runtime gate defaults off and requires exact true", () => {
+  const disabledValues = [
+    undefined,
+    null,
+    "",
+    " ",
+    "false",
+    "1",
+    "yes",
+    "TRUE",
+    " true ",
+  ];
+
+  for (const value of disabledValues) {
+    assertEquals(isTelegramWebhookParseEnabled(value), false);
+  }
+
+  assertEquals(isTelegramWebhookParseEnabled("true"), true);
+});
+
+Deno.test("telegram webhook parse runtime config reads only the parse gate key", () => {
+  const keys: string[] = [];
+  const config = createTelegramWebhookParseRuntimeConfig((key) => {
+    keys.push(key);
+    return "";
+  });
+
+  assertEquals(config.enabled, false);
+  assertEquals(keys.join(","), telegramWebhookParseEnabledEnvKey);
 });
