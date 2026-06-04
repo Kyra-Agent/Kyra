@@ -4171,6 +4171,118 @@ Next safest slice:
   post-apply verifier expectations, rollback decision points, and the
   no-runtime-wiring stop condition.
 
+### Phase 5AS SQL Apply Operator Checklist
+
+Phase 5AS is docs-only. It defines the manual operator checklist for a future
+Supabase SQL apply of the webhook receiver packet. It does not approve applying
+SQL, does not change remote schema/RLS, and does not enable runtime behavior.
+
+Current readiness findings:
+
+- `supabase/telegram_webhook_receiver_forward_review.sql` is the reviewed
+  forward packet.
+- `supabase/telegram_webhook_receiver_rollback_review.sql` is the reviewed
+  rollback packet.
+- `supabase/verify_authenticated_demo_write_lockdown.sql` already contains
+  guarded checks for `public.telegram_webhook_secrets` and
+  `public.resolve_telegram_webhook_session(text)`.
+- The verifier also contains future chat authorization checks, but the current
+  forward packet intentionally does not create chat authorization objects.
+- Runtime code must keep webhook receiver DB lookup disabled until a separate
+  runtime wiring phase is approved.
+
+Pre-apply checklist for a later approved window:
+
+1. Confirm the exact Supabase project and branch are the intended target.
+2. Confirm Netlify publish/deploy remains intentionally separate from SQL apply.
+3. Confirm no Edge Function deploy is happening in the same window.
+4. Confirm runtime gates remain disabled before SQL apply.
+5. Confirm no real Telegram webhook traffic depends on the new table/RPC yet.
+6. Review the exact forward and rollback SQL files in full.
+7. Run `supabase/verify_authenticated_demo_write_lockdown.sql` and capture the
+   baseline output before applying SQL.
+8. Confirm baseline still shows browser-safe Telegram session visibility:
+   `auth_can_select_telegram_token_secret_ref` must be `false`, and
+   `auth_cannot_select_full_telegram_sessions` must be `true`.
+9. Confirm baseline shows `telegram_webhook_secrets_table_exists` as `false`.
+10. Confirm baseline shows `resolve_telegram_webhook_session_function_exists`
+    as `false`.
+11. Stop before apply if any existing browser-role Telegram privilege regresses.
+
+Apply checklist for a later approved window:
+
+1. Copy only `supabase/telegram_webhook_receiver_forward_review.sql`.
+2. Do not combine it with runtime wiring, Edge Function deploy, or Netlify
+   publish.
+3. Do not add chat authorization SQL in the same apply.
+4. Do not insert real webhook secret rows during schema apply.
+5. Do not paste or log raw webhook secrets, BotFather tokens, or environment
+   values.
+6. Apply the forward SQL once.
+7. If the forward SQL aborts because objects already exist, stop and audit the
+   target project before any retry.
+
+Post-apply verifier expectations:
+
+- `telegram_webhook_secrets_table_exists` is `true`.
+- `telegram_webhook_secrets_is_regular_table` is `true`.
+- `telegram_webhook_secrets_has_expected_columns` is `true`.
+- `telegram_webhook_secrets_excludes_agent_id` is `true`.
+- `telegram_webhook_secrets_rls_enabled` is `true`.
+- `telegram_webhook_secrets_has_no_policies` is `true`.
+- `telegram_webhook_secrets_primary_key_is_expected` is `true`.
+- `telegram_webhook_secrets_session_foreign_key_is_expected` is `true`.
+- `telegram_webhook_secrets_ref_not_blank_check_is_expected` is `true`.
+- `telegram_webhook_secrets_ref_format_check_is_expected` is `true`.
+- `telegram_webhook_secrets_hash_not_blank_check_is_expected` is `true`.
+- `telegram_webhook_secrets_hash_format_check_is_expected` is `true`.
+- `telegram_webhook_secrets_active_session_index_is_expected` is `true`.
+- `telegram_webhook_secrets_active_hash_index_is_expected` is `true`.
+- `public_has_no_direct_telegram_webhook_secrets_privileges` is `true`.
+- `anon_has_no_direct_telegram_webhook_secrets_privileges` is `true`.
+- `auth_has_no_direct_telegram_webhook_secrets_privileges` is `true`.
+- `service_role_can_select_telegram_webhook_secrets` is `true`.
+- `service_role_can_insert_telegram_webhook_secrets` is `true`.
+- `service_role_can_update_telegram_webhook_secrets` is `true`.
+- `service_role_cannot_delete_telegram_webhook_secrets` is `true`.
+- `service_role_cannot_truncate_telegram_webhook_secrets` is `true`.
+- `service_role_cannot_reference_telegram_webhook_secrets` is `true`.
+- `service_role_cannot_trigger_telegram_webhook_secrets` is `true`.
+- `resolve_telegram_webhook_session_function_exists` is `true`.
+- `resolve_telegram_webhook_session_uses_sql_language` is `true`.
+- `resolve_telegram_webhook_session_is_stable` is `true`.
+- `resolve_telegram_webhook_session_is_security_invoker` is `true`.
+- `resolve_telegram_webhook_session_has_empty_search_path` is `true`.
+- `resolve_telegram_webhook_session_has_expected_result_contract` is `true`.
+- `resolve_telegram_webhook_session_uses_exact_hash_match` is `true`.
+- `public_cannot_execute_resolve_telegram_webhook_session` is `true`.
+- `anon_cannot_execute_resolve_telegram_webhook_session` is `true`.
+- `auth_cannot_execute_resolve_telegram_webhook_session` is `true`.
+- `service_role_can_execute_resolve_telegram_webhook_session` is `true`.
+
+Expected not-yet-implemented verifier values after this packet:
+
+- `telegram_chat_authorizations_table_exists` should remain `false`.
+- `resolve_telegram_chat_authorization_function_exists` should remain `false`.
+
+Rollback decision points:
+
+- Use rollback only if the forward packet was applied in the same controlled
+  window and no production webhook rows are required.
+- Do not run rollback if `public.telegram_webhook_secrets` contains rows; use a
+  reviewed forward fix instead.
+- Do not use rollback to hide unknown target-project drift.
+- After rollback, run the verifier again and confirm webhook receiver object
+  existence checks return to `false`.
+
+No-runtime-wiring stop condition:
+
+- Even after a clean SQL apply, stop before enabling webhook receiver DB lookup.
+- Do not deploy `telegram-webhook` with live lookup enabled in the same step.
+- Do not register real Telegram webhooks in the same step.
+- Do not insert real webhook secrets until the runtime wiring phase has its own
+  audit, tests, and explicit approval.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
