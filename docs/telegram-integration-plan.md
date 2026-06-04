@@ -4604,6 +4604,54 @@ What not to touch in Phase 5AV:
 - No handler body parsing or runtime wiring.
 - No SQL apply, Edge Function deploy, Netlify publish/unlock, or push.
 
+### Phase 5AV.1 Read-Only Command Response Contract Closeout
+
+Phase 5AV.1 adds a pure, static read-only response builder and tests. It is not
+wired into the live webhook handler and does not send Telegram messages.
+
+Implemented files:
+
+- `supabase/functions/telegram-webhook/read-only-response.ts`
+- `supabase/functions/telegram-webhook/read-only-response_test.ts`
+- `supabase/functions/telegram-webhook/index.ts` for exports only
+
+Implemented behavior:
+
+- Accepts only `help` or `status`.
+- Returns only `command` and bounded plain-text `text`.
+- `/help` lists only `/help` and `/status`.
+- `/status` states the active-session caller precondition, read-only access, and
+  disabled write/approval/wallet/onchain actions.
+- Does not accept dynamic strings, metadata, IDs, or status payloads.
+- Unsupported commands return generic `422 unsupported_update` without echoing
+  command text.
+
+Verification result:
+
+- `npm run check:functions` passed.
+- Deno checks passed.
+- Telegram connect and webhook Deno tests passed: `142 passed`, `0 failed`.
+- `npm exec tsc -- --noEmit` passed.
+- `npm run build` passed.
+- Deno format check passed.
+- `git diff --check` passed.
+
+Runtime and security status:
+
+- `handleTelegramWebhookRequest` remains inert and returns
+  `501 not_configured` for the valid skeleton path.
+- No request body read/parse/logging was added.
+- No Telegram reply sender, `sendMessage`, Telegram API call, DB read/write,
+  service-role client, Vault access, env read, or command execution was added.
+- No SQL apply, Edge Function deploy, Netlify publish/unlock, or push happened.
+
+Next safest slice:
+
+- Phase 5AW should audit/design a pure verified read-only command pipeline that
+  composes update parsing, chat authorization, and static response building in
+  the required order. It must not accept `Request`, perform session lookup,
+  send replies, or be wired into the live handler.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
