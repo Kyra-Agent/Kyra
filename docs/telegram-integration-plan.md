@@ -5791,6 +5791,58 @@ What remains blocked:
 - Any additional schema/RLS/RPC object beyond the two already-applied packets.
 - Netlify unlock, manual publish, or Git push without explicit approval.
 
+### Phase 5BK Webhook Receiver Apply State
+
+Phase 5BK records the manual Supabase apply for the webhook receiver session
+lookup packet. It does not enable live Telegram webhook runtime behavior.
+
+Manual apply state:
+
+- `supabase/telegram_webhook_receiver_forward_review.sql` was applied manually
+  in Supabase SQL Editor and returned success.
+- The operator captured the post-apply verifier CSV from
+  `supabase/verify_authenticated_demo_write_lockdown.sql`.
+- No webhook secret row was created during the schema apply.
+- No token, webhook secret, environment value, Telegram API request, Edge
+  Function deploy, Netlify publish, or runtime gate enablement occurred in this
+  phase.
+
+Accepted verifier state:
+
+- `telegram_webhook_secrets` exists as a regular private table with the expected
+  columns, no `agent_id`, RLS enabled, no policies, expected primary key,
+  expected session foreign key, expected ref/hash checks, and expected active
+  partial unique indexes.
+- `public`, `anon`, and `authenticated` cannot select, insert, update, or delete
+  `telegram_webhook_secrets`.
+- `service_role` can select, insert, and update `telegram_webhook_secrets`, and
+  cannot delete, truncate, reference, or trigger it.
+- `resolve_telegram_webhook_session(text)` exists, uses SQL, is stable,
+  security-invoker, has an empty search path, has the expected result contract,
+  uses exact hash matching, denies browser-role execution, and allows
+  `service_role` execution.
+- Previously accepted Vault token RPC, chat authorization, processed-update
+  claim, Telegram session summary, and `token_secret_ref` safety checks remain
+  accepted.
+
+Repository sync decision:
+
+- `supabase/schema.sql` should now include the webhook receiver objects because
+  they are present in the remote Supabase database and passed verifier review.
+- The schema snapshot must remain backend-only: no browser grants, no public
+  policies, no raw webhook secret, no token exposure, and no runtime behavior.
+- Runtime wiring remains blocked until a separate local adapter review and
+  deployment decision.
+
+Still blocked after Phase 5BK:
+
+- Creating webhook secret rows.
+- Enabling connect finalization, webhook lookup, chat authorization lookup,
+  update claim adapter, command processing, reply delivery, or any Telegram API
+  call.
+- Deploying Edge Functions or publishing Netlify.
+- Pushing local commits without explicit approval.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.

@@ -108,6 +108,31 @@ create table if not exists public.telegram_sessions (
   last_event_at timestamptz
 );
 
+create table if not exists public.telegram_webhook_secrets (
+  webhook_secret_ref text not null,
+  webhook_secret_hash text not null,
+  telegram_session_id uuid not null,
+  created_at timestamptz not null default now(),
+  revoked_at timestamptz,
+  constraint telegram_webhook_secrets_pkey
+    primary key (webhook_secret_ref),
+  constraint telegram_webhook_secrets_session_fkey
+    foreign key (telegram_session_id)
+    references public.telegram_sessions(id)
+    on delete cascade,
+  constraint telegram_webhook_secrets_ref_not_blank_check
+    check (length(btrim(webhook_secret_ref)) > 0),
+  constraint telegram_webhook_secrets_ref_format_check
+    check (
+      webhook_secret_ref ~
+      '^webhook:telegram:[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+    ),
+  constraint telegram_webhook_secrets_hash_not_blank_check
+    check (length(btrim(webhook_secret_hash)) > 0),
+  constraint telegram_webhook_secrets_hash_format_check
+    check (webhook_secret_hash ~ '^[0-9a-f]{64}$')
+);
+
 create table if not exists public.telegram_chat_authorizations (
   id uuid not null default gen_random_uuid(),
   agent_id uuid not null,
@@ -163,6 +188,12 @@ create index if not exists activity_logs_agent_id_created_at_idx on public.activ
 create unique index if not exists telegram_chat_authorizations_active_agent_key
 on public.telegram_chat_authorizations(agent_id)
 where revoked_at is null;
+create unique index if not exists telegram_webhook_secrets_active_session_key
+on public.telegram_webhook_secrets(telegram_session_id)
+where revoked_at is null;
+create unique index if not exists telegram_webhook_secrets_active_hash_key
+on public.telegram_webhook_secrets(webhook_secret_hash)
+where revoked_at is null;
 
 create or replace function public.enforce_demo_agent_limit()
 returns trigger
@@ -207,6 +238,41 @@ as $$
     where id = target_workspace_id
       and owner_user_id = auth.uid()
   );
+$$;
+
+create or replace function public.resolve_telegram_webhook_session(
+  p_webhook_secret_hash text
+) returns table (
+  session_id uuid,
+  agent_id uuid,
+  workspace_id uuid,
+  owner_user_id uuid,
+  bot_handle text,
+  webhook_status text
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select
+    sessions.id as session_id,
+    sessions.agent_id,
+    agents.workspace_id,
+    workspaces.owner_user_id,
+    sessions.bot_handle,
+    sessions.webhook_status
+  from public.telegram_webhook_secrets secrets
+  join public.telegram_sessions sessions
+    on sessions.id = secrets.telegram_session_id
+  join public.agent_instances agents
+    on agents.id = sessions.agent_id
+  join public.workspaces workspaces
+    on workspaces.id = agents.workspace_id
+  where secrets.webhook_secret_hash = p_webhook_secret_hash
+    and secrets.revoked_at is null
+    and sessions.webhook_status = 'active'
+  limit 2;
 $$;
 
 create or replace function public.resolve_telegram_chat_authorization(
@@ -284,6 +350,7 @@ alter table public.wallet_policies enable row level security;
 alter table public.approval_requests enable row level security;
 alter table public.activity_logs enable row level security;
 alter table public.telegram_sessions enable row level security;
+alter table public.telegram_webhook_secrets enable row level security;
 alter table public.telegram_chat_authorizations enable row level security;
 alter table public.telegram_processed_updates enable row level security;
 
@@ -397,9 +464,12 @@ revoke all privileges on public.wallet_policies from authenticated;
 revoke all privileges on public.approval_requests from authenticated;
 revoke all privileges on public.activity_logs from authenticated;
 revoke all privileges on public.telegram_sessions from authenticated;
+revoke all privileges on public.telegram_webhook_secrets from public, anon, authenticated, service_role;
 revoke all privileges on public.telegram_chat_authorizations from public, anon, authenticated, service_role;
 revoke all privileges on public.telegram_processed_updates from public, anon, authenticated, service_role;
 revoke all privileges on public.telegram_session_summaries from anon, authenticated;
+revoke all on function public.resolve_telegram_webhook_session(text)
+  from public, anon, authenticated, service_role;
 revoke all on function public.resolve_telegram_chat_authorization(uuid,text,text,text)
   from public, anon, authenticated, service_role;
 revoke all on function public.claim_telegram_update(uuid,bigint)
@@ -441,11 +511,14 @@ grant all on public.wallet_policies to service_role;
 grant all on public.approval_requests to service_role;
 grant all on public.activity_logs to service_role;
 grant all on public.telegram_sessions to service_role;
+grant select, insert, update on public.telegram_webhook_secrets to service_role;
 grant select, insert, update on public.telegram_chat_authorizations to service_role;
 grant select, insert on public.telegram_processed_updates to service_role;
 grant select on public.telegram_session_summaries to service_role;
 grant select on public.public_agent_profiles to service_role;
 grant execute on function public.owns_workspace(uuid) to service_role;
+grant execute on function public.resolve_telegram_webhook_session(text)
+  to service_role;
 grant execute on function public.resolve_telegram_chat_authorization(uuid,text,text,text)
   to service_role;
 grant execute on function public.claim_telegram_update(uuid,bigint)
