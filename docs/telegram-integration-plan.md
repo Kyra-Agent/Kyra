@@ -4283,6 +4283,78 @@ No-runtime-wiring stop condition:
 - Do not insert real webhook secrets until the runtime wiring phase has its own
   audit, tests, and explicit approval.
 
+### Phase 5AT Webhook Runtime Lookup Preflight
+
+Phase 5AT audits the next safe runtime slice after the SQL packet and operator
+checklist. It does not implement live lookup, does not read secrets, does not
+apply SQL, and does not deploy Edge Functions.
+
+Current runtime findings:
+
+- `telegram-webhook` still returns inert `501 not_configured` for the valid
+  skeleton path.
+- The webhook handler checks
+  `X-Telegram-Bot-Api-Secret-Token` before content-type, body-size, or body
+  parsing.
+- The handler still does not parse or log the request body.
+- `assertActiveTelegramWebhookSession(...)` already models the safe
+  `session_not_found` behavior for missing or inactive sessions.
+- `assertTelegramWebhookChatAuthorized(...)` already models personal and
+  community chat authorization without database access.
+- No current webhook runtime code calls
+  `public.resolve_telegram_webhook_session(text)`.
+
+Recommended next implementation slice:
+
+- Add a pure webhook session lookup adapter contract in the
+  `telegram-webhook` core/test layer.
+- Keep the default runtime response as `not_configured`.
+- Accept only a hashed webhook secret lookup input in the adapter boundary.
+- Treat null lookup result as `404 session_not_found`.
+- Treat duplicate lookup rows as a sanitized `500 server_error`.
+- Treat unexpected RPC errors as sanitized `500 server_error`.
+- Validate returned session shape before allowing any future body parsing.
+- Ensure returned errors never expose `webhook_secret_hash`, `owner_user_id`,
+  `workspace_id`, raw RPC details, BotFather tokens, or token refs.
+
+Runtime gating rule:
+
+- The live RPC lookup must remain disabled by default.
+- A later runtime phase must require an explicit backend-only feature gate before
+  any call to `resolve_telegram_webhook_session(text)`.
+- If the gate is off, the handler must keep returning inert `not_configured`
+  after header/content-length validation.
+- If the gate is on in a future phase, request order must remain:
+  method -> webhook secret header presence -> content-type -> content-length ->
+  secret hash -> session lookup -> active-session validation -> body parsing.
+
+Files likely touched later:
+
+- `supabase/functions/telegram-webhook/core.ts`
+- `supabase/functions/telegram-webhook/index.ts`
+- `supabase/functions/telegram-webhook/index_test.ts`
+- Possibly a new `supabase/functions/telegram-webhook/session-lookup.ts`
+  if the adapter grows beyond a small pure helper.
+
+What not to touch in Phase 5AT:
+
+- No Supabase SQL apply.
+- No `schema.sql` generated update.
+- No direct DB reads or writes in live runtime.
+- No service-role client wiring.
+- No Vault access.
+- No real Telegram API calls.
+- No webhook registration.
+- No command processing.
+- No Edge Function deploy.
+- No Netlify publish/unlock.
+
+Go/no-go:
+
+- Go for docs-only planning or pure adapter contract tests.
+- No-go for live RPC calls until SQL apply, verifier capture, runtime gate
+  design, and deployment window are separately approved.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
