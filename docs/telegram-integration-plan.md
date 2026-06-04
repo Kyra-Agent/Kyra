@@ -3225,12 +3225,13 @@ edit `schema.sql`, apply SQL in Supabase, change RLS/grants, create/read secrets
 wire runtime DB lookup, deploy Edge Functions, publish Netlify, or enable command
 processing.
 
-### Phase 5AJ Webhook Verifier Plan
+### Phase 5AJ Webhook Verifier State
 
-Phase 5AJ is a verifier design checkpoint. It does not edit
-`supabase/verify_authenticated_demo_write_lockdown.sql`, edit `schema.sql`, apply
-SQL in Supabase, create private tables, create lookup RPCs, wire runtime lookup,
-deploy Edge Functions, publish Netlify, or enable command processing.
+Phase 5AJ added guarded, verifier-only checks to
+`supabase/verify_authenticated_demo_write_lockdown.sql`. The verifier change is
+committed locally, but it has not been run against Supabase and does not apply
+SQL, edit `schema.sql`, create private tables, create lookup RPCs, wire runtime
+lookup, deploy Edge Functions, publish Netlify, or enable command processing.
 
 Current verifier coverage:
 
@@ -3241,34 +3242,40 @@ Current verifier coverage:
   excludes `token_secret_ref`, `owner_user_id`, and `workspace_id`.
 - Bot token Vault RPCs are checked for existence and execute grants across
   `public`, `anon`, `authenticated`, and `service_role`.
-
-Verifier additions needed after webhook schema approval:
-
-- Add a guarded CTE for future webhook receiver objects:
+- A guarded CTE now resolves future webhook receiver objects:
   - `to_regclass('public.telegram_webhook_secrets')`
   - `to_regclass('public.telegram_chat_authorizations')`
   - `to_regprocedure('public.resolve_telegram_webhook_session(text)')`
   - `to_regprocedure('public.resolve_telegram_chat_authorization(uuid,text,text,text)')`
-- Keep checks tolerant before schema apply:
+- Checks remain tolerant before schema apply:
   - object existence checks can be `false`
   - privilege checks must use `case when object is null then false else ... end`
   - verifier must not error when draft-only objects do not exist yet
-- Add private table existence checks:
+- Private table existence checks are present:
   - `telegram_webhook_secrets_table_exists`
   - `telegram_chat_authorizations_table_exists`
-- Add browser-deny checks for both private tables:
+- Browser-deny checks are present for both private tables:
   - `public`, `anon`, and `authenticated` cannot select
   - `anon` and `authenticated` cannot insert, update, or delete
-- Add service-role checks for both private tables:
+- Service-role checks are present for both private tables:
   - `service_role` can select, insert, and update
-- Add webhook/chat lookup RPC execute checks:
+- Webhook/chat lookup RPC execute checks are present:
   - `public`, `anon`, and `authenticated` cannot execute lookup RPCs
   - `service_role` can execute lookup RPCs
-- Preserve existing Telegram safety checks:
+- Existing Telegram safety checks remain present:
   - `telegram_session_summaries_excludes_sensitive_columns` remains true
   - `telegram_session_summaries_has_expected_columns` remains true
   - `auth_has_no_broad_telegram_sessions_select_grant` remains true
   - `auth_can_select_telegram_token_secret_ref` remains false
+
+Static review result:
+
+- Verifier object names and RPC signatures match
+  `supabase/telegram_webhook_receiver_schema_draft.sql`.
+- The verifier contains no DDL, DML, secret read, Telegram API call, Vault
+  access, or runtime behavior change.
+- Before schema apply, missing future objects produce guarded `false` results
+  instead of causing verifier errors.
 
 Expected post-apply verifier state:
 
@@ -3282,9 +3289,10 @@ Expected post-apply verifier state:
 
 Safe next slice:
 
-- Implement verifier-only local edits after approval.
-- Do not apply SQL or require the private tables/RPCs to exist until the schema
-  apply phase is separately approved.
+- Run Phase 5AK audit-only to define the exact schema-apply preflight and
+  rollback criteria.
+- Do not apply SQL or require the private tables/RPCs to exist until schema,
+  RLS/grants, and production verification are separately approved.
 
 ## Chat Authorization Model
 
