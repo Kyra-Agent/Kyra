@@ -3294,6 +3294,104 @@ Safe next slice:
 - Do not apply SQL or require the private tables/RPCs to exist until schema,
   RLS/grants, and production verification are separately approved.
 
+### Phase 5AK Webhook Schema Apply Preflight
+
+Phase 5AK completed an audit-only review of the future webhook receiver schema
+boundary. No SQL was applied, no executable webhook migration was created, and
+no runtime, Edge Function, Telegram API, secret, deployment, or Netlify state
+changed.
+
+Current verdict:
+
+- No-go for applying the full
+  `supabase/telegram_webhook_receiver_schema_draft.sql` design.
+- Go for docs and comment-only draft refinement before any executable SQL is
+  considered.
+- Webhook session lookup and chat authorization must use separate approval and
+  rollout slices.
+
+Blocking design issues:
+
+- `telegram_webhook_secrets.agent_id` can drift from the agent referenced by
+  `telegram_session_id`. Remove the redundant field or enforce an approved
+  consistency boundary before apply.
+- The proposed chat authorization lookup matches Telegram user ID or chat ID.
+  The identity matching rule must be made explicit so one matching identifier
+  cannot unintentionally broaden authorization.
+- The proposed role/scope model does not yet prevent a `member` row from
+  receiving `write` or `approval` scope.
+- Future `security definer` lookup RPCs need an approved restricted search path,
+  such as `pg_catalog, public, pg_temp`, rather than relying only on `public`.
+- `create table if not exists` must not silently accept an existing object with
+  an incompatible shape.
+- The current verifier confirms object existence and privileges, but it does not
+  yet prove RLS state, required columns and constraints, partial unique indexes,
+  or RPC security-definer/search-path properties.
+- No approved rollback script or destructive-action guard exists yet.
+
+Split rollout decision:
+
+1. Refine and approve only the webhook session lookup boundary:
+   `telegram_webhook_secrets` plus `resolve_telegram_webhook_session(text)`.
+2. Keep `telegram_chat_authorizations` and
+   `resolve_telegram_chat_authorization(uuid,text,text,text)` deferred until the
+   identity matching rule and role/scope matrix are separately approved.
+3. Extend verifier coverage before converting either slice into executable SQL.
+4. Keep `telegram-webhook` inert until the approved lookup slice is applied,
+   verified, tested through an adapter, and separately approved for deployment.
+
+Required preflight before any executable webhook schema apply:
+
+- Confirm the target project and capture the current verifier output.
+- Confirm webhook runtime and deployment gates remain disabled.
+- Confirm no live webhook registration or command-processing path depends on
+  the proposed objects.
+- Review exact table columns, constraints, indexes, RLS state, grants, RPC
+  signatures, `security definer` setting, and restricted search path.
+- Require explicit checks that similarly named existing tables, indexes, or
+  functions do not have an incompatible shape.
+- Prepare expected post-apply verifier values before applying.
+- Prepare a reviewed rollback artifact before applying.
+- Apply only one approved slice inside a transaction.
+- Run the verifier immediately after apply and stop before runtime wiring if any
+  expected value is false.
+
+Abort criteria:
+
+- Abort if any browser role can read or write a private webhook table.
+- Abort if `public`, `anon`, or `authenticated` can execute a private lookup
+  RPC.
+- Abort if `service_role` lacks the minimum required table or RPC privileges.
+- Abort if RLS is disabled on a private webhook table.
+- Abort if an existing object has an unexpected structure or privilege state.
+- Abort if the webhook session lookup can return more than one active session
+  for one presented secret hash.
+- Abort if a secret hash, secret reference, Telegram chat/user ID, owner ID,
+  workspace ID, token ref, raw DB error, or raw Telegram payload can reach a
+  browser-readable view, response, or log.
+- Abort if rollback readiness is not confirmed before apply.
+
+Rollback policy:
+
+- Rollback must be reviewed and approved separately from the forward migration.
+- Use transaction rollback for any failure during the initial apply.
+- Post-commit rollback is allowed only while webhook runtime remains disabled
+  and the newly introduced tables contain no required production data.
+- Revoke backend access and disable dependent runtime gates before removing any
+  applied object.
+- Drop RPCs before tables, use exact signatures and object names, and do not use
+  `CASCADE`.
+- Capture verifier output before and after rollback.
+- If data exists or runtime has been enabled, use a forward-fix migration
+  instead of destructive rollback.
+
+Next safest slice:
+
+- Phase 5AK.2 should refine the comment-only webhook schema draft for the
+  session-lookup slice only.
+- Do not create executable SQL, apply schema/RLS/grants, wire runtime lookup,
+  enable webhook processing, deploy, publish, or push without separate approval.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
