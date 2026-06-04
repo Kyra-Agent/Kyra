@@ -3841,12 +3841,31 @@ Phase 5AO go/no-go:
   session activation writes, Edge Function deploy, Netlify publish, or runtime
   gate enablement.
 
+Phase 5AO.1 closeout:
+
+- Added pure helper coverage for webhook secret token generation, SHA-256 hash
+  generation, approved `webhook_secret_ref` generation, strict validators, and
+  sanitized store-input shape.
+- The helper creates a 64-character lowercase-hex raw webhook secret token from
+  32 random bytes for the future `setWebhook` boundary.
+- The helper hashes only the exact webhook secret token string and returns a
+  lowercase SHA-256 hex digest for future private storage.
+- The store-input helper includes only `telegramSessionId`,
+  `webhookSecretHash`, and `webhookSecretRef`; it excludes the raw webhook
+  secret token.
+- The helper remains unwired from `telegram-connect` runtime. There is still no
+  DB write, no SQL apply, no Telegram API call, no Vault read, no frontend
+  input, no deploy, and no push in this slice.
+- Tests cover deterministic generation, strict lower-case formats, approved ref
+  format, raw-secret exclusion from store input, invalid session/hash/ref
+  rejection, and deterministic SHA-256 output.
+
 Next safest slice:
 
-- Phase 5AO.1 should be pure helper/test work only for webhook secret hash/ref
-  generation and sanitized adapter contract shapes.
-- It should not add real DB writes, SQL apply, Telegram API calls, Vault reads,
-  frontend input, deploys, or pushes.
+- Phase 5AP should be audit-only for an inert webhook-secret persistence adapter
+  contract that can handle store/revoke/activate results without real DB writes.
+- It should not add SQL apply, real DB writes, Telegram API calls, Vault reads,
+  frontend input, deploys, pushes, or runtime gate enablement.
 
 ## Chat Authorization Model
 
