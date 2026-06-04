@@ -4727,6 +4727,118 @@ What not to touch in Phase 5AW:
 - No DB read/write, Vault access, env read, or logging.
 - No SQL apply, Edge Function deploy, Netlify publish/unlock, or push.
 
+### Phase 5AW.1 Verified Read-Only Pipeline Contract Closeout
+
+Phase 5AW.1 adds a pure verified read-only pipeline and tests. It is not wired
+into the live webhook handler.
+
+Implemented files:
+
+- `supabase/functions/telegram-webhook/read-only-pipeline.ts`
+- `supabase/functions/telegram-webhook/read-only-pipeline_test.ts`
+- `supabase/functions/telegram-webhook/index.ts` for exports only
+
+Implemented behavior:
+
+- Composes update parsing, target-bot validation, chat authorization, and static
+  response building in that order.
+- Authorizes only the parser-produced `read_only` command kind.
+- Returns only command, command kind, authorization role, and static response.
+- Excludes Telegram user/chat IDs, update/message IDs, policy details, bot
+  username, and raw update content from the result.
+- Unsupported updates fail before authorization.
+- Unauthorized chats fail before a response plan is returned.
+
+Verification result:
+
+- `npm run check:functions` passed.
+- Deno checks passed.
+- Telegram connect and webhook Deno tests passed: `150 passed`, `0 failed`.
+- `npm exec tsc -- --noEmit` passed.
+- `npm run build` passed.
+- Deno format check passed.
+- `git diff --check` passed.
+
+Runtime and security status:
+
+- `handleTelegramWebhookRequest` remains inert and does not call the pipeline.
+- No request body parsing/logging, live session lookup, reply sending, DB
+  read/write, service-role client, Vault access, env read, Telegram API call, or
+  command execution was added.
+- No SQL apply, Edge Function deploy, Netlify publish/unlock, or push happened.
+
+### Phase 5AX Telegram Update Idempotency Preflight
+
+Phase 5AX identifies the next required production-safety boundary: Telegram may
+retry the same update, so live command processing must atomically deduplicate
+updates before any response delivery or future write command.
+
+Current findings:
+
+- The parser extracts a safe integer `update_id`, but the pipeline intentionally
+  does not return it.
+- There is no private processed-update table or atomic claim RPC.
+- `activity_logs` is not an idempotency store and has no uniqueness contract for
+  Telegram session plus update ID.
+- The live webhook handler is inert, so duplicate processing cannot happen yet.
+
+Recommended future persistence model:
+
+- Add a private table such as `public.telegram_processed_updates`.
+- Use a unique key on `(telegram_session_id, telegram_update_id)`.
+- Store only safe operational metadata:
+  - `telegram_session_id`
+  - `telegram_update_id`
+  - processing status
+  - created/completed timestamps
+  - optional expiry timestamp for retention
+- Never store raw Telegram payloads, message text, user/chat IDs, bot tokens,
+  webhook secrets, token refs, or response text in the dedupe table.
+- Enable RLS with no browser policies.
+- Restrict table access and any claim RPC to `service_role`.
+
+Recommended future atomic claim contract:
+
+```ts
+interface TelegramUpdateClaimResult {
+  claimed: boolean;
+  status: "claimed" | "duplicate";
+}
+```
+
+- A first update atomically claims the session/update pair.
+- A duplicate update returns a safe no-op result and must not rebuild or resend
+  a response.
+- Future runtime order must be parse -> target-bot validation -> chat
+  authorization -> atomic claim -> response build -> response delivery.
+- The initial read-only rollout may use at-most-once response delivery; users
+  can reissue `/help` or `/status` if delivery fails.
+- Write or approval commands require a separately reviewed recovery/lease model
+  before they can ever be enabled.
+
+Required future approvals:
+
+- Schema/RLS/grant approval for the private dedupe table.
+- Exact SQL forward and rollback review.
+- Atomic claim RPC contract and privilege review.
+- Retention policy approval.
+- Verifier coverage and target-project baseline/post-apply results.
+- Separate runtime wiring and deployment approval.
+
+What can still be implemented without schema changes:
+
+- Pure claim-result validators and sanitized error tests.
+- Docs-only SQL design review.
+- Tests proving duplicate results do not reach response building.
+
+What not to touch yet:
+
+- No dedupe table/RPC creation or SQL apply.
+- No `activity_logs` reuse as an idempotency store.
+- No live DB claim call.
+- No request body parsing or live handler wiring.
+- No reply sender, Telegram API call, deploy, Netlify publish/unlock, or push.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
