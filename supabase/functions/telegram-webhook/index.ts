@@ -49,6 +49,11 @@ export type {
 } from "./update-parser.ts";
 export { buildTelegramReadOnlyCommandResponse } from "./read-only-response.ts";
 export type { TelegramReadOnlyCommandResponse } from "./read-only-response.ts";
+export { processVerifiedTelegramReadOnlyUpdate } from "./read-only-pipeline.ts";
+export type {
+  TelegramVerifiedReadOnlyPipelineInput,
+  TelegramVerifiedReadOnlyPipelineResult,
+} from "./read-only-pipeline.ts";
 
 export function handleTelegramWebhookRequest(request: Request) {
   if (request.method === "OPTIONS") {
