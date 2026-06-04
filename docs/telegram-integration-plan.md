@@ -3693,19 +3693,37 @@ Draft/verifier refinement:
 
 Runtime blocker before webhook secret storage wiring:
 
-- `persistTelegramSession` currently updates the eligible `telegram_sessions`
-  row and returns no session id.
-- Future webhook secret storage needs a clean `telegram_session_id` source.
-- The next runtime-contract slice should change only the pure/adapter contract
-  so session persistence returns the updated `telegram_session_id`, while
-  keeping current runtime behavior inert until separately approved.
+- Closed in Phase 5AN.1: `persistTelegramSession` now returns the updated
+  `telegram_session_id` as an internal `telegramSessionId`.
+- The returned session id is validated as a UUID before the future webhook
+  registration dependency can use it.
+- The public `telegram-connect` response remains unchanged and must not expose
+  `telegramSessionId`, `tokenSecretRef`, owner IDs, workspace IDs, raw webhook
+  URL, raw webhook secret, or raw BotFather token.
+- Future webhook secret storage now has a clean `telegram_session_id` source,
+  but the secret table/RPC migration must still be approved separately before
+  any real webhook secret persistence is wired.
+
+Phase 5AN.1 closeout:
+
+- Added a pure internal contract where session persistence returns
+  `{ telegramSessionId }`.
+- Passed `telegramSessionId` into the future `registerTelegramWebhook`
+  dependency only after token validation, token secret storage, and session
+  persistence succeed.
+- Added tests for valid internal propagation, invalid persisted session id
+  sanitization, adapter return value, and unexpected updated-row rejection.
+- Kept runtime behavior inert: successful gated paths still return
+  `not_configured`.
+- No schema/RLS change, no SQL apply, no `.env.local` read, no real secret read,
+  no Netlify deploy, and no push was part of this slice.
 
 Next safest slice:
 
-- Phase 5AM.2 should be final review and local commit for this draft/verifier
-  refinement if the diff remains limited and safe.
-- After that, Phase 5AN should be audit-only for the session persistence return
-  contract and mocked tests.
+- Phase 5AN.2 should remain docs-only closeout for the session id return
+  contract.
+- After that, Phase 5AO should be audit-only for webhook secret persistence
+  finalization after a future successful `setWebhook`.
 
 ## Chat Authorization Model
 
