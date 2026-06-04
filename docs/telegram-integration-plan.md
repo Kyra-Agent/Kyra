@@ -6035,6 +6035,64 @@ Runtime state after Phase 5BM.1:
   Telegram API call, reply delivery, Edge Function deploy, Netlify publish, or
   Git push is introduced by this slice.
 
+### Phase 5BN Webhook Lookup Runtime Mount
+
+Phase 5BN mounts the already-tested webhook session lookup adapter behind the
+default-off `KYRA_TELEGRAM_WEBHOOK_LOOKUP_ENABLED` gate. This is still not a
+live Telegram command processor.
+
+Runtime order:
+
+- `OPTIONS` returns CORS `ok`.
+- Non-`POST` requests reject before any lookup work.
+- Missing `X-Telegram-Bot-Api-Secret-Token` rejects before body access, env
+  access, RPC client creation, or lookup.
+- `Content-Type` and `Content-Length` guards run before lookup.
+- When the lookup gate is disabled, the handler keeps returning
+  `501 not_configured` without reading the body, reading service env values,
+  creating an RPC client, or calling the DB.
+- When the lookup gate is enabled, the handler hashes the verified secret header
+  through the adapter, calls `resolve_telegram_webhook_session(text)` through a
+  backend-only service-role RPC boundary, then still returns `501
+  not_configured` without parsing the Telegram update body.
+
+Implementation notes:
+
+- The gate remains exact-string only: only `true` enables lookup.
+- Runtime dependencies are created lazily. `SUPABASE_URL` and
+  `SUPABASE_SERVICE_ROLE_KEY` are read only when the gate is enabled and a
+  guarded request reaches lookup.
+- The webhook runtime uses a narrow server-side REST RPC client for
+  `resolve_telegram_webhook_session(text)` instead of broad table access.
+- No request body is parsed, no Telegram API is called, no Telegram message is
+  sent, and no DB write is performed.
+- Lookup failures are returned through sanitized error contracts and must never
+  echo the raw webhook secret header, webhook hash, owner id, workspace id,
+  `token_secret_ref`, or raw DB error payload.
+
+Tests added:
+
+- Disabled lookup gate ignores a supplied lookup dependency and keeps the
+  response inert.
+- Enabled lookup gate calls lookup after header/content/body-size guards and
+  before any body access.
+- Unsupported content type and oversized content length reject before lookup.
+- Session miss returns sanitized `session_not_found` before body access.
+- Runtime dependency creation reads only the lookup gate key while disabled.
+- Enabled runtime dependency creation exposes lookup lazily without requiring
+  service env values during creation.
+
+Still blocked after Phase 5BN:
+
+- Enabling `KYRA_TELEGRAM_WEBHOOK_LOOKUP_ENABLED` in production.
+- Deploying the Edge Function.
+- Parsing Telegram update bodies in the live handler.
+- Running chat authorization, idempotency claim, response planning, or reply
+  delivery from the live handler.
+- Calling Telegram API, including `sendMessage`.
+- Reading `.env.local` or real secret values during local development.
+- Netlify unlock/publish or Git push without explicit approval.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.

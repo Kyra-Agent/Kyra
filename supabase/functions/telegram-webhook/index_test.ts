@@ -5,11 +5,13 @@ import {
   assertTelegramWebhookSecretHash,
   assertTelegramWebhookSessionLookupResult,
   assertTelegramWebhookSessionLookupRows,
+  createTelegramWebhookDependencies,
   handleTelegramWebhookRequest,
   HttpError,
   maxTelegramWebhookBodyBytes,
   sanitizeErrorMessage,
   sanitizeTelegramWebhookSessionLookupError,
+  telegramWebhookLookupEnabledEnvKey,
 } from "./index.ts";
 
 function assert(condition: boolean, message: string) {
@@ -91,7 +93,7 @@ const activeLookupRow = {
 Deno.test("telegram-webhook rejects missing Telegram secret before body read", async () => {
   let bodyRead = false;
 
-  const response = handleTelegramWebhookRequest(
+  const response = await handleTelegramWebhookRequest(
     requestThatFailsIfBodyIsRead(
       { "content-type": "application/json" },
       () => {
@@ -115,7 +117,7 @@ Deno.test("telegram-webhook rejects missing Telegram secret before body read", a
 Deno.test("telegram-webhook returns inert not_configured response without reading body", async () => {
   let bodyRead = false;
 
-  const response = handleTelegramWebhookRequest(
+  const response = await handleTelegramWebhookRequest(
     requestThatFailsIfBodyIsRead(
       {
         "content-type": "application/json",
@@ -142,10 +144,180 @@ Deno.test("telegram-webhook returns inert not_configured response without readin
   );
 });
 
+Deno.test("telegram-webhook disabled lookup gate does not call lookup dependency", async () => {
+  let bodyRead = false;
+  let lookupCalled = false;
+
+  const response = await handleTelegramWebhookRequest(
+    requestThatFailsIfBodyIsRead(
+      {
+        "content-type": "application/json",
+        "x-telegram-bot-api-secret-token": "test-webhook-secret",
+      },
+      () => {
+        bodyRead = true;
+      },
+    ),
+    {
+      lookupRuntimeConfig: { enabled: false },
+      lookupTelegramWebhookSession: async () => {
+        lookupCalled = true;
+        throw new Error("Disabled lookup must not be called.");
+      },
+    },
+  );
+
+  const body = await readJson(response);
+
+  assertEquals(response.status, 501);
+  assertEquals(body.status, "not_configured");
+  assert(!lookupCalled, "Disabled lookup gate must not call lookup.");
+  assert(!bodyRead, "Disabled lookup gate must not read request body.");
+});
+
+Deno.test("telegram-webhook enabled lookup gate calls lookup without reading body", async () => {
+  let bodyRead = false;
+  const lookupInputs: string[] = [];
+
+  const response = await handleTelegramWebhookRequest(
+    requestThatFailsIfBodyIsRead(
+      {
+        "content-type": "application/json",
+        "x-telegram-bot-api-secret-token": "test-webhook-secret",
+      },
+      () => {
+        bodyRead = true;
+      },
+    ),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async (webhookSecretHeader) => {
+        lookupInputs.push(webhookSecretHeader);
+        return {
+          sessionId: "telegram-session-1",
+          agentId: "agent-1",
+          workspaceId: "workspace-1",
+          ownerUserId: "owner-1",
+          botHandle: "@kyra_test_bot",
+          webhookStatus: "active",
+        };
+      },
+    },
+  );
+
+  const body = await readJson(response);
+
+  assertEquals(response.status, 501);
+  assertEquals(body.status, "not_configured");
+  assertEquals(lookupInputs.length, 1);
+  assertEquals(lookupInputs[0], "test-webhook-secret");
+  assert(!bodyRead, "Enabled lookup gate must not read request body.");
+});
+
+Deno.test("telegram-webhook rejects unsupported content type before lookup", async () => {
+  let bodyRead = false;
+  let lookupCalled = false;
+
+  const response = await handleTelegramWebhookRequest(
+    requestThatFailsIfBodyIsRead(
+      {
+        "content-type": "text/plain",
+        "x-telegram-bot-api-secret-token": "test-webhook-secret",
+      },
+      () => {
+        bodyRead = true;
+      },
+    ),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => {
+        lookupCalled = true;
+        throw new Error("Lookup must not run before content-type guard.");
+      },
+    },
+  );
+
+  const body = await readJson(response);
+
+  assertEquals(response.status, 415);
+  assertEquals(body.status, "unsupported_media_type");
+  assert(!lookupCalled, "Content-type guard must run before lookup.");
+  assert(!bodyRead, "Content-type guard must not read request body.");
+});
+
+Deno.test("telegram-webhook rejects oversized content length before lookup", async () => {
+  let bodyRead = false;
+  let lookupCalled = false;
+
+  const response = await handleTelegramWebhookRequest(
+    requestThatFailsIfBodyIsRead(
+      {
+        "content-length": String(maxTelegramWebhookBodyBytes + 1),
+        "content-type": "application/json",
+        "x-telegram-bot-api-secret-token": "test-webhook-secret",
+      },
+      () => {
+        bodyRead = true;
+      },
+    ),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => {
+        lookupCalled = true;
+        throw new Error("Lookup must not run before body size guard.");
+      },
+    },
+  );
+
+  const body = await readJson(response);
+
+  assertEquals(response.status, 413);
+  assertEquals(body.status, "payload_too_large");
+  assert(!lookupCalled, "Body size guard must run before lookup.");
+  assert(!bodyRead, "Body size guard must not read request body.");
+});
+
+Deno.test("telegram-webhook enabled lookup returns sanitized session miss before body read", async () => {
+  let bodyRead = false;
+
+  const response = await handleTelegramWebhookRequest(
+    requestThatFailsIfBodyIsRead(
+      {
+        "content-type": "application/json",
+        "x-telegram-bot-api-secret-token": "raw-webhook-secret",
+      },
+      () => {
+        bodyRead = true;
+      },
+    ),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => {
+        throw new HttpError(
+          404,
+          "session_not_found",
+          "Telegram webhook session was not found.",
+        );
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const serialized = JSON.stringify(body);
+
+  assertEquals(response.status, 404);
+  assertEquals(body.status, "session_not_found");
+  assert(
+    !serialized.includes("raw-webhook-secret"),
+    "Lookup miss response must not echo the raw webhook secret.",
+  );
+  assert(!bodyRead, "Lookup failures must not read request body.");
+});
+
 Deno.test("telegram-webhook rejects unsupported content type after secret verification", async () => {
   let bodyRead = false;
 
-  const response = handleTelegramWebhookRequest(
+  const response = await handleTelegramWebhookRequest(
     requestThatFailsIfBodyIsRead(
       {
         "content-type": "text/plain",
@@ -165,6 +337,34 @@ Deno.test("telegram-webhook rejects unsupported content type after secret verifi
     !bodyRead,
     "Unsupported webhook content type must not read request body.",
   );
+});
+
+Deno.test("telegram-webhook runtime dependencies keep lookup disabled without service setup", () => {
+  const keys: string[] = [];
+  const dependencies = createTelegramWebhookDependencies({
+    getOptionalEnv: (key) => {
+      keys.push(key);
+      return "";
+    },
+  });
+
+  assertEquals(dependencies.lookupRuntimeConfig?.enabled, false);
+  assertEquals(dependencies.lookupTelegramWebhookSession, undefined);
+  assertEquals(keys.join(","), telegramWebhookLookupEnabledEnvKey);
+});
+
+Deno.test("telegram-webhook runtime dependencies enable lookup lazily", () => {
+  const keys: string[] = [];
+  const dependencies = createTelegramWebhookDependencies({
+    getOptionalEnv: (key) => {
+      keys.push(key);
+      return "true";
+    },
+  });
+
+  assertEquals(dependencies.lookupRuntimeConfig?.enabled, true);
+  assertEquals(typeof dependencies.lookupTelegramWebhookSession, "function");
+  assertEquals(keys.join(","), telegramWebhookLookupEnabledEnvKey);
 });
 
 Deno.test("telegram-webhook body size header validator rejects oversized requests", () => {
