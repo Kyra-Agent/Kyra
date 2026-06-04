@@ -4355,6 +4355,51 @@ Go/no-go:
 - No-go for live RPC calls until SQL apply, verifier capture, runtime gate
   design, and deployment window are separately approved.
 
+### Phase 5AT.1 Webhook Lookup Contract Closeout
+
+Phase 5AT.1 adds pure webhook session lookup contract helpers and tests only.
+It does not wire live RPC lookup and does not change runtime behavior.
+
+Implemented files:
+
+- `supabase/functions/telegram-webhook/core.ts`
+- `supabase/functions/telegram-webhook/index.ts`
+- `supabase/functions/telegram-webhook/index_test.ts`
+
+Implemented contract:
+
+- `assertTelegramWebhookSecretHash(...)` accepts only lowercase SHA-256 hex
+  webhook secret hashes.
+- `assertTelegramWebhookSessionLookupResult(...)` maps future injected RPC
+  results into the internal webhook session record shape.
+- Missing lookup rows map to `404 session_not_found`.
+- Inactive session rows map to `404 session_not_found`.
+- Duplicate rows map to sanitized `500 server_error`.
+- Non-array lookup data maps to sanitized `500 server_error`.
+- Unexpected lookup errors map to sanitized `500 server_error`.
+- Invalid row shapes map to sanitized `500 server_error`.
+
+Runtime status:
+
+- `telegram-webhook` still returns inert `501 not_configured` on the valid
+  skeleton path.
+- The handler still verifies the Telegram secret header before body access.
+- The handler still does not read, parse, or log request bodies.
+- The new helpers are exported for tests and future approved adapter wiring, but
+  are not called by the live handler yet.
+
+Security confirmation:
+
+- No `.env.local` or secret values were read.
+- No `Deno.env` usage was added.
+- No Supabase client or service-role client was added.
+- No DB read/write was added.
+- No Vault access was added.
+- No Telegram API call was added.
+- No webhook registration was added.
+- No token refs or raw token values are returned by runtime code.
+- No Edge Function deploy, Netlify publish, or push happened in this slice.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
