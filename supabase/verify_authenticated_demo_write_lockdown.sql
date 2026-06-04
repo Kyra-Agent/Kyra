@@ -3,6 +3,13 @@ with telegram_vault_rpcs as (
     to_regprocedure('public.store_telegram_bot_token(uuid,uuid,text,text)') as store_telegram_bot_token_rpc,
     to_regprocedure('public.resolve_telegram_bot_token(text)') as resolve_telegram_bot_token_rpc,
     to_regprocedure('public.revoke_telegram_bot_token(text)') as revoke_telegram_bot_token_rpc
+),
+telegram_webhook_receiver_objects as (
+  select
+    to_regclass('public.telegram_webhook_secrets') as telegram_webhook_secrets_table,
+    to_regclass('public.telegram_chat_authorizations') as telegram_chat_authorizations_table,
+    to_regprocedure('public.resolve_telegram_webhook_session(text)') as resolve_telegram_webhook_session_rpc,
+    to_regprocedure('public.resolve_telegram_chat_authorization(uuid,text,text,text)') as resolve_telegram_chat_authorization_rpc
 )
 select
   has_table_privilege('authenticated', 'public.workspaces', 'select') as auth_can_read_workspaces,
@@ -29,6 +36,344 @@ select
   has_table_privilege('service_role', 'public.agent_instances', 'insert') as service_role_can_insert_agents,
   has_table_privilege('service_role', 'public.telegram_sessions', 'insert') as service_role_can_insert_telegram_sessions,
   has_table_privilege('service_role', 'public.telegram_sessions', 'update') as service_role_can_update_telegram_sessions,
+  telegram_webhook_receiver_objects.telegram_webhook_secrets_table is not null as telegram_webhook_secrets_table_exists,
+  case
+    when telegram_webhook_receiver_objects.telegram_webhook_secrets_table is null then false
+    else not exists (
+      select 1
+      from pg_class rel
+      cross join aclexplode(coalesce(rel.relacl, acldefault('r', rel.relowner))) as acl
+      where rel.oid = telegram_webhook_receiver_objects.telegram_webhook_secrets_table::oid
+        and acl.grantee = 0::oid
+        and lower(acl.privilege_type) = 'select'
+    )
+  end as public_cannot_select_telegram_webhook_secrets,
+  case
+    when telegram_webhook_receiver_objects.telegram_webhook_secrets_table is null then false
+    else not exists (
+      select 1
+      from pg_class rel
+      cross join aclexplode(coalesce(rel.relacl, acldefault('r', rel.relowner))) as acl
+      where rel.oid = telegram_webhook_receiver_objects.telegram_webhook_secrets_table::oid
+        and acl.grantee = 0::oid
+        and lower(acl.privilege_type) = 'insert'
+    )
+  end as public_cannot_insert_telegram_webhook_secrets,
+  case
+    when telegram_webhook_receiver_objects.telegram_webhook_secrets_table is null then false
+    else not exists (
+      select 1
+      from pg_class rel
+      cross join aclexplode(coalesce(rel.relacl, acldefault('r', rel.relowner))) as acl
+      where rel.oid = telegram_webhook_receiver_objects.telegram_webhook_secrets_table::oid
+        and acl.grantee = 0::oid
+        and lower(acl.privilege_type) = 'update'
+    )
+  end as public_cannot_update_telegram_webhook_secrets,
+  case
+    when telegram_webhook_receiver_objects.telegram_webhook_secrets_table is null then false
+    else not exists (
+      select 1
+      from pg_class rel
+      cross join aclexplode(coalesce(rel.relacl, acldefault('r', rel.relowner))) as acl
+      where rel.oid = telegram_webhook_receiver_objects.telegram_webhook_secrets_table::oid
+        and acl.grantee = 0::oid
+        and lower(acl.privilege_type) = 'delete'
+    )
+  end as public_cannot_delete_telegram_webhook_secrets,
+  case
+    when telegram_webhook_receiver_objects.telegram_webhook_secrets_table is null then false
+    else not coalesce(has_table_privilege(
+      'anon',
+      telegram_webhook_receiver_objects.telegram_webhook_secrets_table::oid,
+      'select'
+    ), false)
+  end as anon_cannot_select_telegram_webhook_secrets,
+  case
+    when telegram_webhook_receiver_objects.telegram_webhook_secrets_table is null then false
+    else not coalesce(has_table_privilege(
+      'anon',
+      telegram_webhook_receiver_objects.telegram_webhook_secrets_table::oid,
+      'insert'
+    ), false)
+  end as anon_cannot_insert_telegram_webhook_secrets,
+  case
+    when telegram_webhook_receiver_objects.telegram_webhook_secrets_table is null then false
+    else not coalesce(has_table_privilege(
+      'anon',
+      telegram_webhook_receiver_objects.telegram_webhook_secrets_table::oid,
+      'update'
+    ), false)
+  end as anon_cannot_update_telegram_webhook_secrets,
+  case
+    when telegram_webhook_receiver_objects.telegram_webhook_secrets_table is null then false
+    else not coalesce(has_table_privilege(
+      'anon',
+      telegram_webhook_receiver_objects.telegram_webhook_secrets_table::oid,
+      'delete'
+    ), false)
+  end as anon_cannot_delete_telegram_webhook_secrets,
+  case
+    when telegram_webhook_receiver_objects.telegram_webhook_secrets_table is null then false
+    else not coalesce(has_table_privilege(
+      'authenticated',
+      telegram_webhook_receiver_objects.telegram_webhook_secrets_table::oid,
+      'select'
+    ), false)
+  end as auth_cannot_select_telegram_webhook_secrets,
+  case
+    when telegram_webhook_receiver_objects.telegram_webhook_secrets_table is null then false
+    else not coalesce(has_table_privilege(
+      'authenticated',
+      telegram_webhook_receiver_objects.telegram_webhook_secrets_table::oid,
+      'insert'
+    ), false)
+  end as auth_cannot_insert_telegram_webhook_secrets,
+  case
+    when telegram_webhook_receiver_objects.telegram_webhook_secrets_table is null then false
+    else not coalesce(has_table_privilege(
+      'authenticated',
+      telegram_webhook_receiver_objects.telegram_webhook_secrets_table::oid,
+      'update'
+    ), false)
+  end as auth_cannot_update_telegram_webhook_secrets,
+  case
+    when telegram_webhook_receiver_objects.telegram_webhook_secrets_table is null then false
+    else not coalesce(has_table_privilege(
+      'authenticated',
+      telegram_webhook_receiver_objects.telegram_webhook_secrets_table::oid,
+      'delete'
+    ), false)
+  end as auth_cannot_delete_telegram_webhook_secrets,
+  case
+    when telegram_webhook_receiver_objects.telegram_webhook_secrets_table is null then false
+    else coalesce(has_table_privilege(
+      'service_role',
+      telegram_webhook_receiver_objects.telegram_webhook_secrets_table::oid,
+      'select'
+    ), false)
+  end as service_role_can_select_telegram_webhook_secrets,
+  case
+    when telegram_webhook_receiver_objects.telegram_webhook_secrets_table is null then false
+    else coalesce(has_table_privilege(
+      'service_role',
+      telegram_webhook_receiver_objects.telegram_webhook_secrets_table::oid,
+      'insert'
+    ), false)
+  end as service_role_can_insert_telegram_webhook_secrets,
+  case
+    when telegram_webhook_receiver_objects.telegram_webhook_secrets_table is null then false
+    else coalesce(has_table_privilege(
+      'service_role',
+      telegram_webhook_receiver_objects.telegram_webhook_secrets_table::oid,
+      'update'
+    ), false)
+  end as service_role_can_update_telegram_webhook_secrets,
+  telegram_webhook_receiver_objects.telegram_chat_authorizations_table is not null as telegram_chat_authorizations_table_exists,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else not exists (
+      select 1
+      from pg_class rel
+      cross join aclexplode(coalesce(rel.relacl, acldefault('r', rel.relowner))) as acl
+      where rel.oid = telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid
+        and acl.grantee = 0::oid
+        and lower(acl.privilege_type) = 'select'
+    )
+  end as public_cannot_select_telegram_chat_authorizations,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else not exists (
+      select 1
+      from pg_class rel
+      cross join aclexplode(coalesce(rel.relacl, acldefault('r', rel.relowner))) as acl
+      where rel.oid = telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid
+        and acl.grantee = 0::oid
+        and lower(acl.privilege_type) = 'insert'
+    )
+  end as public_cannot_insert_telegram_chat_authorizations,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else not exists (
+      select 1
+      from pg_class rel
+      cross join aclexplode(coalesce(rel.relacl, acldefault('r', rel.relowner))) as acl
+      where rel.oid = telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid
+        and acl.grantee = 0::oid
+        and lower(acl.privilege_type) = 'update'
+    )
+  end as public_cannot_update_telegram_chat_authorizations,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else not exists (
+      select 1
+      from pg_class rel
+      cross join aclexplode(coalesce(rel.relacl, acldefault('r', rel.relowner))) as acl
+      where rel.oid = telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid
+        and acl.grantee = 0::oid
+        and lower(acl.privilege_type) = 'delete'
+    )
+  end as public_cannot_delete_telegram_chat_authorizations,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else not coalesce(has_table_privilege(
+      'anon',
+      telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+      'select'
+    ), false)
+  end as anon_cannot_select_telegram_chat_authorizations,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else not coalesce(has_table_privilege(
+      'anon',
+      telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+      'insert'
+    ), false)
+  end as anon_cannot_insert_telegram_chat_authorizations,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else not coalesce(has_table_privilege(
+      'anon',
+      telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+      'update'
+    ), false)
+  end as anon_cannot_update_telegram_chat_authorizations,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else not coalesce(has_table_privilege(
+      'anon',
+      telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+      'delete'
+    ), false)
+  end as anon_cannot_delete_telegram_chat_authorizations,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else not coalesce(has_table_privilege(
+      'authenticated',
+      telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+      'select'
+    ), false)
+  end as auth_cannot_select_telegram_chat_authorizations,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else not coalesce(has_table_privilege(
+      'authenticated',
+      telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+      'insert'
+    ), false)
+  end as auth_cannot_insert_telegram_chat_authorizations,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else not coalesce(has_table_privilege(
+      'authenticated',
+      telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+      'update'
+    ), false)
+  end as auth_cannot_update_telegram_chat_authorizations,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else not coalesce(has_table_privilege(
+      'authenticated',
+      telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+      'delete'
+    ), false)
+  end as auth_cannot_delete_telegram_chat_authorizations,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else coalesce(has_table_privilege(
+      'service_role',
+      telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+      'select'
+    ), false)
+  end as service_role_can_select_telegram_chat_authorizations,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else coalesce(has_table_privilege(
+      'service_role',
+      telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+      'insert'
+    ), false)
+  end as service_role_can_insert_telegram_chat_authorizations,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else coalesce(has_table_privilege(
+      'service_role',
+      telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+      'update'
+    ), false)
+  end as service_role_can_update_telegram_chat_authorizations,
+  telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc is not null as resolve_telegram_webhook_session_function_exists,
+  case
+    when telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc is null then false
+    else not exists (
+      select 1
+      from pg_proc proc
+      cross join aclexplode(coalesce(proc.proacl, acldefault('f', proc.proowner))) as acl
+      where proc.oid = telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc::oid
+        and acl.grantee = 0::oid
+        and lower(acl.privilege_type) = 'execute'
+    )
+  end as public_cannot_execute_resolve_telegram_webhook_session,
+  case
+    when telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc is null then false
+    else not coalesce(has_function_privilege(
+      'anon',
+      telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc::oid,
+      'execute'
+    ), false)
+  end as anon_cannot_execute_resolve_telegram_webhook_session,
+  case
+    when telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc is null then false
+    else not coalesce(has_function_privilege(
+      'authenticated',
+      telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc::oid,
+      'execute'
+    ), false)
+  end as auth_cannot_execute_resolve_telegram_webhook_session,
+  case
+    when telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc is null then false
+    else coalesce(has_function_privilege(
+      'service_role',
+      telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc::oid,
+      'execute'
+    ), false)
+  end as service_role_can_execute_resolve_telegram_webhook_session,
+  telegram_webhook_receiver_objects.resolve_telegram_chat_authorization_rpc is not null as resolve_telegram_chat_authorization_function_exists,
+  case
+    when telegram_webhook_receiver_objects.resolve_telegram_chat_authorization_rpc is null then false
+    else not exists (
+      select 1
+      from pg_proc proc
+      cross join aclexplode(coalesce(proc.proacl, acldefault('f', proc.proowner))) as acl
+      where proc.oid = telegram_webhook_receiver_objects.resolve_telegram_chat_authorization_rpc::oid
+        and acl.grantee = 0::oid
+        and lower(acl.privilege_type) = 'execute'
+    )
+  end as public_cannot_execute_resolve_telegram_chat_authorization,
+  case
+    when telegram_webhook_receiver_objects.resolve_telegram_chat_authorization_rpc is null then false
+    else not coalesce(has_function_privilege(
+      'anon',
+      telegram_webhook_receiver_objects.resolve_telegram_chat_authorization_rpc::oid,
+      'execute'
+    ), false)
+  end as anon_cannot_execute_resolve_telegram_chat_authorization,
+  case
+    when telegram_webhook_receiver_objects.resolve_telegram_chat_authorization_rpc is null then false
+    else not coalesce(has_function_privilege(
+      'authenticated',
+      telegram_webhook_receiver_objects.resolve_telegram_chat_authorization_rpc::oid,
+      'execute'
+    ), false)
+  end as auth_cannot_execute_resolve_telegram_chat_authorization,
+  case
+    when telegram_webhook_receiver_objects.resolve_telegram_chat_authorization_rpc is null then false
+    else coalesce(has_function_privilege(
+      'service_role',
+      telegram_webhook_receiver_objects.resolve_telegram_chat_authorization_rpc::oid,
+      'execute'
+    ), false)
+  end as service_role_can_execute_resolve_telegram_chat_authorization,
   telegram_vault_rpcs.store_telegram_bot_token_rpc is not null as store_telegram_bot_token_function_exists,
   case
     when telegram_vault_rpcs.store_telegram_bot_token_rpc is null then false
@@ -192,4 +537,5 @@ select
       and grantee = 'authenticated'
       and privilege_type = 'SELECT'
   ) as auth_has_no_broad_telegram_sessions_select_grant
-from telegram_vault_rpcs;
+from telegram_vault_rpcs
+cross join telegram_webhook_receiver_objects;
