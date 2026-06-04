@@ -6424,3 +6424,65 @@ Schema and RLS impact:
 - No Supabase secret changes.
 - No production deploy.
 - No commit or push without approval.
+
+## Phase 5BS Combined - Webhook Claim Runtime Gate
+
+Phase 5BS mounts the existing Telegram update idempotency claim adapter into the
+webhook runtime behind a new default-off gate:
+
+- `KYRA_TELEGRAM_WEBHOOK_CLAIM_ENABLED`
+
+The gate must only enable on the exact string `true`. Any other value keeps the
+runtime inert.
+
+Runtime order:
+
+1. Verify `X-Telegram-Bot-Api-Secret-Token`.
+2. Validate JSON content type and body size headers.
+3. Resolve the active Telegram webhook session when lookup is enabled.
+4. Parse the Telegram update when parse is enabled.
+5. Authorize the Telegram chat when chat authorization is enabled.
+6. Claim the Telegram update idempotently only after the parsed update is
+   authorized.
+7. Return the existing `not_configured` response until response delivery is
+   separately approved.
+
+Security rules:
+
+- Claiming must never run before chat authorization.
+- Claiming must use only the injected `claim_telegram_update(uuid,bigint)` RPC
+  client boundary.
+- The webhook handler must not perform direct table `insert`, `upsert`, or
+  `update` operations.
+- Claim failures must return sanitized errors and must not expose update id,
+  session id, agent id, workspace id, owner id, webhook secret, token refs, or
+  raw DB errors.
+- Duplicate claims remain a backend no-op for now; response delivery and
+  duplicate-specific HTTP behavior require a separate approval.
+
+Files touched:
+
+- `supabase/functions/telegram-webhook/runtime-config.ts`
+- `supabase/functions/telegram-webhook/runtime-config_test.ts`
+- `supabase/functions/telegram-webhook/index.ts`
+- `supabase/functions/telegram-webhook/index_test.ts`
+- `docs/telegram-integration-plan.md`
+
+Verification required:
+
+- `npm run check:functions`
+- `deno check supabase/functions/telegram-connect/index.ts supabase/functions/telegram-webhook/index.ts`
+- `deno test supabase/functions/telegram-connect supabase/functions/telegram-webhook`
+- `npm exec tsc -- --noEmit`
+- `npm run build`
+- `git diff --check`
+
+Still not included:
+
+- No Telegram API response delivery.
+- No `sendMessage`.
+- No real BotFather token handling.
+- No Vault read/write.
+- No schema/RLS changes.
+- No Edge Function deploy.
+- No Netlify publish/unlock.

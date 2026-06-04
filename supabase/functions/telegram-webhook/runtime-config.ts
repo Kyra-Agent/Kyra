@@ -4,6 +4,8 @@ export const telegramWebhookParseEnabledEnvKey =
   "KYRA_TELEGRAM_WEBHOOK_PARSE_ENABLED";
 export const telegramWebhookChatAuthEnabledEnvKey =
   "KYRA_TELEGRAM_WEBHOOK_CHAT_AUTH_ENABLED";
+export const telegramWebhookClaimEnabledEnvKey =
+  "KYRA_TELEGRAM_WEBHOOK_CLAIM_ENABLED";
 
 export type OptionalEnvReader = (key: string) => string;
 
@@ -16,6 +18,9 @@ export type TelegramWebhookParseRuntimeConfig =
 export type TelegramWebhookChatAuthRuntimeConfig =
   | { enabled: false }
   | { enabled: true };
+export type TelegramWebhookClaimRuntimeConfig =
+  | { enabled: false }
+  | { enabled: true };
 
 export function isTelegramWebhookLookupEnabled(value: unknown) {
   return value === "true";
@@ -26,6 +31,10 @@ export function isTelegramWebhookParseEnabled(value: unknown) {
 }
 
 export function isTelegramWebhookChatAuthEnabled(value: unknown) {
+  return value === "true";
+}
+
+export function isTelegramWebhookClaimEnabled(value: unknown) {
   return value === "true";
 }
 
@@ -62,6 +71,20 @@ export function createTelegramWebhookChatAuthRuntimeConfig(
 ): TelegramWebhookChatAuthRuntimeConfig {
   const enabled = isTelegramWebhookChatAuthEnabled(
     readOptionalEnv(telegramWebhookChatAuthEnabledEnvKey),
+  );
+
+  if (!enabled) {
+    return { enabled: false };
+  }
+
+  return { enabled: true };
+}
+
+export function createTelegramWebhookClaimRuntimeConfig(
+  readOptionalEnv: OptionalEnvReader,
+): TelegramWebhookClaimRuntimeConfig {
+  const enabled = isTelegramWebhookClaimEnabled(
+    readOptionalEnv(telegramWebhookClaimEnabledEnvKey),
   );
 
   if (!enabled) {
