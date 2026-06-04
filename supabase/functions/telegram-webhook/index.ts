@@ -62,6 +62,12 @@ export {
 export type { TelegramUpdateClaimResult } from "./idempotency.ts";
 export { planTelegramClaimedReadOnlyResponse } from "./claim-aware-response.ts";
 export type { TelegramClaimedReadOnlyResponsePlan } from "./claim-aware-response.ts";
+export {
+  assertTelegramWebhookSecretHeaderValue,
+  hashTelegramWebhookSecretHeader,
+  lookupTelegramWebhookSessionBySecretHeader,
+} from "./session-lookup.ts";
+export type { TelegramWebhookSessionLookupRpcClient } from "./session-lookup.ts";
 
 export function handleTelegramWebhookRequest(request: Request) {
   if (request.method === "OPTIONS") {

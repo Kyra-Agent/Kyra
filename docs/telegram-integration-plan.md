@@ -5909,6 +5909,47 @@ Still not allowed in Phase 5BL:
   building replies from live updates, or delivering Telegram replies.
 - Edge Function deploy, Netlify publish, or Git push.
 
+### Phase 5BL.1 Webhook Session Lookup Adapter Closeout
+
+Phase 5BL.1 adds a pure/importable webhook session lookup adapter for future
+runtime wiring. It does not mount the adapter in the live handler.
+
+Implemented local-only code:
+
+- `telegram-webhook/session-lookup.ts` hashes a verified webhook secret header
+  value with SHA-256 in memory and returns lowercase hexadecimal.
+- The adapter calls only the injected `resolve_telegram_webhook_session` RPC
+  client boundary with `{ p_webhook_secret_hash }`.
+- The adapter passes RPC results through the existing sanitized session lookup
+  validator.
+- The adapter does not create a Supabase client, read environment values, write
+  database rows, parse Telegram update bodies, call Telegram APIs, or deliver
+  replies.
+- `telegram-webhook/index.ts` exports the helper for tests and future approved
+  wiring, but the live request handler remains inert.
+
+Test coverage added:
+
+- Deterministic lowercase SHA-256 hashing.
+- Missing or blank header rejection as generic
+  `webhook_verification_failed`.
+- Exact RPC name and argument shape.
+- Successful active session mapping.
+- Missing row handling as sanitized `session_not_found`.
+- RPC failure, duplicate rows, and invalid row shape as sanitized
+  `server_error`.
+- No response/error path exposes the raw webhook secret header, hash,
+  `token_secret_ref`, owner ID, or workspace ID.
+
+Runtime state after Phase 5BL.1:
+
+- Valid live `telegram-webhook` requests still return `501 not_configured`
+  without reading the body.
+- Missing webhook secret headers still reject before any body read.
+- No service-role client exists in `telegram-webhook`.
+- No runtime DB read/write is active.
+- No Edge Function deploy, Netlify publish, or Git push is part of this slice.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
