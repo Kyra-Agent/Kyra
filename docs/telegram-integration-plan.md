@@ -4480,6 +4480,60 @@ What not to touch in Phase 5AU:
 - No command execution, approval creation, wallet action, or activity logging.
 - No SQL apply, Edge Function deploy, Netlify publish/unlock, or push.
 
+### Phase 5AU.1 Telegram Update Parser Contract Closeout
+
+Phase 5AU.1 adds a pure Telegram Update parser and tests. The parser is not
+wired into the live webhook handler.
+
+Implemented files:
+
+- `supabase/functions/telegram-webhook/update-parser.ts`
+- `supabase/functions/telegram-webhook/update-parser_test.ts`
+- `supabase/functions/telegram-webhook/index.ts` for exports only
+
+Implemented parser behavior:
+
+- Accepts an already-parsed `unknown` value only.
+- Does not accept or read a `Request`.
+- Accepts only Telegram `message` updates.
+- Accepts only `/help` and `/status`.
+- Classifies both supported commands as `read_only`.
+- Rejects unknown commands, command arguments, whitespace-suffixed commands,
+  non-command text, edited messages, callback queries, and channel posts.
+- Requires safe integer update, message, user, and chat IDs.
+- Accepts a group command suffix only when it matches the explicitly provided
+  expected bot username.
+- Discards the matched bot username from the parsed result.
+- Returns generic `invalid_update` or `unsupported_update` errors without raw
+  update values.
+
+Verification result:
+
+- `npm run check:functions` passed.
+- Deno checks passed.
+- Telegram connect and webhook Deno tests passed: `139 passed`, `0 failed`.
+- `npm exec tsc -- --noEmit` passed.
+- `npm run build` passed.
+- Deno format check passed.
+- `git diff --check` passed.
+
+Runtime and security status:
+
+- `handleTelegramWebhookRequest` remains unchanged in behavior.
+- Valid inert webhook requests still return `501 not_configured`.
+- Missing webhook secret still rejects before any body access.
+- No request-body parsing or logging was added.
+- No env reads, Supabase client, service-role client, DB read/write, Vault
+  access, Telegram API call, reply sending, or command execution was added.
+- No SQL apply, Edge Function deploy, Netlify publish/unlock, or push happened.
+
+Next safest slice:
+
+- Phase 5AV should audit/design a pure read-only command response contract for
+  `/help` and `/status`. It must return only static or explicitly supplied safe
+  metadata, remain disconnected from Telegram API reply sending, and avoid DB
+  writes or command execution.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
