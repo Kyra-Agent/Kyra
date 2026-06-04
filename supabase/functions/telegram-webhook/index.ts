@@ -17,8 +17,8 @@ export {
   assertBodySizeFromHeaders,
   assertJsonContentType,
   assertPostMethod,
-  assertTelegramWebhookSecretHash,
   assertTelegramWebhookChatAuthorized,
+  assertTelegramWebhookSecretHash,
   assertTelegramWebhookSessionLookupResult,
   assertTelegramWebhookSessionLookupRows,
   assertWebhookSecretHeader,
@@ -41,6 +41,12 @@ export type {
   TelegramWebhookSessionLookupRpcResult,
   TelegramWebhookSessionLookupRpcRow,
 } from "./core.ts";
+export { parseTelegramWebhookUpdate } from "./update-parser.ts";
+export type {
+  TelegramWebhookParsedCommand,
+  TelegramWebhookParsedCommandName,
+  TelegramWebhookUpdateParseOptions,
+} from "./update-parser.ts";
 
 export function handleTelegramWebhookRequest(request: Request) {
   if (request.method === "OPTIONS") {
