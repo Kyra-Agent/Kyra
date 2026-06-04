@@ -1,106 +1,41 @@
-export class HttpError extends Error {
-  readonly statusCode: number;
-  readonly code: string;
+import {
+  assertBodySizeFromHeaders,
+  assertJsonContentType,
+  assertPostMethod,
+  assertWebhookSecretHeader,
+  corsHeaders,
+  getUnknownErrorMessage,
+  HttpError,
+  jsonResponse,
+  maxTelegramWebhookBodyBytes,
+  sanitizeErrorMessage,
+  sanitizeTelegramWebhookSessionLookupError,
+} from "./core.ts";
 
-  constructor(statusCode: number, code: string, message: string) {
-    super(message);
-    this.statusCode = statusCode;
-    this.code = code;
-  }
-}
-
-const telegramWebhookSecretHeader = "X-Telegram-Bot-Api-Secret-Token";
-export const maxTelegramWebhookBodyBytes = 131072;
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-telegram-bot-api-secret-token",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-export function jsonResponse(body: Record<string, unknown>, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      ...corsHeaders,
-      "Content-Type": "application/json",
-    },
-  });
-}
-
-export function sanitizeErrorMessage(message: string) {
-  return message
-    .replace(/sb_secret_[A-Za-z0-9_-]+/g, "sb_secret_[hidden]")
-    .replace(/sb_publishable_[A-Za-z0-9_-]+/g, "sb_publishable_[hidden]")
-    .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "jwt_[hidden]")
-    .slice(0, 240);
-}
-
-export function getUnknownErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (typeof error === "object" && error) {
-    const payload = error as Record<string, unknown>;
-    const parts = [payload.message, payload.details, payload.hint, payload.code]
-      .filter((part): part is string => typeof part === "string" && Boolean(part.trim()))
-      .map((part) => part.trim());
-
-    if (parts.length) {
-      return parts.join(" ");
-    }
-  }
-
-  return "Telegram webhook function failed.";
-}
-
-export function assertPostMethod(request: Request, functionName: string) {
-  if (request.method !== "POST") {
-    throw new HttpError(405, "method_not_allowed", `Use POST for ${functionName}.`);
-  }
-}
-
-export function assertWebhookSecretHeader(request: Request) {
-  const secret = request.headers.get(telegramWebhookSecretHeader);
-
-  if (!secret?.trim()) {
-    throw new HttpError(
-      401,
-      "webhook_verification_failed",
-      "Telegram webhook verification failed.",
-    );
-  }
-
-  return secret.trim();
-}
-
-export function assertJsonContentType(headers: Headers) {
-  const contentType = headers.get("content-type") ?? "";
-  const mediaType = contentType.split(";")[0]?.trim().toLowerCase();
-
-  if (mediaType !== "application/json" && !mediaType.endsWith("+json")) {
-    throw new HttpError(415, "unsupported_media_type", "Content-Type must be application/json.");
-  }
-}
-
-export function assertBodySizeFromHeaders(headers: Headers, maxBytes: number) {
-  const contentLength = headers.get("content-length");
-
-  if (!contentLength) {
-    return;
-  }
-
-  const parsedLength = Number(contentLength);
-
-  if (!Number.isSafeInteger(parsedLength) || parsedLength < 0) {
-    throw new HttpError(400, "invalid_request", "Content-Length must be a valid byte size.");
-  }
-
-  if (parsedLength > maxBytes) {
-    throw new HttpError(413, "payload_too_large", "Request body is too large.");
-  }
-}
+export {
+  assertActiveTelegramWebhookSession,
+  assertBodySizeFromHeaders,
+  assertJsonContentType,
+  assertPostMethod,
+  assertTelegramWebhookChatAuthorized,
+  assertWebhookSecretHeader,
+  corsHeaders,
+  getUnknownErrorMessage,
+  HttpError,
+  jsonResponse,
+  maxTelegramWebhookBodyBytes,
+  sanitizeErrorMessage,
+  sanitizeTelegramWebhookSessionLookupError,
+} from "./core.ts";
+export type {
+  TelegramWebhookChatAuthorization,
+  TelegramWebhookChatAuthorizationPolicy,
+  TelegramWebhookChatIdentity,
+  TelegramWebhookCommandKind,
+  TelegramWebhookCommunityChatPolicy,
+  TelegramWebhookPersonalChatPolicy,
+  TelegramWebhookSessionLookupRecord,
+} from "./core.ts";
 
 export function handleTelegramWebhookRequest(request: Request) {
   if (request.method === "OPTIONS") {
