@@ -8,10 +8,12 @@ import {
   assertTelegramWebhookSecretToken,
   createTelegramWebhookSecretMaterial,
   createTelegramWebhookSecretStoreInput,
+  finalizeTelegramWebhookRegistration,
   generateTelegramWebhookSecretRef,
   generateTelegramWebhookSecretToken,
   hashTelegramWebhookSecretToken,
   sanitizeTelegramSessionActivationError,
+  sanitizeTelegramWebhookRegistrationFinalizeError,
   sanitizeTelegramWebhookSecretPersistenceError,
 } from "./webhook-secret.ts";
 import { HttpError } from "./core.ts";
@@ -300,5 +302,244 @@ Deno.test("telegram webhook secret persistence sanitizers hide raw internals", (
   assert(
     !serialized.includes(testSessionId),
     "Sanitized errors must not expose telegramSessionId.",
+  );
+});
+
+Deno.test("telegram webhook finalization runs store, register, then activate", async () => {
+  const order: string[] = [];
+  const result = await finalizeTelegramWebhookRegistration(
+    {
+      telegramSessionId: testSessionId,
+      botToken: "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi",
+      webhookUrl: "https://kyraagent.xyz/functions/v1/telegram-webhook",
+      webhookSecretToken: testWebhookSecretToken,
+      webhookSecretHash: testWebhookSecretHash,
+      webhookSecretRef: testWebhookSecretRef,
+    },
+    {
+      storeTelegramWebhookSecret: async (input) => {
+        order.push("store");
+        assertEquals(input.telegramSessionId, testSessionId);
+        assertEquals(input.webhookSecretHash, testWebhookSecretHash);
+        assertEquals(input.webhookSecretRef, testWebhookSecretRef);
+        return { webhookSecretRef: testWebhookSecretRef };
+      },
+      registerTelegramWebhook: async (input) => {
+        order.push("register");
+        assertEquals(input.webhookSecretToken, testWebhookSecretToken);
+      },
+      activateTelegramSession: async (input) => {
+        order.push("activate");
+        assertEquals(input.telegramSessionId, testSessionId);
+        return { activated: true, telegramSessionId: testSessionId };
+      },
+    },
+  );
+
+  assertEquals(result.registered, true);
+  assertEquals(order.join(","), "store,register,activate");
+});
+
+Deno.test("telegram webhook finalization does not register when secret store fails", async () => {
+  let registered = false;
+  let activated = false;
+  let revoked = false;
+  const error = await captureError(() =>
+    finalizeTelegramWebhookRegistration(
+      {
+        telegramSessionId: testSessionId,
+        botToken: "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi",
+        webhookUrl: "https://kyraagent.xyz/functions/v1/telegram-webhook",
+        webhookSecretToken: testWebhookSecretToken,
+        webhookSecretHash: testWebhookSecretHash,
+        webhookSecretRef: testWebhookSecretRef,
+      },
+      {
+        storeTelegramWebhookSecret: async () => {
+          throw new Error(`raw ${testWebhookSecretRef}`);
+        },
+        registerTelegramWebhook: async () => {
+          registered = true;
+        },
+        activateTelegramSession: async () => {
+          activated = true;
+          return { activated: true, telegramSessionId: testSessionId };
+        },
+        revokeTelegramWebhookSecret: async () => {
+          revoked = true;
+          return { revoked: true };
+        },
+      },
+    )
+  );
+
+  assert(error instanceof HttpError, "Store failure must be sanitized.");
+  assertEquals(
+    (error as HttpError).message,
+    "Telegram webhook secret persistence failed.",
+  );
+  assert(!registered, "Registration must not run after store failure.");
+  assert(!activated, "Activation must not run after store failure.");
+  assert(!revoked, "Webhook secret revoke must not run if store failed.");
+});
+
+Deno.test("telegram webhook finalization revokes secret when registration fails", async () => {
+  const order: string[] = [];
+  const error = await captureError(() =>
+    finalizeTelegramWebhookRegistration(
+      {
+        telegramSessionId: testSessionId,
+        botToken: "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi",
+        webhookUrl: "https://kyraagent.xyz/functions/v1/telegram-webhook",
+        webhookSecretToken: testWebhookSecretToken,
+        webhookSecretHash: testWebhookSecretHash,
+        webhookSecretRef: testWebhookSecretRef,
+      },
+      {
+        storeTelegramWebhookSecret: async () => {
+          order.push("store");
+          return { webhookSecretRef: testWebhookSecretRef };
+        },
+        registerTelegramWebhook: async () => {
+          order.push("register");
+          throw new Error(
+            `raw setWebhook ${testWebhookSecretRef} ${testWebhookSecretHash}`,
+          );
+        },
+        activateTelegramSession: async () => {
+          order.push("activate");
+          return { activated: true, telegramSessionId: testSessionId };
+        },
+        revokeTelegramWebhookSecret: async (input) => {
+          order.push("revoke");
+          assertEquals(input.webhookSecretRef, testWebhookSecretRef);
+          return { revoked: true };
+        },
+      },
+    )
+  );
+  const serialized = JSON.stringify({
+    code: (error as HttpError).code,
+    message: (error as HttpError).message,
+  });
+
+  assert(error instanceof HttpError, "Registration failure must sanitize.");
+  assertEquals(order.join(","), "store,register,revoke");
+  assertEquals((error as HttpError).statusCode, 424);
+  assertEquals(
+    (error as HttpError).message,
+    "Telegram webhook registration failed.",
+  );
+  assert(
+    !serialized.includes(testWebhookSecretRef),
+    "Sanitized registration error must not expose webhookSecretRef.",
+  );
+  assert(
+    !serialized.includes(testWebhookSecretHash),
+    "Sanitized registration error must not expose webhookSecretHash.",
+  );
+});
+
+Deno.test("telegram webhook finalization ignores rollback internals", async () => {
+  const error = await captureError(() =>
+    finalizeTelegramWebhookRegistration(
+      {
+        telegramSessionId: testSessionId,
+        botToken: "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi",
+        webhookUrl: "https://kyraagent.xyz/functions/v1/telegram-webhook",
+        webhookSecretToken: testWebhookSecretToken,
+        webhookSecretHash: testWebhookSecretHash,
+        webhookSecretRef: testWebhookSecretRef,
+      },
+      {
+        storeTelegramWebhookSecret: async () => ({
+          webhookSecretRef: testWebhookSecretRef,
+        }),
+        registerTelegramWebhook: async () => {
+          throw new Error("raw registration failure");
+        },
+        activateTelegramSession: async () => {
+          throw new Error("activation must not run");
+        },
+        revokeTelegramWebhookSecret: async () => {
+          throw new Error(`raw rollback ${testWebhookSecretRef}`);
+        },
+      },
+    )
+  );
+
+  assert(error instanceof HttpError, "Rollback failure must stay hidden.");
+  assertEquals(
+    (error as HttpError).message,
+    "Telegram webhook registration failed.",
+  );
+});
+
+Deno.test("telegram webhook finalization sanitizes activation failure", async () => {
+  const order: string[] = [];
+  const error = await captureError(() =>
+    finalizeTelegramWebhookRegistration(
+      {
+        telegramSessionId: testSessionId,
+        botToken: "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi",
+        webhookUrl: "https://kyraagent.xyz/functions/v1/telegram-webhook",
+        webhookSecretToken: testWebhookSecretToken,
+        webhookSecretHash: testWebhookSecretHash,
+        webhookSecretRef: testWebhookSecretRef,
+      },
+      {
+        storeTelegramWebhookSecret: async () => {
+          order.push("store");
+          return { webhookSecretRef: testWebhookSecretRef };
+        },
+        registerTelegramWebhook: async () => {
+          order.push("register");
+        },
+        activateTelegramSession: async () => {
+          order.push("activate");
+          throw new Error(`raw activation ${testSessionId}`);
+        },
+        revokeTelegramWebhookSecret: async () => {
+          order.push("revoke");
+          return { revoked: true };
+        },
+      },
+    )
+  );
+  const serialized = JSON.stringify({
+    code: (error as HttpError).code,
+    message: (error as HttpError).message,
+  });
+
+  assert(error instanceof HttpError, "Activation failure must sanitize.");
+  assertEquals(order.join(","), "store,register,activate");
+  assertEquals(
+    (error as HttpError).message,
+    "Telegram session activation failed.",
+  );
+  assert(
+    !serialized.includes(testSessionId),
+    "Sanitized activation error must not expose telegramSessionId.",
+  );
+});
+
+Deno.test("telegram webhook registration finalization sanitizer hides raw values", () => {
+  const error = sanitizeTelegramWebhookRegistrationFinalizeError(
+    new Error(`raw ${testWebhookSecretRef} ${testWebhookSecretHash}`),
+  );
+  const serialized = JSON.stringify({
+    code: error.code,
+    message: error.message,
+  });
+
+  assertEquals(error.statusCode, 424);
+  assertEquals(error.message, "Telegram webhook registration failed.");
+  assert(
+    !serialized.includes(testWebhookSecretRef),
+    "Finalization sanitizer must not expose webhookSecretRef.",
+  );
+  assert(
+    !serialized.includes(testWebhookSecretHash),
+    "Finalization sanitizer must not expose webhookSecretHash.",
   );
 });

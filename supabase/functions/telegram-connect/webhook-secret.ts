@@ -25,6 +25,36 @@ export interface ActivateTelegramSessionResult {
   telegramSessionId: string;
 }
 
+export interface FinalizeTelegramWebhookRegistrationInput {
+  telegramSessionId: string;
+  botToken: string;
+  webhookUrl: string;
+  webhookSecretToken: string;
+  webhookSecretHash: string;
+  webhookSecretRef: string;
+}
+
+export interface FinalizeTelegramWebhookRegistrationResult {
+  registered: true;
+}
+
+export interface FinalizeTelegramWebhookRegistrationDependencies {
+  storeTelegramWebhookSecret: (
+    input: TelegramWebhookSecretStoreInput,
+  ) => Promise<StoreTelegramWebhookSecretResult>;
+  registerTelegramWebhook: (input: {
+    botToken: string;
+    webhookUrl: string;
+    webhookSecretToken: string;
+  }) => Promise<unknown>;
+  activateTelegramSession: (input: {
+    telegramSessionId: string;
+  }) => Promise<ActivateTelegramSessionResult>;
+  revokeTelegramWebhookSecret?: (input: {
+    webhookSecretRef: string;
+  }) => Promise<RevokeTelegramWebhookSecretResult>;
+}
+
 export interface CreateTelegramWebhookSecretMaterialOptions {
   getRandomValues?: (bytes: Uint8Array) => Uint8Array;
   randomUUID?: () => string;
@@ -283,4 +313,78 @@ export function sanitizeTelegramSessionActivationError(error: unknown) {
     "server_error",
     "Telegram session activation failed.",
   );
+}
+
+export function sanitizeTelegramWebhookRegistrationFinalizeError(
+  error: unknown,
+) {
+  if (error instanceof HttpError) {
+    return error;
+  }
+
+  return new HttpError(
+    424,
+    "webhook_registration_failed",
+    "Telegram webhook registration failed.",
+  );
+}
+
+export async function finalizeTelegramWebhookRegistration(
+  input: FinalizeTelegramWebhookRegistrationInput,
+  dependencies: FinalizeTelegramWebhookRegistrationDependencies,
+): Promise<FinalizeTelegramWebhookRegistrationResult> {
+  const telegramSessionId = assertTelegramSessionId(input.telegramSessionId);
+  const webhookSecretToken = assertTelegramWebhookSecretToken(
+    input.webhookSecretToken,
+  );
+  const storeInput = createTelegramWebhookSecretStoreInput({
+    telegramSessionId,
+    webhookSecretHash: input.webhookSecretHash,
+    webhookSecretRef: input.webhookSecretRef,
+  });
+
+  let storedWebhookSecretRef: string;
+
+  try {
+    const stored = await dependencies.storeTelegramWebhookSecret(storeInput);
+    storedWebhookSecretRef = assertStoreTelegramWebhookSecretResult(
+      stored,
+      storeInput.webhookSecretRef,
+    ).webhookSecretRef;
+  } catch (error) {
+    throw sanitizeTelegramWebhookSecretPersistenceError(error);
+  }
+
+  try {
+    await dependencies.registerTelegramWebhook({
+      botToken: input.botToken,
+      webhookUrl: input.webhookUrl,
+      webhookSecretToken,
+    });
+  } catch (error) {
+    if (dependencies.revokeTelegramWebhookSecret) {
+      try {
+        assertRevokeTelegramWebhookSecretResult(
+          await dependencies.revokeTelegramWebhookSecret({
+            webhookSecretRef: storedWebhookSecretRef,
+          }),
+        );
+      } catch {
+        // Best-effort cleanup only. Never expose rollback internals.
+      }
+    }
+
+    throw sanitizeTelegramWebhookRegistrationFinalizeError(error);
+  }
+
+  try {
+    assertActivateTelegramSessionResult(
+      await dependencies.activateTelegramSession({ telegramSessionId }),
+      telegramSessionId,
+    );
+  } catch (error) {
+    throw sanitizeTelegramSessionActivationError(error);
+  }
+
+  return { registered: true };
 }
