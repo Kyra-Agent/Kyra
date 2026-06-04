@@ -5843,6 +5843,72 @@ Still blocked after Phase 5BK:
 - Deploying Edge Functions or publishing Netlify.
 - Pushing local commits without explicit approval.
 
+### Phase 5BL Webhook Session Lookup Runtime Preflight
+
+Phase 5BL audits the next safe runtime boundary after the webhook receiver
+schema and verifier passed. It does not wire the live webhook handler and does
+not deploy Edge Functions.
+
+Current runtime state:
+
+- `telegram-webhook` still verifies method, `X-Telegram-Bot-Api-Secret-Token`,
+  JSON content type, and `Content-Length`, then returns inert `501
+  not_configured`.
+- The live handler still does not read, parse, log, or process the request body.
+- The live handler does not create a Supabase client, read service-role secrets,
+  call RPCs, write database rows, call Telegram APIs, or deliver replies.
+- Existing pure helpers already validate webhook session lookup result shape,
+  sanitize lookup errors, parse supported read-only commands, enforce chat
+  authorization policy, validate update claim results, and build static
+  read-only responses.
+
+Database readiness:
+
+- `public.telegram_webhook_secrets` and
+  `public.resolve_telegram_webhook_session(text)` are applied and verified.
+- The lookup RPC accepts only the lowercase SHA-256 hash of the Telegram webhook
+  secret header and returns active session metadata needed internally by the
+  webhook runtime.
+- Browser roles cannot read the private table or execute the lookup RPC.
+- `service_role` can execute the lookup RPC and has only the reviewed direct
+  table privileges.
+
+Recommended next implementation slice:
+
+- Add an inert, test-only/importable webhook session lookup adapter.
+- The adapter should accept an injected RPC client and the raw verified webhook
+  secret header value.
+- The adapter should SHA-256 hash the header value in memory, call
+  `resolve_telegram_webhook_session` with `{ p_webhook_secret_hash }`, and pass
+  the RPC result through the existing sanitized result validator.
+- The adapter must not log, return, persist, or expose the raw webhook secret,
+  hash, owner ID, workspace ID, token reference, or raw RPC error.
+- The live `telegram-webhook` handler should remain inert and should not call
+  the adapter until a separate default-off runtime gate is approved.
+
+Tests required for the next slice:
+
+- Hash helper returns lowercase SHA-256 hex and rejects missing/blank input
+  safely.
+- Adapter calls only `resolve_telegram_webhook_session` with the hashed header.
+- Active single-row RPC result maps through the existing validator.
+- Missing rows return sanitized `404 session_not_found`.
+- RPC errors, duplicate rows, or invalid row shape return sanitized
+  `500 server_error` without leaking raw header, hash, owner/workspace IDs, or
+  `token_secret_ref`.
+- Live handler tests still prove missing secret rejects before any body read and
+  valid inert requests still return `not_configured` without body read.
+
+Still not allowed in Phase 5BL:
+
+- Mounting the adapter into the live handler.
+- Creating a service-role client in `telegram-webhook` runtime.
+- Reading `.env.local` or secret values.
+- Creating webhook secret rows.
+- Parsing live request bodies, claiming updates, authorizing chats through DB,
+  building replies from live updates, or delivering Telegram replies.
+- Edge Function deploy, Netlify publish, or Git push.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
