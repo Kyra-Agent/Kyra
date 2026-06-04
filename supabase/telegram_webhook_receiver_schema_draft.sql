@@ -1,0 +1,265 @@
+-- DRAFT ONLY - DO NOT APPLY.
+-- Phase 5AI review artifact for future Telegram webhook receiver schema work.
+-- This file is intentionally comment-only and contains no executable SQL.
+-- Do not remove comment prefixes or run adapted SQL without explicit approval.
+
+-- Purpose
+-- - Capture the intended SQL boundary for Telegram webhook secret lookup.
+-- - Capture the intended SQL boundary for Telegram chat authorization storage.
+-- - Keep production unchanged until schema, RLS, grants, verifier, and rollout
+--   approvals are explicit.
+-- - Give reviewers stable object names and privilege expectations before any
+--   executable SQL is written.
+
+-- Hard boundaries
+-- - No table, index, policy, grant, trigger, or function is created by this
+--   draft.
+-- - No Supabase Vault secret is created, read, updated, or revoked by this
+--   draft.
+-- - No raw BotFather token or raw webhook secret is stored by this draft.
+-- - No Edge Function, frontend, Telegram API, webhook registration, command
+--   parser, or reply sender behavior is wired by this draft.
+-- - This draft must not be applied in Supabase.
+
+-- Required approvals before converting this draft into executable SQL
+-- - Confirm exact table names, column names, and indexes.
+-- - Confirm webhook secret hash algorithm and secret reference format.
+-- - Confirm whether hash generation happens only in Edge Functions or through
+--   an approved server-side RPC.
+-- - Confirm owner-linking flow for personal Telegram chats.
+-- - Confirm community/project allowlist and admin policy semantics.
+-- - Confirm final RLS/grant statements.
+-- - Confirm verifier expected outputs before applying.
+-- - Run the verifier before and after any approved migration.
+
+-- Proposed object names
+-- - Webhook secret table: public.telegram_webhook_secrets
+-- - Chat authorization table: public.telegram_chat_authorizations
+-- - Webhook session lookup RPC: public.resolve_telegram_webhook_session(text)
+-- - Optional chat policy lookup RPC: public.resolve_telegram_chat_authorization(uuid,text,text,text)
+
+-- Proposed webhook secret table shape
+-- - webhook_secret_ref text primary key
+-- - webhook_secret_hash text not null
+-- - telegram_session_id uuid not null references public.telegram_sessions(id) on delete cascade
+-- - agent_id uuid not null references public.agent_instances(id) on delete cascade
+-- - created_at timestamptz not null default now()
+-- - revoked_at timestamptz null
+
+-- Commented DDL sketch
+-- create table if not exists public.telegram_webhook_secrets (
+--   webhook_secret_ref text primary key,
+--   webhook_secret_hash text not null,
+--   telegram_session_id uuid not null references public.telegram_sessions(id) on delete cascade,
+--   agent_id uuid not null references public.agent_instances(id) on delete cascade,
+--   created_at timestamptz not null default now(),
+--   revoked_at timestamptz null
+-- );
+
+-- Index intent
+-- - One active webhook secret per Telegram session.
+-- - Fast lookup by webhook_secret_hash.
+-- - The hash should not be reversible and must not be exposed to browser roles.
+-- create unique index telegram_webhook_secrets_active_session_key
+--   on public.telegram_webhook_secrets (telegram_session_id)
+--   where revoked_at is null;
+-- create unique index telegram_webhook_secrets_active_hash_key
+--   on public.telegram_webhook_secrets (webhook_secret_hash)
+--   where revoked_at is null;
+
+-- Proposed chat authorization table shape
+-- - id uuid primary key default gen_random_uuid()
+-- - agent_id uuid not null references public.agent_instances(id) on delete cascade
+-- - telegram_user_id text null
+-- - telegram_chat_id text null
+-- - role text not null check (role in ('owner', 'admin', 'member'))
+-- - command_scope text not null check (command_scope in ('read_only','approval','write'))
+-- - created_at timestamptz not null default now()
+-- - revoked_at timestamptz null
+
+-- Commented DDL sketch
+-- create table if not exists public.telegram_chat_authorizations (
+--   id uuid primary key default gen_random_uuid(),
+--   agent_id uuid not null references public.agent_instances(id) on delete cascade,
+--   telegram_user_id text null,
+--   telegram_chat_id text null,
+--   role text not null check (role in ('owner', 'admin', 'member')),
+--   command_scope text not null check (command_scope in ('read_only','approval','write')),
+--   created_at timestamptz not null default now(),
+--   revoked_at timestamptz null,
+--   check (
+--     nullif(btrim(coalesce(telegram_user_id, '')), '') is not null
+--     or nullif(btrim(coalesce(telegram_chat_id, '')), '') is not null
+--   )
+-- );
+
+-- Chat authorization index intent
+-- - Avoid duplicate active authorizations for the same agent/user/chat/scope.
+-- - Personal owner transfer needs a separate reviewed flow before broad updates.
+-- create unique index telegram_chat_auth_active_identity_scope_key
+--   on public.telegram_chat_authorizations (
+--     agent_id,
+--     coalesce(telegram_user_id, ''),
+--     coalesce(telegram_chat_id, ''),
+--     command_scope
+--   )
+--   where revoked_at is null;
+
+-- Browser access boundary
+-- - anon and authenticated browser clients must not read or write either table.
+-- - service_role should be the only role with direct table access.
+-- - Public views must not include webhook_secret_ref, webhook_secret_hash,
+--   telegram_user_id, telegram_chat_id, owner_user_id, workspace_id, raw
+--   Telegram payloads, or raw DB errors.
+
+-- Commented RLS/grant sketch
+-- alter table public.telegram_webhook_secrets enable row level security;
+-- alter table public.telegram_chat_authorizations enable row level security;
+-- revoke all on public.telegram_webhook_secrets from public;
+-- revoke all on public.telegram_webhook_secrets from anon;
+-- revoke all on public.telegram_webhook_secrets from authenticated;
+-- revoke all on public.telegram_chat_authorizations from public;
+-- revoke all on public.telegram_chat_authorizations from anon;
+-- revoke all on public.telegram_chat_authorizations from authenticated;
+-- grant select, insert, update on public.telegram_webhook_secrets to service_role;
+-- grant select, insert, update on public.telegram_chat_authorizations to service_role;
+
+-- Webhook session lookup RPC intent
+-- - Input is a webhook secret hash or approved opaque reference only.
+-- - The RPC resolves the secret to exactly one active Telegram session.
+-- - The RPC joins telegram_sessions -> agent_instances -> workspaces.
+-- - The RPC returns only internal fields needed by telegram-webhook.
+-- - The RPC must not return webhook_secret_ref, webhook_secret_hash,
+--   token_secret_ref, raw Telegram payloads, raw DB errors, or raw secrets.
+
+-- Commented lookup function sketch
+-- create or replace function public.resolve_telegram_webhook_session(
+--   p_webhook_secret_hash text
+-- ) returns table (
+--   session_id uuid,
+--   agent_id uuid,
+--   workspace_id uuid,
+--   owner_user_id uuid,
+--   bot_handle text,
+--   webhook_status text
+-- )
+-- language sql
+-- stable
+-- security definer
+-- set search_path = public
+-- as $$
+--   select
+--     sessions.id as session_id,
+--     sessions.agent_id,
+--     agents.workspace_id,
+--     workspaces.owner_user_id,
+--     sessions.bot_handle,
+--     sessions.webhook_status
+--   from public.telegram_webhook_secrets secrets
+--   join public.telegram_sessions sessions
+--     on sessions.id = secrets.telegram_session_id
+--   join public.agent_instances agents
+--     on agents.id = sessions.agent_id
+--   join public.workspaces workspaces
+--     on workspaces.id = agents.workspace_id
+--   where secrets.webhook_secret_hash = btrim(p_webhook_secret_hash)
+--     and secrets.revoked_at is null
+--     and sessions.webhook_status = 'active'
+--   limit 2;
+-- $$;
+
+-- Chat authorization lookup intent
+-- - Input should be agent id, Telegram user id, Telegram chat id, and command
+--   kind/scope.
+-- - Personal owner and community/admin policies can be represented by table
+--   rows without exposing chat IDs to browsers.
+-- - Unknown chats should resolve to no row and be handled as safe denial/no-op.
+-- - Write or approval commands must not be authorized by read_only rows.
+
+-- Commented chat lookup function sketch
+-- create or replace function public.resolve_telegram_chat_authorization(
+--   p_agent_id uuid,
+--   p_telegram_user_id text,
+--   p_telegram_chat_id text,
+--   p_command_scope text
+-- ) returns table (
+--   role text,
+--   command_scope text
+-- )
+-- language sql
+-- stable
+-- security definer
+-- set search_path = public
+-- as $$
+--   select authz.role, authz.command_scope
+--   from public.telegram_chat_authorizations authz
+--   where authz.agent_id = p_agent_id
+--     and authz.revoked_at is null
+--     and (
+--       (p_telegram_user_id is not null and authz.telegram_user_id = p_telegram_user_id)
+--       or (p_telegram_chat_id is not null and authz.telegram_chat_id = p_telegram_chat_id)
+--     )
+--     and (
+--       authz.command_scope = p_command_scope
+--       or (
+--         p_command_scope = 'read_only'
+--         and authz.command_scope in ('read_only', 'approval', 'write')
+--       )
+--     )
+--   order by
+--     case authz.role
+--       when 'owner' then 1
+--       when 'admin' then 2
+--       else 3
+--     end
+--   limit 1;
+-- $$;
+
+-- Commented function privilege sketch
+-- - PostgreSQL may grant execute on functions to PUBLIC by default.
+-- - Future executable SQL must revoke from public before granting backend-only
+--   access.
+-- revoke execute on function public.resolve_telegram_webhook_session(text) from public;
+-- revoke execute on function public.resolve_telegram_webhook_session(text) from anon;
+-- revoke execute on function public.resolve_telegram_webhook_session(text) from authenticated;
+-- grant execute on function public.resolve_telegram_webhook_session(text) to service_role;
+-- revoke execute on function public.resolve_telegram_chat_authorization(uuid,text,text,text) from public;
+-- revoke execute on function public.resolve_telegram_chat_authorization(uuid,text,text,text) from anon;
+-- revoke execute on function public.resolve_telegram_chat_authorization(uuid,text,text,text) from authenticated;
+-- grant execute on function public.resolve_telegram_chat_authorization(uuid,text,text,text) to service_role;
+
+-- Expected verifier checks after an approved apply
+-- - telegram_webhook_secrets table exists.
+-- - telegram_chat_authorizations table exists.
+-- - public, anon, and authenticated cannot select, insert, update, or delete
+--   either private table.
+-- - service_role has required direct table privileges.
+-- - resolve_telegram_webhook_session exists.
+-- - resolve_telegram_chat_authorization exists, if that RPC is approved.
+-- - public, anon, and authenticated cannot execute webhook/chat lookup RPCs.
+-- - service_role can execute webhook/chat lookup RPCs.
+-- - telegram_session_summaries still excludes token_secret_ref, owner_user_id,
+--   workspace_id, webhook secret refs/hashes, chat IDs, and raw Telegram
+--   payloads.
+-- - authenticated still cannot broad-select telegram_sessions.
+
+-- Future implementation order after approval
+-- - Convert this comment-only draft into reviewed executable SQL.
+-- - Apply only in Supabase after explicit approval.
+-- - Run verifier and capture results.
+-- - Update generated/local database types after schema approval.
+-- - Add Edge Function DB adapters behind mocked tests first.
+-- - Wire telegram-webhook lookup after body-order and authorization tests pass.
+-- - Keep command parsing and reply sending separate later phases.
+
+-- Still blocked until separately approved
+-- - Executable SQL.
+-- - schema.sql or verifier SQL edits.
+-- - Supabase SQL apply.
+-- - Real webhook secret creation or hashing.
+-- - Real session lookup wiring.
+-- - Telegram update parsing.
+-- - Telegram command processing.
+-- - Telegram reply sender.
+-- - Edge Function deploy.
+-- - Netlify unlock or production publish.

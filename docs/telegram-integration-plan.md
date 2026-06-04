@@ -3205,6 +3205,26 @@ Safe next slice after this docs update:
 - No executable SQL should be applied until that draft is reviewed and explicitly
   approved.
 
+### Phase 5AI Draft SQL Boundary State
+
+Phase 5AI adds a comment-only review artifact for the future webhook receiver
+schema boundary:
+
+- `supabase/telegram_webhook_receiver_schema_draft.sql`
+
+The draft captures proposed private tables, indexes, RLS/grants, lookup RPCs,
+verifier checks, approval points, and rollout order for:
+
+- `public.telegram_webhook_secrets`
+- `public.telegram_chat_authorizations`
+- `public.resolve_telegram_webhook_session(text)`
+- optional `public.resolve_telegram_chat_authorization(uuid,text,text,text)`
+
+This draft must remain non-executable until separately approved. It does not
+edit `schema.sql`, apply SQL in Supabase, change RLS/grants, create/read secrets,
+wire runtime DB lookup, deploy Edge Functions, publish Netlify, or enable command
+processing.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
