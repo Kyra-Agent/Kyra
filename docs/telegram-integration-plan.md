@@ -6486,3 +6486,51 @@ Still not included:
 - No schema/RLS changes.
 - No Edge Function deploy.
 - No Netlify publish/unlock.
+
+## Phase 5BT Combined - Telegram Response Delivery Contract
+
+Phase 5BT adds an isolated Telegram response delivery helper for future
+read-only replies. The helper is exported for tests and later wiring, but it is
+not called from `handleTelegramWebhookRequest` yet.
+
+Contract:
+
+- Accept only a backend-resolved BotFather token at the delivery boundary.
+- Accept only a validated Telegram chat id from the parsed update.
+- Accept only a bounded `TelegramReadOnlyCommandResponse`.
+- Build a `sendMessage` request with:
+  - `chat_id`
+  - `text`
+  - `disable_web_page_preview: true`
+- Return only `{ delivered: true }`.
+
+Security rules:
+
+- The helper must use injected `fetch` in tests and must not perform live
+  network calls during local verification.
+- The helper must not log the request, response, token, chat id, or Telegram
+  error body.
+- The bot token may appear only in the Telegram API URL inside the backend
+  request boundary and must never appear in request body, API response, thrown
+  error, docs examples with real values, or frontend state.
+- Unauthorized, malformed, rate-limited, network, timeout, and Telegram 5xx
+  failures must map to sanitized errors.
+- `handleTelegramWebhookRequest` must remain unchanged in behavior and continue
+  returning `not_configured`.
+
+Files touched:
+
+- `supabase/functions/telegram-webhook/response-delivery.ts`
+- `supabase/functions/telegram-webhook/response-delivery_test.ts`
+- `supabase/functions/telegram-webhook/index.ts`
+- `docs/telegram-integration-plan.md`
+
+Still not included:
+
+- No runtime response delivery gate.
+- No webhook handler call to `sendMessage`.
+- No token secret resolution.
+- No Telegram API call during local tests.
+- No schema/RLS changes.
+- No Edge Function deploy.
+- No Netlify publish/unlock.

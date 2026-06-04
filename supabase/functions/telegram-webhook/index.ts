@@ -105,6 +105,18 @@ export type {
 export { planTelegramClaimedReadOnlyResponse } from "./claim-aware-response.ts";
 export type { TelegramClaimedReadOnlyResponsePlan } from "./claim-aware-response.ts";
 export {
+  assertTelegramDeliveryBotToken,
+  assertTelegramDeliveryChatId,
+  assertTelegramDeliveryResponse,
+  deliverTelegramReadOnlyResponse,
+} from "./response-delivery.ts";
+export type {
+  TelegramResponseDeliveryFetch,
+  TelegramResponseDeliveryInput,
+  TelegramResponseDeliveryOptions,
+  TelegramResponseDeliveryResult,
+} from "./response-delivery.ts";
+export {
   assertTelegramWebhookSecretHeaderValue,
   hashTelegramWebhookSecretHeader,
   lookupTelegramWebhookSessionBySecretHeader,
