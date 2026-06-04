@@ -3078,6 +3078,133 @@ Remaining blockers before live webhook processing:
 - No Telegram reply sender.
 - No Edge Function deployment or production smoke for real Telegram webhooks.
 
+## Phase 5AH Webhook Secret And Chat Auth Schema Plan
+
+Phase 5AH is a schema/RLS audit and design checkpoint. It does not edit
+`schema.sql`, apply SQL in Supabase, change RLS/grants, create secrets, read
+secrets, write database rows, wire real webhook lookup, deploy Edge Functions,
+publish Netlify, or enable command processing.
+
+Current schema/RLS findings:
+
+- `telegram_sessions` currently stores safe demo metadata plus
+  `token_secret_ref`.
+- `telegram_session_summaries` is the browser-facing Telegram metadata view and
+  excludes `token_secret_ref`, `owner_user_id`, `workspace_id`, webhook secrets,
+  chat identifiers, and raw Telegram payloads.
+- Authenticated browser clients have select access only to safe
+  `telegram_sessions` columns and do not have broad table select.
+- The verifier already checks that authenticated clients cannot select
+  `telegram_sessions.token_secret_ref` or broad-select `telegram_sessions`.
+- There is no approved storage for webhook secret hash/reference.
+- There is no approved storage for owner-linked Telegram user/chat identities or
+  community/project allowlists.
+- `telegram-webhook` has pure session/chat authorization contracts, but no real
+  Supabase lookup is wired.
+
+Recommended webhook secret storage:
+
+- Do not store raw webhook secret tokens in public tables.
+- Prefer a backend-only companion table instead of adding secret material to
+  browser-readable `telegram_sessions`.
+- Proposed private table: `public.telegram_webhook_secrets`.
+- Proposed fields:
+  - `webhook_secret_ref text primary key`
+  - `webhook_secret_hash text not null`
+  - `telegram_session_id uuid not null references public.telegram_sessions(id)`
+  - `agent_id uuid not null references public.agent_instances(id)`
+  - `created_at timestamptz not null default now()`
+  - `revoked_at timestamptz null`
+- Add a partial unique index so only one active webhook secret exists per
+  Telegram session.
+- The hash algorithm and secret generation format require separate approval
+  before executable SQL is written.
+
+Recommended chat authorization storage:
+
+- Keep Telegram chat/user identifiers out of public views and browser-readable
+  tables.
+- Proposed private table: `public.telegram_chat_authorizations`.
+- Proposed fields:
+  - `id uuid primary key default gen_random_uuid()`
+  - `agent_id uuid not null references public.agent_instances(id)`
+  - `telegram_user_id text null`
+  - `telegram_chat_id text null`
+  - `role text not null check (role in ('owner', 'admin', 'member'))`
+  - `command_scope text not null check (command_scope in ('read_only',
+    'approval', 'write'))`
+  - `created_at timestamptz not null default now()`
+  - `revoked_at timestamptz null`
+- Require at least one of `telegram_user_id` or `telegram_chat_id`.
+- Personal agents should have exactly one active owner-linked authorization per
+  agent unless a separate transfer flow is approved.
+- Community/project agents may use explicit allowlists or admin rows, but write
+  and approval scopes must remain separate from read-only access.
+
+Recommended lookup boundary:
+
+- `telegram-webhook` should not directly expose private table data to responses.
+- Prefer a narrow service-role-only RPC for receiver lookup after schema
+  approval.
+- Proposed lookup input: webhook secret hash/ref.
+- Proposed internal result:
+  - `session_id`
+  - `agent_id`
+  - `workspace_id`
+  - `owner_user_id`
+  - `bot_handle`
+  - `webhook_status`
+  - minimal chat authorization policy fields needed by the receiver
+- Public/API responses must never include webhook secret refs/hashes,
+  `token_secret_ref`, owner IDs, workspace IDs, Telegram user/chat identifiers,
+  raw DB errors, or raw Telegram payloads.
+
+Recommended RLS/grants:
+
+- Enable RLS on both private tables.
+- Revoke all privileges on both private tables from `public`, `anon`, and
+  `authenticated`.
+- Grant only the approved minimum privileges to `service_role`.
+- Revoke execute on future lookup RPCs from `public`, `anon`, and
+  `authenticated`.
+- Grant execute on future lookup RPCs only to `service_role`.
+- Keep `telegram_session_summaries` unchanged unless a separate browser-facing
+  metadata need is approved.
+
+Recommended verifier additions:
+
+- Confirm `telegram_webhook_secrets` exists after approved SQL apply.
+- Confirm `telegram_chat_authorizations` exists after approved SQL apply.
+- Confirm `anon` and `authenticated` cannot select, insert, update, or delete
+  rows in either private table.
+- Confirm `service_role` has the required privileges on both private tables.
+- Confirm future webhook lookup RPCs are not executable by `public`, `anon`, or
+  `authenticated`.
+- Confirm future webhook lookup RPCs are executable by `service_role`.
+- Confirm `telegram_session_summaries` still excludes `token_secret_ref`,
+  webhook secret refs/hashes, owner IDs, workspace IDs, chat identifiers, and raw
+  Telegram payloads.
+- Confirm authenticated clients still cannot broad-select `telegram_sessions`.
+
+Approval points before executable SQL:
+
+- Approve exact table names and column names.
+- Approve webhook secret hash algorithm and secret reference format.
+- Approve personal owner-linking flow.
+- Approve community/project allowlist/admin policy scope.
+- Approve RLS/grant statements.
+- Approve verifier expected outputs.
+- Approve whether SQL belongs in a draft file first or directly in a reviewed
+  migration/apply packet.
+
+Safe next slice after this docs update:
+
+- Phase 5AI audit/draft-only SQL boundary for
+  `telegram_webhook_secrets`, `telegram_chat_authorizations`, grants, and
+  verifier checks.
+- No executable SQL should be applied until that draft is reviewed and explicitly
+  approved.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
