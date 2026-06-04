@@ -4400,6 +4400,86 @@ Security confirmation:
 - No token refs or raw token values are returned by runtime code.
 - No Edge Function deploy, Netlify publish, or push happened in this slice.
 
+### Phase 5AU Telegram Update Parser Preflight
+
+Phase 5AU prepares a pure Telegram Update parser contract. It does not wire
+request-body parsing into the live webhook handler and does not enable command
+processing.
+
+Current findings:
+
+- `telegram-webhook` has no Telegram Update parser.
+- The live handler still does not call `request.json()`, `request.text()`, or
+  any other request-body reader.
+- Webhook verification, future session lookup, and chat authorization must all
+  complete before a future runtime boundary may parse and route a command.
+- The existing chat authorization helper already distinguishes `read_only`,
+  `write`, and `approval`, but no command parser currently assigns those kinds.
+
+Recommended first parser scope:
+
+- Implement a pure helper that accepts an already-parsed `unknown` value.
+- Do not let the helper accept `Request`, raw JSON text, headers, or secrets.
+- Accept only Telegram `message` updates containing a text command.
+- Extract only:
+  - safe integer `update_id`
+  - safe integer `message.message_id`
+  - Telegram user ID from `message.from.id`
+  - Telegram chat ID from `message.chat.id`
+  - normalized allowlisted command name
+  - command kind
+- Allow only the read-only commands `/help` and `/status` in the first slice.
+- Allow the Telegram group form `/help@bot_username` and
+  `/status@bot_username`, while discarding the bot username from the parsed
+  command result.
+- Reject command arguments, free-form text, edited messages, callback queries,
+  channel posts, and unknown commands.
+- Never return the original message text or bot username.
+
+Proposed pure result contract:
+
+```ts
+interface TelegramWebhookParsedCommand {
+  updateId: string;
+  messageId: string;
+  telegramUserId: string;
+  telegramChatId: string;
+  command: "help" | "status";
+  commandKind: "read_only";
+}
+```
+
+Error contract:
+
+- Missing or malformed update shape returns `400 invalid_update`.
+- Missing user/chat identity returns `400 invalid_update`.
+- Non-command text, unsupported update kinds, unknown commands, or command
+  arguments return `422 unsupported_update`.
+- Errors must be generic and must not echo message text, usernames, user IDs,
+  chat IDs, or raw update content.
+
+Tests required:
+
+- Parse `/help` and `/status`.
+- Parse `/help@bot_username` without returning the username.
+- Reject unknown commands and command arguments.
+- Reject non-command text.
+- Reject edited messages, callback queries, and channel posts.
+- Reject missing or unsafe integer IDs.
+- Confirm errors do not expose raw message text, Telegram IDs, or usernames.
+- Confirm the live handler still returns inert `not_configured` without reading
+  the body.
+
+What not to touch in Phase 5AU:
+
+- No `request.json()` or other body access in `handleTelegramWebhookRequest`.
+- No live RPC lookup.
+- No DB read/write or service-role client.
+- No chat authorization DB objects.
+- No Telegram API calls or replies.
+- No command execution, approval creation, wallet action, or activity logging.
+- No SQL apply, Edge Function deploy, Netlify publish/unlock, or push.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
