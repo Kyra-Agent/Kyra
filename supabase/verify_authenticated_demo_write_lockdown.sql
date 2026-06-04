@@ -8,8 +8,10 @@ telegram_webhook_receiver_objects as (
   select
     to_regclass('public.telegram_webhook_secrets') as telegram_webhook_secrets_table,
     to_regclass('public.telegram_chat_authorizations') as telegram_chat_authorizations_table,
+    to_regclass('public.telegram_processed_updates') as telegram_processed_updates_table,
     to_regprocedure('public.resolve_telegram_webhook_session(text)') as resolve_telegram_webhook_session_rpc,
-    to_regprocedure('public.resolve_telegram_chat_authorization(uuid,text,text,text)') as resolve_telegram_chat_authorization_rpc
+    to_regprocedure('public.resolve_telegram_chat_authorization(uuid,text,text,text)') as resolve_telegram_chat_authorization_rpc,
+    to_regprocedure('public.claim_telegram_update(uuid,bigint)') as claim_telegram_update_rpc
 )
 select
   has_table_privilege('authenticated', 'public.workspaces', 'select') as auth_can_read_workspaces,
@@ -525,6 +527,220 @@ select
   telegram_webhook_receiver_objects.telegram_chat_authorizations_table is not null as telegram_chat_authorizations_table_exists,
   case
     when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else exists (
+      select 1
+      from pg_class rel
+      where rel.oid = telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid
+        and rel.relkind = 'r'
+    )
+    and coalesce(
+      (
+        select array_agg(
+          format('%s:%s:%s', column_name, udt_name, is_nullable)
+          order by ordinal_position
+        )
+        from information_schema.columns
+        where table_schema = 'public'
+          and table_name = 'telegram_chat_authorizations'
+      ) = array[
+        'id:uuid:NO',
+        'agent_id:uuid:NO',
+        'telegram_user_id:text:NO',
+        'telegram_chat_id:text:NO',
+        'role:text:NO',
+        'command_scope:text:NO',
+        'created_at:timestamptz:NO',
+        'revoked_at:timestamptz:YES'
+      ]::text[],
+      false
+    )
+    and coalesce(
+      (
+        select rel.relrowsecurity
+        from pg_class rel
+        where rel.oid = telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid
+      ),
+      false
+    )
+    and not exists (
+      select 1
+      from pg_policies
+      where schemaname = 'public'
+        and tablename = 'telegram_chat_authorizations'
+    )
+  end as telegram_chat_authorizations_table_contract_is_expected,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else exists (
+      select 1
+      from pg_constraint con
+      where con.conrelid = telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid
+        and con.conname = 'telegram_chat_authorizations_pkey'
+        and con.contype = 'p'
+        and con.convalidated
+        and con.conkey = array[
+          (
+            select att.attnum
+            from pg_attribute att
+            where att.attrelid = telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid
+              and att.attname = 'id'
+              and not att.attisdropped
+          )
+        ]::smallint[]
+    )
+    and exists (
+      select 1
+      from pg_constraint con
+      where con.conrelid = telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid
+        and con.conname = 'telegram_chat_authorizations_agent_fkey'
+        and con.contype = 'f'
+        and con.convalidated
+        and con.confrelid = to_regclass('public.agent_instances')
+        and con.confdeltype = 'c'
+        and con.conkey = array[
+          (
+            select att.attnum
+            from pg_attribute att
+            where att.attrelid = telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid
+              and att.attname = 'agent_id'
+              and not att.attisdropped
+          )
+        ]::smallint[]
+        and con.confkey = array[
+          (
+            select att.attnum
+            from pg_attribute att
+            where att.attrelid = to_regclass('public.agent_instances')
+              and att.attname = 'id'
+              and not att.attisdropped
+          )
+        ]::smallint[]
+    )
+    and exists (
+      select 1
+      from pg_constraint con
+      where con.conrelid = telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid
+        and con.conname = 'telegram_chat_authorizations_user_not_blank_check'
+        and con.contype = 'c'
+        and con.convalidated
+        and regexp_replace(
+          lower(pg_get_constraintdef(con.oid)),
+          '[^a-z0-9_>]+',
+          '',
+          'g'
+        ) = 'checklengthbtrimtelegram_user_id>0'
+    )
+    and exists (
+      select 1
+      from pg_constraint con
+      where con.conrelid = telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid
+        and con.conname = 'telegram_chat_authorizations_user_format_check'
+        and con.contype = 'c'
+        and con.convalidated
+        and replace(
+          regexp_replace(
+            lower(pg_get_constraintdef(con.oid)),
+            '[[:space:]()]',
+            '',
+            'g'
+          ),
+          '::text',
+          ''
+        ) = 'checktelegram_user_id~''^[1-9][0-9]*$'''
+    )
+    and exists (
+      select 1
+      from pg_constraint con
+      where con.conrelid = telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid
+        and con.conname = 'telegram_chat_authorizations_chat_not_blank_check'
+        and con.contype = 'c'
+        and con.convalidated
+        and regexp_replace(
+          lower(pg_get_constraintdef(con.oid)),
+          '[^a-z0-9_>]+',
+          '',
+          'g'
+        ) = 'checklengthbtrimtelegram_chat_id>0'
+    )
+    and exists (
+      select 1
+      from pg_constraint con
+      where con.conrelid = telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid
+        and con.conname = 'telegram_chat_authorizations_chat_format_check'
+        and con.contype = 'c'
+        and con.convalidated
+        and replace(
+          regexp_replace(
+            lower(pg_get_constraintdef(con.oid)),
+            '[[:space:]()]',
+            '',
+            'g'
+          ),
+          '::text',
+          ''
+        ) = 'checktelegram_chat_id~''^-?[1-9][0-9]*$'''
+    )
+    and exists (
+      select 1
+      from pg_constraint con
+      where con.conrelid = telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid
+        and con.conname = 'telegram_chat_authorizations_owner_role_check'
+        and con.contype = 'c'
+        and con.convalidated
+        and replace(
+          regexp_replace(
+            lower(pg_get_constraintdef(con.oid)),
+            '[[:space:]()]',
+            '',
+            'g'
+          ),
+          '::text',
+          ''
+        ) = 'checkrole=''owner'''
+    )
+    and exists (
+      select 1
+      from pg_constraint con
+      where con.conrelid = telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid
+        and con.conname = 'telegram_chat_authorizations_read_only_scope_check'
+        and con.contype = 'c'
+        and con.convalidated
+        and replace(
+          regexp_replace(
+            lower(pg_get_constraintdef(con.oid)),
+            '[[:space:]()]',
+            '',
+            'g'
+          ),
+          '::text',
+          ''
+        ) = 'checkcommand_scope=''read_only'''
+    )
+  end as telegram_chat_authorizations_constraints_are_expected,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else exists (
+      select 1
+      from pg_index idx
+      join pg_class index_rel on index_rel.oid = idx.indexrelid
+      where idx.indrelid = telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid
+        and index_rel.relname = 'telegram_chat_authorizations_active_agent_key'
+        and idx.indisunique
+        and idx.indisvalid
+        and idx.indisready
+        and idx.indnkeyatts = 1
+        and idx.indnatts = 1
+        and pg_get_indexdef(idx.indexrelid, 1, true) = 'agent_id'
+        and regexp_replace(
+          lower(pg_get_expr(idx.indpred, idx.indrelid, true)),
+          '[^a-z0-9_]+',
+          '',
+          'g'
+        ) = 'revoked_atisnull'
+    )
+  end as telegram_chat_authorizations_active_agent_index_is_expected,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
     else not exists (
       select 1
       from pg_class rel
@@ -655,6 +871,121 @@ select
       'update'
     ), false)
   end as service_role_can_update_telegram_chat_authorizations,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else not exists (
+      select 1
+      from pg_class rel
+      cross join aclexplode(coalesce(rel.relacl, acldefault('r', rel.relowner))) as acl
+      where rel.oid = telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid
+        and acl.grantee = 0::oid
+    )
+  end as public_has_no_direct_telegram_chat_authorizations_privileges,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else not (
+      coalesce(has_table_privilege(
+        'anon',
+        telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+        'select'
+      ), false)
+      or coalesce(has_table_privilege(
+        'anon',
+        telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+        'insert'
+      ), false)
+      or coalesce(has_table_privilege(
+        'anon',
+        telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+        'update'
+      ), false)
+      or coalesce(has_table_privilege(
+        'anon',
+        telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+        'delete'
+      ), false)
+      or coalesce(has_table_privilege(
+        'anon',
+        telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+        'truncate'
+      ), false)
+      or coalesce(has_table_privilege(
+        'anon',
+        telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+        'references'
+      ), false)
+      or coalesce(has_table_privilege(
+        'anon',
+        telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+        'trigger'
+      ), false)
+    )
+  end as anon_has_no_direct_telegram_chat_authorizations_privileges,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else not (
+      coalesce(has_table_privilege(
+        'authenticated',
+        telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+        'select'
+      ), false)
+      or coalesce(has_table_privilege(
+        'authenticated',
+        telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+        'insert'
+      ), false)
+      or coalesce(has_table_privilege(
+        'authenticated',
+        telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+        'update'
+      ), false)
+      or coalesce(has_table_privilege(
+        'authenticated',
+        telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+        'delete'
+      ), false)
+      or coalesce(has_table_privilege(
+        'authenticated',
+        telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+        'truncate'
+      ), false)
+      or coalesce(has_table_privilege(
+        'authenticated',
+        telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+        'references'
+      ), false)
+      or coalesce(has_table_privilege(
+        'authenticated',
+        telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+        'trigger'
+      ), false)
+    )
+  end as auth_has_no_direct_telegram_chat_authorizations_privileges,
+  case
+    when telegram_webhook_receiver_objects.telegram_chat_authorizations_table is null then false
+    else not (
+      coalesce(has_table_privilege(
+        'service_role',
+        telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+        'delete'
+      ), false)
+      or coalesce(has_table_privilege(
+        'service_role',
+        telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+        'truncate'
+      ), false)
+      or coalesce(has_table_privilege(
+        'service_role',
+        telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+        'references'
+      ), false)
+      or coalesce(has_table_privilege(
+        'service_role',
+        telegram_webhook_receiver_objects.telegram_chat_authorizations_table::oid,
+        'trigger'
+      ), false)
+    )
+  end as service_role_has_no_extra_telegram_chat_authorizations_privileges,
   telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc is not null as resolve_telegram_webhook_session_function_exists,
   case
     when telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc is null then false
@@ -805,6 +1136,80 @@ select
   telegram_webhook_receiver_objects.resolve_telegram_chat_authorization_rpc is not null as resolve_telegram_chat_authorization_function_exists,
   case
     when telegram_webhook_receiver_objects.resolve_telegram_chat_authorization_rpc is null then false
+    else exists (
+      select 1
+      from pg_proc proc
+      join pg_language lang on lang.oid = proc.prolang
+      where proc.oid = telegram_webhook_receiver_objects.resolve_telegram_chat_authorization_rpc::oid
+        and lang.lanname = 'sql'
+        and proc.provolatile = 's'
+        and not proc.prosecdef
+        and exists (
+          select 1
+          from unnest(coalesce(proc.proconfig, array[]::text[])) as config(setting)
+          where lower(split_part(config.setting, '=', 1)) = 'search_path'
+            and btrim(
+              substring(config.setting from position('=' in config.setting) + 1),
+              ' "'
+            ) = ''
+        )
+    )
+  end as resolve_telegram_chat_authorization_security_contract_is_expected,
+  case
+    when telegram_webhook_receiver_objects.resolve_telegram_chat_authorization_rpc is null then false
+    else exists (
+      select 1
+      from pg_proc proc
+      where proc.oid = telegram_webhook_receiver_objects.resolve_telegram_chat_authorization_rpc::oid
+        and proc.proretset
+        and coalesce(
+          (
+            select array_agg(proc.proargnames[position] order by position)
+            from generate_subscripts(proc.proargmodes, 1) as positions(position)
+            where proc.proargmodes[position] = 't'::"char"
+          ),
+          array[]::text[]
+        ) = array['authorized', 'role']::text[]
+        and coalesce(
+          (
+            select array_agg(
+              format_type(proc.proallargtypes[position], null)
+              order by position
+            )
+            from generate_subscripts(proc.proargmodes, 1) as positions(position)
+            where proc.proargmodes[position] = 't'::"char"
+          ),
+          array[]::text[]
+        ) = array['boolean', 'text']::text[]
+    )
+  end as resolve_telegram_chat_authorization_result_contract_is_expected,
+  case
+    when telegram_webhook_receiver_objects.resolve_telegram_chat_authorization_rpc is null then false
+    else exists (
+      select 1
+      from (
+        select regexp_replace(
+          lower(pg_get_functiondef(proc.oid)),
+          '[[:space:]()]+',
+          '',
+          'g'
+        ) as definition
+        from pg_proc proc
+        where proc.oid = telegram_webhook_receiver_objects.resolve_telegram_chat_authorization_rpc::oid
+      ) normalized
+      where position('authorizations.agent_id=p_agent_id' in normalized.definition) > 0
+        and position('authorizations.telegram_user_id=p_telegram_user_id' in normalized.definition) > 0
+        and position('authorizations.telegram_chat_id=p_telegram_chat_id' in normalized.definition) > 0
+        and position('authorizations.role=''owner''' in normalized.definition) > 0
+        and position('authorizations.command_scope=''read_only''' in normalized.definition) > 0
+        and position('p_command_kind=''read_only''' in normalized.definition) > 0
+        and position('authorizations.revoked_atisnull' in normalized.definition) > 0
+        and position('orauthorizations.telegram_user_id' in normalized.definition) = 0
+        and position('orauthorizations.telegram_chat_id' in normalized.definition) = 0
+    )
+  end as resolve_telegram_chat_authorization_matching_contract_is_expected,
+  case
+    when telegram_webhook_receiver_objects.resolve_telegram_chat_authorization_rpc is null then false
     else not exists (
       select 1
       from pg_proc proc
@@ -838,6 +1243,354 @@ select
       'execute'
     ), false)
   end as service_role_can_execute_resolve_telegram_chat_authorization,
+  telegram_webhook_receiver_objects.telegram_processed_updates_table is not null as telegram_processed_updates_table_exists,
+  case
+    when telegram_webhook_receiver_objects.telegram_processed_updates_table is null then false
+    else exists (
+      select 1
+      from pg_class rel
+      where rel.oid = telegram_webhook_receiver_objects.telegram_processed_updates_table::oid
+        and rel.relkind = 'r'
+    )
+    and coalesce(
+      (
+        select array_agg(
+          format('%s:%s:%s', column_name, udt_name, is_nullable)
+          order by ordinal_position
+        )
+        from information_schema.columns
+        where table_schema = 'public'
+          and table_name = 'telegram_processed_updates'
+      ) = array[
+        'telegram_session_id:uuid:NO',
+        'telegram_update_id:int8:NO',
+        'created_at:timestamptz:NO'
+      ]::text[],
+      false
+    )
+    and coalesce(
+      (
+        select rel.relrowsecurity
+        from pg_class rel
+        where rel.oid = telegram_webhook_receiver_objects.telegram_processed_updates_table::oid
+      ),
+      false
+    )
+    and not exists (
+      select 1
+      from pg_policies
+      where schemaname = 'public'
+        and tablename = 'telegram_processed_updates'
+    )
+  end as telegram_processed_updates_table_contract_is_expected,
+  case
+    when telegram_webhook_receiver_objects.telegram_processed_updates_table is null then false
+    else exists (
+      select 1
+      from pg_constraint con
+      where con.conrelid = telegram_webhook_receiver_objects.telegram_processed_updates_table::oid
+        and con.conname = 'telegram_processed_updates_pkey'
+        and con.contype = 'p'
+        and con.convalidated
+        and con.conkey = array[
+          (
+            select att.attnum
+            from pg_attribute att
+            where att.attrelid = telegram_webhook_receiver_objects.telegram_processed_updates_table::oid
+              and att.attname = 'telegram_session_id'
+              and not att.attisdropped
+          ),
+          (
+            select att.attnum
+            from pg_attribute att
+            where att.attrelid = telegram_webhook_receiver_objects.telegram_processed_updates_table::oid
+              and att.attname = 'telegram_update_id'
+              and not att.attisdropped
+          )
+        ]::smallint[]
+    )
+    and exists (
+      select 1
+      from pg_constraint con
+      where con.conrelid = telegram_webhook_receiver_objects.telegram_processed_updates_table::oid
+        and con.conname = 'telegram_processed_updates_session_fkey'
+        and con.contype = 'f'
+        and con.convalidated
+        and con.confrelid = to_regclass('public.telegram_sessions')
+        and con.confdeltype = 'c'
+        and con.conkey = array[
+          (
+            select att.attnum
+            from pg_attribute att
+            where att.attrelid = telegram_webhook_receiver_objects.telegram_processed_updates_table::oid
+              and att.attname = 'telegram_session_id'
+              and not att.attisdropped
+          )
+        ]::smallint[]
+        and con.confkey = array[
+          (
+            select att.attnum
+            from pg_attribute att
+            where att.attrelid = to_regclass('public.telegram_sessions')
+              and att.attname = 'id'
+              and not att.attisdropped
+          )
+        ]::smallint[]
+    )
+    and exists (
+      select 1
+      from pg_constraint con
+      where con.conrelid = telegram_webhook_receiver_objects.telegram_processed_updates_table::oid
+        and con.conname = 'telegram_processed_updates_id_nonnegative_check'
+        and con.contype = 'c'
+        and con.convalidated
+        and regexp_replace(
+          lower(pg_get_constraintdef(con.oid)),
+          '[^a-z0-9_>=]+',
+          '',
+          'g'
+        ) = 'checktelegram_update_id>=0'
+    )
+  end as telegram_processed_updates_constraints_are_expected,
+  case
+    when telegram_webhook_receiver_objects.telegram_processed_updates_table is null then false
+    else not exists (
+      select 1
+      from pg_class rel
+      cross join aclexplode(coalesce(rel.relacl, acldefault('r', rel.relowner))) as acl
+      where rel.oid = telegram_webhook_receiver_objects.telegram_processed_updates_table::oid
+        and acl.grantee = 0::oid
+    )
+  end as public_has_no_direct_telegram_processed_updates_privileges,
+  case
+    when telegram_webhook_receiver_objects.telegram_processed_updates_table is null then false
+    else not (
+      coalesce(has_table_privilege(
+        'anon',
+        telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+        'select'
+      ), false)
+      or coalesce(has_table_privilege(
+        'anon',
+        telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+        'insert'
+      ), false)
+      or coalesce(has_table_privilege(
+        'anon',
+        telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+        'update'
+      ), false)
+      or coalesce(has_table_privilege(
+        'anon',
+        telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+        'delete'
+      ), false)
+      or coalesce(has_table_privilege(
+        'anon',
+        telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+        'truncate'
+      ), false)
+      or coalesce(has_table_privilege(
+        'anon',
+        telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+        'references'
+      ), false)
+      or coalesce(has_table_privilege(
+        'anon',
+        telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+        'trigger'
+      ), false)
+    )
+  end as anon_has_no_direct_telegram_processed_updates_privileges,
+  case
+    when telegram_webhook_receiver_objects.telegram_processed_updates_table is null then false
+    else not (
+      coalesce(has_table_privilege(
+        'authenticated',
+        telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+        'select'
+      ), false)
+      or coalesce(has_table_privilege(
+        'authenticated',
+        telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+        'insert'
+      ), false)
+      or coalesce(has_table_privilege(
+        'authenticated',
+        telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+        'update'
+      ), false)
+      or coalesce(has_table_privilege(
+        'authenticated',
+        telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+        'delete'
+      ), false)
+      or coalesce(has_table_privilege(
+        'authenticated',
+        telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+        'truncate'
+      ), false)
+      or coalesce(has_table_privilege(
+        'authenticated',
+        telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+        'references'
+      ), false)
+      or coalesce(has_table_privilege(
+        'authenticated',
+        telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+        'trigger'
+      ), false)
+    )
+  end as auth_has_no_direct_telegram_processed_updates_privileges,
+  case
+    when telegram_webhook_receiver_objects.telegram_processed_updates_table is null then false
+    else coalesce(has_table_privilege(
+      'service_role',
+      telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+      'select'
+    ), false)
+    and coalesce(has_table_privilege(
+      'service_role',
+      telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+      'insert'
+    ), false)
+    and not (
+      coalesce(has_table_privilege(
+        'service_role',
+        telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+        'update'
+      ), false)
+      or coalesce(has_table_privilege(
+        'service_role',
+        telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+        'delete'
+      ), false)
+      or coalesce(has_table_privilege(
+        'service_role',
+        telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+        'truncate'
+      ), false)
+      or coalesce(has_table_privilege(
+        'service_role',
+        telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+        'references'
+      ), false)
+      or coalesce(has_table_privilege(
+        'service_role',
+        telegram_webhook_receiver_objects.telegram_processed_updates_table::oid,
+        'trigger'
+      ), false)
+    )
+  end as service_role_telegram_processed_updates_privileges_are_expected,
+  telegram_webhook_receiver_objects.claim_telegram_update_rpc is not null as claim_telegram_update_function_exists,
+  case
+    when telegram_webhook_receiver_objects.claim_telegram_update_rpc is null then false
+    else exists (
+      select 1
+      from pg_proc proc
+      join pg_language lang on lang.oid = proc.prolang
+      where proc.oid = telegram_webhook_receiver_objects.claim_telegram_update_rpc::oid
+        and lang.lanname = 'sql'
+        and proc.provolatile = 'v'
+        and not proc.prosecdef
+        and exists (
+          select 1
+          from unnest(coalesce(proc.proconfig, array[]::text[])) as config(setting)
+          where lower(split_part(config.setting, '=', 1)) = 'search_path'
+            and btrim(
+              substring(config.setting from position('=' in config.setting) + 1),
+              ' "'
+            ) = ''
+        )
+    )
+  end as claim_telegram_update_security_contract_is_expected,
+  case
+    when telegram_webhook_receiver_objects.claim_telegram_update_rpc is null then false
+    else exists (
+      select 1
+      from pg_proc proc
+      where proc.oid = telegram_webhook_receiver_objects.claim_telegram_update_rpc::oid
+        and proc.proretset
+        and coalesce(
+          (
+            select array_agg(proc.proargnames[position] order by position)
+            from generate_subscripts(proc.proargmodes, 1) as positions(position)
+            where proc.proargmodes[position] = 't'::"char"
+          ),
+          array[]::text[]
+        ) = array['claimed', 'status']::text[]
+        and coalesce(
+          (
+            select array_agg(
+              format_type(proc.proallargtypes[position], null)
+              order by position
+            )
+            from generate_subscripts(proc.proargmodes, 1) as positions(position)
+            where proc.proargmodes[position] = 't'::"char"
+          ),
+          array[]::text[]
+        ) = array['boolean', 'text']::text[]
+    )
+  end as claim_telegram_update_result_contract_is_expected,
+  case
+    when telegram_webhook_receiver_objects.claim_telegram_update_rpc is null then false
+    else exists (
+      select 1
+      from (
+        select regexp_replace(
+          lower(pg_get_functiondef(proc.oid)),
+          '[[:space:]()]+',
+          '',
+          'g'
+        ) as definition
+        from pg_proc proc
+        where proc.oid = telegram_webhook_receiver_objects.claim_telegram_update_rpc::oid
+      ) normalized
+      where position('sessions.id=p_telegram_session_id' in normalized.definition) > 0
+        and position('sessions.webhook_status=''active''' in normalized.definition) > 0
+        and position('p_telegram_update_id>=0' in normalized.definition) > 0
+        and position('insertintopublic.telegram_processed_updates' in normalized.definition) > 0
+        and position('onconflictonconstrainttelegram_processed_updates_pkeydonothing' in normalized.definition) > 0
+        and position('frompublic.telegram_processed_updates' in normalized.definition) = 0
+        and position('then''claimed''' in normalized.definition) > 0
+        and position('else''duplicate''' in normalized.definition) > 0
+    )
+  end as claim_telegram_update_definition_contract_is_expected,
+  case
+    when telegram_webhook_receiver_objects.claim_telegram_update_rpc is null then false
+    else not exists (
+      select 1
+      from pg_proc proc
+      cross join aclexplode(coalesce(proc.proacl, acldefault('f', proc.proowner))) as acl
+      where proc.oid = telegram_webhook_receiver_objects.claim_telegram_update_rpc::oid
+        and acl.grantee = 0::oid
+        and lower(acl.privilege_type) = 'execute'
+    )
+  end as public_cannot_execute_claim_telegram_update,
+  case
+    when telegram_webhook_receiver_objects.claim_telegram_update_rpc is null then false
+    else not coalesce(has_function_privilege(
+      'anon',
+      telegram_webhook_receiver_objects.claim_telegram_update_rpc::oid,
+      'execute'
+    ), false)
+  end as anon_cannot_execute_claim_telegram_update,
+  case
+    when telegram_webhook_receiver_objects.claim_telegram_update_rpc is null then false
+    else not coalesce(has_function_privilege(
+      'authenticated',
+      telegram_webhook_receiver_objects.claim_telegram_update_rpc::oid,
+      'execute'
+    ), false)
+  end as auth_cannot_execute_claim_telegram_update,
+  case
+    when telegram_webhook_receiver_objects.claim_telegram_update_rpc is null then false
+    else coalesce(has_function_privilege(
+      'service_role',
+      telegram_webhook_receiver_objects.claim_telegram_update_rpc::oid,
+      'execute'
+    ), false)
+  end as service_role_can_execute_claim_telegram_update,
   telegram_vault_rpcs.store_telegram_bot_token_rpc is not null as store_telegram_bot_token_function_exists,
   case
     when telegram_vault_rpcs.store_telegram_bot_token_rpc is null then false
