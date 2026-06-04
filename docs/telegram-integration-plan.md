@@ -4935,6 +4935,100 @@ What not to touch in Phase 5AY:
   reply sender, or command execution.
 - No SQL apply, Edge Function deploy, Netlify publish/unlock, or push.
 
+### Phase 5AY.1 Claim-Aware Read-Only Response Plan Closeout
+
+Phase 5AY.1 adds a pure post-claim response planner and tests. It is not wired
+into the existing read-only pipeline or live webhook handler.
+
+Implemented files:
+
+- `supabase/functions/telegram-webhook/claim-aware-response.ts`
+- `supabase/functions/telegram-webhook/claim-aware-response_test.ts`
+- `supabase/functions/telegram-webhook/index.ts` for exports only
+
+Implemented behavior:
+
+- Validates the claim result before inspecting the command.
+- Returns a bounded `{ status: "duplicate", shouldDeliver: false }` no-op plan
+  for duplicate updates.
+- Proves duplicate updates do not invoke the static response builder by safely
+  accepting an unsupported command on the duplicate path.
+- Builds a static read-only response only for a valid claimed update.
+- Rejects invalid claims before command handling and preserves the safe
+  unsupported-command error contract.
+- Excludes raw claim details, update IDs, session IDs, Telegram identities,
+  policies, raw commands, and raw errors from returned plans.
+
+Verification result:
+
+- `npm run check:functions` passed.
+- Deno checks passed.
+- Telegram connect and webhook Deno tests passed: `162 passed`, `0 failed`.
+- `npm exec tsc -- --noEmit` passed.
+- `npm run build` passed.
+- Deno format check passed.
+- `git diff --check` passed.
+
+Runtime and security status:
+
+- `handleTelegramWebhookRequest` remains inert and does not call the planner.
+- The existing read-only pipeline remains unchanged and is not wired live.
+- No request body parsing/logging, DB/RPC call, DB read/write, schema/RLS
+  change, service-role client, Vault access, env read, Telegram API call,
+  outbound reply, or command execution was added.
+- No SQL apply, Edge Function deploy, Netlify publish/unlock, or push happened.
+
+### Phase 5AZ Read-Only Live Activation Gate
+
+Phase 5AZ is the final prep-only checkpoint before any real Telegram webhook
+behavior is allowed. It intentionally adds no runtime code. The remaining work
+must be handled as a small number of explicit live-enablement approvals rather
+than more inert helper phases.
+
+Current repo readiness:
+
+- Connect-side contracts exist for auth, ownership, token validation, secret
+  storage, session persistence, webhook secret handling, webhook registration,
+  rollback, and runtime gates.
+- Webhook-side pure contracts exist for verification guards, active-session
+  lookup results, chat authorization, update parsing, static read-only response
+  building, update-claim validation, and duplicate-aware response planning.
+- The live webhook handler still rejects missing verification before body
+  access and otherwise returns `501 not_configured` without reading the body.
+- No outbound Telegram reply sender exists.
+- No private atomic update-claim table/RPC exists in repo schema.
+
+Required approval gates before first live read-only smoke:
+
+1. Database gate:
+   - Approve exact forward and rollback SQL for webhook secret lookup, chat
+     authorization, and atomic update claim.
+   - Apply SQL separately and run baseline/post-apply privilege verifiers.
+2. Runtime wiring gate:
+   - Approve service-role-backed session/chat/claim adapters.
+   - Approve body parsing only after webhook verification succeeds.
+   - Preserve ordering: verify -> parse -> session lookup -> chat authorize ->
+     atomic claim -> response build.
+3. Outbound delivery gate:
+   - Approve a bounded `sendMessage` adapter with strict timeout, sanitized
+     errors, no token logging, and read-only static text only.
+   - Preserve duplicate no-op behavior before any outbound call.
+4. Deployment gate:
+   - Approve Edge Function deployment separately from Netlify.
+   - Run a controlled owner-only `/help` and `/status` smoke test.
+5. Product gate:
+   - Only after the smoke passes, approve replacing placeholder UI with a real
+     connection state.
+
+Explicit stop conditions:
+
+- Do not wire or deploy live webhook processing while any database, runtime,
+  outbound delivery, or deployment gate is unapproved.
+- Do not enable write, approval, wallet, admin, or onchain Telegram commands in
+  the first live rollout.
+- Do not push, apply SQL, deploy Edge Functions, or publish/unlock Netlify as
+  part of this prep-only checkpoint.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
