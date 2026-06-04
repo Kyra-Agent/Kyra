@@ -171,6 +171,27 @@ select
       select 1
       from pg_constraint con
       where con.conrelid = telegram_webhook_receiver_objects.telegram_webhook_secrets_table::oid
+        and con.conname = 'telegram_webhook_secrets_ref_format_check'
+        and con.contype = 'c'
+        and con.convalidated
+        and replace(
+          regexp_replace(
+            lower(pg_get_constraintdef(con.oid)),
+            '[[:space:]()]',
+            '',
+            'g'
+          ),
+          '::text',
+          ''
+        ) = 'checkwebhook_secret_ref~''^webhook:telegram:[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'''
+    )
+  end as telegram_webhook_secrets_ref_format_check_is_expected,
+  case
+    when telegram_webhook_receiver_objects.telegram_webhook_secrets_table is null then false
+    else exists (
+      select 1
+      from pg_constraint con
+      where con.conrelid = telegram_webhook_receiver_objects.telegram_webhook_secrets_table::oid
         and con.conname = 'telegram_webhook_secrets_hash_not_blank_check'
         and con.contype = 'c'
         and con.convalidated
@@ -722,6 +743,30 @@ select
         ]::text[]
     )
   end as resolve_telegram_webhook_session_has_expected_result_contract,
+  case
+    when telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc is null then false
+    else exists (
+      select 1
+      from pg_proc proc
+      where proc.oid = telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc::oid
+        and position(
+          'secrets.webhook_secret_hash=p_webhook_secret_hash' in regexp_replace(
+            lower(pg_get_functiondef(proc.oid)),
+            '[[:space:]]+',
+            '',
+            'g'
+          )
+        ) > 0
+        and position(
+          'secrets.webhook_secret_hash=btrim(p_webhook_secret_hash)' in regexp_replace(
+            lower(pg_get_functiondef(proc.oid)),
+            '[[:space:]]+',
+            '',
+            'g'
+          )
+        ) = 0
+    )
+  end as resolve_telegram_webhook_session_uses_exact_hash_match,
   case
     when telegram_webhook_receiver_objects.resolve_telegram_webhook_session_rpc is null then false
     else not exists (

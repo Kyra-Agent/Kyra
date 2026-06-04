@@ -61,13 +61,21 @@
 --   bytes received from the Telegram verification header.
 -- - Hashing must happen in an approved backend-only Edge Function boundary.
 -- - Never store, return, or log the raw webhook secret.
--- - webhook_secret_ref remains an opaque backend-only reference. Its exact
---   format and lifecycle require separate approval before executable SQL.
+-- - webhook_secret_ref format:
+--   webhook:telegram:<uuid-v4>
+-- - Example:
+--   webhook:telegram:550e8400-e29b-41d4-a716-446655440000
+-- - webhook_secret_ref is generated backend-only, is not a secret, and must not
+--   be returned to browser clients, localStorage, logs, or public API responses.
+-- - webhook_secret_ref lifecycle:
+--   created with the active webhook secret row, revoked by setting revoked_at,
+--   and never reused after revocation.
 
 -- Stable constraint names
 -- - telegram_webhook_secrets_pkey
 -- - telegram_webhook_secrets_session_fkey
 -- - telegram_webhook_secrets_ref_not_blank_check
+-- - telegram_webhook_secrets_ref_format_check
 -- - telegram_webhook_secrets_hash_not_blank_check
 -- - telegram_webhook_secrets_hash_format_check
 
@@ -88,6 +96,11 @@
 --     on delete cascade,
 --   constraint telegram_webhook_secrets_ref_not_blank_check
 --     check (length(btrim(webhook_secret_ref)) > 0),
+--   constraint telegram_webhook_secrets_ref_format_check
+--     check (
+--       webhook_secret_ref ~
+--       '^webhook:telegram:[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+--     ),
 --   constraint telegram_webhook_secrets_hash_not_blank_check
 --     check (length(btrim(webhook_secret_hash)) > 0),
 --   constraint telegram_webhook_secrets_hash_format_check
@@ -121,7 +134,7 @@
 -- grant select, insert, update on public.telegram_webhook_secrets to service_role;
 
 -- Webhook session lookup RPC intent
--- - Input is a webhook secret hash or approved opaque reference only.
+-- - Input is the exact lowercase hexadecimal SHA-256 webhook secret hash only.
 -- - The RPC resolves the secret to exactly one active Telegram session.
 -- - The RPC joins telegram_sessions -> agent_instances -> workspaces.
 -- - The RPC returns only internal fields needed by telegram-webhook.
@@ -161,7 +174,7 @@
 --     on agents.id = sessions.agent_id
 --   join public.workspaces workspaces
 --     on workspaces.id = agents.workspace_id
---   where secrets.webhook_secret_hash = btrim(p_webhook_secret_hash)
+--   where secrets.webhook_secret_hash = p_webhook_secret_hash
 --     and secrets.revoked_at is null
 --     and sessions.webhook_status = 'active'
 --   limit 2;
@@ -195,7 +208,7 @@
 -- - telegram_webhook_secrets table exists.
 -- - The table has exactly the approved columns and no redundant agent_id.
 -- - RLS is enabled.
--- - All five stable named constraints exist with the expected definitions.
+-- - All six stable named constraints exist with the expected definitions.
 -- - Both approved partial unique indexes exist with the expected predicates.
 -- - public, anon, and authenticated cannot select, insert, update, or delete
 --   the private table.

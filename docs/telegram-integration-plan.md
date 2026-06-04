@@ -3586,8 +3586,9 @@ Approved security contract:
 - Never store, return, or log the raw webhook secret.
 - `webhook_secret_hash` must satisfy the named exact-format constraint for
   `^[0-9a-f]{64}$`.
-- `webhook_secret_ref` remains an opaque backend-only reference whose exact
-  format and lifecycle still require separate approval.
+- At Phase 5AL.2, `webhook_secret_ref` remained an opaque backend-only
+  reference whose exact format and lifecycle still required separate approval.
+  Phase 5AM.1 later defines the draft/verifier contract for that reference.
 - Revoke all table privileges from `public`, `anon`, `authenticated`, and
   `service_role` before granting only `select`, `insert`, and `update` to
   `service_role`.
@@ -3637,7 +3638,8 @@ Current boundary:
 
 Required approvals before executable migration artifacts:
 
-- Approve the opaque `webhook_secret_ref` format and lifecycle.
+- Confirm the Phase 5AM.1 `webhook_secret_ref` format and lifecycle remain
+  accepted for the target project.
 - Review the exact executable forward migration and rollback artifacts together.
 - Confirm target-project baseline and expected verifier results.
 - Approve schema, RLS, grants, and controlled Supabase SQL apply separately.
@@ -3648,6 +3650,62 @@ Next safest slice:
   `webhook_secret_ref` lifecycle and exact executable migration/rollback packet.
 - Do not apply SQL, wire runtime lookup, deploy, publish, or enable live webhook
   behavior without separate explicit approval.
+
+### Phase 5AM.1 Webhook Secret Ref Contract
+
+Phase 5AM.1 refines the draft/verifier contract for webhook secret references
+only. It does not create executable SQL, apply schema/RLS/grants, wire runtime
+lookup, store secrets, call Telegram, deploy, publish, or enable live webhook
+behavior.
+
+Approved `webhook_secret_ref` format:
+
+- `webhook:telegram:<uuid-v4>`
+- Example: `webhook:telegram:550e8400-e29b-41d4-a716-446655440000`
+- The reference is generated backend-only.
+- The reference is not a secret, but it remains backend-only operational
+  metadata.
+- It must not be returned to browser clients, stored in frontend state or
+  localStorage, written to public views, activity logs, API responses, or
+  request logs.
+
+Approved lifecycle:
+
+- Create one `webhook_secret_ref` with each active webhook secret row.
+- Do not reuse a reference after revocation.
+- Revoke by setting `revoked_at`; do not delete rows during normal reconnect or
+  failed registration cleanup.
+- Maintain one active webhook secret per Telegram session through the approved
+  partial unique index.
+- Failed registration must revoke the newly created webhook secret row and must
+  not activate the Telegram session.
+
+Draft/verifier refinement:
+
+- Add named constraint `telegram_webhook_secrets_ref_format_check`.
+- Verify `webhook_secret_ref` matches the exact `webhook:telegram:<uuid-v4>`
+  pattern.
+- Keep `webhook_secret_hash` as exact lowercase SHA-256 hex.
+- The lookup RPC should compare exact hashes:
+  `secrets.webhook_secret_hash = p_webhook_secret_hash`.
+- The lookup RPC should not trim, normalize, log, return, or expose presented
+  hash values.
+
+Runtime blocker before webhook secret storage wiring:
+
+- `persistTelegramSession` currently updates the eligible `telegram_sessions`
+  row and returns no session id.
+- Future webhook secret storage needs a clean `telegram_session_id` source.
+- The next runtime-contract slice should change only the pure/adapter contract
+  so session persistence returns the updated `telegram_session_id`, while
+  keeping current runtime behavior inert until separately approved.
+
+Next safest slice:
+
+- Phase 5AM.2 should be final review and local commit for this draft/verifier
+  refinement if the diff remains limited and safe.
+- After that, Phase 5AN should be audit-only for the session persistence return
+  contract and mocked tests.
 
 ## Chat Authorization Model
 
