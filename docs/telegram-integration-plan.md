@@ -5950,6 +5950,91 @@ Runtime state after Phase 5BL.1:
 - No runtime DB read/write is active.
 - No Edge Function deploy, Netlify publish, or Git push is part of this slice.
 
+### Phase 5BM Webhook Lookup Runtime Gate Plan
+
+Phase 5BM defines the default-off runtime gate needed before the webhook
+session lookup adapter can ever be mounted in the live handler. It does not
+mount the adapter or create a service-role client yet.
+
+Recommended gate:
+
+- `KYRA_TELEGRAM_WEBHOOK_LOOKUP_ENABLED`
+- Enabled only when the exact string is `true`.
+- Missing, blank, `false`, `1`, `yes`, mixed-case, or any other value must be
+  treated as disabled.
+- The gate is backend-only Edge Function configuration. It must not be exposed
+  through browser runtime config or frontend UI.
+
+Default-off behavior:
+
+- When disabled, `telegram-webhook` must keep the current inert behavior:
+  header/content checks then `501 not_configured`, without reading the body.
+- When disabled, no service-role key should be read, no Supabase client should
+  be created, no RPC should be called, and no body parsing should happen.
+- Runtime helpers may parse the gate and return an inert config object, but they
+  must not perform side effects.
+
+Future enabled behavior, not in this slice:
+
+- Read `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` only after the webhook
+  secret header is present and the lookup gate is explicitly enabled.
+- Create a service-role client only inside trusted Edge Function runtime.
+- Hash the verified secret header and call
+  `resolve_telegram_webhook_session(text)` through the already-tested adapter.
+- Keep the handler response `not_configured` until body parsing, chat
+  authorization lookup, idempotency claim, and reply delivery are separately
+  approved.
+
+Tests required before mounting:
+
+- Gate parser defaults off and requires exact `true`.
+- Runtime config does not call env readers or factories while disabled.
+- Enabled config exposes only lazy dependency factories.
+- Handler remains inert and body-safe when the gate is disabled.
+- Security scan confirms no live service-role client or RPC call exists in the
+  handler before the mounting slice.
+
+Still blocked in Phase 5BM:
+
+- Reading `.env.local` or secret values.
+- Creating a service-role client in the live `telegram-webhook` handler.
+- Calling `resolve_telegram_webhook_session` from the live handler.
+- Parsing Telegram update bodies, claiming updates, authorizing chats through
+  DB, building live replies, or delivering Telegram messages.
+- Edge Function deploy, Netlify publish, or Git push.
+
+### Phase 5BM.1 Webhook Lookup Runtime Gate Closeout
+
+Phase 5BM.1 adds only the default-off webhook lookup gate parser and runtime
+config helper. It does not mount lookup behavior in the live handler.
+
+Implemented:
+
+- `telegram-webhook/runtime-config.ts`
+- `KYRA_TELEGRAM_WEBHOOK_LOOKUP_ENABLED`
+- `isTelegramWebhookLookupEnabled(value)` returns `true` only for the exact
+  string `true`.
+- `createTelegramWebhookLookupRuntimeConfig(readOptionalEnv)` reads only the
+  gate key and returns `{ enabled: false }` or `{ enabled: true }`.
+- `telegram-webhook/index.ts` exports the helper for tests and future approved
+  wiring.
+
+Tests added:
+
+- Missing, blank, false-like, numeric, yes-like, mixed-case, and whitespace
+  values are disabled.
+- Exact `true` is enabled.
+- Disabled config reads only the lookup gate key and exposes no service-role
+  factory.
+- Enabled config exposes only the enabled state.
+
+Runtime state after Phase 5BM.1:
+
+- The live `telegram-webhook` handler still does not call the config helper.
+- No `Deno.env`, service-role client, RPC call, request body parsing, DB write,
+  Telegram API call, reply delivery, Edge Function deploy, Netlify publish, or
+  Git push is introduced by this slice.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.

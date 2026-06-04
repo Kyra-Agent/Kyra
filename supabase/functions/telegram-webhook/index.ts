@@ -68,6 +68,15 @@ export {
   lookupTelegramWebhookSessionBySecretHeader,
 } from "./session-lookup.ts";
 export type { TelegramWebhookSessionLookupRpcClient } from "./session-lookup.ts";
+export {
+  createTelegramWebhookLookupRuntimeConfig,
+  isTelegramWebhookLookupEnabled,
+  telegramWebhookLookupEnabledEnvKey,
+} from "./runtime-config.ts";
+export type {
+  OptionalEnvReader,
+  TelegramWebhookLookupRuntimeConfig,
+} from "./runtime-config.ts";
 
 export function handleTelegramWebhookRequest(request: Request) {
   if (request.method === "OPTIONS") {
