@@ -35,6 +35,16 @@ not a live Telegram integration.
   it active, and still returns the inert `not_configured` response.
 - If session persistence fails after token storage, the function makes a
   best-effort backend-only revoke call and returns a sanitized error.
+- `KYRA_TELEGRAM_CONNECT_WEBHOOK_REGISTER_ENABLED=true` is parsed by the runtime
+  but defaults off. When it is off, no webhook URL is read, no webhook secret is
+  generated, and no Telegram webhook registration dependency is mounted.
+- If webhook registration is explicitly enabled later, it also depends on the
+  prior `getMe`, secret-store, and session-write gates being safely configured.
+  It must use a backend-only `KYRA_TELEGRAM_WEBHOOK_URL` value and a generated
+  per-request webhook secret.
+- The webhook registration gate must remain disabled until webhook secret
+  storage, webhook session lookup, command authorization, and deployment smoke
+  checks are separately approved.
 - The store gate does not make Telegram live by itself.
 - The session-write gate does not make Telegram live by itself and has no effect
   unless the store gate is also enabled.

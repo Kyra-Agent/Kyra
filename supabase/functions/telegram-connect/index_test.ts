@@ -17,6 +17,12 @@ import {
   telegramConnectStoreEnabledEnvKey,
   telegramConnectWebhookRegisterEnabledEnvKey,
 } from "./core.ts";
+import {
+  createTelegramWebhookRegistrationRuntimeConfig,
+  generateTelegramWebhookSecret,
+  getTelegramWebhookUrl,
+  telegramWebhookUrlEnvKey,
+} from "./runtime-config.ts";
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -247,6 +253,10 @@ function makeGatedDependencies(
   }
 
   return dependencies;
+}
+
+function makeOptionalEnv(values: Record<string, string | undefined>) {
+  return (key: string) => values[key] ?? "";
 }
 
 Deno.test("telegram-connect ownership lookup reads agent then workspace", async () => {
@@ -665,6 +675,73 @@ Deno.test("telegram-connect webhook register runtime gate defaults off and requi
   assertEquals(isTelegramConnectWebhookRegisterEnabled("TRUE"), false);
   assertEquals(isTelegramConnectWebhookRegisterEnabled("1"), false);
   assertEquals(isTelegramConnectWebhookRegisterEnabled("true"), true);
+});
+
+Deno.test("telegram-connect runtime keeps webhook registration config off by default", () => {
+  const config = createTelegramWebhookRegistrationRuntimeConfig(
+    (key) => {
+      if (key === telegramWebhookUrlEnvKey) {
+        throw new Error("webhook URL must not be read while gate is off");
+      }
+
+      return "";
+    },
+  );
+
+  assertEquals(config.enabled, false);
+});
+
+Deno.test("telegram-connect runtime exposes webhook registration config only behind explicit gate", () => {
+  const config = createTelegramWebhookRegistrationRuntimeConfig(
+    makeOptionalEnv({
+      [telegramConnectGetMeEnabledEnvKey]: "true",
+      [telegramConnectStoreEnabledEnvKey]: "true",
+      [telegramConnectSessionWriteEnabledEnvKey]: "true",
+      [telegramConnectWebhookRegisterEnabledEnvKey]: "true",
+      [telegramWebhookUrlEnvKey]: testWebhookUrl,
+    }),
+  );
+
+  assertEquals(config.enabled, true);
+
+  if (!config.enabled) {
+    throw new Error("Expected webhook registration config to be enabled.");
+  }
+
+  assertEquals(typeof config.getTelegramWebhookUrl, "function");
+  assertEquals(typeof config.generateTelegramWebhookSecret, "function");
+  assertEquals(config.getTelegramWebhookUrl(), testWebhookUrl);
+
+  const firstSecret = config.generateTelegramWebhookSecret();
+  const secondSecret = generateTelegramWebhookSecret();
+
+  assert(/^[a-f0-9]{64}$/.test(firstSecret), "Webhook secret must be hex.");
+  assert(/^[a-f0-9]{64}$/.test(secondSecret), "Webhook secret must be hex.");
+  assert(
+    firstSecret !== secondSecret,
+    "Webhook secrets should be generated per call.",
+  );
+});
+
+Deno.test("telegram-connect webhook URL provider rejects missing runtime URL safely", () => {
+  let error: unknown;
+
+  try {
+    getTelegramWebhookUrl(() => "");
+  } catch (caughtError) {
+    error = caughtError;
+  }
+
+  assert(
+    error instanceof HttpError,
+    "Missing webhook URL must throw HttpError.",
+  );
+  assertEquals((error as HttpError).statusCode, 500);
+  assertEquals((error as HttpError).code, "missing_env");
+  assertEquals(
+    (error as HttpError).message,
+    "Telegram webhook URL is not configured.",
+  );
 });
 
 Deno.test("telegram-connect getMe runtime gate off does not call validator", async () => {

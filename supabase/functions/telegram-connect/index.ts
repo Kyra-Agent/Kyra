@@ -10,18 +10,27 @@ import {
   type OwnershipLookupClient,
   type PersistTelegramSessionInput,
   persistTelegramSessionRecord,
+  type RegisterTelegramWebhookInput,
   type TelegramConnectDependencies,
   telegramConnectGetMeEnabledEnvKey,
   telegramConnectSessionWriteEnabledEnvKey,
   telegramConnectStoreEnabledEnvKey,
   type TelegramSessionPersistenceClient,
 } from "./core.ts";
+import { createTelegramWebhookRegistrationRuntimeConfig } from "./runtime-config.ts";
 import { createRpcTelegramBotTokenSecretStore } from "./secret-store.ts";
-import { validateTelegramBotTokenWithGetMe } from "./telegram-api.ts";
+import {
+  registerTelegramWebhookWithSetWebhook,
+  validateTelegramBotTokenWithGetMe,
+} from "./telegram-api.ts";
 
 export * from "./core.ts";
 
 type KyraSupabaseClient = ReturnType<typeof createClient<any>>;
+
+export interface TelegramConnectRuntimeOptions {
+  getOptionalEnv?: (key: string) => string;
+}
 
 export function getEnv(key: string) {
   const value = Deno.env.get(key);
@@ -102,7 +111,20 @@ export async function persistTelegramSession(
   );
 }
 
-export function createTelegramConnectDependencies(): TelegramConnectDependencies {
+export async function registerTelegramWebhook(
+  input: RegisterTelegramWebhookInput,
+) {
+  await registerTelegramWebhookWithSetWebhook({
+    botToken: input.botToken,
+    webhookUrl: input.webhookUrl,
+    webhookSecretToken: input.webhookSecretToken,
+  });
+}
+
+export function createTelegramConnectDependencies(
+  options: TelegramConnectRuntimeOptions = {},
+): TelegramConnectDependencies {
+  const readOptionalEnv = options.getOptionalEnv ?? getOptionalEnv;
   let serviceClient: KyraSupabaseClient | null = null;
   const getServiceClient = () => {
     if (!serviceClient) {
@@ -114,14 +136,19 @@ export function createTelegramConnectDependencies(): TelegramConnectDependencies
     return serviceClient;
   };
   const getMeEnabled = isTelegramConnectGetMeEnabled(
-    getOptionalEnv(telegramConnectGetMeEnabledEnvKey),
+    readOptionalEnv(telegramConnectGetMeEnabledEnvKey),
   );
   const storeEnabled = isTelegramConnectStoreEnabled(
-    getOptionalEnv(telegramConnectStoreEnabledEnvKey),
+    readOptionalEnv(telegramConnectStoreEnabledEnvKey),
   );
   const sessionWriteEnabled = isTelegramConnectSessionWriteEnabled(
-    getOptionalEnv(telegramConnectSessionWriteEnabledEnvKey),
+    readOptionalEnv(telegramConnectSessionWriteEnabledEnvKey),
   );
+  const webhookRegistrationConfig =
+    createTelegramWebhookRegistrationRuntimeConfig(
+      readOptionalEnv,
+    );
+  const webhookRegisterEnabled = webhookRegistrationConfig.enabled;
   const dependencies: TelegramConnectDependencies = {
     getEnv,
     getUser,
@@ -150,6 +177,14 @@ export function createTelegramConnectDependencies(): TelegramConnectDependencies
         await secretStore.revokeTelegramBotToken(input);
       };
     }
+  }
+
+  if (webhookRegisterEnabled) {
+    dependencies.getTelegramWebhookUrl =
+      webhookRegistrationConfig.getTelegramWebhookUrl;
+    dependencies.generateTelegramWebhookSecret =
+      webhookRegistrationConfig.generateTelegramWebhookSecret;
+    dependencies.registerTelegramWebhook = registerTelegramWebhook;
   }
 
   return dependencies;

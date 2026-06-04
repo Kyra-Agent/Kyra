@@ -2874,6 +2874,38 @@ Recommended next checkpoint:
 - Live runtime wiring should remain blocked until Phase 5AD confirms the local
   stack is clean and the user explicitly approves the next implementation slice.
 
+## Phase 5AF Default-Off Webhook Registration Runtime Wiring
+
+Phase 5AF wires the future webhook registration dependency boundary into
+`telegram-connect` runtime behind a default-off backend gate. It does not enable
+the gate, deploy Edge Functions, publish Netlify, read `.env.local`, create/read
+real secrets, apply schema/RLS changes, or make Telegram live.
+
+Runtime state:
+
+- `telegram-connect/index.ts` can parse
+  `KYRA_TELEGRAM_CONNECT_WEBHOOK_REGISTER_ENABLED`, default off.
+- When the gate is off, runtime does not mount webhook registration
+  dependencies, does not read `KYRA_TELEGRAM_WEBHOOK_URL`, does not generate a
+  webhook secret, and does not call Telegram `setWebhook`.
+- When the gate is explicitly true, runtime can mount:
+  - backend-only webhook URL provider using `KYRA_TELEGRAM_WEBHOOK_URL`
+  - per-request webhook secret generator
+  - `registerTelegramWebhookWithSetWebhook` wrapper
+- The helper remains dependent on the existing auth, ownership, `getMe`, token
+  store, and session persistence order in `telegram-connect/core.ts`.
+- A successful path still returns inert `not_configured` and must not write
+  `webhook_status=active`.
+
+Do not enable this gate yet:
+
+- `telegram-webhook` still has no session lookup for a verified webhook secret.
+- There is no approved storage location for webhook secret hash/reference.
+- There is no command authorization model wired to Telegram chat/user IDs.
+- Failed webhook registration recovery still needs a reviewed policy for stale
+  queued sessions and token refs.
+- Edge Function deployment and production smoke remain separate approval gates.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
