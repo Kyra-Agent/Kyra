@@ -3200,7 +3200,10 @@ Approval points before executable SQL:
 - Approve exact table names and column names.
 - Approve stable explicit constraint names.
 - Approve webhook secret hash algorithm and secret reference format.
-- Approve the expected privileged owner for the `security definer` RPC.
+- Historical note: earlier drafts mentioned approving a privileged owner for a
+  `security definer` RPC. That is superseded by Phase 5AL.2; the current
+  session-lookup contract is `SECURITY INVOKER`, service-role-only execute, and
+  an empty search path.
 - Approve personal owner-linking flow.
 - Approve community/project allowlist/admin policy scope.
 - Approve RLS/grant statements.
@@ -3336,9 +3339,10 @@ Audit findings and resolution status:
   authorization.
 - Deferred with chat authorization: the role/scope model must prevent a
   `member` row from receiving `write` or `approval` scope.
-- Resolved in the Phase 5AK.2 draft: the future `security definer` session
-  lookup RPC uses the proposed restricted search path
-  `pg_catalog, public, pg_temp`.
+- Historical note: Phase 5AK.2 still discussed a future `security definer`
+  lookup RPC with a restricted search path. Phase 5AL.2 supersedes that design:
+  the current lookup RPC contract is `SECURITY INVOKER` with an empty
+  `search_path` and fully qualified relation names.
 - Resolved in the Phase 5AK.2 draft: the initial apply must fail on an existing
   table or function instead of silently accepting or replacing an incompatible
   object.
@@ -3366,7 +3370,7 @@ Required preflight before any executable webhook schema apply:
 - Confirm no live webhook registration or command-processing path depends on
   the proposed objects.
 - Review exact table columns, constraints, indexes, RLS state, grants, RPC
-  signatures, `security definer` setting, and restricted search path.
+  signatures, `security invoker` setting, and empty search path.
 - Require explicit checks that similarly named existing tables, indexes, or
   functions do not have an incompatible shape.
 - Prepare expected post-apply verifier values before applying.
@@ -3464,10 +3468,10 @@ Required guarded verifier results for
 
 - The exact function signature exists.
 - The function language is SQL, volatility is stable, and
-  `security definer` is enabled.
-- The configured search path is restricted to the approved equivalent of
-  `pg_catalog, public, pg_temp`.
-- The function owner matches the separately approved privileged migration role.
+  `security invoker` is enabled.
+- The configured search path is empty and all relation references are fully
+  qualified.
+- The function owner is not used as a runtime privilege boundary.
 - The result contract contains only `session_id`, `agent_id`, `workspace_id`,
   `owner_user_id`, `bot_handle`, and `webhook_status`.
 - `public`, `anon`, and `authenticated` cannot execute the RPC.
@@ -3500,9 +3504,9 @@ Blockers before verifier-only implementation:
 
 - Add stable explicit names for the primary key, foreign key, and non-empty
   checks in the comment-only schema draft.
-- Confirm the expected privileged owner for the future `security definer` RPC.
-  The expected role may be `postgres` in the target project, but it must be
-  confirmed rather than assumed.
+- Historical blocker superseded by Phase 5AL.2: the lookup RPC is now
+  `SECURITY INVOKER`, so no privileged function-owner boundary should be
+  approved for runtime access.
 - Define normalized comparisons for index predicates and function search-path
   configuration so harmless PostgreSQL formatting differences do not create
   false verifier failures.
@@ -4026,6 +4030,94 @@ Next safest slice:
   before any SQL apply is considered.
 - No SQL apply, Supabase dashboard action, runtime wiring, deploy, push, or gate
   enablement belongs in that audit.
+
+### Phase 5AR SQL Readiness Audit
+
+Phase 5AR audits whether the webhook session-lookup SQL design is ready to move
+toward a reviewed executable packet later. It does not create executable SQL,
+apply SQL in Supabase, modify schema/RLS/grants, run Supabase dashboard actions,
+wire runtime adapters, deploy Edge Functions, publish Netlify, or push commits.
+
+Current SQL artifacts:
+
+- `supabase/telegram_webhook_receiver_schema_draft.sql` remains comment-only and
+  marked `DRAFT ONLY - DO NOT APPLY`.
+- `supabase/verify_authenticated_demo_write_lockdown.sql` contains guarded,
+  read-only verifier checks for the future webhook secret table and lookup RPC.
+- No reviewed executable forward migration exists yet.
+- No reviewed rollback artifact exists yet.
+- No schema/RLS/grant change has been applied through this Phase 5 flow.
+
+Readiness findings:
+
+- The current draft and verifier agree on `SECURITY INVOKER`, not
+  `SECURITY DEFINER`, for `resolve_telegram_webhook_session(text)`.
+- The current draft and verifier agree on an empty `search_path` plus fully
+  qualified relation names.
+- The private table shape is narrowly scoped to:
+  `webhook_secret_ref`, `webhook_secret_hash`, `telegram_session_id`,
+  `created_at`, and `revoked_at`.
+- The draft intentionally excludes redundant `agent_id` from
+  `telegram_webhook_secrets`.
+- The draft and verifier agree on exact lowercase SHA-256 hash comparison:
+  `secrets.webhook_secret_hash = p_webhook_secret_hash`, without trimming or
+  normalizing presented hashes.
+- The verifier already checks role boundaries for table access and RPC execute
+  grants.
+- Older documentation references to `security definer` were historical and are
+  now explicitly superseded by the Phase 5AL.2 security-invoker contract.
+
+Remaining blockers before executable SQL:
+
+- A forward migration file has not been created.
+- A non-`CASCADE` rollback file has not been created.
+- The target Supabase baseline must be captured before any apply.
+- The expected verifier output after apply must be reviewed as a checklist.
+- The exact apply and rollback files must be reviewed together.
+- Runtime gates must remain disabled before, during, and after SQL apply.
+- Applying SQL in Supabase still requires a separate explicit apply approval and
+  should not be bundled with local code commits.
+
+Recommended forward SQL packet shape later:
+
+- One transaction.
+- Abort if `public.telegram_webhook_secrets` already exists.
+- Abort if `public.resolve_telegram_webhook_session(text)` already exists.
+- Create the private table with the approved named constraints.
+- Create both partial unique indexes.
+- Enable RLS and create no browser-readable policy.
+- Revoke table privileges from all relevant runtime roles first, then grant only
+  `select`, `insert`, and `update` to `service_role`.
+- Create the stable SQL `SECURITY INVOKER` lookup RPC with empty search path.
+- Revoke function privileges from all relevant runtime roles first, then grant
+  execute only to `service_role`.
+- Commit, run verifier, and stop before runtime wiring if any required verifier
+  value is false.
+
+Recommended rollback packet shape later:
+
+- Confirm runtime gates remain disabled and the table contains no required
+  production data.
+- Revoke execute on the exact RPC signature.
+- Drop the exact RPC signature without `CASCADE`.
+- Revoke private table privileges.
+- Drop the exact private table without `CASCADE`.
+- Run verifier after rollback and capture the result.
+
+Phase 5AR go/no-go:
+
+- Go for creating reviewed local forward/rollback SQL files in a later slice,
+  as repo artifacts only.
+- No-go for applying SQL, changing Supabase state, wiring runtime DB adapters,
+  deploying functions, enabling gates, or publishing Netlify.
+
+Next safest slice:
+
+- Phase 5AR.1 can create local reviewed SQL packet files only:
+  a forward migration draft and a rollback draft for
+  `telegram_webhook_secrets` plus `resolve_telegram_webhook_session(text)`.
+- The files must remain unapplied, must be verified by static checks, and must
+  not modify `schema.sql` until a separate generated-schema update is approved.
 
 ## Chat Authorization Model
 
