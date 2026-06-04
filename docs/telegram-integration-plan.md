@@ -6587,3 +6587,120 @@ Still not included:
 - No Edge Function deploy.
 - No Netlify publish/unlock.
 - No schema/RLS changes.
+
+## Phase 5BV - Webhook Token Resolution Bridge Design
+
+Phase 5BV defines the safest bridge between an authorized, claimed Telegram
+webhook update and the backend-only BotFather token needed for response
+delivery. This phase is documentation and design only.
+
+Current findings:
+
+- Response planning and delivery orchestration already exists behind
+  `KYRA_TELEGRAM_WEBHOOK_DELIVERY_ENABLED`.
+- The default webhook runtime still cannot deliver a live Telegram response
+  because no production delivery dependency is created.
+- `telegram-connect/secret-store.ts` already contains a backend-only
+  `resolveTelegramBotToken({ tokenSecretRef })` adapter contract for the
+  `resolve_telegram_bot_token` RPC.
+- `telegram-webhook` session lookup currently returns only safe session
+  metadata and intentionally does not expose `token_secret_ref`.
+- `token_secret_ref` must continue to be treated as sensitive backend metadata
+  even though it is not the raw BotFather token.
+
+Recommended architecture:
+
+- Keep `token_secret_ref` out of browser-facing views, API responses, webhook
+  responses, logs, and public session lookup payloads.
+- Prefer a webhook-side token resolver adapter that accepts only the active
+  Telegram session id after webhook verification, session lookup, body parsing,
+  chat authorization, and idempotency claim have all succeeded.
+- Preferred RPC shape for the live bridge:
+
+```sql
+public.resolve_telegram_delivery_token(
+  p_telegram_session_id uuid
+) returns text
+```
+
+- The RPC must be executable only by `service_role`.
+- The RPC must resolve the active session to its private `token_secret_ref`
+  internally, then resolve the raw BotFather token inside the trusted database
+  or secret boundary.
+- The raw BotFather token may exist only inside the Edge Function invocation
+  memory long enough to call the injected Telegram delivery helper.
+- The token resolver adapter must return only `{ botToken }` to the webhook
+  runtime and must never return `token_secret_ref`, owner id, workspace id,
+  webhook secret material, raw DB errors, or Vault internals.
+
+Alternative architecture:
+
+- Reuse `resolve_telegram_bot_token(p_token_secret_ref text)` from the webhook
+  runtime only if a separately approved server-only path can obtain
+  `token_secret_ref` without exposing it in public session lookup records.
+- Avoid extending `resolve_telegram_webhook_session(text)` to return
+  `token_secret_ref` unless this is explicitly approved, because it broadens the
+  data carried by the webhook session lookup boundary.
+
+Runtime order when later implemented:
+
+1. Verify `X-Telegram-Bot-Api-Secret-Token`.
+2. Resolve active webhook session.
+3. Parse Telegram update.
+4. Authorize Telegram chat.
+5. Claim Telegram update idempotently.
+6. Resolve delivery token using only the claimed active session id.
+7. Deliver the bounded read-only response.
+8. Drop the token from local scope immediately after delivery.
+
+Security rules:
+
+- Never resolve a token before webhook verification, chat authorization, and
+  idempotency claim success.
+- Never resolve a token for duplicate updates.
+- Never log raw request body, raw token, resolved token, `token_secret_ref`,
+  session id, owner id, workspace id, chat id, or raw Telegram response bodies.
+- Never persist the raw token in public tables, frontend state, localStorage,
+  activity logs, console logs, error messages, or test snapshots.
+- Any token resolver failure must map to sanitized 503 or 500 behavior.
+- A missing, inactive, revoked, or ambiguous session-token mapping must fail
+  closed and must not attempt delivery.
+
+Files likely touched later:
+
+- `supabase/functions/telegram-webhook/token-resolver.ts`
+- `supabase/functions/telegram-webhook/token-resolver_test.ts`
+- `supabase/functions/telegram-webhook/index.ts`
+- `supabase/functions/telegram-webhook/index_test.ts`
+- `supabase/functions/telegram-webhook/runtime-config.ts`
+- `supabase/functions/telegram-webhook/runtime-config_test.ts`
+- `docs/telegram-integration-plan.md`
+
+Schema or RPC work likely needed later:
+
+- Add or approve `public.resolve_telegram_delivery_token(uuid)`, or approve an
+  equivalent backend-only token resolution boundary.
+- Verify the function is executable only by `service_role`.
+- Verify browser roles still cannot read `telegram_sessions.token_secret_ref`.
+- Verify public summaries still exclude `token_secret_ref`, owner id, workspace
+  id, webhook secret material, private chat ids, and raw token data.
+
+Next safe implementation slices:
+
+1. Add a pure webhook token resolver adapter contract and tests without wiring
+   it into default runtime.
+2. Add sanitized token resolver error mapping tests.
+3. Add default-off runtime wiring that requires an injected token resolver and
+   delivery dependency.
+4. Only after separate approval, deploy the Edge Function with the relevant
+   gates and manually smoke test with a disposable Telegram bot.
+
+Still not included:
+
+- No live token resolution.
+- No Vault access.
+- No raw BotFather token read/write.
+- No schema/RLS migration.
+- No Telegram API call.
+- No Edge Function deploy.
+- No Netlify publish/unlock.
