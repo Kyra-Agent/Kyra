@@ -2906,6 +2906,115 @@ Do not enable this gate yet:
   queued sessions and token refs.
 - Edge Function deployment and production smoke remain separate approval gates.
 
+## Phase 5AG Webhook Receiver Session Lookup Plan
+
+Phase 5AG is an audit and design checkpoint for the future
+`telegram-webhook` receiver. It does not parse live Telegram updates, write
+database records, change schema/RLS, access Vault, call Telegram APIs, deploy
+Edge Functions, publish Netlify, or enable command processing.
+
+Current receiver state:
+
+- `telegram-webhook` checks `X-Telegram-Bot-Api-Secret-Token` before reading or
+  parsing the request body.
+- Missing webhook secret still returns a generic
+  `webhook_verification_failed` response.
+- The function remains inert and returns `not_configured` after header,
+  content-type, and body-size guards pass.
+- There is no Supabase client, service-role client, Vault access, Telegram API
+  call, DB read, DB write, request body logging, or command processor in the
+  current receiver.
+
+Current data gap:
+
+- `telegram_sessions` currently has safe demo metadata plus `token_secret_ref`,
+  but no webhook secret hash/reference, webhook URL, Telegram user ID, Telegram
+  chat ID, or command authorization fields.
+- `telegram_session_summaries` exposes only safe metadata and must not expose
+  token refs, webhook secrets, chat identifiers, raw payloads, owner IDs, or
+  internal errors.
+- Existing `approval_requests` and `activity_logs` can support later command
+  output, but they should not be written by `telegram-webhook` until webhook
+  verification, session lookup, and chat authorization are implemented and
+  reviewed.
+
+Recommended webhook receiver contract:
+
+1. Verify webhook secret first.
+   - Preserve the current ordering: reject missing or invalid
+     `X-Telegram-Bot-Api-Secret-Token` before body read, body parse, command
+     parsing, or logging.
+   - Use constant-time comparison or an equivalent database-side lookup that
+     avoids leaking whether a partial secret matched.
+   - Never log the request body, webhook secret, token refs, chat IDs, owner IDs,
+     workspace IDs, or raw lookup errors.
+
+2. Resolve webhook secret to one active session.
+   - Add a separately approved server-only lookup path that maps a verified
+     webhook secret hash/reference to exactly one active `telegram_sessions`
+     record.
+   - The lookup must join:
+     `telegram_sessions.agent_id -> agent_instances.id ->
+     agent_instances.workspace_id -> workspaces.id`.
+   - The internal result should include only the fields needed by the receiver:
+     `session_id`, `agent_id`, `workspace_id`, `owner_user_id`, `bot_handle`,
+     and `webhook_status`.
+   - Public responses must not include `owner_user_id`, `workspace_id`,
+     `token_secret_ref`, webhook secret material, raw DB errors, or raw Telegram
+     payloads.
+
+3. Authorize the Telegram chat before command handling.
+   - Personal agents may accept commands only from the owner-linked Telegram
+     user/chat.
+   - Community or project agents require an explicit allowlist/admin role policy
+     before any command is accepted.
+   - Unknown chats should no-op or receive a safe denial response without
+     writing command records.
+   - Read-only commands must be separated from write, approval, wallet, admin,
+     or onchain commands.
+
+4. Keep command processing staged.
+   - The first live receiver slice should parse only the minimal safe Telegram
+     update shape after verification and session authorization succeed.
+   - Read-only commands such as status/help should be implemented before write
+     or approval commands.
+   - Write or approval commands should create reviewed Kyra intent/approval
+     records only; they must not execute wallet or onchain actions directly.
+
+Recommended future error contract:
+
+- `401 webhook_verification_failed`: missing or invalid webhook secret, rejected
+  before body access.
+- `404 session_not_found`: verified secret does not map to exactly one active
+  Telegram session.
+- `403 chat_not_authorized`: session exists but Telegram user/chat is not
+  authorized for the agent.
+- `400 invalid_update`: verified and authorized request has an unsupported or
+  malformed Telegram update shape.
+- `501 not_configured`: receiver contract is present but command processing is
+  intentionally disabled.
+- `500 server_error`: unexpected lookup or processing failure, sanitized.
+
+Schema/RLS decisions that need separate approval:
+
+- Add a server-only webhook secret hash/reference storage model, either on
+  `telegram_sessions` or in a private companion table.
+- Add a Telegram chat authorization model for owner-linked personal chats and
+  community/project allowlists.
+- Add verifier coverage proving browser roles cannot read webhook secrets, chat
+  identifiers, owner IDs, workspace IDs, or raw Telegram payloads.
+- Keep all webhook receiver lookup and authorization reads behind Edge Function
+  service-role execution or a narrow server-only RPC boundary.
+
+Safe next implementation slice:
+
+- Add pure tests/helpers for webhook session lookup result handling.
+- Add pure tests/helpers for chat authorization decisions.
+- Add minimal Telegram update shape validators that are not called before
+  webhook verification.
+- Keep runtime inert: no DB reads, DB writes, Vault access, Telegram API calls,
+  command writes, body logging, deploy, or production enablement.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
