@@ -82,11 +82,19 @@ export type {
   TelegramVerifiedReadOnlyPipelineResult,
 } from "./read-only-pipeline.ts";
 export {
+  assertTelegramUpdateClaimRows,
+  assertTelegramUpdateClaimRpcResult,
   assertTelegramUpdateClaimResult,
+  claimTelegramUpdate,
   sanitizeTelegramUpdateClaimError,
+  sanitizeTelegramUpdateClaimRpcError,
   shouldProcessTelegramUpdateClaim,
 } from "./idempotency.ts";
-export type { TelegramUpdateClaimResult } from "./idempotency.ts";
+export type {
+  TelegramUpdateClaimResult,
+  TelegramUpdateClaimRpcClient,
+  TelegramUpdateClaimRpcResult,
+} from "./idempotency.ts";
 export { planTelegramClaimedReadOnlyResponse } from "./claim-aware-response.ts";
 export type { TelegramClaimedReadOnlyResponsePlan } from "./claim-aware-response.ts";
 export {

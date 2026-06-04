@@ -6250,6 +6250,53 @@ Still blocked after Phase 5BQ:
 - Telegram API calls, Edge Function deploy, Netlify publish, or Git push without
   explicit approval.
 
+### Phase 5BR Telegram Update Claim Adapter
+
+Phase 5BR prepares the backend-only adapter for the already-applied
+`claim_telegram_update(uuid,bigint)` RPC. It does not mount idempotency claiming
+in the live webhook handler yet.
+
+Adapter contract:
+
+- Input comes from an active webhook session and an already-parsed Telegram
+  update.
+- Call only `claim_telegram_update` with:
+  - `p_telegram_session_id`
+  - `p_telegram_update_id`
+- Accept only the bounded result forms:
+  - `{ claimed: true, status: "claimed" }`
+  - `{ claimed: false, status: "duplicate" }`
+- Return duplicate deliveries as a bounded no-op decision, not as an error.
+- Empty rows map to `404 session_not_found`.
+- Duplicate rows, invalid row shapes, RPC errors, and unexpected exceptions map
+  to sanitized `500 server_error`.
+
+Security requirements:
+
+- The adapter must never return or log raw Telegram update bodies, raw DB
+  errors, owner IDs, workspace IDs, Telegram chat/user IDs, token refs, webhook
+  hashes, or webhook secret headers.
+- The adapter must not use browser credentials.
+- The adapter must not call Telegram API.
+- The live handler must not call the adapter until a separate default-off
+  runtime gate/mount slice is approved and tested.
+
+Tests required:
+
+- Exact RPC function name and argument names.
+- Claimed and duplicate rows map to bounded claim results.
+- Empty rows map to `session_not_found`.
+- Duplicate rows, invalid result shape, non-array data, RPC errors, and thrown
+  errors are sanitized.
+- Invalid update IDs reject before RPC.
+
+Still blocked after Phase 5BR:
+
+- Creating a live handler dependency for update claim.
+- Calling `claim_telegram_update` from `handleTelegramWebhookRequest`.
+- Response planning, Telegram reply delivery, Edge Function deploy, Netlify
+  publish, or Git push without explicit approval.
+
 ## Chat Authorization Model
 
 Telegram chat access must be explicit before any command is accepted.
