@@ -7830,3 +7830,35 @@ Safety state:
   production state changed.
 - Executable forward/rollback SQL and Supabase apply remain blocked pending
   separate explicit approval.
+
+## Phase 5CS - Owner-Link Challenge SQL Review Packets
+
+Phase 5CS adds local executable review packets only:
+
+- `supabase/telegram_owner_link_challenge_forward_review.sql`
+- `supabase/telegram_owner_link_challenge_rollback_review.sql`
+
+Forward packet scope:
+
+- Create `public.telegram_owner_link_challenges`.
+- Create service-role-only issue and consume RPCs.
+- Enforce hash-only challenge storage, active-session ownership validation,
+  ten-minute maximum TTL, one active challenge per agent/session/hash, and no
+  browser table access.
+- Atomically claim Telegram updates, consume one challenge, and insert one
+  owner/read-only authorization for exact private Telegram user/chat identity.
+
+Rollback packet scope:
+
+- Revoke/drop the exact owner-link RPC signatures.
+- Drop `public.telegram_owner_link_challenges` only when it contains no rows.
+- Avoid `CASCADE` and leave existing Telegram session, webhook, authorization,
+  processed-update, and Vault objects untouched.
+
+Safety state:
+
+- The SQL packets were not run against Supabase.
+- No schema/RLS, grant, RPC, row, runtime, UI, secret, deployment, Netlify, or
+  production state changed.
+- Supabase apply still requires a fresh target baseline, verifier review, and
+  explicit apply approval.
