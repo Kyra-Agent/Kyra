@@ -263,6 +263,7 @@ begin
   join public.workspaces workspaces
     on workspaces.id = agents.workspace_id
   where challenges.telegram_session_id = p_telegram_session_id
+    and sessions.agent_id = challenges.agent_id
     and challenges.challenge_hash = p_challenge_hash
     and challenges.consumed_at is null
     and challenges.revoked_at is null
@@ -299,6 +300,7 @@ begin
       on workspaces.id = agents.workspace_id
     where challenges.agent_id = v_agent_id
       and challenges.telegram_session_id = p_telegram_session_id
+      and sessions.agent_id = challenges.agent_id
       and challenges.challenge_hash = p_challenge_hash
       and challenges.consumed_at is null
       and challenges.revoked_at is null

@@ -519,11 +519,19 @@ select
           'public.telegram_chat_authorizations'
           in normalized.definition
         ) > 0
+        and position('agents.id=p_agent_id' in normalized.definition) > 0
+        and position('sessions.id=p_telegram_session_id' in normalized.definition) > 0
+        and position('sessions.agent_id=agents.id' in normalized.definition) > 0
         and position(
           'public.telegram_owner_link_challenges'
           in normalized.definition
         ) > 0
         and position('owner_user_id=p_issued_by_user_id' in normalized.definition) > 0
+        and position(
+          'authorizations.agent_id=agents.id'
+          in normalized.definition
+        ) > 0
+        and position('authorizations.revoked_atisnull' in normalized.definition) > 0
         and position('webhook_status=''active''' in normalized.definition) > 0
         and position('interval''10minutes''' in normalized.definition) > 0
         and position('insertintopublic.telegram_owner_link_challenges' in normalized.definition) > 0
@@ -641,6 +649,27 @@ select
         ) > 0
         and position('p_telegram_user_id=p_telegram_chat_id' in normalized.definition) > 0
         and position('p_telegram_update_id>=0' in normalized.definition) > 0
+        and position(
+          'challenges.telegram_session_id=p_telegram_session_id'
+          in normalized.definition
+        ) > 0
+        and position(
+          'challenges.challenge_hash=p_challenge_hash'
+          in normalized.definition
+        ) > 0
+        and position(
+          'sessions.agent_id=challenges.agent_id'
+          in normalized.definition
+        ) > 0
+        and position(
+          'owner_user_id=challenges.issued_by_user_id'
+          in normalized.definition
+        ) > 0
+        and position(
+          'authorizations.agent_id=challenges.agent_id'
+          in normalized.definition
+        ) > 0
+        and position('authorizations.revoked_atisnull' in normalized.definition) > 0
         and position('webhook_status=''active''' in normalized.definition) > 0
         and position('consumed_atisnull' in normalized.definition) > 0
         and position('revoked_atisnull' in normalized.definition) > 0

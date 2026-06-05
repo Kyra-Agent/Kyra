@@ -7847,6 +7847,8 @@ Forward packet scope:
   browser table access.
 - Atomically claim Telegram updates, consume one challenge, and insert one
   owner/read-only authorization for exact private Telegram user/chat identity.
+- Require the active Telegram session's `agent_id` to match the owner-link
+  challenge `agent_id` during consume.
 
 Rollback packet scope:
 
@@ -7862,3 +7864,5 @@ Safety state:
   production state changed.
 - Supabase apply still requires a fresh target baseline, verifier review, and
   explicit apply approval.
+- The verifier must reject implementations that omit exact agent/session,
+  challenge-hash, current-owner, or active-authorization predicates.
