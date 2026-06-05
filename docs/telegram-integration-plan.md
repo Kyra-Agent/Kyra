@@ -8578,3 +8578,69 @@ Safety state:
 - No SQL was applied, no schema/RLS/RPC/grant or database row changed, and no
   environment value, secret, runtime gate, Edge Function, deployment,
   Netlify state, or production behavior changed in Phase 5DD.
+
+## Phase 5DE - Durable Owner-Link Rate-Limit Apply Closeout
+
+The approved durable owner-link rate-limit forward packet was applied manually
+to Supabase. The apply completed successfully and created no limiter,
+challenge, authorization, processed-update, token, secret, or payload rows.
+
+Initial verifier review:
+
+- The authenticated-write lockdown checks continued to show the expected
+  browser-denial and service-role-only privilege boundaries.
+- Three initial verifier checks returned false because the local verifier
+  assumptions had drifted from valid PostgreSQL output and the approved RPC
+  replacement:
+  - PostgreSQL truncated two 66-character constraint names to its 63-character
+    identifier limit.
+  - The issue-history index verifier inspected the `DESC` property through an
+    unreliable column-only index-definition form.
+  - The existing challenge verifier expected positive validation predicates
+    from the previous consume RPC instead of the equivalent new fail-fast
+    negative predicates.
+
+Verifier correction:
+
+- The forward review packet and schema snapshot now use the exact persisted
+  63-character constraint names.
+- The rate-limit verifier checks full index definitions for `created_at desc`
+  while still checking exact key columns.
+- The owner-link challenge verifier recognizes the approved fail-fast input
+  validation contract.
+- These changes modify verifier/snapshot expectations only. No follow-up SQL
+  mutation was required.
+
+Verified apply result:
+
+- The owner-link challenge verifier rerun returned all 17 required checks
+  `true`.
+- The durable owner-link rate-limit verifier rerun returned all 16 required
+  checks `true`.
+- The limiter table is private, RLS-enabled, has no policies, and exposes only
+  the approved `select`, `insert`, and `update` privileges to `service_role`.
+- Both issue and consume RPCs remain volatile, security-invoker,
+  empty-search-path, and service-role-only contracts.
+- Issue-history indexes, deterministic lock ordering, claim-before-limit,
+  limit-before-challenge, generic denial, result contracts, and public-view
+  exclusions are verified.
+- `supabase/schema.sql` mirrors the verified applied table, indexes, RPCs,
+  RLS state, revokes, and grants.
+
+Remaining blocked work:
+
+- Keep both owner-link issue and consume runtime gates disabled.
+- Do not create a live owner-link challenge or authorization row yet.
+- Do not deploy Edge Functions, enable gates, run a live Telegram smoke test,
+  or push without the next explicit approval.
+- The next safe implementation slice is the default-off Edge adapter update
+  that understands the bounded issue `rate_limited` result while preserving
+  generic consume behavior.
+
+Safety state:
+
+- The approved database apply changed only the reviewed durable limiter
+  schema/index/RPC/grant boundary.
+- No environment value or secret was read, no Telegram API call occurred, no
+  runtime gate was enabled, and no Edge Function, Netlify, deploy, push, or
+  production Telegram behavior changed in Phase 5DE.

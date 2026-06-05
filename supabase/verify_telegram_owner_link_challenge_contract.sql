@@ -647,8 +647,8 @@ select
           'public.telegram_chat_authorizations'
           in normalized.definition
         ) > 0
-        and position('p_telegram_user_id=p_telegram_chat_id' in normalized.definition) > 0
-        and position('p_telegram_update_id>=0' in normalized.definition) > 0
+        and position('p_telegram_user_id<>p_telegram_chat_id' in normalized.definition) > 0
+        and position('p_telegram_update_id<0' in normalized.definition) > 0
         and position(
           'challenges.telegram_session_id=p_telegram_session_id'
           in normalized.definition

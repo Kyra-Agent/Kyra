@@ -94,8 +94,8 @@ select
           'telegram_owner_link_consume_rate_limits_scope_check',
           'telegram_owner_link_consume_rate_limits_scope_identity_check',
           'telegram_owner_link_consume_rate_limits_attempt_count_check',
-          'telegram_owner_link_consume_rate_limits_updated_after_window_check',
-          'telegram_owner_link_consume_rate_limits_blocked_after_window_check'
+          'telegram_owner_link_consume_rate_limits_updated_after_window_ch',
+          'telegram_owner_link_consume_rate_limits_blocked_after_window_ch'
         ]::text[])
     )
     and exists (
@@ -176,6 +176,36 @@ select
         and position('30' in pg_get_constraintdef(con.oid)) > 0
         and position('5' in pg_get_constraintdef(con.oid)) > 0
     )
+    and exists (
+      select 1
+      from pg_constraint con
+      where con.conrelid = rate_limit_objects.limiter_table::oid
+        and con.conname =
+          'telegram_owner_link_consume_rate_limits_updated_after_window_ch'
+        and con.contype = 'c'
+        and con.convalidated
+        and regexp_replace(
+          lower(pg_get_constraintdef(con.oid)),
+          '[^a-z0-9_>=]+',
+          '',
+          'g'
+        ) = 'checkupdated_at>=window_started_at'
+    )
+    and exists (
+      select 1
+      from pg_constraint con
+      where con.conrelid = rate_limit_objects.limiter_table::oid
+        and con.conname =
+          'telegram_owner_link_consume_rate_limits_blocked_after_window_ch'
+        and con.contype = 'c'
+        and con.convalidated
+        and regexp_replace(
+          lower(pg_get_constraintdef(con.oid)),
+          '[^a-z0-9_>=]+',
+          '',
+          'g'
+        ) = 'checkblocked_untilisnullorblocked_until>=window_started_at'
+    )
   end as telegram_owner_link_consume_rate_limits_constraints_are_expected,
   case
     when rate_limit_objects.limiter_table is null then false
@@ -235,7 +265,11 @@ select
             then 'telegram_session_id'
           else 'issued_by_user_id'
         end
-        and lower(pg_get_indexdef(idx.indexrelid, 2, true)) = 'created_at desc'
+        and pg_get_indexdef(idx.indexrelid, 2, true) = 'created_at'
+        and position(
+          'created_at desc'
+          in lower(pg_get_indexdef(idx.indexrelid))
+        ) > 0
     )
   end as telegram_owner_link_issue_history_indexes_are_expected,
   case

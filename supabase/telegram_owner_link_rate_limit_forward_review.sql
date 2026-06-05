@@ -105,9 +105,9 @@ create table public.telegram_owner_link_consume_rate_limits (
       (scope = 'session' and attempt_count between 0 and 30)
       or (scope = 'identity' and attempt_count between 0 and 5)
     ),
-  constraint telegram_owner_link_consume_rate_limits_updated_after_window_check
+  constraint telegram_owner_link_consume_rate_limits_updated_after_window_ch
     check (updated_at >= window_started_at),
-  constraint telegram_owner_link_consume_rate_limits_blocked_after_window_check
+  constraint telegram_owner_link_consume_rate_limits_blocked_after_window_ch
     check (blocked_until is null or blocked_until >= window_started_at)
 );
 
