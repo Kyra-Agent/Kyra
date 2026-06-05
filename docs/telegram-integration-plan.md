@@ -7075,3 +7075,88 @@ Recommended next local-only boundary:
   before any runtime gate enablement.
 - Keep this as a separate local-only review slice: no SQL apply, no live secret,
   no Telegram API, no deploy, and no push unless explicitly approved.
+
+## Phase 5CE - Schema Snapshot Drift Audit
+
+Phase 5CE audits the remaining repository schema drift for Telegram live
+readiness. It is audit/docs-only and does not change `supabase/schema.sql`, run
+SQL, read secrets, deploy, publish, or push.
+
+Current local state:
+
+- Working tree was clean at the start of the audit.
+- Local `main` was ahead of `origin/main` by 20 commits.
+- `supabase/schema.sql` already contains the locally synced Telegram webhook
+  receiver, chat authorization, and processed-update claim objects.
+- Runtime gates remain disabled by default.
+
+Objects already represented in `supabase/schema.sql`:
+
+- `public.telegram_sessions`
+- `public.telegram_session_summaries`
+- `public.telegram_webhook_secrets`
+- `public.resolve_telegram_webhook_session(text)`
+- `public.telegram_chat_authorizations`
+- `public.resolve_telegram_chat_authorization(uuid,text,text,text)`
+- `public.telegram_processed_updates`
+- `public.claim_telegram_update(uuid,bigint)`
+
+Objects still missing from `supabase/schema.sql`:
+
+- `public.telegram_bot_token_secrets`
+- `public.store_telegram_bot_token(uuid, uuid, text, text)`
+- `public.resolve_telegram_bot_token(text)`
+- `public.revoke_telegram_bot_token(text)`
+- `public.resolve_telegram_delivery_token(uuid)`
+
+Local SQL artifact state:
+
+- `supabase/telegram_vault_rpc_review_draft.sql` contains the previously
+  reviewed Vault token metadata table and the store/resolve/revoke token RPCs.
+- `supabase/telegram_vault_rpc_review_draft.sql` does not contain
+  `public.resolve_telegram_delivery_token(uuid)`.
+- No local Supabase SQL artifact currently defines
+  `public.resolve_telegram_delivery_token(uuid)`.
+- `supabase/verify_authenticated_demo_write_lockdown.sql` checks the
+  store/resolve/revoke token RPCs, but the current local scan did not find a
+  verifier check for `resolve_telegram_delivery_token(uuid)`.
+
+Risk classification:
+
+- This is not a live runtime issue while all Telegram gates remain disabled.
+- It is a pre-live blocker for delivery gate enablement, because webhook
+  delivery runtime expects `resolve_telegram_delivery_token(uuid)`.
+- It is also a pre-push review risk if the repository is expected to represent
+  the full manually applied production schema state.
+
+Recommended next local-only slices:
+
+1. Create a review-only SQL packet for
+   `public.resolve_telegram_delivery_token(uuid)` that calls the existing
+   backend-only token resolver boundary without exposing `token_secret_ref` to
+   browser roles.
+2. Add verifier checks for `resolve_telegram_delivery_token(uuid)`:
+   - function exists
+   - public cannot execute
+   - anon cannot execute
+   - authenticated cannot execute
+   - service_role can execute
+   - browser roles still cannot read `telegram_sessions.token_secret_ref`
+   - public summaries still exclude sensitive fields
+3. Only after the delivery-token RPC packet is reviewed and the production
+   verifier state is accepted, sync `supabase/schema.sql` with:
+   - `telegram_bot_token_secrets`
+   - store/resolve/revoke token RPCs
+   - delivery token resolver RPC
+   - exact backend-only grants
+4. Keep the sync as a local-only commit until push is explicitly approved.
+
+Hard stops:
+
+- Do not edit `supabase/schema.sql` until the delivery-token RPC contract and
+  verifier checks are represented locally.
+- Do not enable `KYRA_TELEGRAM_WEBHOOK_DELIVERY_ENABLED`.
+- Do not deploy `telegram-webhook`.
+- Do not read `.env.local`, Vault secrets, or live BotFather tokens.
+- Do not call Telegram.
+- Do not push while Netlify credit impact is not explicitly accepted.
