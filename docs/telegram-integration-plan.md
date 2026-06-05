@@ -7284,3 +7284,56 @@ Still not included:
 - No Edge Function deploy.
 - No Netlify publish.
 - No push.
+
+## Phase 5CI - Production Delivery Token Resolver Apply Verification
+
+On June 5, 2026, the reviewed delivery-token resolver packet was manually
+applied to the target Supabase production project:
+
+- `supabase/telegram_delivery_token_resolver_forward_review.sql`
+- Supabase SQL Editor reported `Success. No rows returned.`
+
+The complete production verifier was run immediately after the apply and
+exported as:
+
+- `Supabase Snippet Telegram Schema & Privilege Contract Validation.csv`
+
+Verifier result:
+
+- 140 contract fields were present.
+- 131 contract fields were `true`.
+- 9 contract fields were `false`, all representing expected-deny conditions:
+  authenticated users cannot directly insert or mutate protected demo and
+  Telegram records, and cannot select `telegram_sessions.token_secret_ref`.
+- No verifier field was empty.
+
+Delivery-token resolver checks all passed:
+
+- `resolve_telegram_delivery_token_function_exists = true`
+- `public_cannot_execute_resolve_telegram_delivery_token = true`
+- `anon_cannot_execute_resolve_telegram_delivery_token = true`
+- `auth_cannot_execute_resolve_telegram_delivery_token = true`
+- `service_role_can_execute_resolve_telegram_delivery_token = true`
+
+Security and runtime state after apply:
+
+- The raw BotFather token remains accessible only through the backend-only
+  service-role resolver boundary.
+- Browser roles remain unable to execute the resolver or select
+  `telegram_sessions.token_secret_ref`.
+- No secret value was read, created, logged, returned, or included in the
+  verifier evidence.
+- No Telegram API call was made.
+- No Edge Function was deployed.
+- All Telegram runtime gates remain disabled.
+- No Netlify publish or Git push was performed as part of this apply.
+
+Remaining manual decision gates:
+
+1. Approve a push of the local Phase 5 bundle to `main`; this may consume
+   limited Netlify build credits.
+2. Approve the exact Supabase Edge Function deployment window.
+3. Approve runtime-gate enablement in dependency order and stop after each
+   production smoke checkpoint.
+4. Approve use of a disposable BotFather token and owner-linked Telegram chat
+   for the first live smoke test.
