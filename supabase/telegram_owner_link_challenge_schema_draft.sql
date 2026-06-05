@@ -1,0 +1,334 @@
+-- DRAFT ONLY - DO NOT APPLY.
+-- Phase 5CQ comment-only design for Telegram owner-link challenge issue and
+-- atomic consume. This file intentionally contains no executable SQL.
+-- Do not remove comment prefixes or adapt this draft for Supabase without a
+-- separately reviewed forward packet, rollback packet, verifier update, target
+-- baseline, and explicit schema/RLS/apply approval.
+
+-- Purpose
+-- - Issue a short-lived, single-use owner-link challenge only after exact Kyra
+--   owner and active Telegram session validation.
+-- - Store only the SHA-256 challenge hash, never the raw challenge.
+-- - Atomically claim the Telegram update, consume the challenge, and create the
+--   first exact private-chat owner authorization.
+-- - Keep relink, transfer, community, write, and approval scope deferred.
+
+-- Hard boundaries
+-- - No table, index, policy, grant, function, trigger, or row is created.
+-- - No existing schema.sql or verifier SQL is changed.
+-- - No raw challenge, Telegram update body, message text, token, secret, or
+--   secret ref is stored.
+-- - No frontend, Edge Function, service-role adapter, runtime gate, Telegram
+--   API call, deployment, Netlify action, or push is enabled.
+-- - This draft must not be applied in Supabase.
+
+-- Existing required dependencies
+-- - public.workspaces
+-- - public.agent_instances
+-- - public.telegram_sessions
+-- - public.telegram_chat_authorizations
+-- - public.telegram_processed_updates
+-- - The existing objects and their privilege/verifier contracts must remain
+--   unchanged by this future slice.
+
+-- Objects in this future slice
+-- - Private table: public.telegram_owner_link_challenges
+-- - Issue RPC:
+--   public.issue_telegram_owner_link_challenge(uuid,uuid,uuid,text,timestamptz)
+-- - Atomic consume RPC:
+--   public.consume_telegram_owner_link_challenge(uuid,bigint,text,text,text)
+
+-- Initial rollout boundary
+-- - Personal owner linking only.
+-- - One active challenge per agent and Telegram session.
+-- - One active read-only owner authorization per agent.
+-- - Private Telegram chat only: user ID and chat ID must be equal positive
+--   canonical base-10 integer strings.
+-- - Maximum challenge lifetime is ten minutes.
+-- - Unknown, expired, consumed, revoked, replayed, mismatched, inactive, or
+--   already-linked attempts return no authorization result or a bounded
+--   duplicate result.
+
+-- Explicitly deferred behavior
+-- - Relink, transfer, or active authorization replacement.
+-- - Group, supergroup, channel, community, public, admin, or member linking.
+-- - Write, approval, wallet, admin, or onchain command scope.
+-- - Browser-managed challenge or authorization rows.
+-- - Automatic expired-row deletion or retention jobs.
+
+-- Proposed exact table shape
+-- - id uuid not null default gen_random_uuid()
+-- - agent_id uuid not null
+-- - telegram_session_id uuid not null
+-- - issued_by_user_id uuid not null
+-- - challenge_hash text not null
+-- - expires_at timestamptz not null
+-- - created_at timestamptz not null default now()
+-- - consumed_at timestamptz null
+-- - revoked_at timestamptz null
+
+-- Challenge contract
+-- - The raw challenge is exactly 32 cryptographically random bytes encoded as
+--   64 lowercase hexadecimal characters.
+-- - Store only the lowercase hexadecimal SHA-256 digest of the exact raw
+--   challenge bytes.
+-- - challenge_hash format: ^[0-9a-f]{64}$
+-- - Maximum lifetime: expires_at <= current server time + interval '10 minutes'
+--   at issue RPC execution.
+-- - The raw challenge must never enter this table, any RPC argument except as
+--   a pre-hashed value, public view, browser storage, log, or error response.
+
+-- Stable future constraint names
+-- - telegram_owner_link_challenges_pkey
+-- - telegram_owner_link_challenges_agent_fkey
+-- - telegram_owner_link_challenges_session_fkey
+-- - telegram_owner_link_challenges_issuer_fkey
+-- - telegram_owner_link_challenges_hash_not_blank_check
+-- - telegram_owner_link_challenges_hash_format_check
+-- - telegram_owner_link_challenges_expiry_after_creation_check
+-- - telegram_owner_link_challenges_consumed_after_creation_check
+-- - telegram_owner_link_challenges_revoked_after_creation_check
+
+-- Commented DDL sketch
+-- - A future initial apply must fail if this table already exists.
+-- - Do not use create table if not exists.
+-- create table public.telegram_owner_link_challenges (
+--   id uuid not null default gen_random_uuid(),
+--   agent_id uuid not null,
+--   telegram_session_id uuid not null,
+--   issued_by_user_id uuid not null,
+--   challenge_hash text not null,
+--   expires_at timestamptz not null,
+--   created_at timestamptz not null default now(),
+--   consumed_at timestamptz null,
+--   revoked_at timestamptz null,
+--   constraint telegram_owner_link_challenges_pkey
+--     primary key (id),
+--   constraint telegram_owner_link_challenges_agent_fkey
+--     foreign key (agent_id)
+--     references public.agent_instances(id)
+--     on delete cascade,
+--   constraint telegram_owner_link_challenges_session_fkey
+--     foreign key (telegram_session_id)
+--     references public.telegram_sessions(id)
+--     on delete cascade,
+--   constraint telegram_owner_link_challenges_issuer_fkey
+--     foreign key (issued_by_user_id)
+--     references auth.users(id)
+--     on delete cascade,
+--   constraint telegram_owner_link_challenges_hash_not_blank_check
+--     check (length(btrim(challenge_hash)) > 0),
+--   constraint telegram_owner_link_challenges_hash_format_check
+--     check (challenge_hash ~ '^[0-9a-f]{64}$'),
+--   constraint telegram_owner_link_challenges_expiry_after_creation_check
+--     check (expires_at > created_at),
+--   constraint telegram_owner_link_challenges_consumed_after_creation_check
+--     check (consumed_at is null or consumed_at >= created_at),
+--   constraint telegram_owner_link_challenges_revoked_after_creation_check
+--     check (revoked_at is null or revoked_at >= created_at)
+-- );
+
+-- Index intent
+-- - One unconsumed and unrevoked challenge per agent.
+-- - One unconsumed and unrevoked challenge per Telegram session.
+-- - One unconsumed and unrevoked challenge per challenge hash.
+-- - Expired active rows may remain until a separately approved maintenance
+--   process revokes them; issue and consume RPCs must always check expires_at.
+-- create unique index telegram_owner_link_challenges_active_agent_key
+--   on public.telegram_owner_link_challenges (agent_id)
+--   where consumed_at is null and revoked_at is null;
+-- create unique index telegram_owner_link_challenges_active_session_key
+--   on public.telegram_owner_link_challenges (telegram_session_id)
+--   where consumed_at is null and revoked_at is null;
+-- create unique index telegram_owner_link_challenges_active_hash_key
+--   on public.telegram_owner_link_challenges (challenge_hash)
+--   where consumed_at is null and revoked_at is null;
+
+-- Browser access boundary
+-- - public, anon, and authenticated must have no direct table privileges.
+-- - RLS must be enabled with no browser-readable policies.
+-- - service_role receives only select, insert, and update for the approved
+--   issue/consume RPCs.
+-- - service_role must not receive delete, truncate, references, or trigger.
+
+-- Commented RLS/grant sketch
+-- alter table public.telegram_owner_link_challenges enable row level security;
+-- revoke all on public.telegram_owner_link_challenges from public;
+-- revoke all on public.telegram_owner_link_challenges from anon;
+-- revoke all on public.telegram_owner_link_challenges from authenticated;
+-- revoke all on public.telegram_owner_link_challenges from service_role;
+-- grant select, insert, update on public.telegram_owner_link_challenges
+--   to service_role;
+
+-- Issue RPC input
+-- - p_agent_id uuid
+-- - p_telegram_session_id uuid
+-- - p_issued_by_user_id uuid
+-- - p_challenge_hash text
+-- - p_expires_at timestamptz
+
+-- Issue RPC output
+-- - issued boolean
+-- - status text
+-- - Return exactly one bounded issued/issued row only after successful issue.
+-- - Return zero rows for unknown agent/session, non-owner issuer, inactive
+--   session, malformed hash, invalid expiry, or already-linked agent.
+-- - Never return challenge hash, challenge ID, Telegram IDs, agent/session/
+--   workspace/owner IDs, authorization rows, or raw DB errors.
+
+-- Issue RPC required behavior
+-- - Volatile PL/pgSQL SECURITY INVOKER with empty search path.
+-- - Acquire an agent-scoped transaction advisory lock before eligibility
+--   checks and mutations.
+-- - Revalidate:
+--   agent_instances.workspace_id -> workspaces.owner_user_id equals
+--   p_issued_by_user_id.
+-- - Require p_telegram_session_id to be the active session for p_agent_id.
+-- - Require no active telegram_chat_authorizations row for p_agent_id.
+-- - Require exact lowercase SHA-256 hash format.
+-- - Require now() < p_expires_at <= now() + interval '10 minutes'.
+-- - Revoke prior unconsumed/unrevoked challenges for the exact agent or
+--   session, then insert one new challenge in the same transaction.
+-- - On any insert or validation failure, the transaction must not leave a
+--   partially issued challenge.
+
+-- Atomic consume RPC input
+-- - p_telegram_session_id uuid
+-- - p_telegram_update_id bigint
+-- - p_telegram_user_id text
+-- - p_telegram_chat_id text
+-- - p_challenge_hash text
+
+-- Atomic consume RPC output
+-- - linked boolean
+-- - status text
+-- - linked=true/status=linked only after claim, consume, and authorization
+--   insert all succeed.
+-- - linked=false/status=duplicate only when the exact session/update pair was
+--   already claimed while an otherwise eligible challenge still exists.
+-- - Return zero rows for unknown, expired, consumed, revoked, mismatched,
+--   inactive, malformed, non-private identity, or already-linked attempts.
+-- - Never return challenge hash, Telegram IDs, update/session/agent/workspace/
+--   owner IDs, authorization rows, or raw DB errors.
+
+-- Atomic consume RPC required behavior
+-- - Volatile PL/pgSQL SECURITY INVOKER with empty search path.
+-- - Acquire an agent-scoped transaction advisory lock after resolving the
+--   active session and challenge.
+-- - Require p_telegram_update_id >= 0.
+-- - Require p_telegram_user_id and p_telegram_chat_id to be identical positive
+--   canonical base-10 integer strings.
+-- - Require exact active session and challenge_hash match.
+-- - Require consumed_at and revoked_at to be null and expires_at > now().
+-- - Revalidate that the challenge issuer is still the current workspace owner.
+-- - Require no active telegram_chat_authorizations row for the agent.
+-- - Insert the exact session/update into telegram_processed_updates using the
+--   existing primary key and on-conflict no-op.
+-- - Stop with bounded duplicate result before challenge consumption if the
+--   update was already claimed.
+-- - Set consumed_at and insert one owner/read_only chat authorization in the
+--   same transaction.
+-- - Any failure after claim must roll back the update claim, challenge consume,
+--   and authorization insert together.
+-- - Do not catch unique violations and commit partial state. Map failures only
+--   in the future Edge Function adapter.
+
+-- Concurrency contract
+-- - The issue RPC lock prevents concurrent challenges for one agent/session.
+-- - The consume RPC lock plus challenge-row update prevents two different
+--   updates from consuming the same challenge.
+-- - telegram_processed_updates prevents replay of the same update.
+-- - telegram_chat_authorizations_active_agent_key remains the final guard
+--   against duplicate active owner authorizations.
+-- - A conflicting consume must fail or no-op without leaving the challenge
+--   consumed but the authorization missing.
+
+-- RPC privilege model
+-- - Both RPCs are volatile, SECURITY INVOKER, and have an empty search path.
+-- - Fully qualify every relation, built-in function, and referenced object.
+-- - Only service_role may execute either RPC.
+-- - PostgreSQL PUBLIC execute defaults must be explicitly revoked.
+-- - The function owner is not used as a runtime privilege boundary.
+
+-- Commented function privilege sketch
+-- revoke all on function
+--   public.issue_telegram_owner_link_challenge(uuid,uuid,uuid,text,timestamptz)
+--   from public, anon, authenticated, service_role;
+-- grant execute on function
+--   public.issue_telegram_owner_link_challenge(uuid,uuid,uuid,text,timestamptz)
+--   to service_role;
+-- revoke all on function
+--   public.consume_telegram_owner_link_challenge(uuid,bigint,text,text,text)
+--   from public, anon, authenticated, service_role;
+-- grant execute on function
+--   public.consume_telegram_owner_link_challenge(uuid,bigint,text,text,text)
+--   to service_role;
+
+-- Required verifier coverage before any apply
+-- - Exact table and both RPC signatures exist after apply.
+-- - Table has exactly the approved columns and nullability.
+-- - No raw challenge, Telegram payload, message, command, response, token,
+--   secret, secret ref, or raw error column exists.
+-- - All stable named constraints have the approved definitions.
+-- - All three active partial unique indexes are unique, valid, ready, and have
+--   the exact consumed_at/revoked_at predicate.
+-- - RLS is enabled and no policies exist.
+-- - public, anon, and authenticated have no direct table privileges.
+-- - service_role has select, insert, and update only.
+-- - Both RPCs are volatile, SECURITY INVOKER, and have an empty search path.
+-- - Both RPCs return only the approved boolean/status fields.
+-- - Issue RPC revalidates exact owner and active session, caps TTL, revokes old
+--   challenges, and rejects already-linked agents.
+-- - Consume RPC requires exact private identity, active session, active
+--   challenge, current owner, unclaimed update, and no active authorization.
+-- - Consume RPC claims, consumes, and inserts authorization atomically.
+-- - public, anon, and authenticated cannot execute either RPC.
+-- - service_role can execute both RPCs.
+-- - Existing Telegram session, webhook, authorization, processed-update,
+--   Vault, public view, and authenticated write-lockdown checks remain true.
+
+-- Required tests before runtime wiring
+-- - Exact current owner can issue for an active owned agent/session.
+-- - Non-owner, unknown agent, wrong session, inactive session, malformed hash,
+--   expired/overlong expiry, or already-linked agent cannot issue.
+-- - Reissue revokes the old challenge and creates exactly one active challenge.
+-- - Exact private identity and active challenge link once.
+-- - Group-like, mismatched user/chat, expired, consumed, revoked, wrong hash,
+--   wrong session, changed owner, or already-linked attempts return no result.
+-- - Replayed identical update returns duplicate without consuming twice.
+-- - Concurrent different updates consume one challenge at most once.
+-- - Any authorization insert failure rolls back update claim and challenge
+--   consumption.
+-- - Browser roles cannot access the table or execute RPCs.
+-- - Results and errors never expose raw challenge/hash, Telegram IDs, or
+--   private metadata.
+
+-- Rollback boundary
+-- - Prefer transaction rollback for apply-time failure.
+-- - Post-commit rollback is allowed only while all owner-link runtime gates
+--   remain disabled and no required challenge rows exist.
+-- - Revoke RPC execute before dropping exact RPC signatures.
+-- - Revoke table privileges before dropping the table.
+-- - Do not drop or alter existing telegram_chat_authorizations or
+--   telegram_processed_updates objects in this rollback.
+-- - Do not use CASCADE.
+-- - If rows exist or runtime was enabled, use a reviewed forward fix.
+
+-- Required future approval sequence
+-- - Review this comment-only design.
+-- - Prepare verifier-only checks without applying schema.
+-- - Prepare separate executable forward and non-CASCADE rollback packets.
+-- - Capture fresh target baseline and review production object compatibility.
+-- - Explicitly approve schema/RLS/grants/RPC apply.
+-- - Apply one packet, run verifier immediately, and stop before runtime wiring.
+-- - Add mocked service-role adapters and default-off runtime gates later.
+
+-- Still blocked until separately approved
+-- - Verifier SQL or schema.sql edits.
+-- - Executable forward or rollback SQL.
+-- - Supabase SQL apply or row creation.
+-- - Service-role issue/consume adapters.
+-- - telegram-link Edge Function skeleton or deployment.
+-- - telegram-webhook owner-link runtime wiring.
+-- - Dashboard pairing UI, challenge issue, live pairing, or runtime gates.
+-- - Edge Function deploy, Netlify action, commit push, or production publish.

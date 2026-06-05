@@ -7753,3 +7753,44 @@ Next safe slice:
 2. Keep it separate from executable SQL and do not apply schema/RLS.
 3. Require separate explicit approval before any forward/rollback SQL packet,
    database apply, runtime wiring, UI, deploy, challenge issue, or live pairing.
+
+## Phase 5CQ - Owner-Link Challenge Schema/RPC Draft
+
+Phase 5CQ adds a comment-only schema/RPC design artifact:
+
+- `supabase/telegram_owner_link_challenge_schema_draft.sql`
+
+The draft contains no executable SQL and does not change `schema.sql`, verifier
+SQL, schema/RLS, grants, runtime code, UI, secrets, Telegram state, deployment,
+or production.
+
+Designed future boundary:
+
+- Private `public.telegram_owner_link_challenges` table storing only challenge
+  hash and bounded lifecycle metadata.
+- Service-role-only issue RPC that revalidates current workspace ownership and
+  active Telegram session, caps TTL at ten minutes, revokes prior challenges,
+  and issues exactly one active hash.
+- Service-role-only atomic consume RPC that claims the Telegram update, consumes
+  the challenge, revalidates current ownership/session, and creates the first
+  exact private-chat read-only owner authorization in one transaction.
+- Existing `telegram_chat_authorizations` and `telegram_processed_updates`
+  remain the final authorization and replay guards.
+
+Key security decisions:
+
+- Raw challenge never enters SQL, DB rows, RPC arguments, logs, or errors.
+- Issue and consume RPCs are designed as volatile `SECURITY INVOKER` functions
+  with empty search paths and service-role-only execute.
+- Browser roles receive no table or RPC access.
+- Private-chat linking requires identical positive Telegram user/chat IDs.
+- Relink, transfer, groups, community roles, write scope, and approval scope
+  remain deferred.
+- Any failure after consume begins must roll back update claim, challenge
+  consumption, and authorization insert together.
+
+Next safe slice:
+
+1. Review the comment-only design and prepare verifier-only expectations.
+2. Do not create executable forward/rollback SQL or apply schema/RLS without
+   separate explicit approval.
