@@ -6819,3 +6819,104 @@ Still not included:
 - No local `.env.local` reads.
 - No schema/RLS migration.
 - No live Supabase, Vault, or Telegram API calls during verification.
+
+## Phase 5BY - Production Enablement Readiness Checklist
+
+Phase 5BY defines the production enablement checklist for the Telegram webhook
+flow. This phase is documentation only and must not deploy, publish, unlock
+Netlify, or read local secret values.
+
+Current readiness:
+
+- Webhook verification is implemented before body parsing.
+- Session lookup is gated and uses the service-role RPC boundary.
+- Update parsing is gated and restricted to read-only commands.
+- Chat authorization is gated and must run before claim or delivery.
+- Idempotency claim is gated and runs before response delivery.
+- Response delivery is gated and skips duplicate updates.
+- Delivery token resolution is gated through the delivery dependency and runs
+  only after a claimed authorized update.
+- Local tests use injected RPC and Telegram fetch functions.
+
+Required pre-enable checks:
+
+1. Confirm production schema contains all approved Telegram tables and RPCs.
+2. Confirm verifier queries pass for:
+   - `resolve_telegram_webhook_session(text)`
+   - `resolve_telegram_chat_authorization(uuid,text,text,text)`
+   - `claim_telegram_update(uuid,bigint)`
+   - `resolve_telegram_delivery_token(uuid)`
+   - `telegram_session_summaries` excluding sensitive fields
+   - browser roles lacking access to `telegram_sessions.token_secret_ref`
+3. Confirm a disposable Telegram bot is available for smoke testing.
+4. Confirm the bot token is stored only through the approved Vault/RPC path.
+5. Confirm the active session has:
+   - active webhook status
+   - valid webhook secret hash
+   - active chat authorization row
+   - token resolver mapping available only to service-role paths
+6. Confirm Netlify publish credit impact before any frontend publish.
+7. Confirm Edge Function deploy scope separately from static Netlify deploy.
+
+Gate enablement order:
+
+1. `KYRA_TELEGRAM_WEBHOOK_LOOKUP_ENABLED=true`
+2. `KYRA_TELEGRAM_WEBHOOK_PARSE_ENABLED=true`
+3. `KYRA_TELEGRAM_WEBHOOK_CHAT_AUTH_ENABLED=true`
+4. `KYRA_TELEGRAM_WEBHOOK_CLAIM_ENABLED=true`
+5. `KYRA_TELEGRAM_WEBHOOK_DELIVERY_ENABLED=true`
+
+Do not enable delivery before lookup, parse, chat authorization, and claim are
+all enabled and passing smoke checks.
+
+Smoke test plan:
+
+1. Deploy only the required Supabase Edge Function after explicit approval.
+2. Use a disposable bot and a single owner-linked Telegram chat.
+3. Register webhook with the approved secret token.
+4. Send `/help` and `/status`.
+5. Confirm one response per update.
+6. Re-send or replay the same update payload to confirm duplicate no-op.
+7. Send from an unknown chat and confirm safe denial or no-op.
+8. Check logs for absence of:
+   - raw BotFather token
+   - resolved token
+   - `token_secret_ref`
+   - webhook secret header
+   - Telegram chat/user ids
+   - raw Telegram request/response body
+9. Confirm no wallet, approval, or onchain execution behavior changed.
+
+Rollback plan:
+
+1. Set `KYRA_TELEGRAM_WEBHOOK_DELIVERY_ENABLED` to disabled first.
+2. If needed, disable claim, chat auth, parse, and lookup gates in reverse
+   order.
+3. Remove or revoke the Telegram webhook registration for the disposable bot.
+4. Revoke the Telegram session webhook secret if the smoke session is not
+   needed.
+5. Revoke the stored BotFather token secret reference if the bot will not be
+   reused.
+6. Keep public UI copy in placeholder/safe mode until production smoke is
+   explicitly accepted.
+
+Hard stops:
+
+- Stop if any verifier reports browser access to token refs, webhook secrets,
+  private chat ids, owner ids, or workspace ids.
+- Stop if any RPC is executable by `public`, `anon`, or `authenticated` when it
+  should be service-role only.
+- Stop if logs or API responses expose token, token ref, webhook secret, chat
+  id, owner id, workspace id, raw DB error, or raw Telegram body.
+- Stop if Telegram sends more than one response for one claimed update.
+- Stop if unknown chats receive privileged behavior.
+
+Still not included:
+
+- No Edge Function deploy.
+- No Netlify publish/unlock.
+- No gate enablement.
+- No `.env.local` read.
+- No live secret read/write.
+- No Telegram API call.
+- No schema/RLS change.
