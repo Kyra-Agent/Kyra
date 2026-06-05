@@ -7227,3 +7227,60 @@ Hard stops:
 - Do not call Telegram.
 - Do not sync `supabase/schema.sql` until the review packet is accepted and
   verifier expectations are clear.
+
+## Phase 5CH - Local Schema Snapshot Sync
+
+Phase 5CH syncs the repository schema snapshot with the already-reviewed
+Telegram token/Vault and delivery-token resolver contracts. It is local-only:
+no SQL is applied to Supabase, no secrets are read or created, no Telegram API
+is called, no Edge Function is deployed, Netlify is not published, and no push
+is performed.
+
+Schema snapshot additions:
+
+- `create extension if not exists supabase_vault cascade`
+- `public.telegram_bot_token_secrets`
+- `telegram_bot_token_secrets_active_bot_id_key`
+- `public.store_telegram_bot_token(uuid, uuid, text, text)`
+- `public.resolve_telegram_bot_token(text)`
+- `public.revoke_telegram_bot_token(text)`
+- `public.resolve_telegram_delivery_token(uuid)`
+- RLS enablement for `public.telegram_bot_token_secrets`
+- Backend-only table grants for `public.telegram_bot_token_secrets`
+- Backend-only execute grants for the four token RPCs
+
+Security contract preserved:
+
+- Browser roles must not be able to read `telegram_bot_token_secrets`.
+- Browser roles must not be able to execute token store, token resolve, token
+  revoke, or delivery-token resolve RPCs.
+- `telegram_sessions.token_secret_ref` stays out of broad authenticated table
+  select and out of `telegram_session_summaries`.
+- `resolve_telegram_delivery_token(uuid)` takes only the active Telegram
+  session id and resolves `token_secret_ref` inside the backend-only boundary.
+- `resolve_telegram_delivery_token(uuid)` must remain service-role only because
+  it returns a raw BotFather token to the Edge Function delivery path.
+
+Verification required after this local sync:
+
+1. `git diff --check`
+2. `npm run check:functions`
+3. `deno check supabase/functions/telegram-connect/index.ts supabase/functions/telegram-webhook/index.ts`
+4. `deno test supabase/functions/telegram-connect supabase/functions/telegram-webhook`
+5. `npm exec tsc -- --noEmit`
+6. `npm run build`
+7. Static scan for unintended frontend token exposure, live Telegram calls
+   during tests, and browser grants on token objects.
+
+Still not included:
+
+- No Supabase SQL apply.
+- No production verifier run.
+- No `.env.local` read.
+- No Vault secret read/write.
+- No BotFather token submission.
+- No Telegram API call.
+- No runtime gate enablement.
+- No Edge Function deploy.
+- No Netlify publish.
+- No push.

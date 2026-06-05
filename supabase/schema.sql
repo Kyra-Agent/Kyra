@@ -1,4 +1,5 @@
 create extension if not exists pgcrypto;
+create extension if not exists supabase_vault cascade;
 
 create table if not exists public.workspaces (
   id uuid primary key default gen_random_uuid(),
@@ -108,6 +109,16 @@ create table if not exists public.telegram_sessions (
   last_event_at timestamptz
 );
 
+create table if not exists public.telegram_bot_token_secrets (
+  token_secret_ref text primary key,
+  vault_secret_id uuid not null,
+  agent_id uuid not null,
+  owner_user_id uuid not null,
+  telegram_bot_id text not null,
+  created_at timestamptz not null default now(),
+  revoked_at timestamptz
+);
+
 create table if not exists public.telegram_webhook_secrets (
   webhook_secret_ref text not null,
   webhook_secret_hash text not null,
@@ -185,6 +196,9 @@ create index if not exists agent_instances_public_slug_idx on public.agent_insta
 create index if not exists wallet_policies_workspace_id_idx on public.wallet_policies(workspace_id);
 create index if not exists approval_requests_agent_id_idx on public.approval_requests(agent_id);
 create index if not exists activity_logs_agent_id_created_at_idx on public.activity_logs(agent_id, created_at desc);
+create unique index if not exists telegram_bot_token_secrets_active_bot_id_key
+on public.telegram_bot_token_secrets(telegram_bot_id)
+where revoked_at is null;
 create unique index if not exists telegram_chat_authorizations_active_agent_key
 on public.telegram_chat_authorizations(agent_id)
 where revoked_at is null;
@@ -343,6 +357,209 @@ as $$
   from eligible_session;
 $$;
 
+create or replace function public.store_telegram_bot_token(
+  p_agent_id uuid,
+  p_owner_user_id uuid,
+  p_telegram_bot_id text,
+  p_bot_token text
+) returns text
+language plpgsql
+security definer
+set search_path = pg_catalog, vault, pg_temp
+as $$
+declare
+  v_token_secret_ref text;
+  v_vault_secret_id uuid;
+begin
+  if p_agent_id is null then
+    raise exception 'invalid_agent_id' using errcode = '22023';
+  end if;
+
+  if p_owner_user_id is null then
+    raise exception 'invalid_owner_user_id' using errcode = '22023';
+  end if;
+
+  if p_telegram_bot_id is null or btrim(p_telegram_bot_id) = '' then
+    raise exception 'invalid_telegram_bot_id' using errcode = '22023';
+  end if;
+
+  if p_bot_token is null or btrim(p_bot_token) = '' then
+    raise exception 'invalid_bot_token' using errcode = '22023';
+  end if;
+
+  if exists (
+    select 1
+    from public.telegram_bot_token_secrets secrets
+    where secrets.telegram_bot_id = btrim(p_telegram_bot_id)
+      and secrets.revoked_at is null
+  ) then
+    raise exception 'telegram_bot_already_connected' using errcode = '23505';
+  end if;
+
+  v_vault_secret_id := vault.create_secret(
+    btrim(p_bot_token),
+    null::text,
+    'Kyra Telegram BotFather token'
+  );
+  v_token_secret_ref := 'vault:telegram:' || v_vault_secret_id::text;
+
+  insert into public.telegram_bot_token_secrets (
+    token_secret_ref,
+    vault_secret_id,
+    agent_id,
+    owner_user_id,
+    telegram_bot_id
+  ) values (
+    v_token_secret_ref,
+    v_vault_secret_id,
+    p_agent_id,
+    p_owner_user_id,
+    btrim(p_telegram_bot_id)
+  );
+
+  return v_token_secret_ref;
+exception
+  when invalid_parameter_value then
+    raise;
+  when unique_violation then
+    raise exception 'telegram_bot_already_connected' using errcode = '23505';
+  when others then
+    raise exception 'telegram_token_store_failed' using errcode = 'XX000';
+end;
+$$;
+
+create or replace function public.resolve_telegram_bot_token(
+  p_token_secret_ref text
+) returns text
+language plpgsql
+security definer
+set search_path = pg_catalog, vault, pg_temp
+as $$
+declare
+  v_vault_secret_id uuid;
+  v_bot_token text;
+begin
+  if p_token_secret_ref is null or btrim(p_token_secret_ref) = '' then
+    raise exception 'invalid_token_secret_ref' using errcode = '22023';
+  end if;
+
+  select secrets.vault_secret_id
+  into v_vault_secret_id
+  from public.telegram_bot_token_secrets secrets
+  where secrets.token_secret_ref = btrim(p_token_secret_ref)
+    and secrets.revoked_at is null;
+
+  if v_vault_secret_id is null then
+    raise exception 'secret_not_found' using errcode = 'P0002';
+  end if;
+
+  select decrypted.decrypted_secret
+  into v_bot_token
+  from vault.decrypted_secrets decrypted
+  where decrypted.id = v_vault_secret_id;
+
+  if v_bot_token is null or btrim(v_bot_token) = '' then
+    raise exception 'secret_not_found' using errcode = 'P0002';
+  end if;
+
+  return v_bot_token;
+exception
+  when invalid_parameter_value then
+    raise;
+  when no_data_found then
+    raise exception 'secret_not_found' using errcode = 'P0002';
+  when others then
+    raise exception 'telegram_token_resolve_failed' using errcode = 'XX000';
+end;
+$$;
+
+create or replace function public.revoke_telegram_bot_token(
+  p_token_secret_ref text
+) returns boolean
+language plpgsql
+security definer
+set search_path = pg_catalog, vault, pg_temp
+as $$
+declare
+  v_vault_secret_id uuid;
+begin
+  if p_token_secret_ref is null or btrim(p_token_secret_ref) = '' then
+    raise exception 'invalid_token_secret_ref' using errcode = '22023';
+  end if;
+
+  select secrets.vault_secret_id
+  into v_vault_secret_id
+  from public.telegram_bot_token_secrets secrets
+  where secrets.token_secret_ref = btrim(p_token_secret_ref)
+    and secrets.revoked_at is null
+  for update;
+
+  if v_vault_secret_id is null then
+    return false;
+  end if;
+
+  update public.telegram_bot_token_secrets secrets
+  set revoked_at = now()
+  where secrets.token_secret_ref = btrim(p_token_secret_ref)
+    and secrets.revoked_at is null;
+
+  return true;
+exception
+  when invalid_parameter_value then
+    raise;
+  when others then
+    raise exception 'telegram_token_revoke_failed' using errcode = 'XX000';
+end;
+$$;
+
+create or replace function public.resolve_telegram_delivery_token(
+  p_telegram_session_id uuid
+) returns text
+language plpgsql
+volatile
+security definer
+set search_path = pg_catalog, pg_temp
+as $$
+declare
+  v_token_secret_ref text;
+  v_bot_token text;
+begin
+  if p_telegram_session_id is null then
+    raise exception 'invalid_telegram_session_id' using errcode = '22023';
+  end if;
+
+  select btrim(sessions.token_secret_ref)
+  into v_token_secret_ref
+  from public.telegram_sessions sessions
+  join public.telegram_bot_token_secrets secrets
+    on secrets.token_secret_ref = sessions.token_secret_ref
+  where sessions.id = p_telegram_session_id
+    and sessions.webhook_status = 'active'
+    and sessions.token_secret_ref is not null
+    and btrim(sessions.token_secret_ref) <> ''
+    and secrets.revoked_at is null;
+
+  if v_token_secret_ref is null or v_token_secret_ref = '' then
+    raise exception 'secret_not_found' using errcode = 'P0002';
+  end if;
+
+  v_bot_token := public.resolve_telegram_bot_token(v_token_secret_ref);
+
+  if v_bot_token is null or btrim(v_bot_token) = '' then
+    raise exception 'secret_not_found' using errcode = 'P0002';
+  end if;
+
+  return v_bot_token;
+exception
+  when invalid_parameter_value then
+    raise;
+  when no_data_found then
+    raise exception 'secret_not_found' using errcode = 'P0002';
+  when others then
+    raise exception 'telegram_delivery_token_resolve_failed' using errcode = 'XX000';
+end;
+$$;
+
 alter table public.workspaces enable row level security;
 alter table public.agent_templates enable row level security;
 alter table public.agent_instances enable row level security;
@@ -350,6 +567,7 @@ alter table public.wallet_policies enable row level security;
 alter table public.approval_requests enable row level security;
 alter table public.activity_logs enable row level security;
 alter table public.telegram_sessions enable row level security;
+alter table public.telegram_bot_token_secrets enable row level security;
 alter table public.telegram_webhook_secrets enable row level security;
 alter table public.telegram_chat_authorizations enable row level security;
 alter table public.telegram_processed_updates enable row level security;
@@ -464,6 +682,7 @@ revoke all privileges on public.wallet_policies from authenticated;
 revoke all privileges on public.approval_requests from authenticated;
 revoke all privileges on public.activity_logs from authenticated;
 revoke all privileges on public.telegram_sessions from authenticated;
+revoke all privileges on public.telegram_bot_token_secrets from public, anon, authenticated, service_role;
 revoke all privileges on public.telegram_webhook_secrets from public, anon, authenticated, service_role;
 revoke all privileges on public.telegram_chat_authorizations from public, anon, authenticated, service_role;
 revoke all privileges on public.telegram_processed_updates from public, anon, authenticated, service_role;
@@ -473,6 +692,14 @@ revoke all on function public.resolve_telegram_webhook_session(text)
 revoke all on function public.resolve_telegram_chat_authorization(uuid,text,text,text)
   from public, anon, authenticated, service_role;
 revoke all on function public.claim_telegram_update(uuid,bigint)
+  from public, anon, authenticated, service_role;
+revoke all on function public.store_telegram_bot_token(uuid, uuid, text, text)
+  from public, anon, authenticated, service_role;
+revoke all on function public.resolve_telegram_bot_token(text)
+  from public, anon, authenticated, service_role;
+revoke all on function public.revoke_telegram_bot_token(text)
+  from public, anon, authenticated, service_role;
+revoke all on function public.resolve_telegram_delivery_token(uuid)
   from public, anon, authenticated, service_role;
 
 grant select on public.workspaces to authenticated;
@@ -511,6 +738,7 @@ grant all on public.wallet_policies to service_role;
 grant all on public.approval_requests to service_role;
 grant all on public.activity_logs to service_role;
 grant all on public.telegram_sessions to service_role;
+grant select, insert, update on public.telegram_bot_token_secrets to service_role;
 grant select, insert, update on public.telegram_webhook_secrets to service_role;
 grant select, insert, update on public.telegram_chat_authorizations to service_role;
 grant select, insert on public.telegram_processed_updates to service_role;
@@ -522,4 +750,12 @@ grant execute on function public.resolve_telegram_webhook_session(text)
 grant execute on function public.resolve_telegram_chat_authorization(uuid,text,text,text)
   to service_role;
 grant execute on function public.claim_telegram_update(uuid,bigint)
+  to service_role;
+grant execute on function public.store_telegram_bot_token(uuid, uuid, text, text)
+  to service_role;
+grant execute on function public.resolve_telegram_bot_token(text)
+  to service_role;
+grant execute on function public.revoke_telegram_bot_token(text)
+  to service_role;
+grant execute on function public.resolve_telegram_delivery_token(uuid)
   to service_role;
