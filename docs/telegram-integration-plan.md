@@ -6759,3 +6759,63 @@ Still not included:
 - No schema/RLS migration.
 - No Edge Function deploy.
 - No Netlify publish/unlock.
+
+## Phase 5BX - Default-Off Webhook Token Resolver Wiring
+
+Phase 5BX wires the webhook token resolver adapter into
+`createTelegramWebhookDependencies` behind the existing default-off delivery
+gate:
+
+- `KYRA_TELEGRAM_WEBHOOK_DELIVERY_ENABLED`
+
+Runtime dependency behavior:
+
+- When lookup is disabled, runtime dependencies remain inert.
+- When lookup, parse, chat auth, claim, and delivery gates are all enabled,
+  `createTelegramWebhookDependencies` creates a delivery dependency.
+- The delivery dependency resolves the raw BotFather token with:
+
+```sql
+public.resolve_telegram_delivery_token(
+  p_telegram_session_id uuid
+)
+```
+
+- The delivery dependency then passes the resolved token only to the Telegram
+  `sendMessage` delivery helper.
+- The token is not stored, logged, returned, or exposed to frontend state.
+- Tests use injected RPC and Telegram fetch functions, so local verification
+  does not call Supabase, Vault, or Telegram.
+
+Safety order:
+
+1. Webhook secret verification.
+2. Session lookup.
+3. JSON parse.
+4. Chat authorization.
+5. Idempotency claim.
+6. Delivery token resolution.
+7. Read-only Telegram response delivery.
+
+Failure behavior:
+
+- Duplicate claims skip token resolution and delivery.
+- Token resolver failures return sanitized Telegram unavailable responses.
+- Token resolver failures must not expose raw tokens, `token_secret_ref`, owner
+  data, workspace data, session ids, webhook secret material, Vault internals,
+  or raw DB payloads.
+- Telegram delivery failures continue to use sanitized delivery errors.
+
+Files touched:
+
+- `supabase/functions/telegram-webhook/index.ts`
+- `supabase/functions/telegram-webhook/index_test.ts`
+- `docs/telegram-integration-plan.md`
+
+Still not included:
+
+- No Edge Function deploy.
+- No Netlify publish/unlock.
+- No local `.env.local` reads.
+- No schema/RLS migration.
+- No live Supabase, Vault, or Telegram API calls during verification.

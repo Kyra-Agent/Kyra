@@ -119,6 +119,8 @@ function createJsonWebhookRequest(body: unknown, headers: HeadersInit = {}) {
 
 const testWebhookSecretHash =
   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const testTelegramSessionId = "11111111-1111-4111-8111-111111111111";
+const testBotToken = "123456789:abcdefghijklmnopqrstuvwxyzABCDE";
 
 const activeLookupRow = {
   session_id: "telegram-session-1",
@@ -1149,11 +1151,187 @@ Deno.test("telegram-webhook runtime dependencies enable lookup lazily", () => {
   assertEquals(typeof dependencies.lookupTelegramWebhookSession, "function");
   assertEquals(typeof dependencies.lookupTelegramChatAuthorization, "function");
   assertEquals(typeof dependencies.claimTelegramUpdate, "function");
-  assertEquals(dependencies.deliverTelegramReadOnlyResponse, undefined);
+  assertEquals(typeof dependencies.deliverTelegramReadOnlyResponse, "function");
   assertEquals(
     keys.join(","),
     `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey}`,
   );
+});
+
+Deno.test("telegram-webhook runtime delivery dependency resolves token lazily", async () => {
+  const rpcCalls: string[] = [];
+  const telegramCalls: string[] = [];
+  const dependencies = createTelegramWebhookDependencies({
+    getEnv: (key) => {
+      if (key === "SUPABASE_URL") {
+        return "https://project.supabase.co";
+      }
+
+      if (key === "SUPABASE_SERVICE_ROLE_KEY") {
+        return "test-service-role-key";
+      }
+
+      throw new Error(`Unexpected required env ${key}`);
+    },
+    getOptionalEnv: () => "true",
+    fetchRpc: async (input, init) => {
+      const url = String(input);
+      rpcCalls.push(url);
+
+      if (url.endsWith("/resolve_telegram_webhook_session")) {
+        return new Response(
+          JSON.stringify([{
+            ...activeLookupRow,
+            session_id: testTelegramSessionId,
+          }]),
+          { status: 200 },
+        );
+      }
+
+      if (url.endsWith("/resolve_telegram_chat_authorization")) {
+        return new Response(
+          JSON.stringify([{ authorized: true, role: "owner" }]),
+          { status: 200 },
+        );
+      }
+
+      if (url.endsWith("/claim_telegram_update")) {
+        return new Response(
+          JSON.stringify([{ claimed: true, status: "claimed" }]),
+          { status: 200 },
+        );
+      }
+
+      if (url.endsWith("/resolve_telegram_delivery_token")) {
+        const requestInit = init as { body?: unknown } | undefined;
+        const payload = JSON.parse(
+          String(requestInit?.body ?? "{}"),
+        ) as Record<string, unknown>;
+
+        assertEquals(payload.p_telegram_session_id, testTelegramSessionId);
+
+        return new Response(JSON.stringify(testBotToken), { status: 200 });
+      }
+
+      throw new Error(`Unexpected RPC ${url}`);
+    },
+    fetchTelegram: async (input) => {
+      telegramCalls.push(String(input));
+
+      return new Response(JSON.stringify({ ok: true, result: {} }), {
+        status: 200,
+      });
+    },
+  });
+
+  assertEquals(rpcCalls.length, 0);
+  assertEquals(telegramCalls.length, 0);
+
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("/status@kyra_test_bot")),
+    dependencies,
+  );
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(response.status, 200);
+  assertEquals(body.status, "delivered");
+  assertEquals(rpcCalls.length, 4);
+  assert(
+    rpcCalls[0].endsWith("/resolve_telegram_webhook_session"),
+    "Lookup RPC must run first.",
+  );
+  assert(
+    rpcCalls[1].endsWith("/resolve_telegram_chat_authorization"),
+    "Chat authorization RPC must run second.",
+  );
+  assert(
+    rpcCalls[2].endsWith("/claim_telegram_update"),
+    "Claim RPC must run third.",
+  );
+  assert(
+    rpcCalls[3].endsWith("/resolve_telegram_delivery_token"),
+    "Token resolver RPC must run after claim.",
+  );
+  assertEquals(telegramCalls.length, 1);
+  assert(
+    telegramCalls[0].includes("/sendMessage"),
+    "Delivery must call sendMessage through injected fetch.",
+  );
+  assert(!serializedBody.includes(testBotToken), "Response must hide token.");
+});
+
+Deno.test("telegram-webhook runtime delivery token failure is sanitized", async () => {
+  const telegramCalls: string[] = [];
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("/help@kyra_test_bot")),
+    createTelegramWebhookDependencies({
+      getEnv: (key) => {
+        if (key === "SUPABASE_URL") {
+          return "https://project.supabase.co";
+        }
+
+        if (key === "SUPABASE_SERVICE_ROLE_KEY") {
+          return "test-service-role-key";
+        }
+
+        throw new Error(`Unexpected required env ${key}`);
+      },
+      getOptionalEnv: () => "true",
+      fetchRpc: async (input) => {
+        const url = String(input);
+
+        if (url.endsWith("/resolve_telegram_webhook_session")) {
+          return new Response(
+            JSON.stringify([{
+              ...activeLookupRow,
+              session_id: testTelegramSessionId,
+            }]),
+            { status: 200 },
+          );
+        }
+
+        if (url.endsWith("/resolve_telegram_chat_authorization")) {
+          return new Response(
+            JSON.stringify([{ authorized: true, role: "owner" }]),
+            { status: 200 },
+          );
+        }
+
+        if (url.endsWith("/claim_telegram_update")) {
+          return new Response(
+            JSON.stringify([{ claimed: true, status: "claimed" }]),
+            { status: 200 },
+          );
+        }
+
+        if (url.endsWith("/resolve_telegram_delivery_token")) {
+          return new Response(
+            JSON.stringify({
+              message: `${testBotToken} token_secret_ref owner_user_id`,
+            }),
+            { status: 500 },
+          );
+        }
+
+        throw new Error(`Unexpected RPC ${url}`);
+      },
+      fetchTelegram: async (input) => {
+        telegramCalls.push(String(input));
+        throw new Error("Telegram must not be called after token failure.");
+      },
+    }),
+  );
+  const body = await readJson(response);
+  const serialized = JSON.stringify(body);
+
+  assertEquals(response.status, 503);
+  assertEquals(body.status, "telegram_unavailable");
+  assertEquals(body.message, "Telegram delivery token is unavailable.");
+  assertEquals(telegramCalls.length, 0);
+  assert(!serialized.includes(testBotToken), "Response must hide token.");
+  assert(!serialized.includes("token_secret_ref"), "Response must hide refs.");
+  assert(!serialized.includes("owner_user_id"), "Response must hide owner data.");
 });
 
 Deno.test("telegram-webhook body size header validator rejects oversized requests", () => {

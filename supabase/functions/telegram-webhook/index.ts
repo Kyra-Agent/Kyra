@@ -48,7 +48,15 @@ import {
 } from "./update-parser.ts";
 import { planTelegramClaimedReadOnlyResponse } from "./claim-aware-response.ts";
 import type { TelegramReadOnlyCommandResponse } from "./read-only-response.ts";
-import { sanitizeTelegramResponseDeliveryError } from "./response-delivery.ts";
+import {
+  deliverTelegramReadOnlyResponse as deliverTelegramReadOnlyResponseToApi,
+  sanitizeTelegramResponseDeliveryError,
+  type TelegramResponseDeliveryFetch,
+} from "./response-delivery.ts";
+import {
+  resolveTelegramDeliveryBotToken,
+  type TelegramDeliveryTokenResolverRpcClient,
+} from "./token-resolver.ts";
 
 export {
   assertActiveTelegramWebhookSession,
@@ -179,8 +187,11 @@ export type {
 } from "./runtime-config.ts";
 
 export interface TelegramWebhookRuntimeOptions {
+  getEnv?: (key: string) => string;
   getOptionalEnv?: OptionalEnvReader;
   fetchRpc?: typeof fetch;
+  fetchTelegram?: TelegramResponseDeliveryFetch;
+  telegramDeliveryTimeoutMs?: number;
 }
 
 export interface TelegramWebhookDependencies {
@@ -285,6 +296,7 @@ export function createTelegramWebhookSessionLookupRpcClient(
 export function createTelegramWebhookDependencies(
   options: TelegramWebhookRuntimeOptions = {},
 ): TelegramWebhookDependencies {
+  const readRequiredEnv = options.getEnv ?? getEnv;
   const readOptionalEnv = options.getOptionalEnv ?? getOptionalEnv;
   const lookupRuntimeConfig = createTelegramWebhookLookupRuntimeConfig(
     readOptionalEnv,
@@ -317,8 +329,8 @@ export function createTelegramWebhookDependencies(
   let rpcClient: TelegramWebhookSessionLookupRpcClient | null = null;
   const getRpcClient = () => {
     if (!rpcClient) {
-      const supabaseUrl = getEnv("SUPABASE_URL");
-      const serviceRoleKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
+      const supabaseUrl = readRequiredEnv("SUPABASE_URL");
+      const serviceRoleKey = readRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
       rpcClient = createTelegramWebhookSessionLookupRpcClient(
         supabaseUrl,
         serviceRoleKey,
@@ -352,6 +364,28 @@ export function createTelegramWebhookDependencies(
         ...input,
         rpcClient: getRpcClient() as unknown as TelegramUpdateClaimRpcClient,
       });
+    };
+  }
+
+  if (deliveryRuntimeConfig.enabled) {
+    dependencies.deliverTelegramReadOnlyResponse = async (input) => {
+      const { botToken } = await resolveTelegramDeliveryBotToken({
+        telegramSessionId: input.telegramSessionId,
+        rpcClient:
+          getRpcClient() as unknown as TelegramDeliveryTokenResolverRpcClient,
+      });
+
+      return await deliverTelegramReadOnlyResponseToApi(
+        {
+          botToken,
+          telegramChatId: input.telegramChatId,
+          response: input.response,
+        },
+        {
+          fetch: options.fetchTelegram,
+          timeoutMs: options.telegramDeliveryTimeoutMs,
+        },
+      );
     };
   }
 
