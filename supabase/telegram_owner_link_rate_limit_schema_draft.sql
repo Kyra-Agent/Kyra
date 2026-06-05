@@ -1,0 +1,223 @@
+-- COMMENT-ONLY DESIGN - NOT EXECUTABLE - DO NOT APPLY.
+-- Phase 5DC durable Telegram owner-link rate-limit schema, RPC, verifier, and
+-- rollback expectations.
+--
+-- This file intentionally contains no executable SQL. Every nonblank line
+-- starts with a SQL comment marker. Preparing executable SQL, applying schema,
+-- changing RLS/grants/RPCs, creating rows, or enabling runtime gates requires
+-- separate explicit approval.
+--
+-- Goals
+-- - Enforce durable owner-link issue and consume abuse controls inside the
+--   existing service-role-only RPC transaction boundaries.
+-- - Preserve current hash-only challenge storage, generic consume response,
+--   atomic owner authorization, and default-off Edge Function gates.
+-- - Store no Telegram payload, message, command, challenge, challenge hash,
+--   BotFather token, webhook secret, owner ID, or workspace ID in limiter
+--   storage.
+--
+-- Existing objects that would be extended only after approval
+-- - public.telegram_owner_link_challenges
+-- - public.telegram_processed_updates
+-- - public.issue_telegram_owner_link_challenge(uuid,uuid,uuid,text,timestamptz)
+-- - public.consume_telegram_owner_link_challenge(uuid,bigint,text,text,text)
+--
+-- Proposed new private object
+-- - public.telegram_owner_link_consume_rate_limits
+--
+-- Proposed issue-history indexes
+-- - telegram_owner_link_challenges_agent_created_at_idx
+--   on public.telegram_owner_link_challenges(agent_id, created_at desc)
+-- - telegram_owner_link_challenges_session_created_at_idx
+--   on public.telegram_owner_link_challenges(telegram_session_id, created_at desc)
+-- - telegram_owner_link_challenges_issuer_created_at_idx
+--   on public.telegram_owner_link_challenges(issued_by_user_id, created_at desc)
+--
+-- Proposed consume limiter table contract
+-- - id uuid primary key with gen_random_uuid() default
+-- - telegram_session_id uuid not null
+-- - scope text not null, exactly session or identity
+-- - telegram_user_id text null
+-- - window_started_at timestamptz not null
+-- - attempt_count integer not null
+-- - blocked_until timestamptz null
+-- - updated_at timestamptz not null
+--
+-- Required table constraints
+-- - telegram_session_id references public.telegram_sessions(id) on delete
+--   cascade.
+-- - session scope requires telegram_user_id is null and blocked_until is null.
+-- - identity scope requires telegram_user_id matches ^[1-9][0-9]*$.
+-- - attempt_count is nonnegative and cannot exceed the approved maximum for
+--   its scope.
+-- - updated_at is not earlier than window_started_at.
+-- - blocked_until is null or not earlier than window_started_at.
+-- - No column default except id. RPCs must write all timestamps/count state
+--   explicitly from one transaction timestamp.
+--
+-- Required limiter indexes
+-- - One valid unique partial index on telegram_session_id where scope =
+--   session.
+-- - One valid unique partial index on telegram_session_id plus telegram_user_id
+--   where scope = identity.
+-- - Do not add a browser-facing view or expose limiter columns through
+--   telegram_session_summaries or public_agent_profiles.
+--
+-- Table security contract
+-- - Enable RLS.
+-- - Create no RLS policies.
+-- - Revoke all privileges from PUBLIC, anon, authenticated, and service_role.
+-- - Grant service_role only select, insert, and update.
+-- - Do not grant delete, truncate, references, or trigger.
+-- - Browser roles must have no direct or indirect limiter access.
+--
+-- Initial policy constants
+-- - Issue agent window: maximum 3 successful issues per 15 minutes.
+-- - Issue active-session window: maximum 3 successful issues per 15 minutes.
+-- - Issue owner window: maximum 20 successful issues per 24 hours.
+-- - Consume identity window: maximum 5 owner-link candidates per 10 minutes.
+-- - Consume identity block: 30 minutes after the identity threshold is
+--   reached.
+-- - Consume active-session window: maximum 30 owner-link candidates per 10
+--   minutes.
+-- - SQL and Edge pure-contract constants must remain identical.
+--
+-- Issue RPC replacement expectations
+-- - Preserve the current signature, volatile security-invoker contract, empty
+--   search_path, service-role-only execute grant, input validation, exact
+--   ownership validation, exact active-session validation, hash-only input,
+--   maximum ten-minute challenge TTL, and active-authorization rejection.
+-- - Capture one pg_catalog.now() transaction timestamp.
+-- - Acquire a deterministic owner-scoped transaction advisory lock before the
+--   existing agent-scoped transaction advisory lock.
+-- - Use distinct fixed lock namespaces and the validated owner/agent UUIDs.
+-- - After both locks, repeat ownership/session eligibility checks before
+--   counting or mutating.
+-- - Count existing successful challenge rows using created_at and the approved
+--   issue windows. Revoked and consumed rows still count because each row
+--   represents a successful issue.
+-- - Agent/session counts apply regardless of previous issuer. The owner count
+--   applies to the currently validated owner ID.
+-- - If any count is already at its maximum, return exactly one row:
+--   issued=false, status=rate_limited.
+-- - A rate-limited result must occur before revoking an active challenge or
+--   inserting a new challenge.
+-- - Otherwise preserve the existing revoke-and-insert transaction and return
+--   exactly one row: issued=true, status=issued.
+-- - Never return counts, thresholds, reset times, IDs, challenge hashes, or
+--   internal failure details.
+--
+-- Consume RPC replacement expectations
+-- - Preserve the current signature, volatile security-invoker contract, empty
+--   search_path, service-role-only execute grant, bounded private identity
+--   validation, and generic result behavior.
+-- - Capture one pg_catalog.now() transaction timestamp.
+-- - Resolve the exact active Telegram session before any limiter row write.
+--   This lookup must not depend on the submitted challenge hash.
+-- - Acquire a session-scoped transaction advisory lock before an
+--   identity-scoped transaction advisory lock, always in that order.
+-- - Claim the Telegram update in public.telegram_processed_updates before
+--   limiter mutation. A duplicate update returns the existing duplicate
+--   result and must not increment any limiter bucket.
+-- - Under the locks, create or update the session and identity limiter buckets
+--   atomically.
+-- - When a bucket window has expired, reset its start and count before
+--   evaluating the next attempt.
+-- - Count the current unique update once. When the identity threshold is
+--   reached, set blocked_until to the fixed block duration without exposing
+--   it.
+-- - An active identity block or exhausted session/identity bucket must commit
+--   the update claim and bounded limiter state, then return the same generic
+--   no-row/not-linked behavior as an unknown, expired, or mismatched
+--   challenge.
+-- - Limiter denial must happen before challenge-hash lookup, challenge
+--   consume, or authorization insert.
+-- - Only an allowed unique attempt may perform the existing exact challenge
+--   lookup, consume, and owner authorization insert.
+-- - Any unexpected error after claim must roll back claim, limiter mutation,
+--   challenge consume, and authorization insert together.
+-- - Never return limiter reason, counts, thresholds, timestamps, session ID,
+--   Telegram identity, challenge hash, owner ID, or workspace ID.
+--
+-- Fixed-window review requirement
+-- - The proposed compact bucket model uses windows anchored at the first
+--   counted attempt after reset. It is not an exact sliding-window event log.
+-- - Before executable SQL approval, concurrency tests must prove the model
+--   cannot exceed one accepted increment per unique update and cannot bypass
+--   the identity block under parallel calls.
+-- - The accepted boundary-burst behavior for the session defense-in-depth
+--   limit must be explicitly reviewed. If strict sliding-window enforcement is
+--   required, replace this bucket design with a separately reviewed bounded
+--   attempt-history design.
+--
+-- Edge adapter follow-up after verified SQL apply
+-- - telegram-link issue adapter may accept only:
+--   issued=true,status=issued or issued=false,status=rate_limited.
+-- - The issue endpoint maps rate_limited to the fixed sanitized 429 response
+--   from telegram-owner-link-rate-limit.ts.
+-- - telegram-webhook consume adapter keeps duplicate and generic not-linked
+--   behavior; it must not learn the limiter reason.
+-- - Pure contracts remain test-only until durable SQL is verified.
+-- - Both owner-link runtime gates remain default-off.
+--
+-- Standalone verifier expectations
+-- - Guard every check so missing future objects return false rather than
+--   raising object-not-found errors.
+-- - Verify exact limiter table columns, types, nullability, defaults,
+--   constraints, foreign key, RLS enabled, no policies, and absence from
+--   public views.
+-- - Verify both unique partial limiter indexes and all three issue-history
+--   indexes are valid, ready, and use the expected columns/predicates.
+-- - Verify PUBLIC, anon, and authenticated have no limiter table privileges.
+-- - Verify service_role has only select, insert, and update.
+-- - Verify both owner-link RPCs remain volatile, security invoker, empty
+--   search path, and executable only by service_role.
+-- - Verify issue RPC definition contains owner-before-agent locks, historical
+--   checks, bounded rate_limited result, and rate-limit-before-revoke order.
+-- - Verify consume RPC definition contains active-session-before-write,
+--   session-before-identity locks, claim-before-limit, limit-before-challenge,
+--   and generic denial behavior.
+-- - Verify telegram_session_summaries and public_agent_profiles exclude every
+--   limiter field.
+-- - Run verify_authenticated_demo_write_lockdown.sql after the standalone
+--   verifier and stop if any required result is false.
+--
+-- Forward review packet expectations
+-- - Stop on baseline drift before creating or replacing anything.
+-- - Create the limiter table, constraints, indexes, RLS/grants, issue-history
+--   indexes, and both RPC replacements in one transaction.
+-- - Revoke default function execute privileges before granting service_role.
+-- - Do not create limiter rows, challenges, authorizations, or processed
+--   updates in the forward packet.
+-- - Do not modify runtime gates, Edge Functions, environment values, secrets,
+--   or deployment state.
+--
+-- Rollback review packet expectations
+-- - Runtime owner-link issue and consume gates must be disabled before
+--   rollback.
+-- - Restore the exact previously verified issue and consume RPC definitions.
+-- - Remove the three issue-history indexes only if the previous baseline did
+--   not include them.
+-- - Drop the limiter table only when it contains no rows.
+-- - If limiter rows exist or either owner-link gate is enabled, stop and use a
+--   reviewed forward fix instead of rollback.
+-- - Do not use CASCADE.
+-- - Run the standalone limiter verifier and authenticated-write lockdown
+--   verifier after rollback.
+--
+-- Retention and operations expectations
+-- - Do not remove challenge history newer than the owner 24-hour issue window.
+-- - Do not remove a limiter bucket with an active window or block.
+-- - Any cleanup must use a separately approved service-role maintenance
+--   boundary or scheduled job; browser roles never receive delete access.
+-- - Operational metrics may expose only aggregate allowed/limited/error
+--   counts. Never include Telegram identity, challenge material, token,
+--   secret, payload, or message text.
+--
+-- Manual approval boundaries
+-- - Executable schema/RLS/grant/RPC SQL.
+-- - Forward and rollback packet approval.
+-- - Standalone verifier implementation and Supabase execution.
+-- - schema.sql mirror update after a verified apply.
+-- - Edge adapter wiring, Edge Function deployment, runtime gate enablement,
+--   live owner-link challenge creation, and production smoke.

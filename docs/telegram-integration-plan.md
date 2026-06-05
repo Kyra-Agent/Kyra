@@ -8464,3 +8464,45 @@ Safety state:
 - No executable SQL, schema/RLS/RPC/grant change, Supabase apply, database row,
   environment value, secret, runtime wiring, gate, deploy, Netlify action, or
   push occurred in Phase 5DB.
+
+## Phase 5DC - Comment-Only Durable Limiter SQL Contract
+
+Phase 5DC adds one non-executable review artifact:
+
+- `supabase/telegram_owner_link_rate_limit_schema_draft.sql`
+
+The draft is intentionally comment-only and combines the low-risk preflight
+work for:
+
+- exact issue-history indexes;
+- the private consume-limiter bucket table contract;
+- issue and consume RPC replacement ordering;
+- RLS, grants, and service-role-only boundaries;
+- concurrency, fixed-window, and rollback risks;
+- standalone verifier expectations;
+- retention and operational constraints;
+- future Edge adapter behavior after a verified SQL apply.
+
+Important design decision:
+
+- The compact consume bucket model is explicitly documented as a fixed-window
+  model, not an exact sliding-window event log.
+- Identity blocking reduces the highest-risk boundary burst. The
+  session-defense boundary behavior still requires explicit review and
+  concurrency tests before executable SQL approval.
+- If strict sliding-window enforcement is required, the bucket design must be
+  replaced and reviewed before any apply.
+
+Safety verification requirement:
+
+- Every nonblank line in the draft must begin with `--`.
+- No part of the draft may be executed or applied.
+- Executable SQL, schema/RLS/grant/RPC changes, Supabase apply, `schema.sql`
+  mirroring, Edge adapter wiring, deployment, and runtime enablement remain
+  separate manual approval points.
+
+Safety state:
+
+- No executable SQL, schema/RLS/RPC/grant change, Supabase apply, database row,
+  environment value, secret, runtime wiring, gate, deploy, Netlify action, or
+  push occurred in Phase 5DC.
