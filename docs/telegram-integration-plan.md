@@ -8109,3 +8109,52 @@ Deferred and blocked:
   are separately approved.
 - No push, Edge Function deploy, Netlify action, or production runtime change
   occurred in this phase.
+
+## Phase 5CX - Isolated Owner-Link Webhook Dispatch Contract
+
+Phase 5CX adds a pure, local-only owner-link versus read-only webhook dispatch
+contract:
+
+- `supabase/functions/telegram-webhook/owner-link-dispatch.ts`
+- `supabase/functions/telegram-webhook/owner-link-dispatch_test.ts`
+
+Dispatch boundary:
+
+- The dispatcher accepts an already-read update object. It has no `Request`
+  access and cannot read the webhook body a second time.
+- It is not imported or wired by `telegram-webhook/index.ts`, so current
+  runtime behavior remains unchanged.
+- When owner-link consume is disabled, every update stays on the existing
+  read-only parser route and no owner-link parser or consume dependency runs.
+- When enabled by an injected boolean, only narrow `/start` or `/link`
+  candidates enter the owner-link route. Other commands preserve the existing
+  read-only route.
+- Owner-link candidates parse first, consume at most once through an injected
+  dependency, and never call normal chat authorization, normal update claim,
+  token resolution, or Telegram delivery from this contract.
+- Linked, duplicate, not-linked, and invalid owner-link candidates return the
+  same bounded acknowledgement. The acknowledgement exposes no challenge,
+  hash, session ID, Telegram identity, raw update, or result detail.
+- Unexpected parser, consume, and result-shape failures return one fixed
+  sanitized server error.
+
+Verification:
+
+- All 7 isolated dispatch tests passed.
+- Tests cover disabled routing, normal read-only preservation, narrow
+  candidate detection, parse-before-consume order, one consume call, generic
+  terminal acknowledgements, invalid-candidate acknowledgement, and sanitized
+  failures.
+- No runtime gate, entrypoint import, RPC client, database access, Telegram API
+  call, Vault access, logging, schema/RLS change, deployment, or live row was
+  added.
+
+Deferred and blocked:
+
+- Do not wire the dispatch contract into `telegram-webhook/index.ts` yet.
+- A default-off owner-link consume runtime gate and single-read entrypoint
+  wiring still require a separate final-reviewed slice.
+- Durable rate-limit and abuse-control design remains required before either
+  owner-link gate can be enabled in production.
+- No push, Edge Function deploy, Netlify action, or production runtime change
+  occurred in this phase.
