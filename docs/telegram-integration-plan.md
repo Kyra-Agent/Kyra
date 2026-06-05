@@ -8303,3 +8303,51 @@ Safety state:
 
 - No schema/RLS, RPC, grant, environment value, secret, database row, runtime
   gate, deployment, Netlify state, or production state changed in this audit.
+
+## Phase 5DA - Pure Owner-Link Rate-Limit Contracts
+
+Phase 5DA adds local pure decision and response contracts for the approved
+initial owner-link abuse-control policy:
+
+- `supabase/functions/_shared/telegram-owner-link-rate-limit.ts`
+- `supabase/functions/_shared/telegram-owner-link-rate-limit_test.ts`
+
+Contract behavior:
+
+- Issue decisions accept already-counted successful issue totals for the
+  current agent, active session, and owner windows.
+- Consume decisions accept already-counted candidate totals for the private
+  identity and active session windows plus an optional blocked-until time.
+- Counts represent durable attempts recorded before the next attempt. A count
+  equal to its maximum is denied.
+- Every allowed decision exposes only `{ allowed: true, status: "allowed" }`.
+- Every denied decision exposes only
+  `{ allowed: false, status: "rate_limited" }`.
+- Invalid counts, timestamps, or shapes fail closed with one fixed sanitized
+  contract error.
+- The future issue API rate-limit response is fixed and does not expose
+  thresholds, remaining attempts, reset time, owner/session identity, or
+  internal policy detail.
+
+Safety boundary:
+
+- The module is not imported by any Edge Function entrypoint.
+- It performs no database/RPC access, environment read, logging, Telegram API
+  call, Vault access, token handling, or runtime gate change.
+- It does not implement an in-memory limiter and must not be treated as the
+  durable enforcement layer.
+
+Verification:
+
+- All 8 isolated rate-limit tests passed.
+- Tests lock exact initial thresholds, allow/deny boundaries, active and
+  expired block behavior, identical denial decisions, fail-closed validation,
+  and sanitized rate-limited response shape.
+
+Deferred and blocked:
+
+- Do not wire these contracts into issue or consume runtime before approved
+  durable SQL/RPC enforcement exists.
+- Schema/RLS/grant/RPC SQL, rollback, verifier, Supabase apply, deployment, and
+  gate enablement remain separate approval points.
+- No push, deploy, live database access, or production state change occurred.
