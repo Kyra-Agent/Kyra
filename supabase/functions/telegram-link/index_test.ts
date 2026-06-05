@@ -308,6 +308,40 @@ Deno.test("telegram-link sanitizes invalid challenge material and issue failures
   }
 });
 
+Deno.test("telegram-link maps bounded issue rate limit to fixed sanitized 429", async () => {
+  const response = await handleTelegramLinkRequest(
+    makeRequest({
+      authorization: "Bearer session",
+      contentType: "application/json",
+    }),
+    createEnabledDependencies({
+      issueOwnerLinkChallenge: async () => ({
+        issued: false,
+        status: "rate_limited",
+      }),
+    }),
+  );
+  const body = await readJson(response);
+  const serialized = JSON.stringify(body);
+
+  assertEquals(response.status, 429);
+  assertEquals(
+    serialized,
+    JSON.stringify({
+      ok: false,
+      status: "rate_limited",
+      message: "Telegram owner-link requests are temporarily limited.",
+    }),
+  );
+  assert(!serialized.includes(challenge), "Response must hide challenge.");
+  assert(!serialized.includes(challengeHash), "Response must hide hash.");
+  assert(!serialized.includes(agentId), "Response must hide agent id.");
+  assert(!serialized.includes(sessionId), "Response must hide session id.");
+  assert(!serialized.includes(userId), "Response must hide owner id.");
+  assert(!serialized.includes("3"), "Response must hide issue threshold.");
+  assert(!serialized.includes("15"), "Response must hide issue window.");
+});
+
 Deno.test("telegram-link OPTIONS returns CORS response", async () => {
   const response = await handleTelegramLinkRequest(
     new Request("https://kyra.test/functions/v1/telegram-link", {

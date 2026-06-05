@@ -20,6 +20,7 @@ import {
   type TelegramOwnerLinkChallengeMaterial,
   telegramOwnerLinkChallengeTtlMs,
 } from "../_shared/telegram-owner-link.ts";
+import { createTelegramOwnerLinkRateLimitedResponse } from "../_shared/telegram-owner-link-rate-limit.ts";
 import type { TelegramLinkActiveSession } from "./active-session-lookup.ts";
 import type { TelegramLinkIssueRuntimeConfig } from "./runtime-config.ts";
 
@@ -218,12 +219,10 @@ export function assertChallengeMaterial(
 
 export function assertTelegramLinkIssueResult(
   value: unknown,
-): TelegramOwnerLinkIssueResult {
+): Extract<TelegramOwnerLinkIssueResult, { issued: true }> {
   if (
     !isPlainRecord(value) ||
-    Object.keys(value).sort().join(",") !== "issued,status" ||
-    value.issued !== true ||
-    value.status !== "issued"
+    Object.keys(value).sort().join(",") !== "issued,status"
   ) {
     throw new HttpError(
       500,
@@ -232,7 +231,21 @@ export function assertTelegramLinkIssueResult(
     );
   }
 
-  return { issued: true, status: "issued" };
+  if (value.issued === true && value.status === "issued") {
+    return { issued: true, status: "issued" };
+  }
+
+  if (value.issued === false && value.status === "rate_limited") {
+    const response = createTelegramOwnerLinkRateLimitedResponse();
+
+    throw new HttpError(429, response.status, response.message);
+  }
+
+  throw new HttpError(
+    500,
+    "server_error",
+    "Telegram owner-link challenge issue failed.",
+  );
 }
 
 function requireDependency<T>(dependency: T | undefined): T {

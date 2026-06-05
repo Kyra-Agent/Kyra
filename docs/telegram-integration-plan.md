@@ -8644,3 +8644,51 @@ Safety state:
 - No environment value or secret was read, no Telegram API call occurred, no
   runtime gate was enabled, and no Edge Function, Netlify, deploy, push, or
   production Telegram behavior changed in Phase 5DE.
+
+## Phase 5DF - Default-Off Owner-Link Rate-Limit Adapter Closeout
+
+Phase 5DF updates the local default-off owner-link issue path to understand the
+bounded durable RPC rate-limit result without enabling or deploying the
+function.
+
+Implemented contract:
+
+- The issue RPC adapter accepts exactly two result rows:
+  - `{ issued: true, status: "issued" }`;
+  - `{ issued: false, status: "rate_limited" }`.
+- Any malformed, duplicate, extra-field, contradictory, or raw-error result
+  remains a sanitized `500 server_error`.
+- The `telegram-link` handler maps the exact bounded rate-limit result to:
+  - HTTP `429`;
+  - `ok: false`;
+  - `status: "rate_limited"`;
+  - `message: "Telegram owner-link requests are temporarily limited."`
+- The response exposes no threshold, remaining count, reset time, challenge,
+  challenge hash, owner/workspace/session ID, token ref, or policy details.
+- Successful issue behavior and generic consume behavior are unchanged.
+
+Default-off and security state:
+
+- `KYRA_TELEGRAM_LINK_ISSUE_ENABLED` remains exact-`true` opt-in and defaults
+  off.
+- Disabled requests still return `501 not_configured` before body, env,
+  session, ownership, service-role client, challenge generation, or RPC
+  access.
+- No runtime-config, webhook consume, schema/RLS/RPC, environment value,
+  secret, Telegram API, UI, or deployment behavior changed.
+
+Verification:
+
+- Focused owner-link issue and endpoint tests passed.
+- Full Deno function suite passed: 314 tests.
+- `deno check` passed for all Telegram Edge Function entrypoints.
+- `npm run check:functions`, `npm exec tsc -- --noEmit`, `npm run build`,
+  formatting checks, security scan, and `git diff --check` passed.
+
+Remaining blocked work:
+
+- Do not deploy `telegram-link` or enable its issue gate yet.
+- Keep the webhook owner-link consume gate disabled.
+- Do not create a live challenge or authorization row until the deployment,
+  UI pairing flow, gate sequence, rollback, and production smoke plan are
+  separately reviewed and approved.

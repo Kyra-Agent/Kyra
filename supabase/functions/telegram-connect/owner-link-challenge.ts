@@ -4,10 +4,9 @@ import {
 } from "../_shared/telegram-owner-link.ts";
 import { HttpError } from "./core.ts";
 
-export interface TelegramOwnerLinkIssueResult {
-  issued: true;
-  status: "issued";
-}
+export type TelegramOwnerLinkIssueResult =
+  | { issued: true; status: "issued" }
+  | { issued: false; status: "rate_limited" };
 
 export interface TelegramOwnerLinkIssueRpcResult {
   data?: unknown;
@@ -121,11 +120,15 @@ export function assertTelegramOwnerLinkIssueRow(
       throw new Error("Unexpected Telegram owner-link issue row.");
     }
 
-    if (value.issued !== true || value.status !== "issued") {
-      throw new Error("Unexpected Telegram owner-link issue row.");
+    if (value.issued === true && value.status === "issued") {
+      return { issued: true, status: "issued" };
     }
 
-    return { issued: true, status: "issued" };
+    if (value.issued === false && value.status === "rate_limited") {
+      return { issued: false, status: "rate_limited" };
+    }
+
+    throw new Error("Unexpected Telegram owner-link issue row.");
   } catch (error) {
     throw sanitizeTelegramOwnerLinkIssueError(error);
   }

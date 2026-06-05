@@ -17,6 +17,9 @@ been deployed.
 - Challenge material is generated only after auth, ownership, and active-session
   validation.
 - Only the challenge hash is sent to the service-role-only issue RPC.
+- The issue RPC's bounded `rate_limited` result maps to a fixed sanitized
+  `429` response without exposing thresholds, reset time, IDs, or policy
+  details.
 - The raw challenge is returned exactly once inside the Telegram deep link. It
   is never logged, persisted, or returned separately.
 - Responses never include owner/workspace/session IDs, challenge hashes, token

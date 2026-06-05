@@ -125,6 +125,31 @@ Deno.test("owner-link issue adapter maps empty rows to bounded unavailable error
   );
 });
 
+Deno.test("owner-link issue adapter accepts only bounded rate-limited result", async () => {
+  const result = await issueTelegramOwnerLinkChallenge({
+    agentId,
+    telegramSessionId,
+    issuedByUserId: ownerUserId,
+    challengeHash,
+    expiresAt,
+    nowMs,
+    rpcClient: {
+      rpc: () => ({
+        data: [{ issued: false, status: "rate_limited" }],
+        error: null,
+      }),
+    },
+  });
+  const serialized = JSON.stringify(result);
+
+  assertEquals(serialized, '{"issued":false,"status":"rate_limited"}');
+  assert(!serialized.includes(agentId), "Result must hide agent id.");
+  assert(!serialized.includes(ownerUserId), "Result must hide owner id.");
+  assert(!serialized.includes(challengeHash), "Result must hide hash.");
+  assert(!serialized.includes("3"), "Result must hide issue threshold.");
+  assert(!serialized.includes("15"), "Result must hide issue window.");
+});
+
 Deno.test("owner-link issue adapter rejects malformed, duplicate, and extra-field rows", async () => {
   for (
     const data of [
@@ -133,6 +158,7 @@ Deno.test("owner-link issue adapter rejects malformed, duplicate, and extra-fiel
       [{ issued: true, status: "issued" }, { issued: true, status: "issued" }],
       [{ issued: true, status: "issued", agent_id: agentId }],
       [{ issued: false, status: "issued" }],
+      [{ issued: true, status: "rate_limited" }],
     ]
   ) {
     const error = await captureError(() =>
@@ -183,16 +209,24 @@ Deno.test("owner-link issue adapter sanitizes RPC and thrown errors", async () =
 });
 
 Deno.test("owner-link issue row and sanitizer expose only fixed result contracts", () => {
-  const result = assertTelegramOwnerLinkIssueRow({
+  const issued = assertTelegramOwnerLinkIssueRow({
     issued: true,
     status: "issued",
+  });
+  const rateLimited = assertTelegramOwnerLinkIssueRow({
+    issued: false,
+    status: "rate_limited",
   });
   const error = sanitizeTelegramOwnerLinkIssueError(
     new Error(`raw ${ownerUserId} ${challengeHash}`),
   );
   const serialized = JSON.stringify(error);
 
-  assertEquals(JSON.stringify(result), '{"issued":true,"status":"issued"}');
+  assertEquals(JSON.stringify(issued), '{"issued":true,"status":"issued"}');
+  assertEquals(
+    JSON.stringify(rateLimited),
+    '{"issued":false,"status":"rate_limited"}',
+  );
   assertEquals(error.statusCode, 500);
   assertEquals(error.code, "server_error");
   assertEquals(error.message, "Telegram owner-link challenge issue failed.");
