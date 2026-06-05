@@ -7866,3 +7866,33 @@ Safety state:
   explicit apply approval.
 - The verifier must reject implementations that omit exact agent/session,
   challenge-hash, current-owner, or active-authorization predicates.
+
+## Phase 5CT - Owner-Link Challenge Post-Apply State
+
+The approved owner-link challenge SQL packet was applied manually to Supabase
+and its required read-only verification completed successfully.
+
+Verified production state:
+
+- The forward packet completed with `Success. No rows returned`.
+- The owner-link challenge contract verifier returned all 17 required checks
+  as `true`.
+- The authenticated demo-write lockdown verifier returned 131 allowed/required
+  checks as `true` and the 9 expected browser-write denial checks as `false`.
+- The owner-link challenge table and issue/consume RPCs remain service-role
+  only. No browser role received direct table or RPC access.
+
+Local follow-up:
+
+- `supabase/schema.sql` now mirrors the already-applied owner-link challenge
+  table, active unique indexes, RLS state, issue/consume RPCs, revokes, and
+  service-role grants.
+
+Safety state:
+
+- No owner-link runtime adapter is wired into an Edge Function entrypoint.
+- No challenge or authorization row was created.
+- No runtime gate was enabled.
+- No Edge Function or Netlify deploy was triggered.
+- No live Telegram API, BotFather token, Vault secret, or secret value was
+  accessed.
