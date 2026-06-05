@@ -7687,3 +7687,69 @@ Decision and approval boundary:
   requires separate explicit approval.
 - Until then, owner-linking remains unavailable and all unknown Telegram chats
   must continue to fail closed.
+
+## Phase 5CP - Pure Owner-Link Challenge Contracts
+
+Phase 5CP implements the first owner-linking preparation slice as shared pure
+contracts and tests. It does not add a deployable `telegram-link` Edge Function,
+schema/RLS, database access, RPC calls, runtime wiring, UI behavior, secrets,
+Telegram API calls, runtime gates, deployment, or production changes.
+
+Files added:
+
+- `supabase/functions/_shared/telegram-owner-link.ts`
+- `supabase/functions/_shared/telegram-owner-link_test.ts`
+
+Implemented contracts:
+
+- Generate exactly 32 cryptographically random bytes represented as a
+  64-character lowercase hexadecimal challenge.
+- Hash the raw challenge with SHA-256 before any future persistence boundary.
+- Set a maximum ten-minute challenge TTL.
+- Build a one-time Telegram deep link containing only the normalized bot
+  username and raw challenge.
+- Build a future store input that contains only agent/session/owner IDs,
+  challenge hash, and expiry. Extra raw challenge input is discarded.
+- Parse and hash only exact `/start <challenge>` or `/link <challenge>`
+  owner-link commands.
+- Accept owner-link commands only from a private chat where the positive
+  Telegram user ID exactly equals the positive chat ID.
+- Support an optional exact target bot username while rejecting mismatches.
+- Return consume input containing only Telegram update/user/chat IDs and the
+  challenge hash. It excludes raw challenge, command text, bot username, and
+  raw update data.
+- Return fixed sanitized contract errors without exposing challenge material,
+  Telegram payloads, owner data, token refs, or internal failures.
+
+Security decisions:
+
+- Owner-linking remains unavailable and unwired.
+- The raw challenge exists only in transient issue/parser memory and the
+  one-time deep-link response boundary.
+- The raw challenge must never be stored, logged, rendered again, placed in
+  browser storage, or included in a consume RPC input.
+- Group/supergroup/channel linking is rejected. The first rollout is
+  private-chat owner linking only.
+- The shared folder has no `index.ts`, so this slice is not deployable as an
+  Edge Function.
+- No existing Telegram function imports this module yet.
+
+Verification:
+
+- Focused shared-contract tests passed: 9 tests, 0 failures.
+- Full shared/connect/webhook Deno tests passed: 263 tests, 0 failures.
+- `npm run check:functions` passed.
+- `npm exec tsc -- --noEmit` passed.
+- `npm run build` passed.
+- `git diff --check` passed.
+- Static scan found no runtime logging, env access, `.env.local` access, browser
+  storage, service-role client, DB/RPC call, Telegram API call, or token
+  handling in the shared module.
+
+Next safe slice:
+
+1. Prepare a comment-only owner-link challenge schema/RPC design and verifier
+   plan.
+2. Keep it separate from executable SQL and do not apply schema/RLS.
+3. Require separate explicit approval before any forward/rollback SQL packet,
+   database apply, runtime wiring, UI, deploy, challenge issue, or live pairing.
