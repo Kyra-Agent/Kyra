@@ -4,6 +4,12 @@
 [functions.telegram-connect]
 verify_jwt = true
 
+# Telegram owner-link challenge issue requires a signed-in dashboard user.
+# Keep gateway JWT verification enabled in addition to function ownership
+# validation.
+[functions.telegram-link]
+verify_jwt = true
+
 # Telegram calls this webhook without a Supabase JWT. The inert handler rejects
 # a missing X-Telegram-Bot-Api-Secret-Token before body access; enabled live
 # parsing additionally requires a successful backend session lookup.

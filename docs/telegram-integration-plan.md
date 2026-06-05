@@ -8047,3 +8047,65 @@ Safety state:
 - No runtime entrypoint, gate, schema/RLS, environment value, secret, Vault
   object, Telegram API, database row, deployment, Netlify state, or production
   state changed in this preflight.
+
+## Phase 5CW - Default-Off Owner-Link Issue Function
+
+Phase 5CW adds a local-only `telegram-link` Edge Function for issuing an
+owner-link challenge. The function is registered with Supabase gateway JWT
+verification enabled but has not been deployed.
+
+Runtime boundary:
+
+- `KYRA_TELEGRAM_LINK_ISSUE_ENABLED` defaults off and enables only for the
+  exact string `true`.
+- While the gate is disabled, the handler returns `501 not_configured` without
+  reading the request body, required runtime secrets, Supabase session,
+  service-role client, database, or RPC.
+- The enabled path requires a Bearer session, exact agent ownership, and
+  exactly one active matching Telegram session before challenge generation.
+- The active-session lookup selects only `id`, `agent_id`, `bot_handle`, and
+  `webhook_status`. It never selects or returns `token_secret_ref`.
+- The request body accepts only `{ agentId }`; additional fields, including
+  `botToken`, are rejected.
+- Only the challenge hash is sent to the existing service-role-only issue RPC.
+  The raw challenge is returned once inside the bounded Telegram deep link and
+  is never persisted or logged.
+- Responses do not expose owner, workspace, agent, session, challenge-hash,
+  token-reference, BotFather-token, or raw database-error details.
+- No Telegram API, Vault, schema/RLS, frontend token input, or live database
+  row behavior was added.
+
+Files added or updated:
+
+- `supabase/functions/telegram-link/index.ts`
+- `supabase/functions/telegram-link/core.ts`
+- `supabase/functions/telegram-link/runtime-config.ts`
+- `supabase/functions/telegram-link/active-session-lookup.ts`
+- Mocked Deno tests and local README under
+  `supabase/functions/telegram-link/`
+- `supabase/config.toml` with `functions.telegram-link.verify_jwt = true`
+- `scripts/check-functions.mjs` with the new entrypoint and JWT contract
+
+Verification:
+
+- All 14 `telegram-link` tests passed when run by test file.
+- Existing shared, `telegram-connect`, and `telegram-webhook` tests passed:
+  275 tests, 0 failures.
+- Deno checks, formatter check, `npm run check:functions`,
+  `npm exec tsc -- --noEmit`, `npm run build`, and `git diff --check` passed.
+- Deno 2.8.1 on Windows panics internally when multiple `telegram-link` test
+  files are supplied to one `deno test` command. Each test file passes
+  independently; this is recorded as a local runner limitation.
+- Static review confirmed no Telegram API call, Vault access, request-body
+  logging, token return, or secret-value read in the disabled runtime path.
+
+Deferred and blocked:
+
+- Do not deploy `telegram-link` or enable its issue gate yet.
+- Do not create a real owner-link challenge or authorization row.
+- Do not add owner-link UI or expose a live pairing claim.
+- Do not enable owner linking until the webhook consume branch, durable
+  rate-limit/abuse controls, deployment plan, and production smoke procedure
+  are separately approved.
+- No push, Edge Function deploy, Netlify action, or production runtime change
+  occurred in this phase.
