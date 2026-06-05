@@ -13,6 +13,18 @@ telegram_webhook_receiver_objects as (
     to_regprocedure('public.resolve_telegram_webhook_session(text)') as resolve_telegram_webhook_session_rpc,
     to_regprocedure('public.resolve_telegram_chat_authorization(uuid,text,text,text)') as resolve_telegram_chat_authorization_rpc,
     to_regprocedure('public.claim_telegram_update(uuid,bigint)') as claim_telegram_update_rpc
+),
+telegram_owner_link_rate_limit_objects as (
+  select
+    to_regclass(
+      'public.telegram_owner_link_consume_rate_limits'
+    ) as limiter_table,
+    to_regprocedure(
+      'public.issue_telegram_owner_link_challenge(uuid,uuid,uuid,text,timestamptz)'
+    ) as issue_rpc,
+    to_regprocedure(
+      'public.consume_telegram_owner_link_challenge(uuid,bigint,text,text,text)'
+    ) as consume_rpc
 )
 select
   has_table_privilege('authenticated', 'public.workspaces', 'select') as auth_can_read_workspaces,
@@ -1783,6 +1795,188 @@ select
     ]::text[],
     false
   ) as telegram_session_summaries_has_expected_columns,
+  telegram_owner_link_rate_limit_objects.limiter_table is not null
+    as telegram_owner_link_consume_rate_limits_table_exists,
+  case
+    when telegram_owner_link_rate_limit_objects.limiter_table is null then false
+    else not exists (
+      select 1
+      from pg_class rel
+      cross join aclexplode(
+        coalesce(rel.relacl, acldefault('r', rel.relowner))
+      ) as acl
+      where rel.oid = telegram_owner_link_rate_limit_objects.limiter_table::oid
+        and acl.grantee = 0::oid
+    )
+    and not (
+      coalesce(has_table_privilege(
+        'anon',
+        telegram_owner_link_rate_limit_objects.limiter_table::oid,
+        'select'
+      ), false)
+      or coalesce(has_table_privilege(
+        'anon',
+        telegram_owner_link_rate_limit_objects.limiter_table::oid,
+        'insert'
+      ), false)
+      or coalesce(has_table_privilege(
+        'anon',
+        telegram_owner_link_rate_limit_objects.limiter_table::oid,
+        'update'
+      ), false)
+      or coalesce(has_table_privilege(
+        'anon',
+        telegram_owner_link_rate_limit_objects.limiter_table::oid,
+        'delete'
+      ), false)
+      or coalesce(has_table_privilege(
+        'anon',
+        telegram_owner_link_rate_limit_objects.limiter_table::oid,
+        'truncate'
+      ), false)
+      or coalesce(has_table_privilege(
+        'anon',
+        telegram_owner_link_rate_limit_objects.limiter_table::oid,
+        'references'
+      ), false)
+      or coalesce(has_table_privilege(
+        'anon',
+        telegram_owner_link_rate_limit_objects.limiter_table::oid,
+        'trigger'
+      ), false)
+      or coalesce(has_table_privilege(
+        'authenticated',
+        telegram_owner_link_rate_limit_objects.limiter_table::oid,
+        'select'
+      ), false)
+      or coalesce(has_table_privilege(
+        'authenticated',
+        telegram_owner_link_rate_limit_objects.limiter_table::oid,
+        'insert'
+      ), false)
+      or coalesce(has_table_privilege(
+        'authenticated',
+        telegram_owner_link_rate_limit_objects.limiter_table::oid,
+        'update'
+      ), false)
+      or coalesce(has_table_privilege(
+        'authenticated',
+        telegram_owner_link_rate_limit_objects.limiter_table::oid,
+        'delete'
+      ), false)
+      or coalesce(has_table_privilege(
+        'authenticated',
+        telegram_owner_link_rate_limit_objects.limiter_table::oid,
+        'truncate'
+      ), false)
+      or coalesce(has_table_privilege(
+        'authenticated',
+        telegram_owner_link_rate_limit_objects.limiter_table::oid,
+        'references'
+      ), false)
+      or coalesce(has_table_privilege(
+        'authenticated',
+        telegram_owner_link_rate_limit_objects.limiter_table::oid,
+        'trigger'
+      ), false)
+    )
+  end as browser_roles_have_no_owner_link_consume_rate_limit_privileges,
+  case
+    when telegram_owner_link_rate_limit_objects.limiter_table is null then false
+    else coalesce(has_table_privilege(
+      'service_role',
+      telegram_owner_link_rate_limit_objects.limiter_table::oid,
+      'select'
+    ), false)
+    and coalesce(has_table_privilege(
+      'service_role',
+      telegram_owner_link_rate_limit_objects.limiter_table::oid,
+      'insert'
+    ), false)
+    and coalesce(has_table_privilege(
+      'service_role',
+      telegram_owner_link_rate_limit_objects.limiter_table::oid,
+      'update'
+    ), false)
+    and not (
+      coalesce(has_table_privilege(
+        'service_role',
+        telegram_owner_link_rate_limit_objects.limiter_table::oid,
+        'delete'
+      ), false)
+      or coalesce(has_table_privilege(
+        'service_role',
+        telegram_owner_link_rate_limit_objects.limiter_table::oid,
+        'truncate'
+      ), false)
+      or coalesce(has_table_privilege(
+        'service_role',
+        telegram_owner_link_rate_limit_objects.limiter_table::oid,
+        'references'
+      ), false)
+      or coalesce(has_table_privilege(
+        'service_role',
+        telegram_owner_link_rate_limit_objects.limiter_table::oid,
+        'trigger'
+      ), false)
+    )
+  end as service_role_owner_link_consume_rate_limit_privileges_are_expected,
+  case
+    when telegram_owner_link_rate_limit_objects.issue_rpc is null then false
+    else not exists (
+      select 1
+      from pg_proc proc
+      cross join aclexplode(
+        coalesce(proc.proacl, acldefault('f', proc.proowner))
+      ) as acl
+      where proc.oid = telegram_owner_link_rate_limit_objects.issue_rpc::oid
+        and acl.grantee = 0::oid
+        and lower(acl.privilege_type) = 'execute'
+    )
+    and not coalesce(has_function_privilege(
+      'anon',
+      telegram_owner_link_rate_limit_objects.issue_rpc::oid,
+      'execute'
+    ), false)
+    and not coalesce(has_function_privilege(
+      'authenticated',
+      telegram_owner_link_rate_limit_objects.issue_rpc::oid,
+      'execute'
+    ), false)
+    and coalesce(has_function_privilege(
+      'service_role',
+      telegram_owner_link_rate_limit_objects.issue_rpc::oid,
+      'execute'
+    ), false)
+  end as issue_telegram_owner_link_rate_limit_execute_privileges_are_expected,
+  case
+    when telegram_owner_link_rate_limit_objects.consume_rpc is null then false
+    else not exists (
+      select 1
+      from pg_proc proc
+      cross join aclexplode(
+        coalesce(proc.proacl, acldefault('f', proc.proowner))
+      ) as acl
+      where proc.oid = telegram_owner_link_rate_limit_objects.consume_rpc::oid
+        and acl.grantee = 0::oid
+        and lower(acl.privilege_type) = 'execute'
+    )
+    and not coalesce(has_function_privilege(
+      'anon',
+      telegram_owner_link_rate_limit_objects.consume_rpc::oid,
+      'execute'
+    ), false)
+    and not coalesce(has_function_privilege(
+      'authenticated',
+      telegram_owner_link_rate_limit_objects.consume_rpc::oid,
+      'execute'
+    ), false)
+    and coalesce(has_function_privilege(
+      'service_role',
+      telegram_owner_link_rate_limit_objects.consume_rpc::oid,
+      'execute'
+    ), false)
+  end as consume_telegram_owner_link_rate_limit_execute_privileges_are_expected,
   not exists (
     select 1
     from information_schema.table_privileges
@@ -1792,4 +1986,5 @@ select
       and privilege_type = 'SELECT'
   ) as auth_has_no_broad_telegram_sessions_select_grant
 from telegram_vault_rpcs
-cross join telegram_webhook_receiver_objects;
+cross join telegram_webhook_receiver_objects
+cross join telegram_owner_link_rate_limit_objects;

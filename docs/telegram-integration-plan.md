@@ -8506,3 +8506,75 @@ Safety state:
 - No executable SQL, schema/RLS/RPC/grant change, Supabase apply, database row,
   environment value, secret, runtime wiring, gate, deploy, Netlify action, or
   push occurred in Phase 5DC.
+
+## Phase 5DD - Durable Owner-Link Rate-Limit SQL Review Packet
+
+Phase 5DD converts the approved comment-only contract into a local executable
+SQL review packet. The packet is intentionally not applied and remains blocked
+behind separate schema/RLS/RPC approval:
+
+- `supabase/telegram_owner_link_rate_limit_forward_review.sql`
+- `supabase/telegram_owner_link_rate_limit_rollback_review.sql`
+- `supabase/verify_telegram_owner_link_rate_limit_contract.sql`
+
+The existing authenticated-write lockdown verifier is also extended to cover
+the proposed limiter table and the existing issue/consume RPC execute grants.
+
+Forward packet scope:
+
+- Stop on baseline drift before creating or replacing objects.
+- Add only the three approved issue-history indexes and one private
+  fixed-window consume-limiter table.
+- Enable RLS with no policies and grant only `select`, `insert`, and `update`
+  to `service_role`.
+- Replace the issue RPC with deterministic owner-before-agent locking,
+  bounded history checks, and a sanitized `rate_limited` result before any
+  challenge revoke or insert.
+- Replace the consume RPC with session-before-identity locking,
+  update-claim-before-limit ordering, durable fixed-window counters, generic
+  limiter denial, and challenge lookup only after limiter approval.
+- Create no challenge, authorization, processed-update, limiter, token,
+  secret, payload, or Telegram API state.
+
+Rollback and verifier scope:
+
+- Rollback restores the exact currently verified issue and consume RPC
+  definitions, removes only the proposed indexes/table, refuses to continue
+  when limiter rows exist, and never uses `CASCADE`.
+- The standalone verifier is read-only and guarded before apply. It checks
+  table shape, constraints, RLS/no-policy state, indexes, grants, RPC security
+  and result contracts, lock/order markers, and exclusion from public views.
+- `verify_authenticated_demo_write_lockdown.sql` additionally proves browser
+  roles cannot access the limiter table or execute either owner-link RPC.
+
+Local review results:
+
+- Both read-only verifier files parse without modification.
+- Forward and rollback packets parse after neutralizing only clauses that the
+  local third-party parser does not support: RLS enablement, security-invoker,
+  empty search path, and grant/revoke syntax.
+- Rollback issue and consume RPC definitions exactly match the current
+  `supabase/schema.sql` baseline.
+- Static checks confirm owner-before-agent and session-before-identity lock
+  ordering, claim-before-limit, limit-before-challenge, rate-limit-before-issue
+  mutation, row locking, expiry compatibility, and authorization-after-
+  challenge ordering.
+- The comment-only Phase 5DC draft remains comment-only.
+- `npm run check:functions` and `git diff --check` pass.
+
+Manual apply blockers:
+
+- Review and approve the fixed-window boundary behavior and parallel-call
+  concurrency expectations.
+- Confirm the target Supabase project still matches the expected baseline.
+- Explicitly approve the forward, rollback, schema/RLS/grant, and RPC changes.
+- Apply the forward packet manually, then run the standalone limiter verifier,
+  owner-link challenge verifier, and authenticated-write lockdown verifier.
+- Keep both owner-link runtime gates disabled and stop if any verifier result
+  is false.
+
+Safety state:
+
+- No SQL was applied, no schema/RLS/RPC/grant or database row changed, and no
+  environment value, secret, runtime gate, Edge Function, deployment,
+  Netlify state, or production behavior changed in Phase 5DD.

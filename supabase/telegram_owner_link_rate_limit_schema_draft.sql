@@ -47,7 +47,8 @@
 -- - telegram_session_id references public.telegram_sessions(id) on delete
 --   cascade.
 -- - session scope requires telegram_user_id is null and blocked_until is null.
--- - identity scope requires telegram_user_id matches ^[1-9][0-9]*$.
+-- - identity scope requires a non-null telegram_user_id matching
+--   ^[1-9][0-9]{0,15}$, aligned with the safe-integer webhook parser.
 -- - attempt_count is nonnegative and cannot exceed the approved maximum for
 --   its scope.
 -- - updated_at is not earlier than window_started_at.
