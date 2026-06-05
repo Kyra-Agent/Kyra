@@ -7375,3 +7375,46 @@ Hard stops:
 - Do not enable webhook runtime gates during the initial deployment.
 - Do not submit a BotFather token or register a webhook until the inert
   deployment smoke passes.
+
+## Phase 5CK - Inert Edge Function Deployment Smoke
+
+On June 5, 2026, the approved inert deployment window was completed for the
+target Supabase production project. No Telegram runtime gate, secret, or live
+integration behavior was enabled.
+
+Deployment result:
+
+- `telegram-connect` deployed as active version 1.
+- `telegram-webhook` deployed as active version 1.
+- `telegram-connect` retained `verify_jwt = true`.
+- `telegram-webhook` retained `verify_jwt = false`.
+- No other Edge Function was redeployed.
+
+Production inert smoke result:
+
+- A `telegram-connect` request without a Supabase JWT was rejected by the
+  gateway with `401 UNAUTHORIZED_NO_AUTH_HEADER`.
+- A `telegram-webhook` request without
+  `X-Telegram-Bot-Api-Secret-Token` was rejected with the sanitized
+  `401 webhook_verification_failed` response.
+- A webhook request with a dummy header but without JSON content type was
+  rejected by the content-type guard with sanitized `415
+  unsupported_media_type`.
+- A webhook request with a dummy header and an empty JSON object reached the
+  inert handler and returned `501 not_configured`.
+
+Security state after deployment:
+
+- All Telegram connect and webhook runtime gates remain default-off.
+- No BotFather token or real webhook secret was submitted, created, read,
+  logged, or returned.
+- No Telegram API call, `getMe`, `setWebhook`, or `sendMessage` occurred.
+- No Telegram session, authorization, or processed-update row was written.
+- No Netlify configuration or frontend behavior was changed.
+
+Next manual approval boundary:
+
+- Do not enable any runtime gate yet.
+- Before the first live connection, approve a disposable BotFather bot,
+  owner-linked chat identity, exact gate-enablement sequence, rollback
+  checkpoints, and production smoke window.
