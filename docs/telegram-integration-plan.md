@@ -6920,3 +6920,87 @@ Still not included:
 - No live secret read/write.
 - No Telegram API call.
 - No schema/RLS change.
+
+## Phase 5CA - Pre-Push Release Bundle Note
+
+This note records the local-only Phase 5 Telegram bundle before any push,
+publish, or deploy decision.
+
+Current local state:
+
+- Working tree was clean at the start of this note.
+- Local `main` was ahead of `origin/main` by 18 commits.
+- The bundle has not been pushed yet.
+- No Edge Function has been deployed by this bundle.
+- No Netlify publish or unlock is part of this bundle.
+
+Bundle scope:
+
+- `docs/telegram-integration-plan.md`
+- `supabase/schema.sql`
+- `supabase/functions/telegram-webhook/*`
+- No frontend files are part of this local bundle.
+
+Functional summary:
+
+- Webhook session lookup remains gated.
+- Telegram update parsing remains gated.
+- Chat authorization remains gated.
+- Atomic update claiming remains gated.
+- Read-only response delivery remains gated.
+- Delivery token resolution remains gated.
+- Production enablement remains documented as a separate checklist.
+
+Explicit non-effects:
+
+- Does not read `.env.local`.
+- Does not create, read, or resolve live secrets.
+- Does not call Telegram during local verification.
+- Does not enable any runtime environment gate.
+- Does not deploy Supabase Edge Functions.
+- Does not publish or unlock Netlify.
+- Does not make Telegram live by itself.
+
+Before push checklist:
+
+1. Run `git status --short`.
+2. Run `git rev-list --left-right --count origin/main...HEAD`.
+3. Run `git log --oneline origin/main..HEAD`.
+4. Run `git diff --check origin/main...HEAD`.
+5. Run `npm run check:functions`.
+6. Run `deno check supabase/functions/telegram-connect/index.ts supabase/functions/telegram-webhook/index.ts`.
+7. Run `deno test supabase/functions/telegram-connect supabase/functions/telegram-webhook`.
+8. Run `npm exec tsc -- --noEmit`.
+9. Run `npm run build`.
+
+Push risk notes:
+
+- Pushing to `main` can trigger Netlify auto publishing if Netlify is enabled.
+- Netlify credits are limited, so push timing must be deliberate.
+- Do not push unless the user explicitly approves a push.
+- A git push still does not deploy Supabase Edge Functions unless that deploy is
+  separately configured or manually triggered.
+
+Post-push checks if push is later approved:
+
+1. Confirm `origin/main` contains the expected Phase 5 commits.
+2. Confirm Netlify behavior immediately after push.
+3. Confirm no Supabase Edge Function deploy happened unexpectedly.
+4. Keep runtime gates disabled until production smoke is approved.
+
+Hard stops:
+
+- Stop if the working tree becomes dirty unexpectedly.
+- Stop if the pre-push diff includes files outside the expected bundle.
+- Stop if verification fails.
+- Stop if push approval is absent or ambiguous.
+- Stop if Netlify status is unclear and a push could spend credits.
+
+Still not included:
+
+- No push.
+- No deploy.
+- No Netlify unlock/publish.
+- No runtime gate enablement.
+- No live Telegram API call.
+- No live secret read/write.
