@@ -42,6 +42,11 @@ not a live Telegram integration.
   prior `getMe`, secret-store, and session-write gates being safely configured.
   It must use a backend-only `KYRA_TELEGRAM_WEBHOOK_URL` value and a generated
   per-request webhook secret.
+- The gated production finalization path stores only the webhook secret hash and
+  opaque ref, calls Telegram `setWebhook`, then activates the exact queued
+  token-backed session.
+- A failed `setWebhook` attempt revokes the newly stored webhook secret row on a
+  best-effort basis and does not activate the queued session.
 - The webhook registration gate must remain disabled until webhook secret
   storage, webhook session lookup, command authorization, and deployment smoke
   checks are separately approved.

@@ -7470,3 +7470,65 @@ Go/no-go:
 - No-go for enabling any Telegram runtime gate, submitting a BotFather token,
   registering a real webhook, or inserting an owner-linked chat authorization
   until the recovery and owner-linking gaps are closed.
+
+## Phase 5CM - Webhook Finalization Persistence Wiring
+
+Phase 5CM implements and tests the local production wiring required to finalize
+a future Telegram connection safely. It remains behind the existing
+default-off webhook-registration gate and has not been deployed.
+
+Files added:
+
+- `supabase/functions/telegram-connect/webhook-persistence.ts`
+- `supabase/functions/telegram-connect/webhook-persistence_test.ts`
+- `supabase/functions/telegram-connect/webhook-finalization-runtime.ts`
+- `supabase/functions/telegram-connect/runtime-finalization_test.ts`
+
+Files updated:
+
+- `supabase/functions/telegram-connect/index.ts`
+- `supabase/functions/telegram-connect/README.md`
+
+Implemented behavior behind the disabled gate:
+
+- Store only `webhook_secret_ref`, `webhook_secret_hash`, and
+  `telegram_session_id` in `telegram_webhook_secrets`.
+- Never pass the raw webhook secret token to the persistence adapter.
+- Revoke a stored webhook secret only by setting `revoked_at` on the exact
+  active ref.
+- Activate only the exact `queued` Telegram session that already has a
+  non-null token secret ref.
+- Replace the production runtime's direct `setWebhook` dependency with the
+  existing finalization sequence:
+  `store webhook secret -> setWebhook -> activate queued session`.
+- Revoke the newly stored webhook secret ref on a failed `setWebhook` attempt.
+
+Security result:
+
+- No raw BotFather token or raw webhook secret is stored, logged, returned, or
+  added to test persistence payloads.
+- Database mutations use the existing service-role client and existing private
+  table grants.
+- Browser roles and frontend code are unchanged.
+- Runtime gates remain exact-`true`, default-off controls.
+- Production still runs the previously deployed inert version because this
+  local slice has not been pushed or redeployed.
+
+Verification:
+
+- `npm run check:functions` passed.
+- Full Telegram Deno tests passed: 249 tests, 0 failures.
+- `npm exec tsc -- --noEmit` passed.
+- `npm run build` passed.
+- `git diff --check` passed.
+- Static security scan found no logging, browser storage, `.env.local` access,
+  request-body logging, or raw-secret persistence in the new runtime modules.
+
+Remaining blockers before redeploy and gate enablement:
+
+1. Implement a tested recovery path for session activation failure after
+   Telegram accepts `setWebhook`.
+2. Define and approve the first owner-linking mechanism for the exact Telegram
+   user/chat pair.
+3. Final review the complete local diff and redeploy only with all runtime gates
+   still off.

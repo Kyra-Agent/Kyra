@@ -19,10 +19,11 @@ import {
 } from "./core.ts";
 import { createTelegramWebhookRegistrationRuntimeConfig } from "./runtime-config.ts";
 import { createRpcTelegramBotTokenSecretStore } from "./secret-store.ts";
+import { validateTelegramBotTokenWithGetMe } from "./telegram-api.ts";
+import { finalizeTelegramWebhookRegistrationRuntime } from "./webhook-finalization-runtime.ts";
 import {
-  registerTelegramWebhookWithSetWebhook,
-  validateTelegramBotTokenWithGetMe,
-} from "./telegram-api.ts";
+  type TelegramWebhookPersistenceClient,
+} from "./webhook-persistence.ts";
 
 export * from "./core.ts";
 
@@ -111,16 +112,6 @@ export async function persistTelegramSession(
   );
 }
 
-export async function registerTelegramWebhook(
-  input: RegisterTelegramWebhookInput,
-) {
-  await registerTelegramWebhookWithSetWebhook({
-    botToken: input.botToken,
-    webhookUrl: input.webhookUrl,
-    webhookSecretToken: input.webhookSecretToken,
-  });
-}
-
 export function createTelegramConnectDependencies(
   options: TelegramConnectRuntimeOptions = {},
 ): TelegramConnectDependencies {
@@ -184,7 +175,11 @@ export function createTelegramConnectDependencies(
       webhookRegistrationConfig.getTelegramWebhookUrl;
     dependencies.generateTelegramWebhookSecret =
       webhookRegistrationConfig.generateTelegramWebhookSecret;
-    dependencies.registerTelegramWebhook = registerTelegramWebhook;
+    dependencies.registerTelegramWebhook = (input) =>
+      finalizeTelegramWebhookRegistrationRuntime(
+        getServiceClient() as unknown as TelegramWebhookPersistenceClient,
+        input,
+      );
   }
 
   return dependencies;
