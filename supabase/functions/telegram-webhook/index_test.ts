@@ -16,6 +16,7 @@ import {
   telegramWebhookClaimEnabledEnvKey,
   telegramWebhookDeliveryEnabledEnvKey,
   telegramWebhookLookupEnabledEnvKey,
+  telegramWebhookOwnerLinkConsumeEnabledEnvKey,
   telegramWebhookParseEnabledEnvKey,
 } from "./index.ts";
 
@@ -100,6 +101,18 @@ function createWebhookUpdate(text: string = "/status") {
       message_id: 42,
       from: { id: 123456 },
       chat: { id: -987654 },
+      text,
+    },
+  };
+}
+
+function createOwnerLinkWebhookUpdate(text: string) {
+  return {
+    update_id: 9001,
+    message: {
+      message_id: 42,
+      from: { id: 123456 },
+      chat: { id: 123456, type: "private" },
       text,
     },
   };
@@ -466,6 +479,161 @@ Deno.test("telegram-webhook parse gate sanitizes unsupported updates", async () 
     !serialized.includes("-987654"),
     "Telegram chat id must not be echoed.",
   );
+});
+
+Deno.test("telegram-webhook owner-link consume gate requires lookup before body read", async () => {
+  let bodyRead = false;
+
+  const response = await handleTelegramWebhookRequest(
+    requestThatFailsIfBodyIsRead(
+      {
+        "content-type": "application/json",
+        "x-telegram-bot-api-secret-token": "test-webhook-secret",
+      },
+      () => {
+        bodyRead = true;
+      },
+    ),
+    {
+      lookupRuntimeConfig: { enabled: false },
+      ownerLinkConsumeRuntimeConfig: { enabled: true },
+    },
+  );
+  const body = await readJson(response);
+
+  assertEquals(response.status, 500);
+  assertEquals(body.status, "server_error");
+  assertEquals(
+    body.message,
+    "Telegram owner-link consume requires session lookup.",
+  );
+  assert(!bodyRead, "Owner-link consume must require lookup before body read.");
+});
+
+Deno.test("telegram-webhook owner-link consume runs after lookup and bypasses normal pipeline", async () => {
+  const challenge = "ab".repeat(32);
+  const consumed: Array<Record<string, unknown>> = [];
+  let normalPipelineCalled = false;
+  const request = createJsonWebhookRequest(
+    createOwnerLinkWebhookUpdate(`/start ${challenge}`),
+  );
+  const response = await handleTelegramWebhookRequest(request, {
+    lookupRuntimeConfig: { enabled: true },
+    parseRuntimeConfig: { enabled: true },
+    chatAuthRuntimeConfig: { enabled: true },
+    claimRuntimeConfig: { enabled: true },
+    deliveryRuntimeConfig: { enabled: true },
+    ownerLinkConsumeRuntimeConfig: { enabled: true },
+    lookupTelegramWebhookSession: async () => ({
+      sessionId: testTelegramSessionId,
+      agentId: "agent-1",
+      workspaceId: "workspace-1",
+      ownerUserId: "owner-1",
+      botHandle: "@kyra_test_bot",
+      webhookStatus: "active",
+    }),
+    consumeTelegramOwnerLinkChallenge: async (input) => {
+      consumed.push(input);
+      return { linked: true, status: "linked" };
+    },
+    lookupTelegramChatAuthorization: async () => {
+      normalPipelineCalled = true;
+      throw new Error("Owner-link route must bypass chat authorization.");
+    },
+    claimTelegramUpdate: async () => {
+      normalPipelineCalled = true;
+      throw new Error("Owner-link route must bypass normal claim.");
+    },
+    deliverTelegramReadOnlyResponse: async () => {
+      normalPipelineCalled = true;
+      throw new Error("Owner-link route must bypass delivery.");
+    },
+  });
+  const body = await readJson(response);
+  const serialized = JSON.stringify(body);
+
+  assertEquals(response.status, 200);
+  assertEquals(body.ok, true);
+  assertEquals(body.status, "received");
+  assertEquals(body.message, "Telegram update received.");
+  assertEquals(consumed.length, 1);
+  assertEquals(consumed[0]?.telegramSessionId, testTelegramSessionId);
+  assertEquals(consumed[0]?.telegramUpdateId, "9001");
+  assertEquals(consumed[0]?.telegramUserId, "123456");
+  assertEquals(consumed[0]?.telegramChatId, "123456");
+  assert(
+    typeof consumed[0]?.challengeHash === "string" &&
+      consumed[0]?.challengeHash !== challenge,
+    "Owner-link consume must receive only the challenge hash.",
+  );
+  assert(request.bodyUsed, "Owner-link route must read the body once.");
+  assert(
+    !normalPipelineCalled,
+    "Owner-link route must bypass the normal pipeline.",
+  );
+  assert(!serialized.includes(challenge), "Response must hide challenge.");
+  assert(
+    !serialized.includes(testTelegramSessionId),
+    "Response must hide session id.",
+  );
+  assert(!serialized.includes("123456"), "Response must hide Telegram ids.");
+});
+
+Deno.test("telegram-webhook invalid owner-link candidate returns generic acknowledgement", async () => {
+  let consumeCalled = false;
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createOwnerLinkWebhookUpdate("/start invalid")),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      ownerLinkConsumeRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => ({
+        sessionId: testTelegramSessionId,
+        agentId: "agent-1",
+        workspaceId: "workspace-1",
+        ownerUserId: "owner-1",
+        botHandle: "@kyra_test_bot",
+        webhookStatus: "active",
+      }),
+      consumeTelegramOwnerLinkChallenge: async () => {
+        consumeCalled = true;
+        throw new Error("Invalid owner-link candidate must not consume.");
+      },
+    },
+  );
+  const body = await readJson(response);
+
+  assertEquals(response.status, 200);
+  assertEquals(body.status, "received");
+  assert(!consumeCalled, "Invalid owner-link candidate must not consume.");
+});
+
+Deno.test("telegram-webhook owner-link consume gate preserves normal read-only route", async () => {
+  let consumeCalled = false;
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("/status@kyra_test_bot")),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      parseRuntimeConfig: { enabled: true },
+      ownerLinkConsumeRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => ({
+        sessionId: testTelegramSessionId,
+        agentId: "agent-1",
+        workspaceId: "workspace-1",
+        ownerUserId: "owner-1",
+        botHandle: "@kyra_test_bot",
+        webhookStatus: "active",
+      }),
+      consumeTelegramOwnerLinkChallenge: async () => {
+        consumeCalled = true;
+        throw new Error("Normal read-only route must not consume owner link.");
+      },
+    },
+  );
+  const body = await readJson(response);
+
+  assertEquals(response.status, 501);
+  assertEquals(body.status, "not_configured");
+  assert(!consumeCalled, "Normal read-only route must not consume owner link.");
 });
 
 Deno.test("telegram-webhook disabled chat auth gate does not call auth dependency", async () => {
@@ -1125,12 +1293,14 @@ Deno.test("telegram-webhook runtime dependencies keep lookup disabled without se
   assertEquals(dependencies.chatAuthRuntimeConfig?.enabled, false);
   assertEquals(dependencies.claimRuntimeConfig?.enabled, false);
   assertEquals(dependencies.deliveryRuntimeConfig?.enabled, false);
+  assertEquals(dependencies.ownerLinkConsumeRuntimeConfig?.enabled, false);
   assertEquals(dependencies.lookupTelegramWebhookSession, undefined);
   assertEquals(dependencies.claimTelegramUpdate, undefined);
   assertEquals(dependencies.deliverTelegramReadOnlyResponse, undefined);
+  assertEquals(dependencies.consumeTelegramOwnerLinkChallenge, undefined);
   assertEquals(
     keys.join(","),
-    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey}`,
+    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey},${telegramWebhookOwnerLinkConsumeEnabledEnvKey}`,
   );
 });
 
@@ -1148,13 +1318,125 @@ Deno.test("telegram-webhook runtime dependencies enable lookup lazily", () => {
   assertEquals(dependencies.chatAuthRuntimeConfig?.enabled, true);
   assertEquals(dependencies.claimRuntimeConfig?.enabled, true);
   assertEquals(dependencies.deliveryRuntimeConfig?.enabled, true);
+  assertEquals(dependencies.ownerLinkConsumeRuntimeConfig?.enabled, true);
   assertEquals(typeof dependencies.lookupTelegramWebhookSession, "function");
   assertEquals(typeof dependencies.lookupTelegramChatAuthorization, "function");
   assertEquals(typeof dependencies.claimTelegramUpdate, "function");
   assertEquals(typeof dependencies.deliverTelegramReadOnlyResponse, "function");
   assertEquals(
+    typeof dependencies.consumeTelegramOwnerLinkChallenge,
+    "function",
+  );
+  assertEquals(
     keys.join(","),
-    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey}`,
+    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey},${telegramWebhookOwnerLinkConsumeEnabledEnvKey}`,
+  );
+});
+
+Deno.test("telegram-webhook runtime owner-link dependency stays absent without lookup", () => {
+  let requiredEnvRead = false;
+  const dependencies = createTelegramWebhookDependencies({
+    getEnv: () => {
+      requiredEnvRead = true;
+      throw new Error("Lookup-disabled runtime must not read required env.");
+    },
+    getOptionalEnv: (key) =>
+      key === telegramWebhookOwnerLinkConsumeEnabledEnvKey ? "true" : "",
+  });
+
+  assertEquals(dependencies.lookupRuntimeConfig?.enabled, false);
+  assertEquals(dependencies.ownerLinkConsumeRuntimeConfig?.enabled, true);
+  assertEquals(dependencies.lookupTelegramWebhookSession, undefined);
+  assertEquals(dependencies.consumeTelegramOwnerLinkChallenge, undefined);
+  assert(
+    !requiredEnvRead,
+    "Lookup-disabled runtime must not read required env.",
+  );
+});
+
+Deno.test("telegram-webhook runtime owner-link consume resolves session then consumes through injected RPC", async () => {
+  const challenge = "ab".repeat(32);
+  const rpcCalls: Array<{ url: string; body: Record<string, unknown> }> = [];
+  const dependencies = createTelegramWebhookDependencies({
+    getEnv: (key) => {
+      if (key === "SUPABASE_URL") {
+        return "https://project.supabase.co";
+      }
+
+      if (key === "SUPABASE_SERVICE_ROLE_KEY") {
+        return "test-service-role-key";
+      }
+
+      throw new Error(`Unexpected required env ${key}`);
+    },
+    getOptionalEnv: (key) =>
+      key === telegramWebhookLookupEnabledEnvKey ||
+        key === telegramWebhookOwnerLinkConsumeEnabledEnvKey
+        ? "true"
+        : "",
+    fetchRpc: async (input, init) => {
+      const url = String(input);
+      const body = JSON.parse(
+        String((init as { body?: unknown } | undefined)?.body ?? "{}"),
+      ) as Record<string, unknown>;
+      rpcCalls.push({ url, body });
+
+      if (url.endsWith("/resolve_telegram_webhook_session")) {
+        return new Response(
+          JSON.stringify([{
+            ...activeLookupRow,
+            session_id: testTelegramSessionId,
+          }]),
+          { status: 200 },
+        );
+      }
+
+      if (url.endsWith("/consume_telegram_owner_link_challenge")) {
+        return new Response(
+          JSON.stringify([{ linked: true, status: "linked" }]),
+          { status: 200 },
+        );
+      }
+
+      throw new Error(`Unexpected RPC ${url}`);
+    },
+  });
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(
+      createOwnerLinkWebhookUpdate(`/start ${challenge}`),
+    ),
+    dependencies,
+  );
+  const body = await readJson(response);
+  const serializedCalls = JSON.stringify(rpcCalls);
+
+  assertEquals(response.status, 200);
+  assertEquals(body.status, "received");
+  assertEquals(rpcCalls.length, 2);
+  assert(
+    rpcCalls[0]?.url.endsWith("/resolve_telegram_webhook_session") ?? false,
+    "Session lookup RPC must run first.",
+  );
+  assert(
+    rpcCalls[1]?.url.endsWith("/consume_telegram_owner_link_challenge") ??
+      false,
+    "Owner-link consume RPC must run second.",
+  );
+  assertEquals(
+    rpcCalls[1]?.body.p_telegram_session_id,
+    testTelegramSessionId,
+  );
+  assertEquals(rpcCalls[1]?.body.p_telegram_update_id, 9001);
+  assertEquals(rpcCalls[1]?.body.p_telegram_user_id, "123456");
+  assertEquals(rpcCalls[1]?.body.p_telegram_chat_id, "123456");
+  assert(
+    typeof rpcCalls[1]?.body.p_challenge_hash === "string" &&
+      rpcCalls[1]?.body.p_challenge_hash !== challenge,
+    "Consume RPC must receive only the challenge hash.",
+  );
+  assert(
+    !serializedCalls.includes(challenge),
+    "RPC calls must hide challenge.",
   );
 });
 
@@ -1331,7 +1613,10 @@ Deno.test("telegram-webhook runtime delivery token failure is sanitized", async 
   assertEquals(telegramCalls.length, 0);
   assert(!serialized.includes(testBotToken), "Response must hide token.");
   assert(!serialized.includes("token_secret_ref"), "Response must hide refs.");
-  assert(!serialized.includes("owner_user_id"), "Response must hide owner data.");
+  assert(
+    !serialized.includes("owner_user_id"),
+    "Response must hide owner data.",
+  );
 });
 
 Deno.test("telegram-webhook body size header validator rejects oversized requests", () => {

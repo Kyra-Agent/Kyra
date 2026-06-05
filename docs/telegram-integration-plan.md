@@ -8158,3 +8158,55 @@ Deferred and blocked:
   owner-link gate can be enabled in production.
 - No push, Edge Function deploy, Netlify action, or production runtime change
   occurred in this phase.
+
+## Phase 5CY - Default-Off Owner-Link Webhook Consume Wiring
+
+Phase 5CY wires the isolated owner-link dispatch and consume adapter into the
+local `telegram-webhook` entrypoint behind a new default-off runtime gate:
+
+- `KYRA_TELEGRAM_WEBHOOK_OWNER_LINK_CONSUME_ENABLED`
+
+Runtime order and fail-closed behavior:
+
+1. Telegram webhook secret header verification remains first.
+2. Content-type and body-size guards remain before session lookup.
+3. Owner-link consume requires the existing active-session lookup gate and a
+   successful session result before body access.
+4. The webhook body is read once and passed to the isolated dispatch contract.
+5. Owner-link candidates parse, hash, and call the existing service-role-only
+   consume RPC at most once.
+6. Owner-link terminal outcomes return one generic HTTP 200 acknowledgement
+   and bypass normal chat authorization, normal update claim, token
+   resolution, and Telegram API delivery.
+7. Non-owner-link commands preserve the existing normal read-only route.
+
+Gate and dependency safety:
+
+- The consume gate defaults off and enables only for the exact string `true`.
+- With lookup disabled, the runtime does not create the consume dependency or
+  read required service-role environment values.
+- With consume disabled, existing webhook behavior and body-read order remain
+  unchanged.
+- The owner-link response exposes no challenge, hash, Telegram identity,
+  session ID, token ref, BotFather token, raw update, RPC result, or raw error.
+- The owner-link branch does not resolve a delivery token or call Telegram.
+
+Verification:
+
+- Added mocked handler and runtime dependency tests for lookup-before-body,
+  default-off/lazy setup, single owner-link consume, normal-pipeline bypass,
+  invalid-candidate generic acknowledgement, normal read-only preservation,
+  and exact mocked RPC order.
+- No real Supabase RPC, database row, Telegram API, Vault secret, token, or
+  environment secret was accessed during verification.
+
+Deferred and blocked:
+
+- Do not deploy `telegram-webhook` with this code or enable the owner-link
+  consume gate yet.
+- Durable rate-limit and abuse-control design remains required before live
+  owner-link issue or consume.
+- Deployment ordering must ensure the consume-capable webhook is deployed and
+  smoke-tested default-off before either owner-link gate is enabled.
+- No push, Edge Function deploy, Netlify action, gate enablement, or production
+  runtime change occurred in this phase.

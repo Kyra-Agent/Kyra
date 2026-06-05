@@ -3,16 +3,19 @@ import {
   createTelegramWebhookClaimRuntimeConfig,
   createTelegramWebhookDeliveryRuntimeConfig,
   createTelegramWebhookLookupRuntimeConfig,
+  createTelegramWebhookOwnerLinkConsumeRuntimeConfig,
   createTelegramWebhookParseRuntimeConfig,
   isTelegramWebhookChatAuthEnabled,
   isTelegramWebhookClaimEnabled,
   isTelegramWebhookDeliveryEnabled,
   isTelegramWebhookLookupEnabled,
+  isTelegramWebhookOwnerLinkConsumeEnabled,
   isTelegramWebhookParseEnabled,
   telegramWebhookChatAuthEnabledEnvKey,
   telegramWebhookClaimEnabledEnvKey,
   telegramWebhookDeliveryEnabledEnvKey,
   telegramWebhookLookupEnabledEnvKey,
+  telegramWebhookOwnerLinkConsumeEnabledEnvKey,
   telegramWebhookParseEnabledEnvKey,
 } from "./index.ts";
 
@@ -208,4 +211,35 @@ Deno.test("telegram webhook delivery runtime config reads only the delivery gate
 
   assertEquals(config.enabled, false);
   assertEquals(keys.join(","), telegramWebhookDeliveryEnabledEnvKey);
+});
+
+Deno.test("telegram webhook owner-link consume gate defaults off and requires exact true", () => {
+  const disabledValues = [
+    undefined,
+    null,
+    "",
+    " ",
+    "false",
+    "1",
+    "yes",
+    "TRUE",
+    " true ",
+  ];
+
+  for (const value of disabledValues) {
+    assertEquals(isTelegramWebhookOwnerLinkConsumeEnabled(value), false);
+  }
+
+  assertEquals(isTelegramWebhookOwnerLinkConsumeEnabled("true"), true);
+});
+
+Deno.test("telegram webhook owner-link consume config reads only its gate key", () => {
+  const keys: string[] = [];
+  const config = createTelegramWebhookOwnerLinkConsumeRuntimeConfig((key) => {
+    keys.push(key);
+    return "";
+  });
+
+  assertEquals(config.enabled, false);
+  assertEquals(keys.join(","), telegramWebhookOwnerLinkConsumeEnabledEnvKey);
 });

@@ -34,12 +34,14 @@ import {
   createTelegramWebhookClaimRuntimeConfig,
   createTelegramWebhookDeliveryRuntimeConfig,
   createTelegramWebhookLookupRuntimeConfig,
+  createTelegramWebhookOwnerLinkConsumeRuntimeConfig,
   createTelegramWebhookParseRuntimeConfig,
   type OptionalEnvReader,
   type TelegramWebhookChatAuthRuntimeConfig,
   type TelegramWebhookClaimRuntimeConfig,
   type TelegramWebhookDeliveryRuntimeConfig,
   type TelegramWebhookLookupRuntimeConfig,
+  type TelegramWebhookOwnerLinkConsumeRuntimeConfig,
   type TelegramWebhookParseRuntimeConfig,
 } from "./runtime-config.ts";
 import {
@@ -57,6 +59,12 @@ import {
   resolveTelegramDeliveryBotToken,
   type TelegramDeliveryTokenResolverRpcClient,
 } from "./token-resolver.ts";
+import {
+  consumeTelegramOwnerLinkChallenge,
+  type TelegramOwnerLinkConsumeResult,
+  type TelegramOwnerLinkConsumeRpcClient,
+} from "./owner-link-consume.ts";
+import { dispatchVerifiedTelegramWebhookUpdate } from "./owner-link-dispatch.ts";
 
 export {
   assertActiveTelegramWebhookSession,
@@ -165,16 +173,19 @@ export {
   createTelegramWebhookClaimRuntimeConfig,
   createTelegramWebhookDeliveryRuntimeConfig,
   createTelegramWebhookLookupRuntimeConfig,
+  createTelegramWebhookOwnerLinkConsumeRuntimeConfig,
   createTelegramWebhookParseRuntimeConfig,
   isTelegramWebhookChatAuthEnabled,
   isTelegramWebhookClaimEnabled,
   isTelegramWebhookDeliveryEnabled,
   isTelegramWebhookLookupEnabled,
+  isTelegramWebhookOwnerLinkConsumeEnabled,
   isTelegramWebhookParseEnabled,
   telegramWebhookChatAuthEnabledEnvKey,
   telegramWebhookClaimEnabledEnvKey,
   telegramWebhookDeliveryEnabledEnvKey,
   telegramWebhookLookupEnabledEnvKey,
+  telegramWebhookOwnerLinkConsumeEnabledEnvKey,
   telegramWebhookParseEnabledEnvKey,
 } from "./runtime-config.ts";
 export type {
@@ -183,6 +194,7 @@ export type {
   TelegramWebhookClaimRuntimeConfig,
   TelegramWebhookDeliveryRuntimeConfig,
   TelegramWebhookLookupRuntimeConfig,
+  TelegramWebhookOwnerLinkConsumeRuntimeConfig,
   TelegramWebhookParseRuntimeConfig,
 } from "./runtime-config.ts";
 
@@ -200,6 +212,7 @@ export interface TelegramWebhookDependencies {
   chatAuthRuntimeConfig?: TelegramWebhookChatAuthRuntimeConfig;
   claimRuntimeConfig?: TelegramWebhookClaimRuntimeConfig;
   deliveryRuntimeConfig?: TelegramWebhookDeliveryRuntimeConfig;
+  ownerLinkConsumeRuntimeConfig?: TelegramWebhookOwnerLinkConsumeRuntimeConfig;
   lookupTelegramWebhookSession?: (
     webhookSecretHeader: string,
   ) => Promise<TelegramWebhookSessionLookupRecord>;
@@ -218,6 +231,13 @@ export interface TelegramWebhookDependencies {
     telegramChatId: string;
     response: TelegramReadOnlyCommandResponse;
   }) => Promise<unknown>;
+  consumeTelegramOwnerLinkChallenge?: (input: {
+    telegramSessionId: string;
+    telegramUpdateId: string;
+    telegramUserId: string;
+    telegramChatId: string;
+    challengeHash: string;
+  }) => Promise<TelegramOwnerLinkConsumeResult>;
 }
 
 const disabledTelegramWebhookLookupRuntimeConfig:
@@ -230,6 +250,8 @@ const disabledTelegramWebhookClaimRuntimeConfig:
   TelegramWebhookClaimRuntimeConfig = { enabled: false };
 const disabledTelegramWebhookDeliveryRuntimeConfig:
   TelegramWebhookDeliveryRuntimeConfig = { enabled: false };
+const disabledTelegramWebhookOwnerLinkConsumeRuntimeConfig:
+  TelegramWebhookOwnerLinkConsumeRuntimeConfig = { enabled: false };
 
 export function getEnv(key: string) {
   const value = Deno.env.get(key);
@@ -313,12 +335,15 @@ export function createTelegramWebhookDependencies(
   const deliveryRuntimeConfig = createTelegramWebhookDeliveryRuntimeConfig(
     readOptionalEnv,
   );
+  const ownerLinkConsumeRuntimeConfig =
+    createTelegramWebhookOwnerLinkConsumeRuntimeConfig(readOptionalEnv);
   const dependencies: TelegramWebhookDependencies = {
     lookupRuntimeConfig,
     parseRuntimeConfig,
     chatAuthRuntimeConfig,
     claimRuntimeConfig,
     deliveryRuntimeConfig,
+    ownerLinkConsumeRuntimeConfig,
   };
 
   if (!lookupRuntimeConfig.enabled) {
@@ -389,6 +414,16 @@ export function createTelegramWebhookDependencies(
     };
   }
 
+  if (ownerLinkConsumeRuntimeConfig.enabled) {
+    dependencies.consumeTelegramOwnerLinkChallenge = async (input) => {
+      return await consumeTelegramOwnerLinkChallenge({
+        ...input,
+        rpcClient:
+          getRpcClient() as unknown as TelegramOwnerLinkConsumeRpcClient,
+      });
+    };
+  }
+
   return dependencies;
 }
 
@@ -417,6 +452,9 @@ export async function handleTelegramWebhookRequest(
       disabledTelegramWebhookClaimRuntimeConfig;
     const deliveryRuntimeConfig = dependencies.deliveryRuntimeConfig ??
       disabledTelegramWebhookDeliveryRuntimeConfig;
+    const ownerLinkConsumeRuntimeConfig =
+      dependencies.ownerLinkConsumeRuntimeConfig ??
+        disabledTelegramWebhookOwnerLinkConsumeRuntimeConfig;
     let lookupSession: TelegramWebhookSessionLookupRecord | null = null;
     let parsedUpdate: TelegramWebhookParsedCommand | null = null;
     let chatAuthorization: TelegramWebhookChatAuthorization | null = null;
@@ -436,7 +474,45 @@ export async function handleTelegramWebhookRequest(
       );
     }
 
-    if (parseRuntimeConfig.enabled) {
+    if (ownerLinkConsumeRuntimeConfig.enabled) {
+      if (!lookupSession) {
+        throw new HttpError(
+          500,
+          "server_error",
+          "Telegram owner-link consume requires session lookup.",
+        );
+      }
+
+      const update = await readTelegramWebhookUpdateBody(request);
+
+      const dispatchResult = await dispatchVerifiedTelegramWebhookUpdate(
+        {
+          update,
+          telegramSessionId: lookupSession.sessionId,
+          expectedBotUsername: lookupSession.botHandle,
+          ownerLinkConsumeEnabled: true,
+        },
+        {
+          consumeOwnerLinkChallenge:
+            dependencies.consumeTelegramOwnerLinkChallenge,
+        },
+      );
+
+      if (dispatchResult.route === "owner_link") {
+        return jsonResponse(
+          {
+            ok: dispatchResult.ok,
+            status: dispatchResult.status,
+            message: dispatchResult.message,
+          },
+          200,
+        );
+      }
+
+      if (parseRuntimeConfig.enabled) {
+        parsedUpdate = dispatchResult.parsedUpdate;
+      }
+    } else if (parseRuntimeConfig.enabled) {
       if (!lookupSession) {
         throw new HttpError(
           500,
