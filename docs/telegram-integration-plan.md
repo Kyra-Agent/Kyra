@@ -8351,3 +8351,116 @@ Deferred and blocked:
 - Schema/RLS/grant/RPC SQL, rollback, verifier, Supabase apply, deployment, and
   gate enablement remain separate approval points.
 - No push, deploy, live database access, or production state change occurred.
+
+## Phase 5DB - Durable Owner-Link Rate-Limit SQL Preflight
+
+Phase 5DB audits the applied owner-link schema and locks the smallest durable
+rate-limit SQL/RPC boundary before any executable SQL is prepared. This phase
+changes documentation only.
+
+Current schema findings:
+
+- `telegram_owner_link_challenges` already retains every successful issue,
+  including later-revoked challenges, and is sufficient as the durable issue
+  history source.
+- The table does not yet have historical lookup indexes on `agent_id`,
+  `telegram_session_id`, or `issued_by_user_id` combined with `created_at`.
+- `issue_telegram_owner_link_challenge` currently holds an agent-scoped
+  advisory lock, but an owner-wide limit across multiple agents also requires
+  one deterministic owner-scoped transaction lock.
+- `consume_telegram_owner_link_challenge` currently resolves a valid challenge
+  before claiming the Telegram update. Invalid or unknown owner-link
+  candidates therefore cannot be counted or de-duplicated durably.
+- Both RPCs are security-invoker, empty-search-path, service-role-only
+  contracts. The limiter extension must preserve those properties.
+
+Recommended minimal schema boundary:
+
+- Do not add a separate issue-counter table. Add only bounded historical
+  indexes to the existing challenge table:
+  - `(agent_id, created_at desc)`;
+  - `(telegram_session_id, created_at desc)`;
+  - `(issued_by_user_id, created_at desc)`.
+- Add one private `telegram_owner_link_consume_rate_limits` table containing
+  only limiter state:
+  - active Telegram session ID;
+  - scope, limited to `session` or `identity`;
+  - private Telegram user ID only for identity scope;
+  - window start, attempt count, optional blocked-until time, and update time.
+- Require exact scope/identity consistency, nonnegative bounded counts, valid
+  timestamps, a Telegram-session foreign key, and unique bucket keys for
+  session and identity scopes. The consume RPC must separately require that
+  the referenced session is active before creating or updating a bucket.
+- Enable RLS with no policies. Revoke all browser/public access. Grant
+  `service_role` only the minimum `select`, `insert`, and `update` privileges;
+  do not grant delete, truncate, references, or trigger.
+- Never store a challenge, challenge hash, Telegram update body, command text,
+  message text, token, secret, payload, owner ID, or workspace ID in the
+  limiter table.
+
+Issue RPC contract:
+
+1. Validate the current owner, exact active session, challenge hash, and TTL as
+   today.
+2. Acquire owner-scoped then agent-scoped transaction advisory locks in one
+   fixed order.
+3. Count successful issue history inside the approved agent/session 15-minute
+   windows and owner 24-hour window.
+4. If any count is already at its maximum, return exactly one bounded
+   `{ issued: false, status: "rate_limited" }` row before revoking or inserting
+   a challenge.
+5. Otherwise preserve the existing revoke-and-insert behavior and return only
+   `{ issued: true, status: "issued" }`.
+
+Consume RPC contract:
+
+1. Reject malformed bounded arguments before any limiter write.
+2. Resolve the exact active Telegram session without using the challenge hash.
+3. Acquire session-scoped then identity-scoped transaction advisory locks in
+   one fixed order.
+4. Claim the Telegram update before limiter mutation. A duplicate update must
+   return the existing bounded duplicate behavior and must not increment any
+   bucket.
+5. Atomically reset expired windows, increment the session and identity
+   buckets, and set the fixed identity block when its threshold is reached.
+6. If either limiter denies the attempt, commit the claim/counter state and
+   return the same generic not-linked/no-row behavior as an unknown or expired
+   challenge.
+7. Only after limiter approval may the RPC look up, consume, and authorize the
+   challenge. Any later unexpected failure must roll back the claim, limiter
+   mutation, challenge consume, and authorization insert together.
+
+Verifier and rollback expectations:
+
+- A standalone read-only verifier must check the limiter table shape,
+  constraints, RLS/no-policy state, exact grants, indexes, RPC volatility,
+  security-invoker state, empty search path, lock ordering, bounded result
+  contracts, and absence of browser execute privileges.
+- The existing authenticated-write lockdown verifier must also prove browser
+  roles cannot access the limiter table or execute either owner-link RPC.
+- Forward SQL must stop on baseline drift and must replace both RPC definitions
+  in the same reviewed transaction as the limiter schema/index changes.
+- Rollback must restore the previously verified RPC definitions and remove
+  limiter objects only under an explicitly reviewed empty/inactive condition.
+  If limiter rows or enabled runtime gates exist, use a forward fix instead.
+- Historical challenge retention must remain at least longer than the
+  owner-wide 24-hour issue window. Limiter cleanup must not remove an active
+  window or block.
+
+Deferred implementation order:
+
+1. Prepare comment-only schema/RPC and verifier expectations.
+2. Review forward, rollback, privilege, concurrency, and retention contracts.
+3. Obtain explicit schema/RLS/RPC approval.
+4. Prepare executable forward/rollback/verifier SQL and review it again.
+5. Apply manually in Supabase and run both verifiers.
+6. Only after verified durable enforcement, update the default-off Edge
+   adapters and tests to understand the bounded issue `rate_limited` result.
+7. Keep owner-link runtime gates disabled until a separate deployment and
+   enablement approval.
+
+Safety state:
+
+- No executable SQL, schema/RLS/RPC/grant change, Supabase apply, database row,
+  environment value, secret, runtime wiring, gate, deploy, Netlify action, or
+  push occurred in Phase 5DB.
