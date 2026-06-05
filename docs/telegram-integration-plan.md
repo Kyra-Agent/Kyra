@@ -7940,3 +7940,110 @@ Deferred:
 - Issuing or consuming a real challenge.
 - Creating a Telegram chat authorization row through live runtime.
 - Edge Function deployment, push, or any production runtime change.
+
+## Phase 5CV - Owner-Link Runtime Wiring Preflight
+
+Phase 5CV audits the current runtime order and defines the next default-off
+wiring boundary. This phase changes documentation only.
+
+Current runtime findings:
+
+- `telegram-connect` is responsible for BotFather token validation, secret
+  storage, session persistence, and webhook registration. It should not also
+  issue or return owner-link challenges.
+- A separate authenticated `telegram-link` Edge Function is still the correct
+  issue boundary because it can require a fresh Supabase session and exact
+  workspace ownership without mixing pairing material into token handling.
+- `telegram-webhook` currently verifies the webhook secret, resolves the active
+  session, reads the request body once, parses only normal read-only commands,
+  checks chat authorization, claims the update, and optionally delivers a
+  response.
+- The current normal parser accepts only `/help` and `/status`. It correctly
+  rejects `/start <challenge>` and `/link <challenge>`.
+- The current owner-link consume RPC already claims the Telegram update,
+  consumes the challenge, revalidates ownership/session state, and creates the
+  owner authorization atomically. The normal `claim_telegram_update` stage must
+  not run again for an owner-link update.
+
+Required issue-path design:
+
+1. Add a separate `telegram-link` Edge Function with authenticated ownership
+   validation and existing request-size/content-type/error protections.
+2. Add an exact active-session lookup that selects only session ID, agent ID,
+   bot handle, and webhook status. Never select or return `token_secret_ref`.
+3. Generate the raw challenge only after authentication, ownership, and active
+   session validation succeed.
+4. Persist only the challenge hash through
+   `issue_telegram_owner_link_challenge`.
+5. Return the raw challenge exactly once inside a bounded Telegram deep link.
+   Never return the hash, session/owner/workspace IDs, or raw RPC details.
+6. Keep the issue path behind
+   `KYRA_TELEGRAM_LINK_ISSUE_ENABLED`, defaulting off and enabling only for the
+   exact string `true`.
+
+Required webhook consume-path design:
+
+1. Add a mutually exclusive owner-link branch after webhook-secret
+   verification and active-session lookup, but before normal chat
+   authorization.
+2. Read the webhook body exactly once and route it to either owner-link parsing
+   or the existing normal read-only parser. Never attempt a second body read.
+3. The owner-link branch accepts only exact private-chat `/start <challenge>`
+   or `/link <challenge>` input and passes only the hash and bounded Telegram
+   identifiers to `consume_telegram_owner_link_challenge`.
+4. Owner-link updates bypass normal chat authorization, normal update claim,
+   and normal delivery because the consume RPC is the atomic authorization and
+   replay boundary.
+5. Linked, duplicate, expired, mismatched, and unknown challenges should return
+   the same generic HTTP 200 acknowledgement to Telegram. This avoids a
+   challenge-validity oracle and retry storms.
+6. Keep the branch behind
+   `KYRA_TELEGRAM_WEBHOOK_OWNER_LINK_CONSUME_ENABLED`, defaulting off and
+   enabling only for the exact string `true`.
+7. Enabling consume requires webhook session lookup to be enabled. It must not
+   require normal chat authorization, claim, or delivery gates.
+
+Tests required before any runtime wiring commit:
+
+- Both new gates default off, ignore non-exact values, and read only their exact
+  keys.
+- Disabled gates never create service-role/RPC dependencies.
+- Issue requires authenticated ownership and exactly one active matching
+  Telegram session before challenge generation or RPC execution.
+- Issue never returns challenge hash or private IDs and sanitizes empty,
+  duplicate, malformed, RPC-error, and thrown-error results.
+- Webhook secret/session verification completes before body access.
+- The webhook body is read once only.
+- Owner-link commands take the consume branch before normal chat authorization.
+- Non-owner-link commands preserve the existing read-only pipeline unchanged.
+- Owner-link consume never calls normal chat authorization, normal claim, token
+  resolution, Telegram API delivery, or a second RPC after a terminal result.
+- All consume outcomes return one generic acknowledgement without IDs, hashes,
+  raw payload, or database details.
+
+Remaining blockers before live owner-link gate enablement:
+
+- No deployable `telegram-link` Edge Function exists yet.
+- No exact active Telegram session lookup adapter exists for challenge issue.
+- No single-read owner-link-versus-normal webhook dispatch contract exists.
+- No approved durable rate-limit or abuse-control boundary exists for challenge
+  issue and consume attempts. This must be resolved before general production
+  enablement.
+- No owner-link pairing UI exists.
+- Neither new gate exists, and no Edge Function has been redeployed for this
+  owner-link path.
+
+Recommended next local implementation order:
+
+1. Add an inert `telegram-link` Edge Function skeleton, default-off issue gate,
+   active-session lookup adapter, and mocked tests. Do not deploy it.
+2. Add a pure single-read webhook dispatch contract and mocked tests without
+   wiring it into the webhook entrypoint.
+3. Final-review both slices, then separately wire them behind default-off gates.
+4. Design and approve durable abuse controls before any live gate enablement.
+
+Safety state:
+
+- No runtime entrypoint, gate, schema/RLS, environment value, secret, Vault
+  object, Telegram API, database row, deployment, Netlify state, or production
+  state changed in this preflight.
