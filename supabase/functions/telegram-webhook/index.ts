@@ -124,6 +124,18 @@ export type {
   TelegramResponseDeliveryResult,
 } from "./response-delivery.ts";
 export {
+  assertResolvedTelegramDeliveryBotToken,
+  assertTelegramDeliveryTokenResolverRpcResult,
+  resolveTelegramDeliveryBotToken,
+  sanitizeTelegramDeliveryTokenResolverError,
+  sanitizeTelegramDeliveryTokenResolverRpcError,
+} from "./token-resolver.ts";
+export type {
+  TelegramDeliveryTokenResolverResult,
+  TelegramDeliveryTokenResolverRpcClient,
+  TelegramDeliveryTokenResolverRpcResult,
+} from "./token-resolver.ts";
+export {
   assertTelegramWebhookSecretHeaderValue,
   hashTelegramWebhookSecretHeader,
   lookupTelegramWebhookSessionBySecretHeader,

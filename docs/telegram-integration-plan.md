@@ -6704,3 +6704,58 @@ Still not included:
 - No Telegram API call.
 - No Edge Function deploy.
 - No Netlify publish/unlock.
+
+## Phase 5BW - Webhook Token Resolver Adapter Contract
+
+Phase 5BW adds a webhook-side token resolver adapter contract and tests without
+mounting it into default runtime behavior.
+
+Contract:
+
+- `resolveTelegramDeliveryBotToken(input)` accepts:
+  - `telegramSessionId`
+  - injected `rpcClient`
+- The adapter calls only:
+
+```sql
+public.resolve_telegram_delivery_token(
+  p_telegram_session_id uuid
+)
+```
+
+- The adapter returns only:
+
+```ts
+{ botToken: string }
+```
+
+Security rules:
+
+- The adapter must reject malformed session ids before calling RPC.
+- The adapter must validate the resolved token shape before returning it to the
+  delivery boundary.
+- RPC errors, invalid token responses, and unexpected runtime errors must be
+  sanitized.
+- Errors must not include raw token values, `token_secret_ref`, session id,
+  owner id, workspace id, webhook secret material, Vault internals, or raw DB
+  payloads.
+- The adapter is not mounted into `createTelegramWebhookDependencies` yet.
+- The webhook handler still cannot resolve a token unless a later gated runtime
+  wiring phase injects the resolver and delivery dependency.
+
+Files touched:
+
+- `supabase/functions/telegram-webhook/token-resolver.ts`
+- `supabase/functions/telegram-webhook/token-resolver_test.ts`
+- `supabase/functions/telegram-webhook/index.ts`
+- `docs/telegram-integration-plan.md`
+
+Still not included:
+
+- No default runtime token resolution.
+- No live Vault access.
+- No raw BotFather token read from production secrets.
+- No Telegram API call.
+- No schema/RLS migration.
+- No Edge Function deploy.
+- No Netlify publish/unlock.
