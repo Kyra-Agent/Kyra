@@ -7581,3 +7581,109 @@ Current remaining blockers before any gate enablement:
 2. Final-review the complete local Telegram runtime diff.
 3. Redeploy only with every Telegram runtime gate still default-off.
 4. Separately approve disposable-bot live smoke and any later gate enablement.
+
+## Phase 5CO - First Owner-Linking Bootstrap Audit
+
+Phase 5CO defines the recommended first owner-linking mechanism without changing
+schema/RLS, runtime code, frontend behavior, secrets, production configuration,
+or Telegram state.
+
+Current findings:
+
+- `public.telegram_chat_authorizations` and
+  `public.resolve_telegram_chat_authorization(uuid,text,text,text)` already
+  enforce an exact active owner-linked Telegram user-plus-chat pair for
+  read-only commands.
+- Browser roles cannot read or write authorization rows. The existing lookup is
+  service-role-only and returns only bounded authorization metadata.
+- The receiver safely denies unknown chats, but there is no approved flow that
+  creates the first authorization row.
+- The normal read-only command parser cannot be reused for initial linking
+  because an unlinked chat must be denied before normal command processing.
+- No current UI, Edge Function, RPC, or table stores or consumes an owner-link
+  challenge.
+
+Rejected bootstrap models:
+
+- Trust-on-first-message or first `/start`: an attacker or unintended chat could
+  claim the agent before the owner.
+- Telegram username matching: usernames are optional, mutable, and not a stable
+  ownership proof.
+- Automatically linking the first chat after webhook activation: webhook
+  possession proves delivery to the bot, not ownership of the Kyra workspace.
+- Long-lived reusable pairing codes or codes stored in browser storage: they
+  broaden replay and disclosure risk.
+- Manual direct authorization-row insertion as the product flow: acceptable
+  only for a tightly controlled disposable-bot smoke, not normal onboarding.
+
+Recommended product architecture:
+
+1. Add a separate authenticated `telegram-link` Edge Function for issuing and
+   revoking owner-link challenges. Keep BotFather token handling isolated in
+   `telegram-connect`.
+2. Require a valid Supabase session and the existing exact agent ownership
+   validation before issuing a challenge.
+3. Generate at least 256 bits of random challenge material. Return it once as a
+   short-lived Telegram deep link or bounded pairing code, and store only its
+   SHA-256 hash.
+4. Bind the challenge to the exact agent, active Telegram session, and current
+   workspace owner. Use a short TTL, recommended ten minutes, and allow only one
+   active challenge per agent/session.
+5. Add a narrow pre-authorization pairing path in `telegram-webhook` that
+   accepts only a bounded `/start <challenge>` or `/link <challenge>` payload
+   after webhook-secret and active-session verification.
+6. Atomically claim the Telegram update, consume the challenge, revalidate the
+   current workspace owner and active session, and insert exactly one
+   read-only owner authorization row.
+7. Return only a safe success or denial response. Never return challenge hashes,
+   Telegram identities, agent/workspace/owner IDs, or raw DB errors.
+
+Recommended future private challenge record:
+
+- `id uuid primary key`
+- `agent_id uuid not null`
+- `telegram_session_id uuid not null`
+- `issued_by_user_id uuid not null`
+- `challenge_hash text not null`
+- `expires_at timestamptz not null`
+- `created_at timestamptz not null`
+- `consumed_at timestamptz null`
+- `revoked_at timestamptz null`
+
+Required challenge rules:
+
+- Never store the raw challenge.
+- Never log, persist in localStorage/sessionStorage, or render the challenge
+  after the one-time issue response.
+- Require exact hash match, unexpired state, no prior consumption/revocation,
+  active matching Telegram session, and unchanged current workspace ownership.
+- Consume and create the authorization in one atomic service-role-only RPC.
+- Reject if an active authorization already exists. Relink, transfer, and
+  replacement require a separate explicit revoke flow.
+- Rate-limit challenge issue and consume attempts. Unknown, expired, replayed,
+  mismatched, or already-linked attempts must fail safely.
+
+Recommended future execution order:
+
+1. Pure challenge format, parser, and sanitized error contracts with tests.
+2. Comment-only schema/RPC design and verifier plan.
+3. Separate approval for challenge table, atomic consume RPC, grants, and
+   rollback packet.
+4. Apply and verify database packet while all Telegram runtime gates stay off.
+5. Add inert `telegram-link` Edge Function skeleton and authenticated ownership
+   checks.
+6. Add default-off challenge issue and webhook consume runtime gates.
+7. Add gated dashboard pairing UI that never handles a BotFather token.
+8. Redeploy with every new gate off, then perform a separately approved
+   disposable-bot smoke.
+
+Decision and approval boundary:
+
+- Recommended decision: approve dashboard-issued, one-time, hashed,
+  short-lived pairing challenges as the product owner-linking model.
+- A future schema/RLS/RPC packet requires explicit approval before any apply.
+- A future `telegram-link` deployment, pairing UI, runtime-gate enablement,
+  challenge creation, authorization-row creation, or live Telegram pairing
+  requires separate explicit approval.
+- Until then, owner-linking remains unavailable and all unknown Telegram chats
+  must continue to fail closed.
