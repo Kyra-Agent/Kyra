@@ -1,0 +1,11 @@
+# Telegram connect is called by a signed-in dashboard user. Keep Supabase
+# gateway JWT verification enabled in addition to the function's ownership
+# validation.
+[functions.telegram-connect]
+verify_jwt = true
+
+# Telegram calls this webhook without a Supabase JWT. The inert handler rejects
+# a missing X-Telegram-Bot-Api-Secret-Token before body access; enabled live
+# parsing additionally requires a successful backend session lookup.
+[functions.telegram-webhook]
+verify_jwt = false

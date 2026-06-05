@@ -7337,3 +7337,41 @@ Remaining manual decision gates:
    production smoke checkpoint.
 4. Approve use of a disposable BotFather token and owner-linked Telegram chat
    for the first live smoke test.
+
+## Phase 5CJ - Edge Function Gateway Auth Configuration
+
+Phase 5CJ adds an explicit local Supabase Edge Function gateway-auth contract.
+It does not deploy either function, enable runtime gates, read secrets, call
+Telegram, publish Netlify, or push.
+
+Configuration:
+
+- `telegram-connect` sets `verify_jwt = true` because it is invoked by a
+  signed-in dashboard user and must pass Supabase gateway authentication before
+  the function performs its own session and ownership validation.
+- `telegram-webhook` sets `verify_jwt = false` because Telegram does not send a
+  Supabase JWT. The inert function rejects a missing
+  `X-Telegram-Bot-Api-Secret-Token` before request-body access. Live parsing
+  remains blocked until the backend session-lookup gate validates the hashed
+  header against an active session.
+
+Files:
+
+- `supabase/config.toml`
+- `scripts/check-functions.mjs`
+
+Verification:
+
+- `npm run check:functions` now fails if either Telegram function's
+  `verify_jwt` setting is missing, duplicated, or changed from the approved
+  contract.
+- Functions not listed in this configuration keep Supabase's default JWT
+  behavior.
+
+Hard stops:
+
+- Do not deploy either function until the exact production deployment window is
+  approved.
+- Do not enable webhook runtime gates during the initial deployment.
+- Do not submit a BotFather token or register a webhook until the inert
+  deployment smoke passes.
