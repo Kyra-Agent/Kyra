@@ -7794,3 +7794,39 @@ Next safe slice:
 1. Review the comment-only design and prepare verifier-only expectations.
 2. Do not create executable forward/rollback SQL or apply schema/RLS without
    separate explicit approval.
+
+## Phase 5CR - Owner-Link Challenge Standalone Verifier
+
+Phase 5CR adds a standalone read-only verifier:
+
+- `supabase/verify_telegram_owner_link_challenge_contract.sql`
+
+The verifier does not create, alter, grant, revoke, insert, update, or delete.
+It is guarded so the future owner-link challenge table and RPC checks return
+`false`, rather than erroring, while those objects do not exist.
+
+Verifier coverage:
+
+- Exact future table existence, columns/defaults, RLS state, and absence of
+  policies.
+- Exact stable named constraint definitions, foreign-key columns/targets, and
+  cascade behavior.
+- Three active partial unique indexes, exact indexed columns, and exact
+  active-row predicate.
+- No direct table privileges for public/browser roles.
+- Exact service-role table privileges: select, insert, and update only.
+- Exact issue/consume RPC signatures.
+- Volatile PL/pgSQL, `SECURITY INVOKER`, and empty search path.
+- Bounded boolean/status result contracts.
+- Required definition signals for ownership/session checks, advisory locking,
+  TTL, replay claim, atomic consume, and owner authorization creation.
+- No public/browser execute and service-role-only execute.
+- Existing Telegram session summary excludes owner-link challenge fields.
+
+Safety state:
+
+- The verifier has not been run against Supabase.
+- No schema/RLS, grant, RPC, row, runtime, UI, secret, deployment, or
+  production state changed.
+- Executable forward/rollback SQL and Supabase apply remain blocked pending
+  separate explicit approval.
