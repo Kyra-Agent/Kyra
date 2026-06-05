@@ -8210,3 +8210,96 @@ Deferred and blocked:
   smoke-tested default-off before either owner-link gate is enabled.
 - No push, Edge Function deploy, Netlify action, gate enablement, or production
   runtime change occurred in this phase.
+
+## Phase 5CZ - Owner-Link Durable Abuse-Control Design
+
+Phase 5CZ audits the owner-link issue and consume paths and defines the durable
+abuse-control boundary. This phase changes documentation only.
+
+Current findings:
+
+- `issue_telegram_owner_link_challenge` validates ownership, active session,
+  TTL, and one active challenge, but an authenticated owner can currently
+  revoke and reissue challenges repeatedly without a durable rate limit.
+- Successful issue history already exists in
+  `telegram_owner_link_challenges.created_at`, but there are no supporting
+  historical-rate indexes or bounded issue result for a rate-limited state.
+- `consume_telegram_owner_link_challenge` records a Telegram update only after
+  it finds an eligible challenge. Invalid, expired, mismatched, and unknown
+  challenge attempts therefore leave no durable attempt counter.
+- Edge Function memory counters are not sufficient because instances are
+  distributed, restartable, and independently scalable.
+- Webhook-secret verification, short challenge TTL, hash-only storage, atomic
+  consume, and generic acknowledgements reduce risk but do not replace durable
+  rate limiting.
+
+Recommended durable design:
+
+### Issue Limit
+
+- Enforce issue limits atomically inside
+  `issue_telegram_owner_link_challenge`, after ownership/session validation and
+  before revoking or inserting a challenge.
+- Use successful challenge history to limit each owner-plus-agent and
+  owner-plus-session scope. Recommended initial policy:
+  - maximum 3 successful issues per 15 minutes per agent;
+  - maximum 3 successful issues per 15 minutes per active session;
+  - maximum 20 successful issues per 24 hours per owner.
+- Add only the indexes required for bounded historical checks, such as owner
+  plus creation time, agent plus creation time, and session plus creation time.
+- Return a bounded `rate_limited` issue state. The Edge Function may map this
+  to a sanitized `429` without returning counts, timestamps, IDs, or internal
+  policy details.
+
+### Consume Limit
+
+- Add a compact service-role-only consume limiter table keyed by exact active
+  Telegram session plus private Telegram user/chat identity.
+- Store only bounded counter metadata: session ID, Telegram user/chat IDs,
+  window start, attempt count, optional blocked-until time, and update time.
+  Never store challenge, challenge hash, raw update, token, or payload.
+- Atomically increment/check the limiter inside
+  `consume_telegram_owner_link_challenge` before challenge lookup.
+- Recommended initial policy:
+  - maximum 5 owner-link candidates per 10 minutes per private identity;
+  - temporary 30-minute block after the identity limit;
+  - maximum 30 owner-link candidates per 10 minutes per active session to
+    reduce distributed identity spam.
+- A limited consume attempt must return the same generic not-linked/received
+  behavior as an expired, mismatched, or unknown challenge. It must not expose
+  whether the limit, challenge lookup, or authorization state caused the
+  no-op.
+
+### Retention And Operations
+
+- Historical challenges and inactive limiter rows need an approved retention
+  policy before live enablement.
+- Prefer a narrow service-role maintenance RPC or separately approved
+  scheduled cleanup. Do not grant browser roles delete access.
+- Add observable aggregate counters without request payloads, challenge
+  material, token values, or Telegram message text.
+- Keep both owner-link gates disabled if limiter checks, cleanup, or verifier
+  expectations are unavailable.
+
+Required future approvals:
+
+- Schema/RLS/grant approval for consume limiter storage and issue-history
+  indexes.
+- RPC contract approval for atomic issue and consume limiter behavior.
+- Forward SQL, rollback SQL, and standalone verifier review.
+- Manual Supabase apply and post-apply verification.
+- Final default-off runtime adapter changes and mocked tests.
+- Separate deploy approval, then separate gate-enablement and production smoke
+  approval.
+
+Safe work before schema approval:
+
+- Add pure limiter decision/result contracts and mocked tests.
+- Define sanitized `rate_limited` issue response behavior.
+- Prepare comment-only SQL/verifier expectations for review.
+- Keep current issue and consume gates default-off.
+
+Safety state:
+
+- No schema/RLS, RPC, grant, environment value, secret, database row, runtime
+  gate, deployment, Netlify state, or production state changed in this audit.
