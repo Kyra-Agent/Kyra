@@ -7418,3 +7418,55 @@ Next manual approval boundary:
 - Before the first live connection, approve a disposable BotFather bot,
   owner-linked chat identity, exact gate-enablement sequence, rollback
   checkpoints, and production smoke window.
+
+## Phase 5CL - Post-Deploy Live Finalization Gap Audit
+
+Phase 5CL audits the deployed inert functions before any runtime-gate
+enablement. It does not change runtime code, secrets, production configuration,
+database rows, Telegram state, or Netlify state.
+
+Findings:
+
+- The deployed inert functions passed their production smoke checks.
+- The production `telegram-connect` runtime currently mounts
+  `registerTelegramWebhookWithSetWebhook` directly behind the default-off
+  webhook-registration gate.
+- The runtime does not yet use the existing
+  `finalizeTelegramWebhookRegistration` contract.
+- Therefore, an enabled connect flow could call Telegram `setWebhook` without
+  first persisting the hashed webhook secret and without activating the queued
+  Telegram session afterward.
+- `telegram-webhook` session lookup accepts only active sessions, so that
+  incomplete flow would remain fail-closed but would leave a partially
+  configured Telegram webhook.
+- The database and pure helper layer already contain the intended private
+  webhook-secret table, hash/ref helpers, finalization order, and service-role
+  write grants.
+- No production runtime adapter currently stores or revokes
+  `telegram_webhook_secrets` rows or activates a queued `telegram_sessions`
+  row.
+- There is no approved runtime owner-linking flow that creates the first
+  `telegram_chat_authorizations` row. A live read-only smoke cannot pass chat
+  authorization until an exact owner-linked Telegram user/chat pair exists.
+
+Required implementation order:
+
+1. Add tested service-role persistence adapters for webhook-secret store,
+   webhook-secret revoke, and queued-session activation.
+2. Wire the existing finalization contract into `telegram-connect` behind the
+   existing default-off webhook-registration gate.
+3. Add a tested recovery path for activation failure after Telegram accepts
+   `setWebhook`.
+4. Define and approve the first owner-linking mechanism without logging or
+   exposing raw Telegram update bodies.
+5. Re-run local verification and redeploy inert/default-off code.
+6. Only then approve a disposable bot, live runtime settings, and staged smoke
+   test.
+
+Go/no-go:
+
+- Go for local-only persistence adapter and finalization wiring implementation
+  with injected tests.
+- No-go for enabling any Telegram runtime gate, submitting a BotFather token,
+  registering a real webhook, or inserting an owner-linked chat authorization
+  until the recovery and owner-linking gaps are closed.
