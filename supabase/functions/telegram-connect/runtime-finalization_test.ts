@@ -51,7 +51,10 @@ interface RuntimePersistenceCall {
   filters: Array<{ kind: string; column: string; value: unknown }>;
 }
 
-function makeRuntimePersistenceClient(order: string[]) {
+function makeRuntimePersistenceClient(
+  order: string[],
+  options: { activationError?: Error } = {},
+) {
   const calls: RuntimePersistenceCall[] = [];
   const client: TelegramWebhookPersistenceClient = {
     from(table: string) {
@@ -94,6 +97,13 @@ function makeRuntimePersistenceClient(order: string[]) {
         },
         async maybeSingle<T>() {
           if (table === "telegram_sessions") {
+            if (options.activationError) {
+              return {
+                data: null,
+                error: options.activationError,
+              };
+            }
+
             return {
               data: { id: testSessionId } as T,
               error: null,
@@ -203,5 +213,49 @@ Deno.test("telegram connect runtime finalization revokes stored secret after reg
   assert(
     !serialized.includes(testWebhookSecretToken),
     "Registration failure must not expose webhook secret token.",
+  );
+});
+
+Deno.test("telegram connect runtime finalization unregisters and revokes after activation failure", async () => {
+  const order: string[] = [];
+  const { client } = makeRuntimePersistenceClient(order, {
+    activationError: new Error(`raw activation ${testSessionId}`),
+  });
+  const error = await captureError(() =>
+    finalizeTelegramWebhookRegistrationRuntime(
+      client,
+      makeRuntimeInput(),
+      {
+        createWebhookSecretMaterial: async () => makeSecretMaterial(),
+        registerWebhook: async () => {
+          order.push("register");
+        },
+        unregisterWebhook: async (input) => {
+          order.push("unregister");
+          assertEquals(input.botToken, testBotToken);
+        },
+      },
+    )
+  );
+  const serialized = JSON.stringify({
+    name: (error as Error).name,
+    message: (error as Error).message,
+  });
+
+  assertEquals(
+    order.join(","),
+    "store,register,activate,unregister,revoke",
+  );
+  assert(
+    !serialized.includes(testBotToken),
+    "Activation failure must not expose BotFather token.",
+  );
+  assert(
+    !serialized.includes(testWebhookSecretToken),
+    "Activation failure must not expose webhook secret token.",
+  );
+  assert(
+    !serialized.includes(testSessionId),
+    "Activation failure must not expose telegram session ID.",
   );
 });

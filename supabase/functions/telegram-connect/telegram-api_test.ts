@@ -2,6 +2,7 @@ import { HttpError } from "./core.ts";
 import {
   registerTelegramWebhookWithSetWebhook,
   type TelegramFetch,
+  unregisterTelegramWebhookWithDeleteWebhook,
   validateTelegramBotTokenWithGetMe,
 } from "./telegram-api.ts";
 
@@ -624,6 +625,97 @@ Deno.test("telegram setWebhook helper aborts timed out requests", async () => {
         webhookUrl: testWebhookUrl,
         webhookSecretToken: testWebhookSecretToken,
       },
+      {
+        timeoutMs: 1,
+        fetch: (_url, init) =>
+          new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener("abort", () => {
+              reject(new DOMException("Request aborted", "AbortError"));
+            });
+          }),
+      },
+    )
+  );
+
+  assert(error instanceof HttpError, "Timeout must throw HttpError.");
+  assertEquals((error as HttpError).statusCode, 503);
+  assertEquals((error as HttpError).code, "telegram_unavailable");
+});
+
+Deno.test("telegram deleteWebhook helper builds sanitized cleanup request", async () => {
+  let capturedUrl = "";
+  let capturedMethod = "";
+  let capturedBody = "";
+  let capturedContentType = "";
+  let signalWasProvided = false;
+  const result = await unregisterTelegramWebhookWithDeleteWebhook(
+    { botToken: testBotToken },
+    {
+      timeoutMs: 1000,
+      fetch: async (url, init) => {
+        capturedUrl = url;
+        capturedMethod = init?.method ?? "";
+        capturedBody = String(init?.body ?? "");
+        capturedContentType = String(
+          new Headers(init?.headers).get("content-type") ?? "",
+        );
+        signalWasProvided = init?.signal instanceof AbortSignal;
+        return jsonResponse({ ok: true, result: true });
+      },
+    },
+  );
+  const requestBody = JSON.parse(capturedBody) as Record<string, unknown>;
+  const serializedResult = JSON.stringify(result);
+
+  assertEquals(
+    capturedUrl,
+    `https://api.telegram.org/bot${testBotToken}/deleteWebhook`,
+  );
+  assertEquals(capturedMethod, "POST");
+  assertEquals(capturedContentType, "application/json");
+  assert(signalWasProvided, "deleteWebhook request must include an AbortSignal.");
+  assertEquals(requestBody.drop_pending_updates, false);
+  assertEquals(result.deleted, true);
+  assert(
+    !serializedResult.includes(testBotToken),
+    "Cleanup result must not expose botToken.",
+  );
+});
+
+Deno.test("telegram deleteWebhook helper returns sanitized Telegram failure", async () => {
+  const error = await captureError(() =>
+    unregisterTelegramWebhookWithDeleteWebhook(
+      { botToken: testBotToken },
+      {
+        fetch: async () =>
+          jsonResponse({
+            ok: false,
+            error_code: 400,
+            description: `raw cleanup ${testBotToken}`,
+          }),
+      },
+    )
+  );
+  const serialized = JSON.stringify(error);
+
+  assert(error instanceof HttpError, "Cleanup failure must throw HttpError.");
+  assertEquals((error as HttpError).statusCode, 424);
+  assertEquals((error as HttpError).code, "webhook_cleanup_failed");
+  assertEquals(
+    (error as HttpError).message,
+    "Telegram webhook cleanup failed.",
+  );
+  assert(!serialized.includes(testBotToken), "Error must not expose botToken.");
+  assert(
+    !serialized.includes("raw cleanup"),
+    "Error must not expose raw Telegram body.",
+  );
+});
+
+Deno.test("telegram deleteWebhook helper aborts timed out requests", async () => {
+  const error = await captureError(() =>
+    unregisterTelegramWebhookWithDeleteWebhook(
+      { botToken: testBotToken },
       {
         timeoutMs: 1,
         fetch: (_url, init) =>

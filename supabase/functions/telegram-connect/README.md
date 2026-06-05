@@ -47,6 +47,11 @@ not a live Telegram integration.
   token-backed session.
 - A failed `setWebhook` attempt revokes the newly stored webhook secret row on a
   best-effort basis and does not activate the queued session.
+- If `setWebhook` succeeds but exact queued-session activation fails, the
+  finalizer makes a best-effort Telegram `deleteWebhook` call with
+  `drop_pending_updates=false`, then revokes the stored webhook secret row.
+- Activation cleanup failures stay sanitized. The session remains `queued` for
+  audit or manual recovery and is never presented as active.
 - The webhook registration gate must remain disabled until webhook secret
   storage, webhook session lookup, command authorization, and deployment smoke
   checks are separately approved.

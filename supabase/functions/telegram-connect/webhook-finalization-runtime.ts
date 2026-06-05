@@ -1,5 +1,8 @@
 import type { RegisterTelegramWebhookInput } from "./core.ts";
-import { registerTelegramWebhookWithSetWebhook } from "./telegram-api.ts";
+import {
+  registerTelegramWebhookWithSetWebhook,
+  unregisterTelegramWebhookWithDeleteWebhook,
+} from "./telegram-api.ts";
 import {
   createTelegramWebhookSecretMaterial,
   finalizeTelegramWebhookRegistration,
@@ -24,9 +27,16 @@ export async function registerTelegramWebhook(
   });
 }
 
+export async function unregisterTelegramWebhook(input: { botToken: string }) {
+  await unregisterTelegramWebhookWithDeleteWebhook({
+    botToken: input.botToken,
+  });
+}
+
 export interface FinalizeTelegramWebhookRegistrationRuntimeOptions {
   createWebhookSecretMaterial?: typeof createTelegramWebhookSecretMaterial;
   registerWebhook?: typeof registerTelegramWebhook;
+  unregisterWebhook?: typeof unregisterTelegramWebhook;
 }
 
 export async function finalizeTelegramWebhookRegistrationRuntime(
@@ -37,6 +47,8 @@ export async function finalizeTelegramWebhookRegistrationRuntime(
   const createWebhookSecretMaterial = options.createWebhookSecretMaterial ??
     createTelegramWebhookSecretMaterial;
   const registerWebhook = options.registerWebhook ?? registerTelegramWebhook;
+  const unregisterWebhook = options.unregisterWebhook ??
+    unregisterTelegramWebhook;
   const webhookSecretMaterial = await createWebhookSecretMaterial(
     {
       webhookSecretToken: input.webhookSecretToken,
@@ -70,6 +82,7 @@ export async function finalizeTelegramWebhookRegistrationRuntime(
           revokeInput,
         );
       },
+      unregisterTelegramWebhook: unregisterWebhook,
     },
   );
 }

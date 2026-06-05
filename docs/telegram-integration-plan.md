@@ -7532,3 +7532,52 @@ Remaining blockers before redeploy and gate enablement:
    user/chat pair.
 3. Final review the complete local diff and redeploy only with all runtime gates
    still off.
+
+## Phase 5CN - Activation-Failure Webhook Recovery
+
+Phase 5CN closes the local recovery gap when Telegram accepts `setWebhook` but
+the exact queued-session activation write fails. The implementation remains
+behind the existing default-off webhook-registration gate and has not been
+pushed, deployed, or enabled.
+
+Implemented recovery order:
+
+1. Store only the webhook secret hash and opaque ref.
+2. Register the Telegram webhook.
+3. Attempt to activate the exact queued, token-backed Telegram session.
+4. If activation fails, make a best-effort Telegram `deleteWebhook` request with
+   `drop_pending_updates=false`.
+5. Make a best-effort revoke of the newly stored webhook secret ref.
+6. Return the existing sanitized activation failure.
+
+Fail-closed behavior:
+
+- The Telegram cleanup request receives the BotFather token only as transient
+  backend memory input.
+- The `deleteWebhook` helper returns only `{ "deleted": true }` and never
+  returns or logs the token, Telegram response body, or raw error details.
+- Cleanup failure does not prevent webhook-secret revoke from being attempted.
+- Cleanup and revoke internals remain hidden behind the original sanitized
+  activation error.
+- The failed session remains `queued` for audit or manual recovery. It is not
+  marked active, deleted, or silently replaced.
+- If Telegram cleanup fails but the secret revoke succeeds, incoming webhook
+  requests still fail closed because the revoked secret hash cannot resolve an
+  active session.
+
+Tests added:
+
+- Telegram `deleteWebhook` request shape, sanitized failure, and timeout.
+- Core finalizer recovery order:
+  `store -> setWebhook -> activate -> deleteWebhook -> revoke`.
+- Recovery continues to revoke when `deleteWebhook` fails.
+- Runtime finalization adapter mounts the cleanup dependency and does not expose
+  BotFather token, webhook secret token, or session ID in errors.
+
+Current remaining blockers before any gate enablement:
+
+1. Define and approve the first owner-linking mechanism for the exact Telegram
+   user/chat pair.
+2. Final-review the complete local Telegram runtime diff.
+3. Redeploy only with every Telegram runtime gate still default-off.
+4. Separately approve disposable-bot live smoke and any later gate enablement.

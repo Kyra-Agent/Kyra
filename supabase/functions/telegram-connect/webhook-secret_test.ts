@@ -499,6 +499,13 @@ Deno.test("telegram webhook finalization sanitizes activation failure", async ()
           order.push("activate");
           throw new Error(`raw activation ${testSessionId}`);
         },
+        unregisterTelegramWebhook: async (input) => {
+          order.push("unregister");
+          assertEquals(
+            input.botToken,
+            "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi",
+          );
+        },
         revokeTelegramWebhookSecret: async () => {
           order.push("revoke");
           return { revoked: true };
@@ -512,7 +519,7 @@ Deno.test("telegram webhook finalization sanitizes activation failure", async ()
   });
 
   assert(error instanceof HttpError, "Activation failure must sanitize.");
-  assertEquals(order.join(","), "store,register,activate");
+  assertEquals(order.join(","), "store,register,activate,unregister,revoke");
   assertEquals(
     (error as HttpError).message,
     "Telegram session activation failed.",
@@ -520,6 +527,61 @@ Deno.test("telegram webhook finalization sanitizes activation failure", async ()
   assert(
     !serialized.includes(testSessionId),
     "Sanitized activation error must not expose telegramSessionId.",
+  );
+});
+
+Deno.test("telegram webhook finalization hides activation cleanup failures", async () => {
+  const order: string[] = [];
+  const error = await captureError(() =>
+    finalizeTelegramWebhookRegistration(
+      {
+        telegramSessionId: testSessionId,
+        botToken: "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi",
+        webhookUrl: "https://kyraagent.xyz/functions/v1/telegram-webhook",
+        webhookSecretToken: testWebhookSecretToken,
+        webhookSecretHash: testWebhookSecretHash,
+        webhookSecretRef: testWebhookSecretRef,
+      },
+      {
+        storeTelegramWebhookSecret: async () => ({
+          webhookSecretRef: testWebhookSecretRef,
+        }),
+        registerTelegramWebhook: async () => {},
+        activateTelegramSession: async () => {
+          order.push("activate");
+          throw new Error(`raw activation ${testSessionId}`);
+        },
+        unregisterTelegramWebhook: async () => {
+          order.push("unregister");
+          throw new Error(
+            `raw cleanup 1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi`,
+          );
+        },
+        revokeTelegramWebhookSecret: async () => {
+          order.push("revoke");
+          throw new Error(`raw revoke ${testWebhookSecretRef}`);
+        },
+      },
+    )
+  );
+  const serialized = JSON.stringify({
+    code: (error as HttpError).code,
+    message: (error as HttpError).message,
+  });
+
+  assert(error instanceof HttpError, "Cleanup failures must stay hidden.");
+  assertEquals(order.join(","), "activate,unregister,revoke");
+  assertEquals(
+    (error as HttpError).message,
+    "Telegram session activation failed.",
+  );
+  assert(
+    !serialized.includes(testSessionId),
+    "Activation error must not expose telegramSessionId.",
+  );
+  assert(
+    !serialized.includes(testWebhookSecretRef),
+    "Activation error must not expose webhookSecretRef.",
   );
 });
 

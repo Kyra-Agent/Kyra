@@ -29,9 +29,23 @@ export interface TelegramSetWebhookOptions {
   timeoutMs?: number;
 }
 
+export interface TelegramDeleteWebhookInput {
+  botToken: string;
+}
+
+export interface TelegramDeleteWebhookResult {
+  deleted: true;
+}
+
+export interface TelegramDeleteWebhookOptions {
+  fetch?: TelegramFetch;
+  timeoutMs?: number;
+}
+
 const telegramApiBaseUrl = "https://api.telegram.org";
 const defaultGetMeTimeoutMs = 5000;
 const defaultSetWebhookTimeoutMs = 5000;
+const defaultDeleteWebhookTimeoutMs = 5000;
 const webhookSecretTokenPattern = /^[A-Za-z0-9_-]{32,256}$/;
 const validationFailedMessage = "Telegram bot token could not be validated.";
 const unavailableMessage = "Telegram is unavailable.";
@@ -79,6 +93,22 @@ function throwWebhookRateLimited(): never {
     429,
     "rate_limited",
     "Telegram webhook registration is rate limited.",
+  );
+}
+
+function throwWebhookCleanupFailed(): never {
+  throw new HttpError(
+    424,
+    "webhook_cleanup_failed",
+    "Telegram webhook cleanup failed.",
+  );
+}
+
+function throwWebhookCleanupRateLimited(): never {
+  throw new HttpError(
+    429,
+    "rate_limited",
+    "Telegram webhook cleanup is rate limited.",
   );
 }
 
@@ -207,6 +237,18 @@ function mapSetWebhookFailure(status: number): never {
   throwWebhookRegistrationFailed();
 }
 
+function mapDeleteWebhookFailure(status: number): never {
+  if (status === 429) {
+    throwWebhookCleanupRateLimited();
+  }
+
+  if (status >= 500) {
+    throwTelegramUnavailable();
+  }
+
+  throwWebhookCleanupFailed();
+}
+
 export async function validateTelegramBotTokenWithGetMe(
   botToken: string,
   options: TelegramGetMeOptions = {},
@@ -324,6 +366,73 @@ export async function registerTelegramWebhookWithSetWebhook(
     }
 
     return { registered: true };
+  } catch (error) {
+    if (error instanceof HttpError) {
+      throw error;
+    }
+
+    if (error instanceof Error && error.name === "AbortError") {
+      throwTelegramUnavailable();
+    }
+
+    throwTelegramUnavailable();
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+export async function unregisterTelegramWebhookWithDeleteWebhook(
+  input: TelegramDeleteWebhookInput,
+  options: TelegramDeleteWebhookOptions = {},
+): Promise<TelegramDeleteWebhookResult> {
+  const botToken = assertBotToken(input.botToken);
+  const fetchTelegram = options.fetch ?? fetch;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    getTimeoutMs(options.timeoutMs ?? defaultDeleteWebhookTimeoutMs),
+  );
+  const deleteWebhookUrl =
+    `${telegramApiBaseUrl}/bot${botToken}/deleteWebhook`;
+
+  try {
+    const response = await fetchTelegram(deleteWebhookUrl, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        drop_pending_updates: false,
+      }),
+    });
+
+    if (!response.ok) {
+      mapDeleteWebhookFailure(response.status);
+    }
+
+    let payload: unknown;
+
+    try {
+      payload = await response.json();
+    } catch {
+      throwTelegramUnavailable();
+    }
+
+    if (!payload || typeof payload !== "object") {
+      throwWebhookCleanupFailed();
+    }
+
+    const envelope = payload as Record<string, unknown>;
+    const errorCode = typeof envelope.error_code === "number"
+      ? envelope.error_code
+      : response.status;
+
+    if (envelope.ok !== true || envelope.result !== true) {
+      mapDeleteWebhookFailure(errorCode);
+    }
+
+    return { deleted: true };
   } catch (error) {
     if (error instanceof HttpError) {
       throw error;

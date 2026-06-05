@@ -53,6 +53,9 @@ export interface FinalizeTelegramWebhookRegistrationDependencies {
   revokeTelegramWebhookSecret?: (input: {
     webhookSecretRef: string;
   }) => Promise<RevokeTelegramWebhookSecretResult>;
+  unregisterTelegramWebhook?: (input: {
+    botToken: string;
+  }) => Promise<unknown>;
 }
 
 export interface CreateTelegramWebhookSecretMaterialOptions {
@@ -383,6 +386,28 @@ export async function finalizeTelegramWebhookRegistration(
       telegramSessionId,
     );
   } catch (error) {
+    if (dependencies.unregisterTelegramWebhook) {
+      try {
+        await dependencies.unregisterTelegramWebhook({
+          botToken: input.botToken,
+        });
+      } catch {
+        // Best-effort cleanup only. Never expose rollback internals.
+      }
+    }
+
+    if (dependencies.revokeTelegramWebhookSecret) {
+      try {
+        assertRevokeTelegramWebhookSecretResult(
+          await dependencies.revokeTelegramWebhookSecret({
+            webhookSecretRef: storedWebhookSecretRef,
+          }),
+        );
+      } catch {
+        // Best-effort cleanup only. Never expose rollback internals.
+      }
+    }
+
     throw sanitizeTelegramSessionActivationError(error);
   }
 
