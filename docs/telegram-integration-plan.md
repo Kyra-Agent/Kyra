@@ -7004,3 +7004,74 @@ Still not included:
 - No runtime gate enablement.
 - No live Telegram API call.
 - No live secret read/write.
+
+## Phase 5CC - Local Production Readiness Audit
+
+Phase 5CC is a local-only readiness audit for the current Telegram integration
+bundle. It does not edit runtime code, apply SQL, push, deploy, publish, unlock
+Netlify, read local secret files, read live secrets, or call Telegram.
+
+Current git state during the audit:
+
+- Working tree was clean.
+- Local `main` was ahead of `origin/main` by 19 commits.
+- The local bundle did not include frontend `src` changes.
+- The local bundle was limited to Telegram docs, webhook function code/tests,
+  and the schema snapshot.
+
+Safe findings:
+
+- `telegram-webhook` runtime gates remain default-off and require exact
+  lowercase `true`.
+- Webhook delivery still requires the earlier lookup, parse, chat
+  authorization, and claim stages to have succeeded.
+- Duplicate claimed updates return a no-op response before token resolution or
+  Telegram delivery.
+- Delivery token resolution is lazy and only mounted behind the delivery gate.
+- `telegram-connect` runtime gates remain default-off and require exact
+  lowercase `true`.
+- Frontend BotFather token input remains gated by
+  `VITE_KYRA_ENABLE_TELEGRAM_CONNECT_TOKEN_INPUT=true`; default behavior keeps
+  the placeholder disabled.
+- Existing frontend token submission clears transient token state after submit
+  and sanitizes token-like response text.
+- No `.env.local` or secret values were read during the audit.
+- No live Supabase, Vault, or Telegram API calls were made during the audit.
+
+Pre-live blocker:
+
+- The local `supabase/schema.sql` snapshot does not yet include the token/Vault
+  RPCs expected by the gated runtime paths:
+  - `public.store_telegram_bot_token(uuid, uuid, text, text)`
+  - `public.resolve_telegram_bot_token(text)`
+  - `public.revoke_telegram_bot_token(text)`
+  - `public.resolve_telegram_delivery_token(uuid)`
+- Earlier manual Supabase verifier results recorded those RPCs as present and
+  service-role only in the target project, so this is currently a repository
+  snapshot drift issue rather than a local runtime failure while gates remain
+  off.
+- Do not enable `KYRA_TELEGRAM_CONNECT_STORE_ENABLED`,
+  `KYRA_TELEGRAM_CONNECT_SESSION_WRITE_ENABLED`,
+  `KYRA_TELEGRAM_CONNECT_WEBHOOK_REGISTER_ENABLED`, or
+  `KYRA_TELEGRAM_WEBHOOK_DELIVERY_ENABLED` until the repo snapshot and
+  production verifier state are reconciled.
+
+Manual-only steps before live:
+
+1. Explicitly approve any push to `main`, because Netlify credits are limited
+   and auto publishing may run.
+2. Explicitly approve any Supabase Edge Function deploy.
+3. Explicitly approve any Supabase runtime gate enablement.
+4. Confirm production schema verifier output for every Telegram table and RPC.
+5. Confirm BotFather token storage through the approved Vault/RPC boundary.
+6. Confirm active session, webhook secret, chat authorization, claim, and
+   delivery token resolver state before smoke testing.
+7. Smoke test only with a disposable Telegram bot and a single owner-linked
+   chat.
+
+Recommended next local-only boundary:
+
+- Sync or document the remaining schema snapshot drift for token/Vault RPCs
+  before any runtime gate enablement.
+- Keep this as a separate local-only review slice: no SQL apply, no live secret,
+  no Telegram API, no deploy, and no push unless explicitly approved.
