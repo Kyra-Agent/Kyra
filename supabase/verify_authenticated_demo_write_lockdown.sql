@@ -2,7 +2,8 @@ with telegram_vault_rpcs as (
   select
     to_regprocedure('public.store_telegram_bot_token(uuid,uuid,text,text)') as store_telegram_bot_token_rpc,
     to_regprocedure('public.resolve_telegram_bot_token(text)') as resolve_telegram_bot_token_rpc,
-    to_regprocedure('public.revoke_telegram_bot_token(text)') as revoke_telegram_bot_token_rpc
+    to_regprocedure('public.revoke_telegram_bot_token(text)') as revoke_telegram_bot_token_rpc,
+    to_regprocedure('public.resolve_telegram_delivery_token(uuid)') as resolve_telegram_delivery_token_rpc
 ),
 telegram_webhook_receiver_objects as (
   select
@@ -1699,6 +1700,42 @@ select
       'execute'
     ), false)
   end as service_role_can_execute_revoke_telegram_bot_token,
+  telegram_vault_rpcs.resolve_telegram_delivery_token_rpc is not null as resolve_telegram_delivery_token_function_exists,
+  case
+    when telegram_vault_rpcs.resolve_telegram_delivery_token_rpc is null then false
+    else not exists (
+      select 1
+      from pg_proc proc
+      cross join aclexplode(coalesce(proc.proacl, acldefault('f', proc.proowner))) as acl
+      where proc.oid = telegram_vault_rpcs.resolve_telegram_delivery_token_rpc::oid
+        and acl.grantee = 0::oid
+        and lower(acl.privilege_type) = 'execute'
+    )
+  end as public_cannot_execute_resolve_telegram_delivery_token,
+  case
+    when telegram_vault_rpcs.resolve_telegram_delivery_token_rpc is null then false
+    else not coalesce(has_function_privilege(
+      'anon',
+      telegram_vault_rpcs.resolve_telegram_delivery_token_rpc::oid,
+      'execute'
+    ), false)
+  end as anon_cannot_execute_resolve_telegram_delivery_token,
+  case
+    when telegram_vault_rpcs.resolve_telegram_delivery_token_rpc is null then false
+    else not coalesce(has_function_privilege(
+      'authenticated',
+      telegram_vault_rpcs.resolve_telegram_delivery_token_rpc::oid,
+      'execute'
+    ), false)
+  end as auth_cannot_execute_resolve_telegram_delivery_token,
+  case
+    when telegram_vault_rpcs.resolve_telegram_delivery_token_rpc is null then false
+    else coalesce(has_function_privilege(
+      'service_role',
+      telegram_vault_rpcs.resolve_telegram_delivery_token_rpc::oid,
+      'execute'
+    ), false)
+  end as service_role_can_execute_resolve_telegram_delivery_token,
   exists (
     select 1
     from pg_policies

@@ -7160,3 +7160,70 @@ Hard stops:
 - Do not read `.env.local`, Vault secrets, or live BotFather tokens.
 - Do not call Telegram.
 - Do not push while Netlify credit impact is not explicitly accepted.
+
+## Phase 5CF - Delivery Token Resolver SQL Review Packet
+
+Phase 5CF creates local review artifacts for the webhook delivery token resolver
+SQL boundary. It does not apply SQL, does not sync `supabase/schema.sql`, does
+not read secrets, does not call Telegram, does not deploy, does not publish, and
+does not push.
+
+Files added:
+
+- `supabase/telegram_delivery_token_resolver_forward_review.sql`
+- `supabase/telegram_delivery_token_resolver_rollback_review.sql`
+
+File updated:
+
+- `supabase/verify_authenticated_demo_write_lockdown.sql`
+
+Forward packet contract:
+
+- Creates `public.resolve_telegram_delivery_token(uuid)`.
+- Accepts only `p_telegram_session_id`.
+- Resolves only sessions where `telegram_sessions.webhook_status = 'active'`.
+- Reads `telegram_sessions.token_secret_ref` only inside the backend-only SQL
+  boundary.
+- Requires an active, non-revoked row in `public.telegram_bot_token_secrets`.
+- Calls `public.resolve_telegram_bot_token(text)` inside the trusted boundary.
+- Returns only the raw BotFather token to the service-role Edge Function call
+  path.
+- Does not expose `token_secret_ref`, webhook secrets, owner id, workspace id,
+  chat ids, or Vault metadata to browser roles or webhook responses.
+
+Grant contract:
+
+- Revoke execute from `public`, `anon`, `authenticated`, and `service_role`.
+- Grant execute only to `service_role`.
+- Keep browser roles unable to select `telegram_sessions.token_secret_ref`.
+
+Verifier additions:
+
+- `resolve_telegram_delivery_token_function_exists`
+- `public_cannot_execute_resolve_telegram_delivery_token`
+- `anon_cannot_execute_resolve_telegram_delivery_token`
+- `auth_cannot_execute_resolve_telegram_delivery_token`
+- `service_role_can_execute_resolve_telegram_delivery_token`
+
+Required before any approved apply:
+
+1. Review the forward and rollback SQL packet in full.
+2. Confirm the target Supabase project already has:
+   - `public.telegram_sessions`
+   - `public.telegram_bot_token_secrets`
+   - `public.resolve_telegram_bot_token(text)`
+3. Confirm the verifier still protects:
+   - browser-role denial for token RPCs
+   - browser-role denial for `telegram_sessions.token_secret_ref`
+   - sensitive field exclusion from `telegram_session_summaries`
+4. Approve the exact manual apply window separately.
+
+Hard stops:
+
+- Do not apply the SQL from the repository without explicit manual approval.
+- Do not enable `KYRA_TELEGRAM_WEBHOOK_DELIVERY_ENABLED`.
+- Do not deploy `telegram-webhook`.
+- Do not read or create live secrets.
+- Do not call Telegram.
+- Do not sync `supabase/schema.sql` until the review packet is accepted and
+  verifier expectations are clear.
