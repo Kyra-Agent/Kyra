@@ -7896,3 +7896,47 @@ Safety state:
 - No Edge Function or Netlify deploy was triggered.
 - No live Telegram API, BotFather token, Vault secret, or secret value was
   accessed.
+
+## Phase 5CU - Isolated Owner-Link RPC Adapters
+
+Phase 5CU adds isolated, injected-client adapters and mocked tests for the
+already-applied owner-link challenge RPCs:
+
+- `telegram-connect/owner-link-challenge.ts` prepares the exact
+  `issue_telegram_owner_link_challenge` hash-only RPC contract.
+- `telegram-webhook/owner-link-consume.ts` prepares the exact
+  `consume_telegram_owner_link_challenge` hash-only RPC contract.
+
+Safety and response rules:
+
+- Neither adapter is imported by an Edge Function entrypoint, so runtime
+  behavior remains unchanged and owner-linking remains unavailable.
+- Tests use only injected mock RPC clients. No real database, Supabase, Vault,
+  Telegram API, token, or secret is accessed.
+- Issue results expose only `{ issued: true, status: "issued" }`.
+- Consume results expose only bounded linked, duplicate, or not-linked states.
+- Empty consume rows fail closed as a safe not-linked no-op.
+- Malformed/duplicate/extra-field rows and RPC failures return fixed sanitized
+  errors without owner, workspace, session, Telegram identity, challenge hash,
+  token reference, or raw database details.
+- No raw challenge enters either adapter or RPC argument.
+
+Verification:
+
+- Deno checks passed for both existing entrypoints and both new adapters.
+- Full shared/connect/webhook Deno tests passed: 275 tests, 0 failures.
+- `npm run check:functions`, `npm exec tsc -- --noEmit`, and
+  `npm run build` passed.
+- `git diff --check` passed.
+- Static scan confirmed no entrypoint import, env access, service-role client
+  construction, Telegram API call, Vault access, logging, or token handling in
+  either new adapter.
+
+Deferred:
+
+- Wiring either adapter into `telegram-connect/index.ts` or
+  `telegram-webhook/index.ts`.
+- Enabling an owner-link runtime gate.
+- Issuing or consuming a real challenge.
+- Creating a Telegram chat authorization row through live runtime.
+- Edge Function deployment, push, or any production runtime change.
