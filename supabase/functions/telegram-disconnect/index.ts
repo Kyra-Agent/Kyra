@@ -1,12 +1,23 @@
 import { HttpError } from "../telegram-connect/core.ts";
 import {
+  createRpcTelegramBotTokenSecretStore,
+} from "../telegram-connect/secret-store.ts";
+import { unregisterTelegramWebhook } from "../telegram-connect/webhook-finalization-runtime.ts";
+import {
+  revokeTelegramWebhookSecretRecord,
+  type TelegramWebhookPersistenceClient,
+} from "../telegram-connect/webhook-persistence.ts";
+import {
   createTelegramDisconnectDependenciesFromOptions,
 } from "./dependencies.ts";
 import { handleTelegramDisconnectRequest } from "./core.ts";
 import type { OptionalEnvReader } from "./runtime-config.ts";
 
 export * from "./core.ts";
-export { createTelegramDisconnectClaimRpcClient } from "./dependencies.ts";
+export {
+  createTelegramDisconnectClaimRpcClient,
+  createTelegramDisconnectServiceRpcClient,
+} from "./dependencies.ts";
 export * from "./runtime-config.ts";
 export * from "./session-claim.ts";
 
@@ -66,6 +77,22 @@ export async function getUser(
   return data.user;
 }
 
+export async function createServiceClient(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+) {
+  const { createClient } = await import(
+    "https://esm.sh/@supabase/supabase-js@2"
+  );
+
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  }) as unknown as TelegramWebhookPersistenceClient;
+}
+
 export function createTelegramDisconnectDependencies(
   options: TelegramDisconnectRuntimeOptions = {},
 ): ReturnType<typeof createTelegramDisconnectDependenciesFromOptions> {
@@ -77,6 +104,33 @@ export function createTelegramDisconnectDependencies(
     getOptionalEnv: readOptionalEnv,
     getUser,
     fetchRpc: options.fetchRpc,
+    createCleanupDependencies({ getEnv, getRpcClient }) {
+      const tokenStore = createRpcTelegramBotTokenSecretStore(getRpcClient());
+      let serviceClientPromise: Promise<TelegramWebhookPersistenceClient> |
+        null = null;
+      const getServiceClient = () => {
+        serviceClientPromise ??= createServiceClient(
+          getEnv("SUPABASE_URL"),
+          getEnv("SUPABASE_SERVICE_ROLE_KEY"),
+        );
+
+        return serviceClientPromise;
+      };
+
+      return {
+        resolveTelegramBotToken: (input) =>
+          tokenStore.resolveTelegramBotToken(input),
+        revokeTelegramBotToken: (input) =>
+          tokenStore.revokeTelegramBotToken(input),
+        unregisterTelegramWebhook,
+        revokeTelegramWebhookSecret: async (input) => {
+          return await revokeTelegramWebhookSecretRecord(
+            await getServiceClient(),
+            input,
+          );
+        },
+      };
+    },
   });
 }
 

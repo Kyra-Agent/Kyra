@@ -9483,3 +9483,47 @@ Still blocked:
 - Do not deploy Edge Functions yet.
 - Do not push unless timing is explicitly approved because Netlify credits are
   limited.
+
+## Phase 5DI.10 - Gated Telegram Disconnect Cleanup Runtime Wiring
+
+Phase 5DI.10 wires the cleanup finalizer into `telegram-disconnect` runtime for
+`disconnect` and `revoke`, while keeping the runtime gate default-off.
+
+Runtime contract:
+
+- With `KYRA_TELEGRAM_DISCONNECT_ENABLED` off, the handler still returns
+  `not_configured` before reading the request body, required env values, or the
+  user session.
+- With the gate enabled, all actions validate method, content type, body size,
+  bearer auth, Supabase session, owner identity, and body shape before claim.
+- `pause` still stops after the session claim and returns a sanitized `paused`
+  response.
+- `disconnect` and `revoke` claim one active owned session, then run the cleanup
+  finalizer.
+- `disconnect` resolves the bot token through the backend-only token RPC,
+  unregisters the Telegram webhook, and revokes the webhook secret ref.
+- `revoke` performs the same cleanup and additionally revokes the bot token ref.
+- Service-role RPC and cleanup dependencies are created lazily only after the
+  gate is enabled and the request reaches the claim/cleanup step.
+- Responses return only `paused`, `disconnected`, or `revoked`; they do not
+  include agent IDs, owner user IDs, workspace IDs, Telegram session IDs, bot
+  handles, token refs, webhook refs, raw BotFather tokens, raw webhook secrets,
+  operator reasons, Telegram URLs, service-role keys, or raw dependency errors.
+
+Verification added:
+
+- `disconnect` claims then finalizes cleanup in order.
+- `revoke` claims then finalizes cleanup in order.
+- `pause` does not call the cleanup finalizer.
+- Disabled dependency setup still does not wire auth, claim, or cleanup
+  dependencies.
+- Cleanup dependencies build lazily and do not echo service-role secrets.
+
+Still blocked:
+
+- Do not enable `KYRA_TELEGRAM_DISCONNECT_ENABLED` until explicit deploy and
+  smoke-test timing approval.
+- Do not deploy Edge Functions yet.
+- Do not run live Telegram disconnect/revoke smoke tests yet.
+- Do not push unless timing is explicitly approved because Netlify credits are
+  limited.

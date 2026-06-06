@@ -11,6 +11,9 @@ import {
   readJsonObjectBody,
 } from "../telegram-connect/core.ts";
 import type { TelegramDisconnectRuntimeConfig } from "./runtime-config.ts";
+import type {
+  TelegramDisconnectCleanupResult,
+} from "./cleanup-finalization.ts";
 import type { TelegramDisconnectClaimResult } from "./session-claim.ts";
 
 export const maxTelegramDisconnectBodyBytes = 4096;
@@ -30,6 +33,9 @@ export interface TelegramDisconnectDependencies {
     ownerUserId: string;
     action: TelegramDisconnectAction;
   }) => Promise<TelegramDisconnectClaimResult>;
+  finalizeTelegramDisconnectCleanup?: (
+    claim: TelegramDisconnectClaimResult,
+  ) => Promise<TelegramDisconnectCleanupResult>;
 }
 
 export interface TelegramDisconnectRequestBody {
@@ -84,20 +90,25 @@ export async function handleTelegramDisconnectRequest(
     );
     const disconnectBody = assertTelegramDisconnectBody(body);
 
-    if (disconnectBody.action !== "pause") {
-      return notConfiguredResponse();
-    }
-
     const claimTelegramDisconnectSession = requireDependency(
       dependencies.claimTelegramDisconnectSession,
     );
-    await claimTelegramDisconnectSession({
+    const claim = await claimTelegramDisconnectSession({
       agentId: disconnectBody.agentId,
       ownerUserId,
       action: disconnectBody.action,
     });
 
-    return pausedResponse();
+    if (claim.action === "pause") {
+      return pausedResponse();
+    }
+
+    const finalizeTelegramDisconnectCleanup = requireDependency(
+      dependencies.finalizeTelegramDisconnectCleanup,
+    );
+    const cleanup = await finalizeTelegramDisconnectCleanup(claim);
+
+    return cleanupResponse(cleanup.action);
   } catch (error) {
     if (error instanceof HttpError) {
       return jsonResponse(
@@ -211,6 +222,19 @@ function pausedResponse() {
       ok: true,
       status: "paused",
       message: "Telegram bot paused.",
+    },
+    200,
+  );
+}
+
+function cleanupResponse(action: "disconnect" | "revoke") {
+  return jsonResponse(
+    {
+      ok: true,
+      status: action === "revoke" ? "revoked" : "disconnected",
+      message: action === "revoke"
+        ? "Telegram bot revoked."
+        : "Telegram bot disconnected.",
     },
     200,
   );

@@ -16,8 +16,10 @@ default-off. It has not been deployed or enabled.
   Supabase session shape, and a bounded request body.
 - `pause` can claim one owned active Telegram session through the approved
   service-role RPC adapter and returns a sanitized `200 paused` response.
-- `disconnect` and `revoke` still return `501 not_configured`; their cleanup
-  sequence is modeled locally but not wired into runtime yet.
+- `disconnect` and `revoke` can claim one owned active Telegram session and run
+  the cleanup finalizer when the gate is enabled. The cleanup sequence remains
+  unavailable in production until the Edge Function is deployed and the gate is
+  explicitly enabled.
 
 ## Safety Contract
 
@@ -32,6 +34,6 @@ default-off. It has not been deployed or enabled.
 
 ## Future Work
 
-Real disconnect and revoke behavior requires separate approval for runtime
-wiring, Edge Function deployment, production smoke tests, gate enablement, and
-rollback steps.
+Real disconnect and revoke production behavior requires separate approval for
+Edge Function deployment, production smoke tests, gate enablement, and rollback
+steps.

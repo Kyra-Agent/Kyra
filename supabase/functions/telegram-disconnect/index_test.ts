@@ -33,6 +33,10 @@ async function readJson(response: Response) {
 const agentId = "11111111-1111-4111-8111-111111111111";
 const telegramSessionId = "22222222-2222-4222-8222-222222222222";
 const userId = "33333333-3333-4333-8333-333333333333";
+const botToken = "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi";
+const tokenSecretRef = "vault:telegram:55555555-5555-4555-8555-555555555555";
+const webhookSecretRef =
+  "webhook:telegram:77777777-7777-4777-8777-777777777777";
 
 function makeRequest(options: {
   body?: string;
@@ -219,9 +223,8 @@ Deno.test("telegram-disconnect invalid session returns sanitized unauthorized", 
   assert(!serialized.includes("Bearer"), "Response must hide bearer details.");
 });
 
-Deno.test("telegram-disconnect disconnect action remains inert and does not claim session", async () => {
+Deno.test("telegram-disconnect disconnect action claims then finalizes cleanup", async () => {
   const order: string[] = [];
-  let claimCalled = false;
   const response = await handleTelegramDisconnectRequest(
     makeRequest({
       authorization: "Bearer session",
@@ -241,32 +244,58 @@ Deno.test("telegram-disconnect disconnect action remains inert and does not clai
         order.push("auth");
         return { id: userId };
       },
-      claimTelegramDisconnectSession: async () => {
-        claimCalled = true;
-        throw new Error("Disconnect action must not claim session yet.");
+      claimTelegramDisconnectSession: async (input) => {
+        order.push(`claim:${input.action}`);
+        return {
+          claimed: true,
+          action: "disconnect",
+          telegramSessionId,
+          agentId: input.agentId,
+          botHandle: "@kyra_test_bot",
+          tokenSecretRef,
+          webhookSecretRef,
+        };
+      },
+      finalizeTelegramDisconnectCleanup: async (claim) => {
+        order.push(`cleanup:${claim.action}`);
+        return {
+          finalized: true,
+          action: "disconnect",
+        };
       },
     }),
   );
   const body = await readJson(response);
   const serialized = JSON.stringify(body);
 
-  assertEquals(response.status, 501);
-  assertEquals(body.status, "not_configured");
+  assertEquals(response.status, 200);
+  assertEquals(body.status, "disconnected");
   assertEquals(
     order.join(","),
-    "env:SUPABASE_URL,env:SUPABASE_ANON_KEY,auth",
+    "env:SUPABASE_URL,env:SUPABASE_ANON_KEY,auth,claim:disconnect,cleanup:disconnect",
   );
-  assert(!claimCalled, "Disconnect action must remain inert.");
   assert(!serialized.includes(agentId), "Response must hide agent id.");
   assert(!serialized.includes(userId), "Response must hide user id.");
+  assert(
+    !serialized.includes(telegramSessionId),
+    "Response must hide session id.",
+  );
+  assert(
+    !serialized.includes(tokenSecretRef),
+    "Response must hide token ref.",
+  );
+  assert(
+    !serialized.includes(webhookSecretRef),
+    "Response must hide webhook ref.",
+  );
   assert(
     !serialized.includes("operator test"),
     "Response must hide operator note.",
   );
 });
 
-Deno.test("telegram-disconnect revoke action remains inert and does not claim session", async () => {
-  let claimCalled = false;
+Deno.test("telegram-disconnect revoke action claims then finalizes cleanup", async () => {
+  const order: string[] = [];
   const response = await handleTelegramDisconnectRequest(
     makeRequest({
       authorization: "Bearer session",
@@ -277,17 +306,37 @@ Deno.test("telegram-disconnect revoke action remains inert and does not claim se
       }),
     }),
     createEnabledDependencies({
-      claimTelegramDisconnectSession: async () => {
-        claimCalled = true;
-        throw new Error("Revoke action must not claim session yet.");
+      claimTelegramDisconnectSession: async (input) => {
+        order.push(`claim:${input.action}`);
+        return {
+          claimed: true,
+          action: "revoke",
+          telegramSessionId,
+          agentId: input.agentId,
+          tokenSecretRef,
+          webhookSecretRef,
+        };
+      },
+      finalizeTelegramDisconnectCleanup: async (claim) => {
+        order.push(`cleanup:${claim.action}`);
+        return {
+          finalized: true,
+          action: "revoke",
+        };
       },
     }),
   );
   const body = await readJson(response);
+  const serialized = JSON.stringify(body);
 
-  assertEquals(response.status, 501);
-  assertEquals(body.status, "not_configured");
-  assert(!claimCalled, "Revoke action must remain inert.");
+  assertEquals(response.status, 200);
+  assertEquals(body.status, "revoked");
+  assertEquals(order.join(","), "claim:revoke,cleanup:revoke");
+  assert(!serialized.includes(tokenSecretRef), "Response must hide token ref.");
+  assert(
+    !serialized.includes(webhookSecretRef),
+    "Response must hide webhook ref.",
+  );
 });
 
 Deno.test("telegram-disconnect pause action claims session and returns sanitized paused response", async () => {
@@ -313,6 +362,9 @@ Deno.test("telegram-disconnect pause action claims session and returns sanitized
           botHandle: "@kyra_test_bot",
         };
       },
+      finalizeTelegramDisconnectCleanup: async () => {
+        throw new Error("Pause must not run disconnect cleanup.");
+      },
     }),
   );
   const body = await readJson(response);
@@ -327,8 +379,14 @@ Deno.test("telegram-disconnect pause action claims session and returns sanitized
   assertEquals(claimedInputs[0].action, "pause");
   assert(!serialized.includes(agentId), "Response must hide agent id.");
   assert(!serialized.includes(userId), "Response must hide owner user id.");
-  assert(!serialized.includes(telegramSessionId), "Response must hide session id.");
-  assert(!serialized.includes("@kyra_test_bot"), "Response must hide bot handle.");
+  assert(
+    !serialized.includes(telegramSessionId),
+    "Response must hide session id.",
+  );
+  assert(
+    !serialized.includes("@kyra_test_bot"),
+    "Response must hide bot handle.",
+  );
   assert(!serialized.includes("operator test"), "Response must hide reason.");
   assert(!serialized.includes("token"), "Response must not mention token data.");
   assert(
@@ -360,6 +418,10 @@ Deno.test("telegram-disconnect dependencies keep disabled gate free of required 
   assertEquals(typeof dependencies.getEnv, "undefined");
   assertEquals(typeof dependencies.getUser, "undefined");
   assertEquals(typeof dependencies.claimTelegramDisconnectSession, "undefined");
+  assertEquals(
+    typeof dependencies.finalizeTelegramDisconnectCleanup,
+    "undefined",
+  );
 });
 
 Deno.test("telegram-disconnect dependencies read service role lazily only when pause claim runs", async () => {
@@ -439,6 +501,82 @@ Deno.test("telegram-disconnect dependencies read service role lazily only when p
   assert(
     !JSON.stringify(claim).includes("service-role-secret"),
     "Claim result must not echo service role key.",
+  );
+});
+
+Deno.test("telegram-disconnect dependencies build cleanup finalizer lazily", async () => {
+  const envReads: string[] = [];
+  const fetchCalls: Array<{ url: string; init?: RequestInit }> = [];
+  let cleanupDependencyBuilds = 0;
+  const dependencies = createTelegramDisconnectDependenciesFromOptions({
+    getOptionalEnv(key) {
+      assertEquals(key, "KYRA_TELEGRAM_DISCONNECT_ENABLED");
+      return "true";
+    },
+    getEnv(key) {
+      envReads.push(key);
+
+      if (key === "SUPABASE_URL") {
+        return "https://project.supabase.co";
+      }
+
+      if (key === "SUPABASE_SERVICE_ROLE_KEY") {
+        return "service-role-secret";
+      }
+
+      throw new Error(`Unexpected env key: ${key}`);
+    },
+    fetchRpc: async (input, init) => {
+      fetchCalls.push({ url: String(input), init });
+      return new Response(JSON.stringify("ok"), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    },
+    getUser: async () => ({ id: userId }),
+    createCleanupDependencies({ getRpcClient }) {
+      cleanupDependencyBuilds += 1;
+
+      return {
+        resolveTelegramBotToken: async (input) => {
+          await getRpcClient().rpc("resolve_telegram_bot_token", {
+            p_token_secret_ref: input.tokenSecretRef,
+          });
+          return { botToken };
+        },
+        unregisterTelegramWebhook: async () => {},
+        revokeTelegramWebhookSecret: async () => ({ revoked: true }),
+        revokeTelegramBotToken: async () => ({ revoked: true }),
+      };
+    },
+  });
+
+  assertEquals(dependencies.disconnectRuntimeConfig?.enabled, true);
+  assertEquals(envReads.length, 0);
+  assertEquals(fetchCalls.length, 0);
+  assertEquals(cleanupDependencyBuilds, 0);
+  assertEquals(typeof dependencies.finalizeTelegramDisconnectCleanup, "function");
+
+  const cleanup = await dependencies.finalizeTelegramDisconnectCleanup?.({
+    claimed: true,
+    action: "disconnect",
+    telegramSessionId,
+    agentId,
+    tokenSecretRef,
+    webhookSecretRef,
+  });
+
+  assertEquals(cleanup?.action, "disconnect");
+  assertEquals(cleanupDependencyBuilds, 1);
+  assertEquals(envReads.join(","), "SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY");
+  assertEquals(fetchCalls.length, 1);
+  assertEquals(
+    fetchCalls[0].url,
+    "https://project.supabase.co/rest/v1/rpc/resolve_telegram_bot_token",
+  );
+  assert(
+    !JSON.stringify(cleanup).includes("service-role-secret"),
+    "Cleanup result must not echo service role key.",
   );
 });
 
