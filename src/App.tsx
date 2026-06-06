@@ -438,6 +438,7 @@ function App() {
       <AnimatedBackground />
       <Header
         theme={theme}
+        accountSignedIn={Boolean(authSession)}
         onToggleTheme={toggleTheme}
         onOpenDashboard={() => navigate("dashboard")}
         onOpenHome={() => navigate("home")}

@@ -5,6 +5,7 @@ import { ThemeToggle } from "./ThemeToggle";
 
 interface HeaderProps {
   theme: "dark" | "light";
+  accountSignedIn: boolean;
   onToggleTheme: () => void;
   onOpenDashboard: () => void;
   onOpenHome: () => void;
@@ -15,6 +16,7 @@ interface HeaderProps {
 
 export function Header({
   theme,
+  accountSignedIn,
   onToggleTheme,
   onOpenDashboard,
   onOpenHome,
@@ -79,7 +81,7 @@ export function Header({
           onClick={onOpenAccount}
         >
           <UserRound size={16} />
-          Sign in
+          {accountSignedIn ? "Account" : "Sign in"}
         </button>
         <button
           className="button button-primary button-small"
@@ -124,7 +126,7 @@ export function Header({
           Dashboard
         </button>
         <button type="button" onClick={() => handleNavigation(onOpenAccount)}>
-          Sign in
+          {accountSignedIn ? "Account" : "Sign in"}
         </button>
         <button type="button" onClick={() => handleNavigation(() => onOpenSection("deploy"))}>
           Launch Demo
