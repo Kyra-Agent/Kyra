@@ -3,11 +3,19 @@ import type { KyraAuthSession } from "./supabaseAuthService";
 import { getSupabaseApiKey, sanitizeSupabaseMessage } from "./supabaseRestClient";
 
 export type TelegramConnectStatus =
+  | "validated"
+  | "review"
+  | "queued"
+  | "active"
   | "not_configured"
   | "invalid_request"
   | "unauthorized"
   | "forbidden"
   | "agent_not_found"
+  | "telegram_validation_failed"
+  | "secret_store_unavailable"
+  | "duplicate_bot_active"
+  | "webhook_registration_failed"
   | "server_error"
   | "function_unavailable"
   | "function_not_configured";
@@ -48,11 +56,19 @@ async function parseTelegramConnectResponse(response: Response): Promise<Telegra
 
 function normalizeTelegramConnectStatus(status: string | undefined): TelegramConnectStatus {
   switch (status) {
+    case "validated":
+    case "review":
+    case "queued":
+    case "active":
     case "not_configured":
     case "invalid_request":
     case "unauthorized":
     case "forbidden":
     case "agent_not_found":
+    case "telegram_validation_failed":
+    case "secret_store_unavailable":
+    case "duplicate_bot_active":
+    case "webhook_registration_failed":
     case "server_error":
       return status;
     default:

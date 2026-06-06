@@ -8692,3 +8692,45 @@ Remaining blocked work:
 - Do not create a live challenge or authorization row until the deployment,
   UI pairing flow, gate sequence, rollback, and production smoke plan are
   separately reviewed and approved.
+
+## Phase 5DH - Telegram Connect Success Response Contract
+
+Phase 5DH fixes the local default-off `telegram-connect` success contract so
+future enabled side-effect paths cannot complete work while still reporting
+`501 not_configured`.
+
+Implemented contract:
+
+- With all runtime gates disabled, valid owner requests still return the inert
+  `501 not_configured` response before token validation, token storage, session
+  writes, webhook registration, or Telegram API calls.
+- If token validation is explicitly enabled and succeeds without persistence,
+  the handler returns `200` with `status: "validated"` and safe bot handle
+  metadata only.
+- If backend token storage succeeds but session finalization is not enabled, the
+  handler returns `200` with `status: "review"`.
+- If session staging succeeds, the handler returns `200` with
+  `status: "queued"` and `webhookStatus: "queued"`.
+- If webhook finalization succeeds, the handler returns `200` with
+  `status: "active"` and `webhookStatus: "active"`.
+- Success responses do not include BotFather tokens, token refs, Telegram bot
+  IDs, session IDs, owner IDs, workspace IDs, webhook URLs, webhook secrets, or
+  raw database/Telegram errors.
+- Frontend response normalization now recognizes the new bounded statuses, but
+  the token input remains feature-flagged off by default.
+
+Safety state:
+
+- No runtime gate was enabled.
+- No Edge Function was deployed.
+- No SQL, schema, RLS, or grant changed.
+- No secret value was read.
+- No Telegram API call was made.
+- No push or Netlify action happened in this slice.
+
+Remaining blocked work:
+
+- Do not deploy or enable real connect until disconnect/pause/revoke operator
+  controls and production smoke steps are separately reviewed.
+- Do not enable owner-link issue or consume until an active Telegram session can
+  be created and rolled back safely.

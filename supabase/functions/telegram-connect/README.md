@@ -31,8 +31,9 @@ not a live Telegram integration.
   later, the function may update exactly one existing mock `telegram_sessions`
   row for the owned agent to `webhook_status=queued`, set its validated bot
   handle, and attach the opaque `tokenSecretRef`.
-- Session persistence never inserts or upserts a Telegram session, never marks
-  it active, and still returns the inert `not_configured` response.
+- Session persistence never inserts or upserts a Telegram session and never
+  marks it active by itself. If it succeeds, the response is a bounded `queued`
+  success without session IDs or token refs.
 - If session persistence fails after token storage, the function makes a
   best-effort backend-only revoke call and returns a sanitized error.
 - `KYRA_TELEGRAM_CONNECT_WEBHOOK_REGISTER_ENABLED=true` is parsed by the runtime
@@ -45,6 +46,8 @@ not a live Telegram integration.
 - The gated production finalization path stores only the webhook secret hash and
   opaque ref, calls Telegram `setWebhook`, then activates the exact queued
   token-backed session.
+- If gated webhook registration succeeds, the response is a bounded `active`
+  success with safe metadata only.
 - A failed `setWebhook` attempt revokes the newly stored webhook secret row on a
   best-effort basis and does not activate the queued session.
 - If `setWebhook` succeeds but exact queued-session activation fails, the
@@ -74,6 +77,14 @@ Authenticated owner requests with a valid JSON body and `agentId` return:
   "message": "Telegram connect is planned but not enabled yet."
 }
 ```
+
+If future runtime gates are explicitly enabled, successful steps return only
+bounded safe statuses:
+
+- `validated`: token validation succeeded, but no backend state was activated.
+- `review`: token storage succeeded and backend finalization is still required.
+- `queued`: session staging succeeded and webhook activation is pending.
+- `active`: webhook registration and session activation succeeded.
 
 ## Future Work
 

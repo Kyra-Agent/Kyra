@@ -851,11 +851,17 @@ Deno.test("telegram-connect getMe runtime gate true validates after ownership", 
   const serializedBody = JSON.stringify(body);
 
   assertEquals(order.join(","), "session,ownership,validator");
-  assertEquals(response.status, 501);
-  assertEquals(body.status, "not_configured");
+  assertEquals(response.status, 200);
+  assertEquals(body.ok, true);
+  assertEquals(body.status, "validated");
+  assertEquals(body.botHandle, "@kyra_test_bot");
   assert(
     !serializedBody.includes(testBotToken),
     "Response must not echo botToken after gated validation.",
+  );
+  assert(
+    !serializedBody.includes("987654321"),
+    "Response must not echo Telegram bot id after gated validation.",
   );
 });
 
@@ -985,7 +991,7 @@ Deno.test("telegram-connect rejects malformed botToken before mocked validator c
   );
 });
 
-Deno.test("telegram-connect mocked token validator success remains inert", async () => {
+Deno.test("telegram-connect token validation success returns bounded validated response", async () => {
   const order: string[] = [];
 
   const response = await handleTelegramConnectRequest(
@@ -1029,20 +1035,21 @@ Deno.test("telegram-connect mocked token validator success remains inert", async
   const serializedBody = JSON.stringify(body);
 
   assertEquals(order.join(","), "session,ownership,validator");
-  assertEquals(response.status, 501);
-  assertEquals(body.ok, false);
-  assertEquals(body.status, "not_configured");
+  assertEquals(response.status, 200);
+  assertEquals(body.ok, true);
+  assertEquals(body.status, "validated");
   assertEquals(
     body.message,
-    "Telegram connect is planned but not enabled yet.",
+    "Telegram bot token validated. Connection is not active yet.",
   );
+  assertEquals(body.botHandle, "@kyra_test_bot");
   assert(
     !serializedBody.includes(testBotToken),
     "Response must not echo botToken.",
   );
   assert(
     !serializedBody.includes("987654321"),
-    "Inert response must not return mocked Telegram bot id.",
+    "Validated response must not return mocked Telegram bot id.",
   );
 });
 
@@ -1099,9 +1106,14 @@ Deno.test("telegram-connect store dependency runs after ownership and token vali
   const serializedBody = JSON.stringify(body);
 
   assertEquals(order.join(","), "session,ownership,validator,store");
-  assertEquals(response.status, 501);
-  assertEquals(body.ok, false);
-  assertEquals(body.status, "not_configured");
+  assertEquals(response.status, 200);
+  assertEquals(body.ok, true);
+  assertEquals(body.status, "review");
+  assertEquals(
+    body.message,
+    "Telegram connection validated. Activation requires backend finalization.",
+  );
+  assertEquals(body.botHandle, "@kyra_test_bot");
   assert(
     !serializedBody.includes(testBotToken),
     "Response must not echo botToken.",
@@ -1124,7 +1136,7 @@ Deno.test("telegram-connect store dependency runs after ownership and token vali
   );
 });
 
-Deno.test("telegram-connect session persistence runs after token storage and remains inert", async () => {
+Deno.test("telegram-connect session persistence returns bounded queued response", async () => {
   const order: string[] = [];
   let revokeCalled = false;
 
@@ -1186,8 +1198,15 @@ Deno.test("telegram-connect session persistence runs after token storage and rem
     order.join(","),
     "session,ownership,validator,store,persist",
   );
-  assertEquals(response.status, 501);
-  assertEquals(body.status, "not_configured");
+  assertEquals(response.status, 200);
+  assertEquals(body.ok, true);
+  assertEquals(body.status, "queued");
+  assertEquals(
+    body.message,
+    "Telegram connection queued for webhook activation.",
+  );
+  assertEquals(body.botHandle, "@kyra_test_bot");
+  assertEquals(body.webhookStatus, "queued");
   assert(!revokeCalled, "Successful persistence must not revoke the token.");
   assert(
     !serializedBody.includes(testBotToken),
@@ -1207,7 +1226,7 @@ Deno.test("telegram-connect session persistence runs after token storage and rem
   );
 });
 
-Deno.test("telegram-connect webhook registration contract runs after session persistence and remains inert", async () => {
+Deno.test("telegram-connect webhook registration success returns bounded active response", async () => {
   const order: string[] = [];
 
   const response = await handleTelegramConnectRequest(
@@ -1282,8 +1301,12 @@ Deno.test("telegram-connect webhook registration contract runs after session per
     order.join(","),
     "session,ownership,validator,store,persist,url,secret,register",
   );
-  assertEquals(response.status, 501);
-  assertEquals(body.status, "not_configured");
+  assertEquals(response.status, 200);
+  assertEquals(body.ok, true);
+  assertEquals(body.status, "active");
+  assertEquals(body.message, "Telegram connection active.");
+  assertEquals(body.botHandle, "@kyra_test_bot");
+  assertEquals(body.webhookStatus, "active");
   assert(
     !serializedBody.includes(testBotToken),
     "Response must not echo botToken.",
@@ -1498,7 +1521,9 @@ Deno.test("telegram-connect webhook registration dependency failure is sanitized
         tokenSecretRef: testTokenSecretRef,
         provider: "supabase_vault",
       }),
-      persistTelegramSession: async () => ({ telegramSessionId: testSessionId }),
+      persistTelegramSession: async () => ({
+        telegramSessionId: testSessionId,
+      }),
       getTelegramWebhookUrl: () => testWebhookUrl,
       generateTelegramWebhookSecret: () => testWebhookSecretToken,
       registerTelegramWebhook: async () => {

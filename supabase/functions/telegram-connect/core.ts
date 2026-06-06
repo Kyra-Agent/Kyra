@@ -47,6 +47,12 @@ export interface RevokeTelegramBotTokenInput {
   tokenSecretRef: string;
 }
 
+export type TelegramConnectSuccessStatus =
+  | "validated"
+  | "review"
+  | "queued"
+  | "active";
+
 export interface RegisterTelegramWebhookInput {
   telegramSessionId: string;
   agentId: string;
@@ -738,6 +744,7 @@ export async function handleTelegramConnectRequest(
     let botHandle: string | null = null;
     let tokenSecretRef: string | null = null;
     let telegramSessionId: string | null = null;
+    let connectSuccessStatus: TelegramConnectSuccessStatus | null = null;
 
     if (dependencies.validateTelegramBotToken) {
       botToken = assertBotToken(body.botToken);
@@ -745,6 +752,8 @@ export async function handleTelegramConnectRequest(
       try {
         const bot = await dependencies.validateTelegramBotToken(botToken);
         telegramBot = assertTelegramBotValidationResult(bot);
+        botHandle = formatTelegramBotHandle(telegramBot.username);
+        connectSuccessStatus = "validated";
       } catch (error) {
         if (error instanceof HttpError) {
           throw error;
@@ -777,13 +786,14 @@ export async function handleTelegramConnectRequest(
         tokenSecretRef = assertStoredTokenSecretRef(
           storedToken.tokenSecretRef,
         );
+        connectSuccessStatus = "review";
       } catch (error) {
         throw sanitizeTelegramTokenStorageError(error);
       }
     }
 
     if (dependencies.persistTelegramSession) {
-      if (!telegramBot || !tokenSecretRef) {
+      if (!telegramBot || !botHandle || !tokenSecretRef) {
         throw new HttpError(
           500,
           "server_error",
@@ -792,7 +802,6 @@ export async function handleTelegramConnectRequest(
       }
 
       try {
-        botHandle = formatTelegramBotHandle(telegramBot.username);
         const persistedSession = await dependencies.persistTelegramSession({
           agentId,
           botHandle,
@@ -801,6 +810,7 @@ export async function handleTelegramConnectRequest(
         telegramSessionId = assertTelegramSessionId(
           persistedSession.telegramSessionId,
         );
+        connectSuccessStatus = "queued";
       } catch (error) {
         if (dependencies.revokeTelegramBotToken) {
           try {
@@ -852,6 +862,7 @@ export async function handleTelegramConnectRequest(
           webhookUrl,
           webhookSecretToken,
         });
+        connectSuccessStatus = "active";
       } catch (error) {
         if (
           error instanceof HttpError &&
@@ -863,6 +874,10 @@ export async function handleTelegramConnectRequest(
 
         throw sanitizeTelegramWebhookRegistrationError(error);
       }
+    }
+
+    if (connectSuccessStatus) {
+      return telegramConnectSuccessResponse(connectSuccessStatus, botHandle);
     }
 
     return jsonResponse(
@@ -893,5 +908,39 @@ export async function handleTelegramConnectRequest(
       },
       500,
     );
+  }
+}
+
+function telegramConnectSuccessResponse(
+  status: TelegramConnectSuccessStatus,
+  botHandle: string | null,
+) {
+  const response: Record<string, unknown> = {
+    ok: true,
+    status,
+    message: telegramConnectSuccessMessage(status),
+  };
+
+  if (botHandle) {
+    response.botHandle = botHandle;
+  }
+
+  if (status === "queued" || status === "active") {
+    response.webhookStatus = status;
+  }
+
+  return jsonResponse(response, 200);
+}
+
+function telegramConnectSuccessMessage(status: TelegramConnectSuccessStatus) {
+  switch (status) {
+    case "validated":
+      return "Telegram bot token validated. Connection is not active yet.";
+    case "review":
+      return "Telegram connection validated. Activation requires backend finalization.";
+    case "queued":
+      return "Telegram connection queued for webhook activation.";
+    case "active":
+      return "Telegram connection active.";
   }
 }

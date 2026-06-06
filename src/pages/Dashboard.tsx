@@ -739,7 +739,12 @@ export function Dashboard({
   }
 
   function getTelegramConnectTone(status: TelegramConnectStatus) {
-    return status === "not_configured" || status === "function_not_configured"
+    return status === "validated" ||
+        status === "review" ||
+        status === "queued" ||
+        status === "active" ||
+        status === "not_configured" ||
+        status === "function_not_configured"
       ? "success"
       : "error";
   }
