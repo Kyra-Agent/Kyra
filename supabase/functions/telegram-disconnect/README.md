@@ -13,8 +13,11 @@ default-off. It has not been deployed or enabled.
   creating a service-role client, querying the database, resolving a token, or
   calling Telegram.
 - If the gate is explicitly enabled in tests, the handler validates bearer auth,
-  Supabase session shape, and a bounded request body, then still returns
-  `501 not_configured`.
+  Supabase session shape, and a bounded request body.
+- `pause` can claim one owned active Telegram session through the approved
+  service-role RPC adapter and returns a sanitized `200 paused` response.
+- `disconnect` and `revoke` still return `501 not_configured`; their cleanup
+  sequence is modeled locally but not wired into runtime yet.
 
 ## Safety Contract
 
@@ -22,11 +25,13 @@ default-off. It has not been deployed or enabled.
 - No BotFather token is accepted.
 - No token, token ref, webhook secret, webhook ref, Telegram URL, session ID,
   owner ID, workspace ID, or operator note is returned.
-- No Supabase service-role client is created in this skeleton.
-- No database read or write is performed.
+- No Supabase service-role RPC client is created while the gate is off.
+- No database read or write is performed while the gate is off.
+- No raw BotFather token, token ref, webhook secret ref, Telegram URL, session
+  ID, owner ID, workspace ID, or operator note is returned.
 
 ## Future Work
 
-Real pause, disconnect, and revoke behavior requires separate approval for SQL
-schema/RLS/RPC contracts, runtime wiring, Edge Function deployment, production
-smoke tests, and rollback steps.
+Real disconnect and revoke behavior requires separate approval for runtime
+wiring, Edge Function deployment, production smoke tests, gate enablement, and
+rollback steps.

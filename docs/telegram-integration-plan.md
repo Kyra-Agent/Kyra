@@ -9440,3 +9440,46 @@ Still blocked:
 - Do not call Telegram `deleteWebhook`.
 - Do not push unless timing is explicitly approved because Netlify credits are
   limited.
+
+## Phase 5DI.9 - Telegram Disconnect Cleanup Finalizer Contract
+
+Phase 5DI.9 adds a pure local cleanup finalizer contract for future
+`disconnect` and `revoke` actions. It is not wired into
+`telegram-disconnect` runtime yet.
+
+Contract:
+
+- Accepts the bounded result from `claim_telegram_disconnect_session`.
+- Rejects `pause` because pause is already completed by the claim step.
+- Requires `tokenSecretRef` and `webhookSecretRef` for `disconnect` and
+  `revoke`.
+- Resolves the BotFather token only through an injected backend-only
+  `resolveTelegramBotToken` dependency.
+- Calls Telegram webhook cleanup only through an injected
+  `unregisterTelegramWebhook` dependency.
+- Revokes the webhook secret ref through an injected
+  `revokeTelegramWebhookSecret` dependency.
+- For `revoke`, also revokes the bot token ref through an injected
+  `revokeTelegramBotToken` dependency.
+- If token resolve or Telegram cleanup fails, still attempts local webhook
+  secret revoke and token revoke where applicable, then returns a sanitized
+  error.
+- Returns only a bounded action result and never returns raw BotFather tokens,
+  token refs, webhook refs, agent IDs, owner IDs, workspace IDs, session IDs, bot
+  handles, Telegram URLs, operator reasons, or raw dependency errors.
+
+Files added or updated:
+
+- `supabase/functions/telegram-disconnect/cleanup-finalization.ts`
+- `supabase/functions/telegram-disconnect/cleanup-finalization_test.ts`
+- `supabase/functions/telegram-disconnect/README.md`
+
+Still blocked:
+
+- Do not wire this finalizer into `telegram-disconnect/core.ts` yet.
+- Do not call real Telegram `deleteWebhook` from runtime yet.
+- Do not resolve real BotFather tokens from runtime yet.
+- Do not enable `KYRA_TELEGRAM_DISCONNECT_ENABLED`.
+- Do not deploy Edge Functions yet.
+- Do not push unless timing is explicitly approved because Netlify credits are
+  limited.
