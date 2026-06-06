@@ -8734,3 +8734,173 @@ Remaining blocked work:
   controls and production smoke steps are separately reviewed.
 - Do not enable owner-link issue or consume until an active Telegram session can
   be created and rolled back safely.
+
+## Phase 5DI.1 - Telegram Operator Disconnect Contract
+
+Phase 5DI.1 defines the missing operator-facing disconnect, pause, and revoke
+contract before any real Telegram connection is allowed to go live. This is a
+docs-only planning slice. It does not add SQL, Edge Function code, runtime
+gates, live secrets, Telegram API calls, deployment, push, or Netlify actions.
+
+Current findings:
+
+- `telegram-connect` has rollback cleanup for failed token storage, session
+  persistence, webhook registration, and activation failures.
+- `telegram-connect` can call best-effort `deleteWebhook` and webhook-secret
+  revoke during failed finalization recovery.
+- `telegram-webhook` rejects missing, inactive, paused, revoked, or ambiguous
+  sessions during lookup and delivery paths.
+- There is still no operator-facing flow to intentionally pause, disconnect, or
+  revoke an already active Telegram session.
+- Therefore live connect remains blocked: once a bot is active, the operator
+  must have a controlled way to stop ingress and remove the Telegram webhook
+  before broader production use.
+
+Recommended future endpoint:
+
+- Add a separate authenticated Edge Function: `telegram-disconnect`.
+- Keep it distinct from `telegram-connect`, `telegram-link`, and
+  `telegram-webhook` so token onboarding, owner-linking, webhook ingress, and
+  operator shutdown each have a narrow responsibility.
+- Require `Authorization: Bearer <session>` and Supabase session validation.
+- Require ownership validation:
+  `agent_instances.workspace_id -> workspaces.owner_user_id` must match the
+  signed-in user.
+- Use a service-role client only inside the Edge Function runtime after
+  authenticated ownership succeeds.
+- Never expose BotFather token, token secret refs, webhook secret refs, session
+  IDs, owner IDs, workspace IDs, Telegram bot IDs, webhook URLs, or raw
+  database/Telegram errors in responses.
+
+Proposed request shape:
+
+```json
+{
+  "agentId": "uuid",
+  "action": "pause | disconnect | revoke",
+  "reason": "optional bounded operator note"
+}
+```
+
+Action semantics:
+
+- `pause`: mark the active session as not accepting webhook commands without
+  revoking token metadata. This is the lowest-risk emergency stop and should not
+  call Telegram `deleteWebhook` unless separately approved.
+- `disconnect`: call Telegram `deleteWebhook` using the resolved token, then
+  mark the session disconnected/paused and revoke the active webhook secret.
+  Token secret metadata may remain available for a later reconnect policy only
+  if the approved schema explicitly supports that lifecycle.
+- `revoke`: strongest shutdown. Delete or revoke the Telegram webhook, revoke
+  the active webhook secret, revoke the BotFather token secret metadata through
+  the backend-only revoke RPC, and mark the session inactive. This should be
+  irreversible without reconnecting through BotFather token submit again.
+
+Proposed success response:
+
+```json
+{
+  "ok": true,
+  "status": "paused | disconnected | revoked",
+  "message": "Telegram connection updated."
+}
+```
+
+Success responses must not include private identifiers or secret references.
+
+Proposed error contract:
+
+- `400 invalid_request`: missing or malformed `agentId`, unsupported action,
+  invalid JSON, unsupported content type, or oversized body.
+- `401 unauthorized`: missing bearer token or invalid Supabase session.
+- `403 forbidden`: signed-in user does not own the agent workspace.
+- `404 session_not_found`: no active or eligible Telegram session exists for
+  the owned agent.
+- `409 session_state_conflict`: the session changed while disconnect was being
+  processed, more than one eligible session exists, or the requested action does
+  not match the current lifecycle state.
+- `422 telegram_cleanup_failed`: Telegram `deleteWebhook` failed for a
+  sanitized, expected reason. The response must not expose token, URL, or raw
+  Telegram body.
+- `503 secret_store_unavailable`: token resolve or revoke boundary is
+  unavailable.
+- `500 server_error`: any unexpected failure after sanitization.
+
+Recommended execution order:
+
+1. Validate method, content type, content length, and JSON body.
+2. Validate bearer session.
+3. Validate agent ownership.
+4. Resolve exactly one active eligible Telegram session for the owned agent.
+5. For `pause`, update only local session state first and return a bounded
+   result.
+6. For `disconnect`, resolve token through backend-only RPC, call
+   `deleteWebhook`, revoke webhook secret metadata, then transition the session
+   out of `active`.
+7. For `revoke`, perform the `disconnect` sequence and then revoke the
+   BotFather token secret metadata.
+8. If Telegram cleanup succeeds but database finalization fails, treat it as a
+   high-priority recoverable incident and return a sanitized conflict/server
+   error. The runbook must include a manual reconciliation query before live
+   enablement.
+9. If token resolve fails before Telegram cleanup, do not mutate active session
+   state unless the approved operator action is `pause`.
+
+Schema/RPC requirements that need separate approval:
+
+- A durable session lifecycle field may be required beyond the current
+  `webhook_status` enum values if `disconnected`, `revoked`, or audit metadata
+  cannot be represented cleanly.
+- The active-session lookup must expose only the minimum backend-only fields
+  required by `telegram-disconnect`.
+- A backend-only RPC may be needed to atomically claim exactly one active
+  session for pause/disconnect/revoke and avoid racing with reconnect.
+- Existing `revoke_telegram_bot_token(text)` and webhook-secret revoke helpers
+  can be reused only after verifier checks confirm service-role-only execution
+  and browser-role denial in the target Supabase project.
+- Any new table, enum, grant, RLS policy, RPC, or verifier SQL requires explicit
+  approval and manual apply timing.
+
+Tests needed before implementation can be considered safe:
+
+- Default-off or unavailable function behavior if the endpoint is added before
+  live activation.
+- Method, content type, body size, invalid JSON, missing bearer, invalid
+  session, malformed `agentId`, and unsupported action.
+- Ownership success, non-owner `403`, missing agent/session `404`, and
+  ambiguous/changed session `409`.
+- `pause` does not resolve token and does not call Telegram.
+- `disconnect` order: session lookup -> token resolve -> `deleteWebhook` ->
+  webhook secret revoke -> session transition.
+- `revoke` additionally calls token secret revoke after webhook cleanup.
+- Cleanup failures are sanitized and never expose BotFather token, token refs,
+  webhook refs, webhook secret, Telegram URL, owner ID, workspace ID, session
+  ID, or raw Telegram/database bodies.
+- Failed reconnect or disconnect must not silently break an unrelated active
+  session.
+
+Timing rules:
+
+- Push is appropriate only after the local slice is committed and the user is
+  ready for a possible Netlify build, or after Netlify auto-publish is locked.
+- SQL/schema/RLS is appropriate only after the disconnect contract is reviewed
+  and the exact forward, rollback, and verifier packets are prepared.
+- Edge Function deploy is appropriate only after SQL verifiers pass, local tests
+  pass, all runtime gates remain default-off, and a production smoke/rollback
+  checklist is ready.
+- Live gate enablement is appropriate only after `telegram-connect`,
+  `telegram-disconnect`, `telegram-link`, and `telegram-webhook` can all be
+  deployed and smoke-tested in a controlled order using a disposable bot.
+
+What not to touch yet:
+
+- Do not implement `telegram-disconnect` yet.
+- Do not deploy Edge Functions.
+- Do not enable runtime gates.
+- Do not apply SQL/schema/RLS/grant changes.
+- Do not create, read, resolve, revoke, or log real secrets.
+- Do not call real Telegram APIs.
+- Do not create real Telegram sessions, owner-link challenges, or authorization
+  rows.
+- Do not push while Netlify deploy credits are being conserved unless the user
+  explicitly approves that timing.
