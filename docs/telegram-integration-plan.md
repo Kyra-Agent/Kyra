@@ -8971,3 +8971,150 @@ Remaining blocked work:
 - Do not add DB lookup, service-role mutation, token resolution, webhook
   deletion, webhook-secret revoke, or token revoke behavior until the SQL/RPC
   packet and verifier checks are approved.
+
+## Phase 5DI.3 - Telegram Disconnect Active Session RPC Design
+
+Phase 5DI.3 is a docs-only design pass for the backend-only lookup and mutation
+contract needed by future `telegram-disconnect`. No runtime behavior, SQL,
+schema, RLS, grants, secrets, Telegram API calls, Edge deploys, pushes, or
+Netlify actions are changed in this slice.
+
+Current audit findings:
+
+- `telegram-disconnect` is still inert. It validates the future request shape
+  and returns `501 not_configured`; it does not read or write the database.
+- `telegram-link/active-session-lookup.ts` safely selects only
+  `id`, `agent_id`, `bot_handle`, and `webhook_status` for active sessions. That
+  is enough for owner-link display flow, but not enough for operator
+  disconnect because it intentionally does not expose token or webhook secret
+  references.
+- `telegram-webhook/session-lookup.ts` resolves inbound updates by hashing the
+  Telegram webhook secret header and calling
+  `resolve_telegram_webhook_session(text)`. That lookup is inbound-only and
+  should not become the operator disconnect lookup.
+- `telegram-connect/webhook-persistence.ts` already has patterns for creating
+  and revoking webhook secret rows and activating queued sessions, but there is
+  no approved operator pause, disconnect, or revoke mutation yet.
+- `telegram_sessions.webhook_status` currently allows `mocked`, `queued`,
+  `active`, and `paused`. There is no approved `disconnected` or `revoked`
+  status today, so the lowest-schema path is to use `paused` as the operator
+  stop state and rely on revoked token/webhook metadata for stronger final
+  semantics.
+- `telegram_bot_token_secrets` and `telegram_webhook_secrets` already separate
+  token and webhook secret metadata from public tables. Any future disconnect
+  path must keep raw BotFather tokens and raw webhook secrets out of API
+  responses, frontend state, and logs.
+
+Recommended RPC boundary:
+
+- Prefer one narrow, service-role-only atomic RPC for the first live slice:
+  `public.claim_telegram_disconnect_session(p_agent_id uuid, p_owner_user_id uuid, p_action text)`.
+- The RPC should verify that the signed-in user owns the agent through the
+  existing ownership chain:
+  `agent_instances.workspace_id -> workspaces.owner_user_id`.
+- The RPC should match exactly one active Telegram session for the agent. If no
+  active row exists, return a bounded not-found result. If duplicate active rows
+  exist, return a bounded conflict result and do not mutate anything.
+- The RPC should take an advisory lock or equivalent transaction-level guard on
+  the agent/session before changing state, so reconnect, webhook delivery, and
+  disconnect cannot race each other.
+- The RPC should transition `telegram_sessions.webhook_status` from `active` to
+  `paused` before any future Telegram API call or secret revocation. This stops
+  new inbound work at the database authorization layer because webhook delivery
+  and token delivery already require active session state.
+- The RPC may return only backend-only references needed by the Edge runtime:
+  `telegram_session_id`, `agent_id`, `bot_handle`, `token_secret_ref`, and
+  `webhook_secret_ref`. It must not return `owner_user_id`, `workspace_id`, raw
+  tokens, raw webhook secrets, or raw database errors.
+- Execute privilege must be revoked from `public`, `anon`, and
+  `authenticated`, then granted only to `service_role`.
+
+Optional split boundary if the SQL gets too large:
+
+- `public.resolve_active_telegram_disconnect_session(p_agent_id uuid, p_owner_user_id uuid)`
+  can perform the read-only active session lookup and return the same bounded
+  service-role-only reference shape.
+- `public.pause_telegram_disconnect_session(p_telegram_session_id uuid)` can
+  perform the active-to-paused mutation.
+- This split is less safe than a single claim RPC unless both calls are guarded
+  by transaction/advisory lock semantics, so the single atomic claim RPC remains
+  preferred.
+
+Future action sequencing:
+
+- `pause`:
+  - Validate Edge runtime gate, bearer session, body shape, and ownership.
+  - Claim the active session and transition it to `paused`.
+  - Return bounded success without resolving a token or calling Telegram.
+- `disconnect`:
+  - Claim active session and transition it to `paused` first.
+  - Resolve the BotFather token only inside the Edge Function through the
+    approved Vault/RPC boundary.
+  - Call Telegram `deleteWebhook`.
+  - Revoke the active webhook secret metadata.
+  - Return bounded success without returning token refs, raw token, raw webhook
+    secret, owner ID, or workspace ID.
+- `revoke`:
+  - Follow the `disconnect` order.
+  - Revoke token metadata with the approved token revoke RPC after webhook
+    cleanup.
+  - Keep the raw token unrecoverable from browser roles and never echo it.
+
+Failure behavior:
+
+- Invalid `agentId` stays `400 invalid_request`.
+- Missing or invalid bearer/session stays `401 unauthorized`.
+- No active owned session should return `404 telegram_session_not_found`.
+- Active session owned by another user should return `403 forbidden` or a
+  deliberately collapsed `404`, depending on the final product leakage policy.
+- Duplicate active sessions should return `409 conflict` and must not perform a
+  Telegram API call or secret mutation.
+- Any unexpected database/RPC failure should return sanitized `500 server_error`
+  without table names, SQL text, refs, owner IDs, workspace IDs, token details,
+  or raw error messages.
+- If `deleteWebhook` fails after the session has been paused, leave the session
+  paused and return a sanitized retryable failure. Do not automatically
+  reactivate the session.
+- If webhook secret revocation fails after `deleteWebhook`, leave the session
+  paused and require a retry or operator reconciliation.
+- If token revocation fails during `revoke`, leave the session paused and
+  webhook-disabled, then retry only token revocation.
+
+Required verifier coverage before any SQL apply:
+
+- `claim_telegram_disconnect_session` exists with the approved signature and
+  service-role-only execute privilege.
+- Browser roles cannot select token/webhook secret tables and cannot execute
+  token, webhook, or disconnect RPCs.
+- Active session claim returns no owner IDs, workspace IDs, raw token, raw
+  webhook secret, or raw SQL errors.
+- Duplicate active sessions are rejected before mutation.
+- `pause` does not require token resolution.
+- `disconnect` and `revoke` are blocked if token/webhook references are missing
+  or ambiguous.
+- `verify_authenticated_demo_write_lockdown.sql` still passes after the SQL
+  packet is applied.
+
+Runtime tests needed later:
+
+- `pause` order: auth -> ownership -> atomic claim -> bounded success, with no
+  token resolver or Telegram client call.
+- `disconnect` order: auth -> ownership -> claim active-to-paused ->
+  token resolve -> `deleteWebhook` -> webhook secret revoke.
+- `revoke` order: disconnect sequence -> token metadata revoke.
+- Failure tests for claim not found, duplicate active sessions, token resolve
+  failure, `deleteWebhook` failure, webhook revoke failure, and token revoke
+  failure.
+- Sanitized response tests proving no owner ID, workspace ID, refs, raw token,
+  raw webhook secret, raw DB error, or Telegram response body is returned.
+
+What not to touch yet:
+
+- Do not apply SQL/schema/RLS/grant changes for disconnect RPCs.
+- Do not add a service-role client to `telegram-disconnect`.
+- Do not resolve Vault/token refs.
+- Do not call Telegram `deleteWebhook`.
+- Do not enable `KYRA_TELEGRAM_DISCONNECT_ENABLED`.
+- Do not deploy Edge Functions.
+- Do not push while Netlify credits are being conserved unless the user
+  explicitly approves that timing.
