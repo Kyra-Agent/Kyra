@@ -9390,3 +9390,53 @@ Next runtime slice:
   wired and tested.
 - Keep `KYRA_TELEGRAM_DISCONNECT_ENABLED` disabled until deploy and smoke timing
   are explicitly approved.
+
+## Phase 5DI.8 - Gated Telegram Pause Claim Runtime Wiring
+
+Phase 5DI.8 wires the previously approved disconnect claim adapter into the
+`telegram-disconnect` runtime for the lowest-risk action only: `pause`.
+
+Runtime contract:
+
+- The default runtime gate remains off through
+  `KYRA_TELEGRAM_DISCONNECT_ENABLED`.
+- When the gate is off, `telegram-disconnect` still returns `not_configured`
+  before reading the request body, required env values, or the user session.
+- When the gate is enabled, the function validates method, content type, body
+  size, bearer auth, Supabase session, and body shape before any claim attempt.
+- `pause` calls `claim_telegram_disconnect_session` through the existing
+  service-role-only adapter and returns a sanitized `paused` response.
+- `disconnect` and `revoke` still return `not_configured` and do not claim a
+  session, resolve token refs, call Telegram APIs, or delete webhooks.
+- The service-role key and RPC client are created lazily only after the gate is
+  enabled and a valid `pause` request reaches the claim step.
+- Responses do not include agent IDs, owner user IDs, Telegram session IDs, bot
+  handles, token refs, webhook refs, raw tokens, raw webhook secrets, operator
+  reasons, or raw DB error text.
+
+Files changed:
+
+- `supabase/functions/telegram-disconnect/core.ts`
+- `supabase/functions/telegram-disconnect/dependencies.ts`
+- `supabase/functions/telegram-disconnect/index.ts`
+- `supabase/functions/telegram-disconnect/index_test.ts`
+
+Verification added:
+
+- `pause` claims the session and returns a sanitized `paused` response.
+- `disconnect` and `revoke` remain inert and do not call the claim adapter.
+- Default-off runtime setup does not read required env values and does not wire
+  auth or claim dependencies.
+- Enabled dependency setup reads service-role env lazily only when the claim
+  adapter is called.
+
+Still blocked:
+
+- Do not enable `KYRA_TELEGRAM_DISCONNECT_ENABLED` until deploy and smoke timing
+  are explicitly approved.
+- Do not deploy Edge Functions yet.
+- Do not wire live `disconnect` or `revoke` cleanup.
+- Do not resolve Telegram bot tokens.
+- Do not call Telegram `deleteWebhook`.
+- Do not push unless timing is explicitly approved because Netlify credits are
+  limited.

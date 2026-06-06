@@ -1,19 +1,19 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { HttpError } from "../telegram-connect/core.ts";
 import {
-  handleTelegramDisconnectRequest,
-  type TelegramDisconnectDependencies,
-} from "./core.ts";
-import {
-  createTelegramDisconnectRuntimeConfig,
-  type OptionalEnvReader,
-} from "./runtime-config.ts";
+  createTelegramDisconnectDependenciesFromOptions,
+} from "./dependencies.ts";
+import { handleTelegramDisconnectRequest } from "./core.ts";
+import type { OptionalEnvReader } from "./runtime-config.ts";
 
 export * from "./core.ts";
+export { createTelegramDisconnectClaimRpcClient } from "./dependencies.ts";
 export * from "./runtime-config.ts";
+export * from "./session-claim.ts";
 
 export interface TelegramDisconnectRuntimeOptions {
+  getEnv?: (key: string) => string;
   getOptionalEnv?: OptionalEnvReader;
+  fetchRpc?: typeof fetch;
 }
 
 export function getEnv(key: string) {
@@ -39,6 +39,9 @@ export async function getUser(
   anonKey: string,
   authorization: string,
 ) {
+  const { createClient } = await import(
+    "https://esm.sh/@supabase/supabase-js@2"
+  );
   const userClient = createClient(supabaseUrl, anonKey, {
     auth: {
       persistSession: false,
@@ -65,23 +68,16 @@ export async function getUser(
 
 export function createTelegramDisconnectDependencies(
   options: TelegramDisconnectRuntimeOptions = {},
-): TelegramDisconnectDependencies {
+): ReturnType<typeof createTelegramDisconnectDependenciesFromOptions> {
+  const readRequiredEnv = options.getEnv ?? getEnv;
   const readOptionalEnv = options.getOptionalEnv ?? getOptionalEnv;
-  const disconnectRuntimeConfig = createTelegramDisconnectRuntimeConfig(
-    readOptionalEnv,
-  );
-  const dependencies: TelegramDisconnectDependencies = {
-    disconnectRuntimeConfig,
-  };
 
-  if (!disconnectRuntimeConfig.enabled) {
-    return dependencies;
-  }
-
-  dependencies.getEnv = getEnv;
-  dependencies.getUser = getUser;
-
-  return dependencies;
+  return createTelegramDisconnectDependenciesFromOptions({
+    getEnv: readRequiredEnv,
+    getOptionalEnv: readOptionalEnv,
+    getUser,
+    fetchRpc: options.fetchRpc,
+  });
 }
 
 if (import.meta.main) {

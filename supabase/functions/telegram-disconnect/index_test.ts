@@ -8,6 +8,9 @@ import {
   createTelegramDisconnectRuntimeConfig,
   isTelegramDisconnectEnabled,
 } from "./runtime-config.ts";
+import {
+  createTelegramDisconnectDependenciesFromOptions,
+} from "./dependencies.ts";
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -28,6 +31,7 @@ async function readJson(response: Response) {
 }
 
 const agentId = "11111111-1111-4111-8111-111111111111";
+const telegramSessionId = "22222222-2222-4222-8222-222222222222";
 const userId = "33333333-3333-4333-8333-333333333333";
 
 function makeRequest(options: {
@@ -215,8 +219,9 @@ Deno.test("telegram-disconnect invalid session returns sanitized unauthorized", 
   assert(!serialized.includes("Bearer"), "Response must hide bearer details.");
 });
 
-Deno.test("telegram-disconnect enabled valid body remains inert not_configured", async () => {
+Deno.test("telegram-disconnect disconnect action remains inert and does not claim session", async () => {
   const order: string[] = [];
+  let claimCalled = false;
   const response = await handleTelegramDisconnectRequest(
     makeRequest({
       authorization: "Bearer session",
@@ -236,6 +241,10 @@ Deno.test("telegram-disconnect enabled valid body remains inert not_configured",
         order.push("auth");
         return { id: userId };
       },
+      claimTelegramDisconnectSession: async () => {
+        claimCalled = true;
+        throw new Error("Disconnect action must not claim session yet.");
+      },
     }),
   );
   const body = await readJson(response);
@@ -247,11 +256,189 @@ Deno.test("telegram-disconnect enabled valid body remains inert not_configured",
     order.join(","),
     "env:SUPABASE_URL,env:SUPABASE_ANON_KEY,auth",
   );
+  assert(!claimCalled, "Disconnect action must remain inert.");
   assert(!serialized.includes(agentId), "Response must hide agent id.");
   assert(!serialized.includes(userId), "Response must hide user id.");
   assert(
     !serialized.includes("operator test"),
     "Response must hide operator note.",
+  );
+});
+
+Deno.test("telegram-disconnect revoke action remains inert and does not claim session", async () => {
+  let claimCalled = false;
+  const response = await handleTelegramDisconnectRequest(
+    makeRequest({
+      authorization: "Bearer session",
+      contentType: "application/json",
+      body: JSON.stringify({
+        agentId,
+        action: "revoke",
+      }),
+    }),
+    createEnabledDependencies({
+      claimTelegramDisconnectSession: async () => {
+        claimCalled = true;
+        throw new Error("Revoke action must not claim session yet.");
+      },
+    }),
+  );
+  const body = await readJson(response);
+
+  assertEquals(response.status, 501);
+  assertEquals(body.status, "not_configured");
+  assert(!claimCalled, "Revoke action must remain inert.");
+});
+
+Deno.test("telegram-disconnect pause action claims session and returns sanitized paused response", async () => {
+  const claimedInputs: Array<Record<string, unknown>> = [];
+  const response = await handleTelegramDisconnectRequest(
+    makeRequest({
+      authorization: "Bearer session",
+      contentType: "application/json",
+      body: JSON.stringify({
+        agentId,
+        action: "pause",
+        reason: "operator test",
+      }),
+    }),
+    createEnabledDependencies({
+      claimTelegramDisconnectSession: async (input) => {
+        claimedInputs.push(input);
+        return {
+          claimed: true,
+          action: input.action,
+          telegramSessionId,
+          agentId: input.agentId,
+          botHandle: "@kyra_test_bot",
+        };
+      },
+    }),
+  );
+  const body = await readJson(response);
+  const serialized = JSON.stringify(body);
+
+  assertEquals(response.status, 200);
+  assertEquals(body.ok, true);
+  assertEquals(body.status, "paused");
+  assertEquals(claimedInputs.length, 1);
+  assertEquals(claimedInputs[0].agentId, agentId);
+  assertEquals(claimedInputs[0].ownerUserId, userId);
+  assertEquals(claimedInputs[0].action, "pause");
+  assert(!serialized.includes(agentId), "Response must hide agent id.");
+  assert(!serialized.includes(userId), "Response must hide owner user id.");
+  assert(!serialized.includes(telegramSessionId), "Response must hide session id.");
+  assert(!serialized.includes("@kyra_test_bot"), "Response must hide bot handle.");
+  assert(!serialized.includes("operator test"), "Response must hide reason.");
+  assert(!serialized.includes("token"), "Response must not mention token data.");
+  assert(
+    !serialized.includes("webhook"),
+    "Response must not mention webhook secret data.",
+  );
+});
+
+Deno.test("telegram-disconnect dependencies keep disabled gate free of required env and claim wiring", () => {
+  const requiredEnvReads: string[] = [];
+  const optionalEnvReads: string[] = [];
+  const dependencies = createTelegramDisconnectDependenciesFromOptions({
+    getOptionalEnv(key) {
+      optionalEnvReads.push(key);
+      return "";
+    },
+    getEnv(key) {
+      requiredEnvReads.push(key);
+      throw new Error("Disabled dependency setup must not read required env.");
+    },
+    getUser: async () => {
+      throw new Error("Disabled dependency setup must not configure auth.");
+    },
+  });
+
+  assertEquals(dependencies.disconnectRuntimeConfig?.enabled, false);
+  assertEquals(requiredEnvReads.length, 0);
+  assertEquals(optionalEnvReads.join(","), "KYRA_TELEGRAM_DISCONNECT_ENABLED");
+  assertEquals(typeof dependencies.getEnv, "undefined");
+  assertEquals(typeof dependencies.getUser, "undefined");
+  assertEquals(typeof dependencies.claimTelegramDisconnectSession, "undefined");
+});
+
+Deno.test("telegram-disconnect dependencies read service role lazily only when pause claim runs", async () => {
+  const envReads: string[] = [];
+  const fetchCalls: Array<{ url: string; init?: RequestInit }> = [];
+  const dependencies = createTelegramDisconnectDependenciesFromOptions({
+    getOptionalEnv(key) {
+      assertEquals(key, "KYRA_TELEGRAM_DISCONNECT_ENABLED");
+      return "true";
+    },
+    getEnv(key) {
+      envReads.push(key);
+
+      if (key === "SUPABASE_URL") {
+        return "https://project.supabase.co";
+      }
+
+      if (key === "SUPABASE_ANON_KEY") {
+        return "anon-key";
+      }
+
+      if (key === "SUPABASE_SERVICE_ROLE_KEY") {
+        return "service-role-secret";
+      }
+
+      throw new Error(`Unexpected env key: ${key}`);
+    },
+    fetchRpc: async (input, init) => {
+      fetchCalls.push({ url: String(input), init });
+      return new Response(
+        JSON.stringify([
+          {
+            claimed: true,
+            status: "claimed",
+            telegram_session_id: telegramSessionId,
+            agent_id: agentId,
+            bot_handle: "@kyra_test_bot",
+            token_secret_ref: null,
+            webhook_secret_ref: null,
+          },
+        ]),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        },
+      );
+    },
+    getUser: async () => ({ id: userId }),
+  });
+
+  assertEquals(dependencies.disconnectRuntimeConfig?.enabled, true);
+  assertEquals(envReads.length, 0);
+  assertEquals(fetchCalls.length, 0);
+  assertEquals(typeof dependencies.claimTelegramDisconnectSession, "function");
+
+  const claim = await dependencies.claimTelegramDisconnectSession?.({
+    agentId,
+    ownerUserId: userId,
+    action: "pause",
+  });
+
+  assertEquals(claim?.action, "pause");
+  assertEquals(envReads.join(","), "SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY");
+  assertEquals(fetchCalls.length, 1);
+  assertEquals(
+    fetchCalls[0].url,
+    "https://project.supabase.co/rest/v1/rpc/claim_telegram_disconnect_session",
+  );
+  assertEquals(fetchCalls[0].init?.method, "POST");
+  const requestBody = JSON.parse(String(fetchCalls[0].init?.body)) as Record<
+    string,
+    unknown
+  >;
+  assertEquals(requestBody.p_agent_id, agentId);
+  assertEquals(requestBody.p_owner_user_id, userId);
+  assertEquals(requestBody.p_action, "pause");
+  assert(
+    !JSON.stringify(claim).includes("service-role-secret"),
+    "Claim result must not echo service role key.",
   );
 });
 

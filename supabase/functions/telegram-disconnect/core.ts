@@ -11,6 +11,7 @@ import {
   readJsonObjectBody,
 } from "../telegram-connect/core.ts";
 import type { TelegramDisconnectRuntimeConfig } from "./runtime-config.ts";
+import type { TelegramDisconnectClaimResult } from "./session-claim.ts";
 
 export const maxTelegramDisconnectBodyBytes = 4096;
 
@@ -24,6 +25,11 @@ export interface TelegramDisconnectDependencies {
     anonKey: string,
     authorization: string,
   ) => Promise<unknown>;
+  claimTelegramDisconnectSession?: (input: {
+    agentId: string;
+    ownerUserId: string;
+    action: TelegramDisconnectAction;
+  }) => Promise<TelegramDisconnectClaimResult>;
 }
 
 export interface TelegramDisconnectRequestBody {
@@ -70,15 +76,28 @@ export async function handleTelegramDisconnectRequest(
     const supabaseUrl = getEnv("SUPABASE_URL");
     const anonKey = getEnv("SUPABASE_ANON_KEY");
     const user = await getUser(supabaseUrl, anonKey, authorization);
-    assertAuthenticatedUserId(user);
+    const ownerUserId = assertAuthenticatedUserId(user);
 
     const body = await readJsonObjectBody(
       request,
       maxTelegramDisconnectBodyBytes,
     );
-    assertTelegramDisconnectBody(body);
+    const disconnectBody = assertTelegramDisconnectBody(body);
 
-    return notConfiguredResponse();
+    if (disconnectBody.action !== "pause") {
+      return notConfiguredResponse();
+    }
+
+    const claimTelegramDisconnectSession = requireDependency(
+      dependencies.claimTelegramDisconnectSession,
+    );
+    await claimTelegramDisconnectSession({
+      agentId: disconnectBody.agentId,
+      ownerUserId,
+      action: disconnectBody.action,
+    });
+
+    return pausedResponse();
   } catch (error) {
     if (error instanceof HttpError) {
       return jsonResponse(
@@ -183,5 +202,16 @@ function notConfiguredResponse() {
       message: "Telegram disconnect is planned but not enabled yet.",
     },
     501,
+  );
+}
+
+function pausedResponse() {
+  return jsonResponse(
+    {
+      ok: true,
+      status: "paused",
+      message: "Telegram bot paused.",
+    },
+    200,
   );
 }
