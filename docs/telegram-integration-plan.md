@@ -9342,3 +9342,51 @@ Still blocked:
 - Do not resolve token refs or call Telegram `deleteWebhook`.
 - Do not enable `KYRA_TELEGRAM_DISCONNECT_ENABLED`.
 - Do not deploy Edge Functions or push without explicit timing approval.
+
+## Phase 5DI.7 - Telegram Disconnect Claim SQL Apply Record
+
+Phase 5DI.7 records the approved Supabase apply result for
+`claim_telegram_disconnect_session` and syncs the local schema snapshot. The SQL
+was applied manually in Supabase by the operator; this repo slice only records
+the result and updates local files.
+
+Manual apply result:
+
+- `supabase/telegram_disconnect_session_claim_forward_review.sql` completed
+  successfully in Supabase with no returned rows.
+- `supabase/verify_telegram_disconnect_session_claim_contract.sql` returned
+  `true` for all required disconnect claim contract and ACL checks:
+  function exists, PL/pgSQL language, security-invoker contract, bounded result
+  shape, expected definition signals, no token resolution or Telegram API call,
+  browser roles cannot execute, service role can execute, and browser roles
+  cannot read token/webhook secret tables or `telegram_sessions.token_secret_ref`.
+- `supabase/verify_authenticated_demo_write_lockdown.sql` / Telegram schema
+  privilege compliance output remained aligned with the expected lockdown
+  posture:
+  authenticated users can read only approved Telegram session summary fields,
+  cannot insert/update/delete Telegram session rows, cannot select
+  `token_secret_ref`, and sensitive Telegram tables/RPCs remain service-role
+  only.
+
+Local sync:
+
+- `supabase/schema.sql` now includes
+  `public.claim_telegram_disconnect_session(uuid,uuid,text)`.
+- `supabase/schema.sql` now revokes execute from browser roles and grants
+  execute only to `service_role` for the disconnect claim RPC.
+- No runtime wiring changed in this slice.
+- No Edge Function deploy happened.
+- No runtime gate was enabled.
+- No push or Netlify action happened.
+
+Next runtime slice:
+
+- Wire `telegram-disconnect` to create a service-role dependency only when the
+  disconnect gate is explicitly enabled.
+- Call the claim adapter after auth/session/body validation.
+- Keep valid `pause` as DB-only session claim.
+- Keep `disconnect` and `revoke` blocked before any live token resolution or
+  Telegram `deleteWebhook` call until their cleanup sequence is separately
+  wired and tested.
+- Keep `KYRA_TELEGRAM_DISCONNECT_ENABLED` disabled until deploy and smoke timing
+  are explicitly approved.
