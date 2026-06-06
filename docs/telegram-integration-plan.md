@@ -9118,3 +9118,118 @@ What not to touch yet:
 - Do not deploy Edge Functions.
 - Do not push while Netlify credits are being conserved unless the user
   explicitly approves that timing.
+
+## Phase 5DI.4 - Telegram Disconnect SQL Packet Preflight
+
+Phase 5DI.4 is an audit-only and docs-only preflight for the future SQL packet
+that will support operator pause, disconnect, and revoke. It does not create or
+edit SQL files, does not modify `schema.sql`, does not apply SQL in Supabase,
+does not deploy Edge Functions, and does not enable runtime gates.
+
+Current SQL pattern findings:
+
+- Existing Telegram SQL packets use local review artifacts named
+  `*_forward_review.sql`, `*_rollback_review.sql`, and separate read-only
+  verifier files.
+- Forward packets start with `REVIEW DRAFT - DO NOT APPLY WITHOUT EXPLICIT
+  APPROVAL`, perform dependency guards, and abort if the target object already
+  exists.
+- Rollback packets are separate and must be reviewed with the forward packet
+  before any manual apply.
+- Verifier files are read-only and return boolean contract checks instead of
+  mutating data.
+- `verify_authenticated_demo_write_lockdown.sql` is the broad safety verifier
+  that should continue to pass after any Telegram SQL packet is applied.
+- `telegram_sessions.webhook_status` already supports `paused`, which is enough
+  for the first operator stop state without adding a new status value.
+- `telegram_sessions`, `telegram_bot_token_secrets`,
+  `telegram_webhook_secrets`, and the existing token/webhook RPCs are already
+  locked down to service-role-only sensitive paths.
+- No `claim_telegram_disconnect_session` function exists yet.
+
+Recommended future local SQL review files:
+
+- `supabase/telegram_disconnect_session_claim_forward_review.sql`
+- `supabase/telegram_disconnect_session_claim_rollback_review.sql`
+- `supabase/verify_telegram_disconnect_session_claim_contract.sql`
+
+Forward packet contract:
+
+- Create only one RPC first:
+  `public.claim_telegram_disconnect_session(uuid, uuid, text)`.
+- Do not create new public tables for the first disconnect slice unless a later
+  audit proves an audit/history table is required.
+- Do not change `telegram_sessions.webhook_status` allowed values yet.
+- Require existing dependencies:
+  - `public.telegram_sessions`
+  - `public.telegram_bot_token_secrets`
+  - `public.telegram_webhook_secrets`
+  - `public.agent_instances`
+  - `public.workspaces`
+  - `public.revoke_telegram_bot_token(text)`
+- Abort if `public.claim_telegram_disconnect_session(uuid,uuid,text)` already
+  exists.
+- Implement a transaction-safe active session claim:
+  - Validate non-null `p_agent_id`, `p_owner_user_id`, and allowed `p_action`.
+  - Allowed actions: `pause`, `disconnect`, `revoke`.
+  - Verify ownership through
+    `agent_instances.workspace_id -> workspaces.owner_user_id`.
+  - Match only sessions where `webhook_status = 'active'`.
+  - Require one active session exactly; duplicate active rows return a bounded
+    conflict status and no mutation.
+  - Transition the selected session from `active` to `paused` before any future
+    runtime token resolution or Telegram API call.
+  - Return only bounded backend fields to the service role:
+    `claimed`, `status`, `telegram_session_id`, `agent_id`, `bot_handle`,
+    `token_secret_ref`, and `webhook_secret_ref`.
+  - Never return `owner_user_id`, `workspace_id`, raw token, raw webhook secret,
+    raw SQL errors, or internal table details.
+- Revoke execute from `public`, `anon`, `authenticated`, and `service_role`,
+  then grant execute only to `service_role`.
+
+Preferred result statuses:
+
+- `claimed`: one active owned session was transitioned to `paused`.
+- `not_found`: no active session matched the owned agent.
+- `forbidden`: agent exists but does not belong to the signed-in owner, if the
+  product chooses explicit non-owner feedback.
+- `conflict`: more than one active session exists for the agent.
+- `invalid_action`: action is not one of the approved values.
+- `missing_secret_ref`: the action requires token/webhook references but the
+  active session metadata is incomplete.
+
+Verifier contract:
+
+- Confirm the RPC exists with the exact signature
+  `public.claim_telegram_disconnect_session(uuid,uuid,text)`.
+- Confirm language, volatility, security mode, and search path match the
+  approved packet.
+- Confirm only `service_role` can execute it.
+- Confirm browser roles cannot select sensitive columns or tables:
+  `telegram_bot_token_secrets`, `telegram_webhook_secrets`, and broad
+  `telegram_sessions` sensitive fields.
+- Confirm the function result columns match the bounded backend-only contract.
+- Confirm the function body references ownership joins and active-to-paused
+  state transition.
+- Confirm the function body does not reference `vault.decrypted_secrets`,
+  `supabase_functions`, raw tokens, Telegram URLs, or public grants.
+- Confirm `verify_authenticated_demo_write_lockdown.sql` remains part of the
+  required post-apply checklist.
+
+Rollback packet contract:
+
+- Revoke execute on
+  `public.claim_telegram_disconnect_session(uuid,uuid,text)` from all roles.
+- Drop only `public.claim_telegram_disconnect_session(uuid,uuid,text)`.
+- Do not drop Telegram sessions, token secret metadata, webhook secret
+  metadata, processed update rows, owner-link rows, or authorization rows.
+- Do not change existing `webhook_status` values.
+
+Runtime wiring remains blocked until:
+
+- Forward, rollback, and verifier files are reviewed together.
+- User explicitly approves manual SQL apply timing.
+- Supabase verifier results are all true after apply.
+- Edge Function runtime tests cover claim result mapping and failure order.
+- `KYRA_TELEGRAM_DISCONNECT_ENABLED` remains disabled until deploy and smoke
+  timing are explicitly approved.
