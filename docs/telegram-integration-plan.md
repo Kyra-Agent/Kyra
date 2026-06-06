@@ -9233,3 +9233,61 @@ Runtime wiring remains blocked until:
 - Edge Function runtime tests cover claim result mapping and failure order.
 - `KYRA_TELEGRAM_DISCONNECT_ENABLED` remains disabled until deploy and smoke
   timing are explicitly approved.
+
+## Phase 5DI.5 - Telegram Disconnect SQL Review Packet
+
+Phase 5DI.5 prepares local SQL review artifacts for future operator disconnect
+claim behavior. These files are not applied to Supabase, do not modify
+`schema.sql`, and do not change runtime behavior.
+
+Files prepared:
+
+- `supabase/telegram_disconnect_session_claim_forward_review.sql`
+- `supabase/telegram_disconnect_session_claim_rollback_review.sql`
+- `supabase/verify_telegram_disconnect_session_claim_contract.sql`
+
+Forward packet summary:
+
+- Creates `public.claim_telegram_disconnect_session(uuid,uuid,text)` only.
+- Uses the existing `paused` state instead of adding a new webhook status.
+- Verifies the owner through
+  `agent_instances.workspace_id -> workspaces.owner_user_id`.
+- Uses an advisory transaction lock keyed to the agent before active-session
+  checks and state mutation.
+- Requires exactly one active owned Telegram session.
+- Transitions `webhook_status` from `active` to `paused` before any future
+  runtime token resolution or Telegram `deleteWebhook` call.
+- For `pause`, returns no token or webhook secret refs.
+- For `disconnect` and `revoke`, requires active token and webhook secret
+  metadata and returns only refs needed by the service-role Edge runtime.
+- Does not resolve raw BotFather tokens, call Telegram APIs, create tables,
+  insert rows, or touch Vault.
+- Revokes execute from browser roles and grants execute only to `service_role`.
+
+Rollback packet summary:
+
+- Revokes execute on the disconnect claim RPC from all roles.
+- Drops only `public.claim_telegram_disconnect_session(uuid,uuid,text)`.
+- Does not drop Telegram sessions, token metadata, webhook metadata, processed
+  updates, owner-link challenges, rate-limit rows, or chat authorizations.
+
+Verifier summary:
+
+- Checks the RPC signature, PL/pgSQL language, volatile/security-invoker
+  contract, empty search path, bounded return shape, ownership and active-to-
+  paused definition signals, and service-role-only execute grants.
+- Checks browser roles cannot select token/webhook secret tables or
+  `telegram_sessions.token_secret_ref`.
+- Checks the function body does not resolve raw tokens, access Vault decrypted
+  secrets, or include Telegram API calls.
+
+Still blocked:
+
+- Do not run these SQL files in Supabase until the user explicitly approves
+  manual SQL apply timing.
+- Do not update `schema.sql` from these artifacts until after an approved apply
+  and verifier pass.
+- Do not wire `telegram-disconnect` runtime to this RPC yet.
+- Do not enable `KYRA_TELEGRAM_DISCONNECT_ENABLED`.
+- Do not deploy Edge Functions or push solely for this SQL packet while Netlify
+  credits are being conserved.
