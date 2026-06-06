@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   ArrowLeft,
@@ -49,10 +49,6 @@ import {
   getSupabaseAdapterStatus,
   type SupabaseConnectionStatus,
 } from "../services/supabaseKyraRepository";
-import {
-  connectTelegramBot,
-  type TelegramConnectStatus,
-} from "../services/telegramConnectService";
 import {
   issueTelegramOwnerLink,
   type TelegramLinkStatus,
@@ -177,7 +173,6 @@ function getCatalogValue(status: SupabaseConnectionStatus, templateCount: number
 }
 
 type DeployChecklistState = "complete" | "active" | "blocked" | "todo";
-type TelegramConnectUiStatus = "idle" | "running" | "success" | "error";
 type TelegramOwnerLinkUiStatus = "idle" | "running" | "success" | "error";
 
 interface DeployChecklistItem {
@@ -289,16 +284,11 @@ export function Dashboard({
     appConfig.functions.deployAgentConfigured ? "checking" : "not-configured",
   );
   const [deployFunctionMessage, setDeployFunctionMessage] = useState("");
-  const [telegramConnectToken, setTelegramConnectToken] = useState("");
-  const [telegramConnectStatus, setTelegramConnectStatus] =
-    useState<TelegramConnectUiStatus>("idle");
-  const [telegramConnectMessage, setTelegramConnectMessage] = useState(
-    "Real Telegram connect is gated while backend token storage is being prepared.",
-  );
+  const [selectedDashboardAgentId, setSelectedDashboardAgentId] = useState<string | null>(null);
   const [telegramOwnerLinkStatus, setTelegramOwnerLinkStatus] =
     useState<TelegramOwnerLinkUiStatus>("idle");
   const [telegramOwnerLinkMessage, setTelegramOwnerLinkMessage] = useState(
-    "Owner chat linking is available after the Telegram session is active.",
+    "Owner chat linking is available after the selected Telegram session is active.",
   );
   const [telegramOwnerLinkUrl, setTelegramOwnerLinkUrl] = useState<string | null>(null);
   const [telegramOwnerLinkExpiresAt, setTelegramOwnerLinkExpiresAt] = useState<string | null>(null);
@@ -450,8 +440,32 @@ export function Dashboard({
     };
   }, [isAdmin]);
 
-  const agentRecord = dashboardData?.latestAgent ?? null;
-  const dashboardAgentCount = dashboardData?.agentInstances.length ?? 0;
+  const agentRecords = useMemo(
+    () => dashboardData?.agentInstances ?? [],
+    [dashboardData?.agentInstances],
+  );
+
+  useEffect(() => {
+    if (!agentRecords.length) {
+      if (selectedDashboardAgentId) {
+        setSelectedDashboardAgentId(null);
+      }
+      return;
+    }
+
+    if (
+      !selectedDashboardAgentId ||
+      !agentRecords.some((agent) => agent.id === selectedDashboardAgentId)
+    ) {
+      setSelectedDashboardAgentId(agentRecords[0].id);
+    }
+  }, [agentRecords, selectedDashboardAgentId]);
+
+  const agentRecord =
+    agentRecords.find((agent) => agent.id === selectedDashboardAgentId) ??
+    dashboardData?.latestAgent ??
+    null;
+  const dashboardAgentCount = agentRecords.length;
   const activeTemplate = useMemo(
     () =>
       agentTemplates.find((template) => template.id === agentRecord?.templateId) ??
@@ -462,10 +476,10 @@ export function Dashboard({
     if (dashboardData?.approvalRequests.length && agentRecord) {
       return [
         ...dashboardData.approvalRequests.filter(
-          (request) => request.templateId === agentRecord.templateId,
+          (request) => request.agentId === agentRecord.id,
         ),
         ...dashboardData.approvalRequests.filter(
-          (request) => request.templateId !== agentRecord.templateId,
+          (request) => request.agentId !== agentRecord.id,
         ),
       ].slice(0, 3);
     }
@@ -750,17 +764,6 @@ export function Dashboard({
     setDashboardReloadKey((key) => key + 1);
   }
 
-  function getTelegramConnectTone(status: TelegramConnectStatus) {
-    return status === "validated" ||
-        status === "review" ||
-        status === "queued" ||
-        status === "active" ||
-        status === "not_configured" ||
-        status === "function_not_configured"
-      ? "success"
-      : "error";
-  }
-
   function getTelegramOwnerLinkTone(status: TelegramLinkStatus) {
     return status === "link_ready" ? "success" : "error";
   }
@@ -777,70 +780,18 @@ export function Dashboard({
     });
   }
 
-  function clearTelegramConnectToken() {
-    setTelegramConnectToken("");
-  }
-
   function clearTelegramOwnerLink() {
     setTelegramOwnerLinkUrl(null);
     setTelegramOwnerLinkExpiresAt(null);
   }
 
-  function handleCancelTelegramConnect() {
-    clearTelegramConnectToken();
-    setTelegramConnectStatus("idle");
-    setTelegramConnectMessage(
-      "Real Telegram connect is gated while backend token storage is being prepared.",
+  function handleSelectDashboardAgent(agentId: string) {
+    setSelectedDashboardAgentId(agentId);
+    clearTelegramOwnerLink();
+    setTelegramOwnerLinkStatus("idle");
+    setTelegramOwnerLinkMessage(
+      "Owner chat linking is available after the selected Telegram session is active.",
     );
-  }
-
-  async function handleSubmitTelegramConnect(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!authSession || !agentRecord) {
-      clearTelegramConnectToken();
-      setTelegramConnectStatus("error");
-      setTelegramConnectMessage("Sign in and deploy a demo agent before connecting Telegram.");
-      return;
-    }
-
-    const botToken = telegramConnectToken.trim();
-
-    if (!botToken) {
-      clearTelegramConnectToken();
-      setTelegramConnectStatus("error");
-      setTelegramConnectMessage("Enter a BotFather token to test the secure connect gate.");
-      return;
-    }
-
-    setTelegramConnectStatus("running");
-    setTelegramConnectMessage("Checking the inert Telegram connect gate...");
-
-    try {
-      const freshAuth = await ensureFreshAuthSession(authSession);
-
-      syncFreshAuthSession(authSession, freshAuth);
-
-      if (!freshAuth.session) {
-        setTelegramConnectStatus("error");
-        setTelegramConnectMessage(freshAuth.message);
-        return;
-      }
-
-      const result = await connectTelegramBot({
-        session: freshAuth.session,
-        agentId: agentRecord.id,
-        botToken,
-      });
-
-      setTelegramConnectStatus(getTelegramConnectTone(result.status));
-      setTelegramConnectMessage(result.message);
-    } catch {
-      setTelegramConnectStatus("error");
-      setTelegramConnectMessage("Telegram connect request failed safely.");
-    } finally {
-      clearTelegramConnectToken();
-    }
   }
 
   async function handleIssueTelegramOwnerLink() {
@@ -1044,6 +995,42 @@ export function Dashboard({
           )}
         </div>
 
+        {agentRecords.length ? (
+          <section className="dashboard-agent-selector" aria-label="Dashboard agent selector">
+            <div className="panel-title">
+              <span>Viewing agent</span>
+              <span>{agentRecords.length}/{demoAgentLimits.maxAgentsPerWorkspace}</span>
+            </div>
+            <div className="dashboard-agent-strip" role="list">
+              {agentRecords.map((agent) => {
+                const template =
+                  agentTemplates.find((item) => item.id === agent.templateId) ??
+                  selectedTemplate;
+                const selected = agent.id === agentRecord?.id;
+
+                return (
+                  <button
+                    className={`dashboard-agent-pill ${selected ? "is-active" : ""}`}
+                    type="button"
+                    key={agent.id}
+                    onClick={() => handleSelectDashboardAgent(agent.id)}
+                    aria-pressed={selected}
+                  >
+                    <span>
+                      <strong>{agent.displayName}</strong>
+                      <small>{template.name}</small>
+                    </span>
+                    <span>
+                      <small>{agent.handle}</small>
+                      <em>{formatRuntimeValue(agent.telegramStatus)}</em>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
+
         <section className="dashboard-kpi-grid" id="overview">
           <article>
             <span>Template</span>
@@ -1105,7 +1092,7 @@ export function Dashboard({
           <section className="dashboard-panel telegram-status-panel">
             <div className="panel-title">
               <span>Telegram connection</span>
-              <span>coming next</span>
+              <span>{agentRecord ? "selected agent" : "locked"}</span>
             </div>
             <div className="telegram-status-card">
               <span className="telegram-status-icon">
@@ -1120,50 +1107,21 @@ export function Dashboard({
                 </p>
               </div>
             </div>
-            {authSession && agentRecord && appConfig.featureFlags.telegramConnectTokenInput ? (
+            {authSession && agentRecord ? (
               <>
-                <form className="telegram-connect-gate" onSubmit={handleSubmitTelegramConnect}>
-                  <label className="field telegram-token-field">
-                    <span>BotFather token</span>
-                    <input
-                      type="password"
-                      value={telegramConnectToken}
-                      onChange={(event) => setTelegramConnectToken(event.target.value)}
-                      placeholder="123456:AA..."
-                      autoComplete="new-password"
-                      autoCorrect="off"
-                      autoCapitalize="none"
-                      spellCheck={false}
-                      disabled={telegramConnectStatus === "running"}
-                    />
-                  </label>
+                <div className="telegram-connect-gate">
                   <div className="telegram-status-actions">
-                    <button
-                      className="button button-ghost"
-                      type="submit"
-                      disabled={telegramConnectStatus === "running" || !telegramConnectToken.trim()}
-                    >
+                    <button className="button button-ghost" type="button" disabled>
                       <LockKeyhole size={16} />
-                      {telegramConnectStatus === "running" ? "Checking" : "Connect Telegram"}
+                      Reconnect Telegram
                     </button>
-                    <button
-                      className="button button-ghost telegram-cancel-button"
-                      type="button"
-                      onClick={handleCancelTelegramConnect}
-                      disabled={
-                        telegramConnectStatus === "running" ||
-                        (!telegramConnectToken && telegramConnectStatus === "idle")
-                      }
-                      aria-label="Clear Telegram token input"
-                    >
-                      <X size={16} />
-                    </button>
-                    <span>Backend gated</span>
+                    <span>Deploy flow next</span>
                   </div>
-                  <p className={`telegram-connect-message telegram-connect-${telegramConnectStatus}`}>
-                    {telegramConnectMessage}
+                  <p className="telegram-connect-message telegram-connect-idle">
+                    Connection changes belong in deploy or reconnect flow. Dashboard only shows
+                    selected-agent status and owner pairing.
                   </p>
-                </form>
+                </div>
                 <div className="telegram-owner-link-gate">
                   <div>
                     <small>Owner pairing</small>
@@ -1210,9 +1168,9 @@ export function Dashboard({
               <div className="telegram-status-actions">
                 <button className="button button-ghost" type="button" disabled>
                   <LockKeyhole size={16} />
-                  Connect Telegram
+                  Select an agent
                 </button>
-                <span>Coming next</span>
+                <span>Status only</span>
               </div>
             )}
           </section>
