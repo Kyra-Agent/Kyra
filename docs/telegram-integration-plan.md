@@ -9291,3 +9291,54 @@ Still blocked:
 - Do not enable `KYRA_TELEGRAM_DISCONNECT_ENABLED`.
 - Do not deploy Edge Functions or push solely for this SQL packet while Netlify
   credits are being conserved.
+
+## Phase 5DI.6 - Telegram Disconnect Claim Adapter Contract
+
+Phase 5DI.6 adds a local-only adapter contract for the future
+`claim_telegram_disconnect_session` RPC. It is not wired into
+`telegram-disconnect` runtime yet, so the Edge Function remains inert and still
+returns `not_configured` on the enabled test path.
+
+Files added:
+
+- `supabase/functions/telegram-disconnect/session-claim.ts`
+- `supabase/functions/telegram-disconnect/session-claim_test.ts`
+
+Adapter contract:
+
+- Calls only `claim_telegram_disconnect_session` through an injected RPC client.
+- Sends bounded arguments:
+  `p_agent_id`, `p_owner_user_id`, and `p_action`.
+- Validates input before RPC:
+  invalid agent ID, owner user ID, or action rejects before the RPC client is
+  called.
+- Parses exactly one bounded row with:
+  `claimed`, `status`, `telegram_session_id`, `agent_id`, `bot_handle`,
+  `token_secret_ref`, and `webhook_secret_ref`.
+- Rejects extra fields such as `owner_user_id` or `workspace_id`.
+- For `pause`, rejects any returned token or webhook secret refs.
+- For `disconnect` and `revoke`, requires bounded token and webhook secret refs
+  for later service-role-only runtime use.
+- Maps bounded failure statuses to sanitized HTTP errors:
+  `invalid_request`, `invalid_action`, `not_found`, `forbidden`, `conflict`,
+  and `missing_secret_ref`.
+- Sanitizes RPC errors and malformed rows without echoing owner IDs, workspace
+  IDs, token refs, webhook refs, raw tokens, raw webhook secrets, or raw DB
+  error text.
+
+Verification:
+
+- `deno check` for all Telegram Edge Function entrypoints passed.
+- `deno test` for all Telegram Edge Function folders passed.
+- `npm exec tsc -- --noEmit` passed.
+- `npm run check:functions` passed.
+- `git diff --check` passed.
+
+Still blocked:
+
+- Do not wire the adapter into `telegram-disconnect/core.ts` until the SQL
+  packet is applied and verifier results are accepted.
+- Do not create a service-role runtime dependency for disconnect yet.
+- Do not resolve token refs or call Telegram `deleteWebhook`.
+- Do not enable `KYRA_TELEGRAM_DISCONNECT_ENABLED`.
+- Do not deploy Edge Functions or push without explicit timing approval.
