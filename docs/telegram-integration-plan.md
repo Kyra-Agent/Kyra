@@ -8904,3 +8904,70 @@ What not to touch yet:
   rows.
 - Do not push while Netlify deploy credits are being conserved unless the user
   explicitly approves that timing.
+
+## Phase 5DI.2 - Inert Telegram Disconnect Skeleton
+
+Phase 5DI.2 adds a local-only, inert `telegram-disconnect` Edge Function
+skeleton for the operator disconnect contract. It remains default-off and is not
+deployed.
+
+Implemented local contract:
+
+- New `supabase/functions/telegram-disconnect` function directory.
+- Supabase gateway JWT verification is configured as `true` for
+  `functions.telegram-disconnect`.
+- `scripts/check-functions.mjs` includes the new entrypoint and JWT verification
+  expectation.
+- Runtime gate:
+  `KYRA_TELEGRAM_DISCONNECT_ENABLED`.
+- The runtime gate enables only on exact `true`; all other values are disabled.
+- With the gate disabled, `POST` returns `501 not_configured` before request
+  body access, required env reads, Supabase session validation, service-role
+  client creation, DB access, token resolution, or Telegram API calls.
+- With the gate enabled in tests, the handler validates bearer auth, Supabase
+  session shape, and request body shape, then still returns
+  `501 not_configured`.
+
+Supported future request shape:
+
+```json
+{
+  "agentId": "uuid",
+  "action": "pause | disconnect | revoke",
+  "reason": "optional bounded operator note"
+}
+```
+
+Safety state:
+
+- No real pause, disconnect, or revoke behavior is implemented.
+- No service-role client is created by this skeleton.
+- No database read or write occurs.
+- No BotFather token is accepted.
+- No token, token ref, webhook secret, webhook ref, Telegram URL, session ID,
+  owner ID, workspace ID, or operator note is returned.
+- No Telegram `deleteWebhook`, `setWebhook`, `getMe`, or `sendMessage` call is
+  made.
+- No SQL/schema/RLS/grant change was made.
+- No Edge Function deploy, push, or Netlify action happened in this slice.
+
+Tests added:
+
+- Runtime gate exact-`true` behavior.
+- Disabled path does not read body, env, or session dependencies.
+- CORS `OPTIONS`.
+- Content type and body-size guards before env/body access.
+- Missing bearer before env/body access.
+- Invalid session sanitized behavior.
+- Valid enabled request remains inert `not_configured`.
+- Invalid JSON sanitized `400`.
+- Extra fields, including `botToken`, rejected without token echo.
+- Action and bounded reason validators.
+
+Remaining blocked work:
+
+- Do not deploy `telegram-disconnect`.
+- Do not enable `KYRA_TELEGRAM_DISCONNECT_ENABLED`.
+- Do not add DB lookup, service-role mutation, token resolution, webhook
+  deletion, webhook-secret revoke, or token revoke behavior until the SQL/RPC
+  packet and verifier checks are approved.
