@@ -9527,3 +9527,63 @@ Still blocked:
 - Do not run live Telegram disconnect/revoke smoke tests yet.
 - Do not push unless timing is explicitly approved because Netlify credits are
   limited.
+
+## Phase 5DI.11 - Telegram Disconnect Push, Deploy, and Gate Readiness
+
+Phase 5DI.11 records the operational readiness checks for the newly wired
+`telegram-disconnect` cleanup runtime. It is documentation only and does not
+change code, schema, secrets, Edge Function deployment, or production gates.
+
+Current local state:
+
+- The local `telegram-disconnect` runtime can pause, disconnect, and revoke only
+  when `KYRA_TELEGRAM_DISCONNECT_ENABLED=true`.
+- The default-off path still returns `not_configured` before body, required env,
+  or session access.
+- The latest local verification passed `npm run check:functions` and
+  `deno test supabase/functions/telegram-disconnect`.
+- The local branch may be ahead of `origin/main`; pushing can trigger Netlify
+  build/deploy credit usage if auto publishing is enabled.
+
+Push timing:
+
+- Push only when a coherent batch is worth spending a Netlify build, or when a
+  production fix needs to reach GitHub immediately.
+- Before push, confirm `git status --short` is clean and run the standard local
+  verification set for the touched area.
+- If Netlify credits are low, prefer batching local commits until a user-facing
+  milestone or required production fix exists.
+
+Edge Function deploy timing:
+
+- Deploy `telegram-disconnect` only after the pushed GitHub state is the exact
+  state intended for production.
+- Confirm Supabase function config still has
+  `functions.telegram-disconnect.verify_jwt = true`.
+- Confirm all required SQL/RPC objects already passed their verifier snippets in
+  the target Supabase project.
+- Deploy with the gate still disabled first, then smoke the default-off
+  behavior.
+
+Gate enable timing:
+
+- Enable `KYRA_TELEGRAM_DISCONNECT_ENABLED` only after a deployed default-off
+  smoke test confirms the function is reachable, authenticated, and still
+  bounded.
+- Enable the gate before live smoke tests only when rollback steps are ready:
+  disable the gate, redeploy the previous function version if needed, and stop
+  live Telegram disconnect/revoke testing.
+- Run live smoke in this order: invalid unauthenticated request, signed-in
+  non-owner denial, owned `pause`, owned `disconnect`, then owned `revoke` only
+  if token revocation is intentionally being tested.
+- Keep production public UI claims unchanged until live smoke confirms the full
+  connect/disconnect lifecycle.
+
+Still blocked:
+
+- Do not push automatically just because this checklist exists.
+- Do not deploy `telegram-disconnect` until explicitly approved.
+- Do not enable `KYRA_TELEGRAM_DISCONNECT_ENABLED` until explicitly approved.
+- Do not read `.env.local` or secret values during local checks.
+- Do not run live Telegram `deleteWebhook` or token revocation smoke tests until
+  the deploy and gate timing are explicitly approved.
