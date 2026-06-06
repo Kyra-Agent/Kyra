@@ -2391,6 +2391,27 @@ h2 {
   margin-top: 0.85rem;
 }
 
+.telegram-owner-link-gate {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.telegram-owner-link-gate small {
+  color: var(--muted);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.telegram-owner-link-gate strong {
+  display: block;
+  margin-top: 0.18rem;
+}
+
 .telegram-token-field {
   margin: 0;
 }
@@ -2402,6 +2423,11 @@ h2 {
 .telegram-cancel-button {
   width: 42px;
   padding-inline: 0;
+}
+
+.telegram-open-link {
+  min-height: 40px;
+  text-decoration: none;
 }
 
 .telegram-connect-message {

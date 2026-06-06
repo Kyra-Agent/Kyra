@@ -15,6 +15,9 @@ const resetDemoWorkspaceFunctionUrl =
 const telegramConnectFunctionUrl =
   readEnv("VITE_KYRA_TELEGRAM_CONNECT_FUNCTION_URL") ||
   (supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/telegram-connect` : "");
+const telegramLinkFunctionUrl =
+  readEnv("VITE_KYRA_TELEGRAM_LINK_FUNCTION_URL") ||
+  (supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/telegram-link` : "");
 const telegramConnectTokenInputEnabled =
   readEnv("VITE_KYRA_ENABLE_TELEGRAM_CONNECT_TOKEN_INPUT").toLowerCase() === "true";
 
@@ -36,6 +39,8 @@ export const appConfig = {
     resetDemoWorkspaceConfigured: Boolean(resetDemoWorkspaceFunctionUrl && supabaseConfigured),
     telegramConnectUrl: telegramConnectFunctionUrl,
     telegramConnectConfigured: Boolean(telegramConnectFunctionUrl && supabaseConfigured),
+    telegramLinkUrl: telegramLinkFunctionUrl,
+    telegramLinkConfigured: Boolean(telegramLinkFunctionUrl && supabaseConfigured),
   },
   featureFlags: {
     telegramConnectTokenInput: telegramConnectTokenInputEnabled,

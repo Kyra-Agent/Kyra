@@ -53,6 +53,10 @@ import {
   connectTelegramBot,
   type TelegramConnectStatus,
 } from "../services/telegramConnectService";
+import {
+  issueTelegramOwnerLink,
+  type TelegramLinkStatus,
+} from "../services/telegramLinkService";
 import type { DataProvider } from "../types/api";
 import type { DemoActivityLog, DemoApprovalRequest } from "../types/backend";
 
@@ -174,6 +178,7 @@ function getCatalogValue(status: SupabaseConnectionStatus, templateCount: number
 
 type DeployChecklistState = "complete" | "active" | "blocked" | "todo";
 type TelegramConnectUiStatus = "idle" | "running" | "success" | "error";
+type TelegramOwnerLinkUiStatus = "idle" | "running" | "success" | "error";
 
 interface DeployChecklistItem {
   label: string;
@@ -290,6 +295,13 @@ export function Dashboard({
   const [telegramConnectMessage, setTelegramConnectMessage] = useState(
     "Real Telegram connect is gated while backend token storage is being prepared.",
   );
+  const [telegramOwnerLinkStatus, setTelegramOwnerLinkStatus] =
+    useState<TelegramOwnerLinkUiStatus>("idle");
+  const [telegramOwnerLinkMessage, setTelegramOwnerLinkMessage] = useState(
+    "Owner chat linking is available after the Telegram session is active.",
+  );
+  const [telegramOwnerLinkUrl, setTelegramOwnerLinkUrl] = useState<string | null>(null);
+  const [telegramOwnerLinkExpiresAt, setTelegramOwnerLinkExpiresAt] = useState<string | null>(null);
   const supabaseStatus = getSupabaseAdapterStatus();
 
   useEffect(() => {
@@ -749,8 +761,29 @@ export function Dashboard({
       : "error";
   }
 
+  function getTelegramOwnerLinkTone(status: TelegramLinkStatus) {
+    return status === "link_ready" ? "success" : "error";
+  }
+
+  function formatTelegramOwnerLinkExpiry(value: string | null) {
+    if (!value) {
+      return "";
+    }
+
+    return new Date(value).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  }
+
   function clearTelegramConnectToken() {
     setTelegramConnectToken("");
+  }
+
+  function clearTelegramOwnerLink() {
+    setTelegramOwnerLinkUrl(null);
+    setTelegramOwnerLinkExpiresAt(null);
   }
 
   function handleCancelTelegramConnect() {
@@ -807,6 +840,54 @@ export function Dashboard({
       setTelegramConnectMessage("Telegram connect request failed safely.");
     } finally {
       clearTelegramConnectToken();
+    }
+  }
+
+  async function handleIssueTelegramOwnerLink() {
+    if (!authSession || !agentRecord) {
+      clearTelegramOwnerLink();
+      setTelegramOwnerLinkStatus("error");
+      setTelegramOwnerLinkMessage("Sign in and deploy a demo agent before linking Telegram chat.");
+      return;
+    }
+
+    clearTelegramOwnerLink();
+    setTelegramOwnerLinkStatus("running");
+    setTelegramOwnerLinkMessage("Generating a one-time Telegram owner link...");
+
+    try {
+      const freshAuth = await ensureFreshAuthSession(authSession);
+
+      syncFreshAuthSession(authSession, freshAuth);
+
+      if (!freshAuth.session) {
+        setTelegramOwnerLinkStatus("error");
+        setTelegramOwnerLinkMessage(freshAuth.message);
+        return;
+      }
+
+      const result = await issueTelegramOwnerLink({
+        session: freshAuth.session,
+        agentId: agentRecord.id,
+      });
+
+      setTelegramOwnerLinkStatus(getTelegramOwnerLinkTone(result.status));
+
+      if (result.ok && result.telegramLink) {
+        setTelegramOwnerLinkUrl(result.telegramLink);
+        setTelegramOwnerLinkExpiresAt(result.expiresAt);
+        setTelegramOwnerLinkMessage(
+          result.expiresAt
+            ? `Owner link ready until ${formatTelegramOwnerLinkExpiry(result.expiresAt)}.`
+            : result.message,
+        );
+        return;
+      }
+
+      setTelegramOwnerLinkMessage(result.message);
+    } catch {
+      setTelegramOwnerLinkStatus("error");
+      setTelegramOwnerLinkMessage("Telegram owner-link request failed safely.");
     }
   }
 
@@ -1031,57 +1112,100 @@ export function Dashboard({
                 <Bot size={18} />
               </span>
               <div>
-                <small>Telegram demo ready</small>
-                <strong>Real Telegram bot not connected</strong>
+                <small>Telegram live connect</small>
+                <strong>Owner chat not linked</strong>
                 <p>
-                  Current Telegram actions are simulated. The real connect flow will use
-                  backend-only token handling after the next approval.
+                  Bot connection uses backend-only token handling. Link the owner chat
+                  before read-only Telegram commands are enabled.
                 </p>
               </div>
             </div>
             {authSession && agentRecord && appConfig.featureFlags.telegramConnectTokenInput ? (
-              <form className="telegram-connect-gate" onSubmit={handleSubmitTelegramConnect}>
-                <label className="field telegram-token-field">
-                  <span>BotFather token</span>
-                  <input
-                    type="password"
-                    value={telegramConnectToken}
-                    onChange={(event) => setTelegramConnectToken(event.target.value)}
-                    placeholder="123456:AA..."
-                    autoComplete="new-password"
-                    autoCorrect="off"
-                    autoCapitalize="none"
-                    spellCheck={false}
-                    disabled={telegramConnectStatus === "running"}
-                  />
-                </label>
-                <div className="telegram-status-actions">
-                  <button
-                    className="button button-ghost"
-                    type="submit"
-                    disabled={telegramConnectStatus === "running" || !telegramConnectToken.trim()}
-                  >
-                    <LockKeyhole size={16} />
-                    {telegramConnectStatus === "running" ? "Checking" : "Connect Telegram"}
-                  </button>
-                  <button
-                    className="button button-ghost telegram-cancel-button"
-                    type="button"
-                    onClick={handleCancelTelegramConnect}
-                    disabled={
-                      telegramConnectStatus === "running" ||
-                      (!telegramConnectToken && telegramConnectStatus === "idle")
-                    }
-                    aria-label="Clear Telegram token input"
-                  >
-                    <X size={16} />
-                  </button>
-                  <span>Coming next</span>
+              <>
+                <form className="telegram-connect-gate" onSubmit={handleSubmitTelegramConnect}>
+                  <label className="field telegram-token-field">
+                    <span>BotFather token</span>
+                    <input
+                      type="password"
+                      value={telegramConnectToken}
+                      onChange={(event) => setTelegramConnectToken(event.target.value)}
+                      placeholder="123456:AA..."
+                      autoComplete="new-password"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      disabled={telegramConnectStatus === "running"}
+                    />
+                  </label>
+                  <div className="telegram-status-actions">
+                    <button
+                      className="button button-ghost"
+                      type="submit"
+                      disabled={telegramConnectStatus === "running" || !telegramConnectToken.trim()}
+                    >
+                      <LockKeyhole size={16} />
+                      {telegramConnectStatus === "running" ? "Checking" : "Connect Telegram"}
+                    </button>
+                    <button
+                      className="button button-ghost telegram-cancel-button"
+                      type="button"
+                      onClick={handleCancelTelegramConnect}
+                      disabled={
+                        telegramConnectStatus === "running" ||
+                        (!telegramConnectToken && telegramConnectStatus === "idle")
+                      }
+                      aria-label="Clear Telegram token input"
+                    >
+                      <X size={16} />
+                    </button>
+                    <span>Backend gated</span>
+                  </div>
+                  <p className={`telegram-connect-message telegram-connect-${telegramConnectStatus}`}>
+                    {telegramConnectMessage}
+                  </p>
+                </form>
+                <div className="telegram-owner-link-gate">
+                  <div>
+                    <small>Owner pairing</small>
+                    <strong>Link signed-in owner chat</strong>
+                  </div>
+                  <div className="telegram-status-actions">
+                    <button
+                      className="button button-ghost"
+                      type="button"
+                      onClick={handleIssueTelegramOwnerLink}
+                      disabled={telegramOwnerLinkStatus === "running"}
+                    >
+                      <KeyRound size={16} />
+                      {telegramOwnerLinkStatus === "running" ? "Generating" : "Generate owner link"}
+                    </button>
+                    {telegramOwnerLinkUrl ? (
+                      <>
+                        <a
+                          className="button button-primary telegram-open-link"
+                          href={telegramOwnerLinkUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Open Telegram
+                          <ExternalLink size={16} />
+                        </a>
+                        <button
+                          className="button button-ghost telegram-cancel-button"
+                          type="button"
+                          onClick={clearTelegramOwnerLink}
+                          aria-label="Clear Telegram owner link"
+                        >
+                          <X size={16} />
+                        </button>
+                      </>
+                    ) : null}
+                  </div>
+                  <p className={`telegram-connect-message telegram-connect-${telegramOwnerLinkStatus}`}>
+                    {telegramOwnerLinkMessage}
+                  </p>
                 </div>
-                <p className={`telegram-connect-message telegram-connect-${telegramConnectStatus}`}>
-                  {telegramConnectMessage}
-                </p>
-              </form>
+              </>
             ) : (
               <div className="telegram-status-actions">
                 <button className="button button-ghost" type="button" disabled>
