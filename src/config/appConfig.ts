@@ -18,8 +18,13 @@ const telegramConnectFunctionUrl =
 const telegramLinkFunctionUrl =
   readEnv("VITE_KYRA_TELEGRAM_LINK_FUNCTION_URL") ||
   (supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/telegram-link` : "");
+const telegramDashboardStatusFunctionUrl =
+  readEnv("VITE_KYRA_TELEGRAM_DASHBOARD_STATUS_FUNCTION_URL") ||
+  (supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/telegram-dashboard-status` : "");
 const telegramConnectTokenInputEnabled =
   readEnv("VITE_KYRA_ENABLE_TELEGRAM_CONNECT_TOKEN_INPUT").toLowerCase() === "true";
+const telegramDashboardStatusReadModelEnabled =
+  readEnv("VITE_KYRA_ENABLE_TELEGRAM_DASHBOARD_STATUS").toLowerCase() === "true";
 
 export const appConfig = {
   appName: "Kyra Agent",
@@ -41,9 +46,14 @@ export const appConfig = {
     telegramConnectConfigured: Boolean(telegramConnectFunctionUrl && supabaseConfigured),
     telegramLinkUrl: telegramLinkFunctionUrl,
     telegramLinkConfigured: Boolean(telegramLinkFunctionUrl && supabaseConfigured),
+    telegramDashboardStatusUrl: telegramDashboardStatusFunctionUrl,
+    telegramDashboardStatusConfigured: Boolean(
+      telegramDashboardStatusFunctionUrl && supabaseConfigured,
+    ),
   },
   featureFlags: {
     telegramConnectTokenInput: telegramConnectTokenInputEnabled,
+    telegramDashboardStatusReadModel: telegramDashboardStatusReadModelEnabled,
   },
   integrations: {
     auth: requestedDataProvider === "supabase" && supabaseConfigured ? "supabase" : "demo",

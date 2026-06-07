@@ -9676,3 +9676,40 @@ Still blocked:
 - Do not change schema/RLS or apply SQL in this planning slice.
 - Do not implement or deploy a new Edge Function in this planning slice.
 - Do not push automatically while Netlify credits are limited.
+
+## Phase 5DI.13 - Dashboard Status Frontend Gate
+
+Phase 5DI.13 adds a frontend-only gate for the future
+`telegram-dashboard-status` read endpoint. It does not deploy the Edge Function,
+enable the runtime gate, change schema/RLS, read secrets, call Telegram APIs, or
+change production behavior by default.
+
+Implementation rules:
+
+- Frontend calls to `telegram-dashboard-status` must be disabled unless
+  `VITE_KYRA_ENABLE_TELEGRAM_DASHBOARD_STATUS=true`.
+- With the flag disabled, the dashboard must continue using
+  `telegram_session_summaries` as the browser-safe fallback source.
+- The dashboard status service may send only `{ agentIds }` and the signed-in
+  Supabase bearer token.
+- The service must accept only bounded response fields:
+  `agentId`, `botHandle`, `webhookStatus`, `ownerChatLinked`,
+  `ownerLinkAvailable`, and `lastEventAt`.
+- The service must sanitize errors and reject malformed payloads instead of
+  rendering raw backend data.
+- The UI may use `ownerChatLinked` only to show `Owner chat linked` and disable
+  redundant one-time link generation.
+- If the status read model is unavailable, the UI must fail closed to the
+  existing status-only dashboard behavior and must not claim owner chat linkage.
+
+Still blocked:
+
+- Do not enable `VITE_KYRA_ENABLE_TELEGRAM_DASHBOARD_STATUS` in production
+  until the Edge Function lookup adapter is implemented, deployed, and smoke
+  tested.
+- Do not query `telegram_chat_authorizations` directly from the browser.
+- Do not expose Telegram user IDs, Telegram chat IDs, owner IDs, workspace IDs,
+  session IDs, token refs, webhook secret refs, challenge hashes, or raw DB
+  errors.
+- Do not push or deploy automatically while Netlify credit timing is still being
+  managed manually.
