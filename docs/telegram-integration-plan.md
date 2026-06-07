@@ -9587,3 +9587,92 @@ Still blocked:
 - Do not read `.env.local` or secret values during local checks.
 - Do not run live Telegram `deleteWebhook` or token revocation smoke tests until
   the deploy and gate timing are explicitly approved.
+
+## Phase 5DI.12 - Dashboard Owner-Chat Linked Read Model Preflight
+
+Phase 5DI.12 defines the safe read-model boundary needed for the dashboard to
+show whether the selected agent already has an owner-linked Telegram chat. It is
+documentation only and does not change code, schema, RLS, secrets, Edge Function
+deployment, Netlify state, or production behavior.
+
+Current findings:
+
+- `telegram_session_summaries` is the current authenticated dashboard-safe
+  summary view for Telegram session metadata.
+- `telegram_session_summaries` intentionally excludes token refs, webhook secret
+  refs, owner-link challenge fields, processed-update metadata, and chat
+  authorization rows.
+- `public.telegram_chat_authorizations` is intentionally private. Browser roles
+  must not receive direct `select`, `insert`, `update`, or `delete` privileges
+  on it.
+- The dashboard can now show per-agent Telegram session state, but it cannot
+  safely infer persisted owner-chat linkage without a new bounded read model.
+- Showing a raw Telegram user ID, chat ID, owner user ID, workspace ID, challenge
+  hash, token ref, webhook secret ref, or raw DB error in the browser would
+  violate the existing security model.
+
+Recommended path:
+
+- Prefer a new auth-gated Edge Function read endpoint for dashboard Telegram
+  status instead of broadening browser SQL privileges.
+- Proposed endpoint name: `telegram-dashboard-status`.
+- The endpoint should require `Authorization: Bearer`, validate the Supabase
+  user session, validate requested `agentIds`, and verify each agent is owned by
+  the signed-in user before returning any row.
+- The endpoint may use service-role internally after auth and ownership
+  validation, but must return only bounded dashboard fields:
+  - `agentId`
+  - `botHandle`
+  - `webhookStatus`
+  - `ownerChatLinked: boolean`
+  - `ownerLinkAvailable: boolean`
+  - `lastEventAt`
+- The endpoint must not return Telegram user IDs, Telegram chat IDs, owner user
+  IDs, workspace IDs, Telegram session IDs, challenge IDs, challenge hashes,
+  token refs, webhook secret refs, raw BotFather tokens, raw webhook secrets, or
+  raw DB errors.
+- The frontend should continue using `telegram_session_summaries` until the new
+  endpoint is implemented and smoke tested.
+
+Alternative path requiring separate SQL review:
+
+- Create a dedicated dashboard-safe summary view or RPC that exposes only
+  `agent_id`, `webhook_status`, `bot_handle`, and `owner_chat_linked`.
+- This path must not grant browser roles direct table access to
+  `telegram_chat_authorizations`.
+- If a view joins private authorization data, it needs a separate security
+  review for ownership scoping, privilege behavior, RLS interaction, and
+  sensitive-column exclusion.
+- A verifier must prove that authenticated users can read only their own
+  agent-scoped summary rows and cannot read raw authorization rows or Telegram
+  identities.
+
+Future UI behavior:
+
+- When `ownerChatLinked` is `false` and the selected session is active, show
+  the owner-link generation flow.
+- When `ownerChatLinked` is `true`, show `Owner chat linked` and hide or
+  de-emphasize the one-time link generator.
+- If dashboard status is unavailable, fail closed to status-only messaging and
+  do not claim the owner chat is linked.
+- Public agent pages should remain owner-controlled and must not reveal
+  owner-chat linkage internals.
+
+Required future approvals:
+
+- Approve either the Edge Function read endpoint or the SQL summary/RPC path.
+- If the Edge Function path is chosen, approve the new function skeleton,
+  service-role read adapter, tests, and deployment timing separately.
+- If the SQL path is chosen, approve schema/RLS/privilege changes and verifier
+  snippets before any apply.
+- Approve any production deploy, Netlify push timing, and runtime gate enabling
+  separately.
+
+Still blocked:
+
+- Do not query `telegram_chat_authorizations` directly from the browser.
+- Do not grant browser roles direct access to `telegram_chat_authorizations`.
+- Do not expose Telegram user IDs or chat IDs in dashboard/public UI.
+- Do not change schema/RLS or apply SQL in this planning slice.
+- Do not implement or deploy a new Edge Function in this planning slice.
+- Do not push automatically while Netlify credits are limited.
