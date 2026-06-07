@@ -1118,6 +1118,27 @@ h2 {
   border-color: var(--line-strong);
 }
 
+.deploy-telegram-token-box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.55rem;
+}
+
+.deploy-telegram-token-box .field {
+  margin: 0;
+}
+
+.deploy-telegram-token-box input {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+.deploy-token-clear {
+  width: 42px;
+  min-height: 42px;
+  padding-inline: 0;
+}
+
 .template-menu-field {
   position: relative;
 }
@@ -1418,14 +1439,16 @@ h2 {
 }
 
 .persist-ready,
-.persist-saved {
+.persist-saved,
+.persist-success {
   border-color: rgba(138, 230, 177, 0.28);
   background: rgba(138, 230, 177, 0.08);
   color: var(--green);
 }
 
 .persist-standby,
-.persist-skipped {
+.persist-skipped,
+.persist-running {
   border-color: rgba(248, 198, 111, 0.28);
   background: rgba(248, 198, 111, 0.08);
   color: var(--amber);
@@ -4122,6 +4145,14 @@ h2 {
   .dashboard-agent-pill span:last-child {
     justify-items: start;
     text-align: left;
+  }
+
+  .deploy-telegram-token-box {
+    grid-template-columns: 1fr;
+  }
+
+  .deploy-token-clear {
+    width: 100%;
   }
 
   .dashboard-kpi-grid,
