@@ -5,6 +5,8 @@ import type {
   DemoApprovalRequest,
   DemoBackendTable,
   DemoRecordStatus,
+  DemoTelegramSessionSummary,
+  DemoTelegramWebhookStatus,
   DemoWalletPolicy,
   DemoWorkspaceRecord,
 } from "../types/backend";
@@ -28,7 +30,7 @@ interface TelegramSessionSummaryRow {
   id: string;
   agent_id: string;
   bot_handle: string | null;
-  webhook_status: "mocked" | "queued" | "active" | "paused";
+  webhook_status: DemoTelegramWebhookStatus;
   created_at: string;
   last_event_at: string | null;
 }
@@ -42,6 +44,7 @@ export interface SupabaseDashboardData {
   walletPolicies: DemoWalletPolicy[];
   backendTables: DemoBackendTable[];
   activityLogs: DemoActivityLog[];
+  telegramSessions: DemoTelegramSessionSummary[];
   latestAgent: DemoAgentInstance | null;
   loadedAt: string;
 }
@@ -236,6 +239,17 @@ function mapActivityLog(row: ActivityLogRow): DemoActivityLog {
   };
 }
 
+function mapTelegramSessionSummary(row: TelegramSessionSummaryRow): DemoTelegramSessionSummary {
+  return {
+    id: row.id,
+    agentId: row.agent_id,
+    botHandle: row.bot_handle,
+    webhookStatus: row.webhook_status,
+    createdAt: row.created_at,
+    lastEventAt: row.last_event_at,
+  };
+}
+
 function countTable<T>(rows: T[], status: DemoRecordStatus, purpose: string, name: string): DemoBackendTable {
   return {
     name,
@@ -356,6 +370,7 @@ export async function fetchSupabaseDashboardData(
           telegramSessions,
         ),
         activityLogs: activityLogs.map(mapActivityLog),
+        telegramSessions: telegramSessions.map(mapTelegramSessionSummary),
         latestAgent,
         loadedAt: new Date().toISOString(),
       },

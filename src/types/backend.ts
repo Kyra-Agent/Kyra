@@ -1,5 +1,6 @@
 export type DemoBackendMode = "frontend-demo" | "backend-demo";
 export type DemoRecordStatus = "mocked" | "active" | "queued" | "read-only" | "review";
+export type DemoTelegramWebhookStatus = "mocked" | "queued" | "active" | "paused";
 
 export interface DemoWorkspaceRecord {
   id: string;
@@ -24,6 +25,15 @@ export interface DemoAgentInstance {
   approvalPolicyId: string;
   createdAt: string;
   lastSyncAt: string;
+}
+
+export interface DemoTelegramSessionSummary {
+  id: string;
+  agentId: string;
+  botHandle: string | null;
+  webhookStatus: DemoTelegramWebhookStatus;
+  createdAt: string;
+  lastEventAt: string | null;
 }
 
 export interface DemoApprovalRequest {

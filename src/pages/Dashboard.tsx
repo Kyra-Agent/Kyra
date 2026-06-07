@@ -54,7 +54,12 @@ import {
   type TelegramLinkStatus,
 } from "../services/telegramLinkService";
 import type { DataProvider } from "../types/api";
-import type { DemoActivityLog, DemoApprovalRequest } from "../types/backend";
+import type {
+  DemoActivityLog,
+  DemoApprovalRequest,
+  DemoRecordStatus,
+  DemoTelegramSessionSummary,
+} from "../types/backend";
 
 interface DashboardProps {
   selectedTemplate: AgentTemplate;
@@ -244,6 +249,75 @@ function formatDiagnosticTimestamp(value: string | null) {
 
 function getLatestEvent(events: BackendEvent[], kind: BackendEvent["kind"]) {
   return events.find((event) => event.kind === kind) ?? null;
+}
+
+function getTelegramSessionLabel(
+  session: DemoTelegramSessionSummary | null,
+  fallbackStatus?: DemoRecordStatus,
+) {
+  if (!session) {
+    return fallbackStatus ? formatRuntimeValue(fallbackStatus) : "not connected";
+  }
+
+  if (session.webhookStatus === "active") {
+    return "webhook active";
+  }
+
+  if (session.webhookStatus === "queued") {
+    return "webhook queued";
+  }
+
+  if (session.webhookStatus === "paused") {
+    return "webhook paused";
+  }
+
+  return "demo session";
+}
+
+function getTelegramSessionHeadline(session: DemoTelegramSessionSummary | null) {
+  if (!session) {
+    return "Telegram not connected";
+  }
+
+  if (session.webhookStatus === "active") {
+    return "Telegram connected";
+  }
+
+  if (session.webhookStatus === "queued") {
+    return "Webhook activation queued";
+  }
+
+  if (session.webhookStatus === "paused") {
+    return "Telegram paused";
+  }
+
+  return "Telegram demo session";
+}
+
+function getTelegramSessionDescription(session: DemoTelegramSessionSummary | null) {
+  if (!session) {
+    return "Use the deploy or reconnect flow to create a backend-only Telegram session for this agent.";
+  }
+
+  if (session.webhookStatus === "active") {
+    return "Backend-only bot session and webhook are active. Link the owner chat before read-only Telegram commands are enabled.";
+  }
+
+  if (session.webhookStatus === "queued") {
+    return "Connect validation passed. Webhook activation still needs backend finalization.";
+  }
+
+  if (session.webhookStatus === "paused") {
+    return "Telegram delivery is paused for this agent. Reconnect from the deploy or reconnect flow when ready.";
+  }
+
+  return "This agent is still on a simulated Telegram demo session.";
+}
+
+function getTelegramOwnerLinkIdleMessage(active: boolean) {
+  return active
+    ? "Owner chat linking is available for the selected active Telegram session."
+    : "Owner link requires an active Telegram session for the selected agent.";
 }
 
 export function Dashboard({
@@ -465,6 +539,14 @@ export function Dashboard({
     agentRecords.find((agent) => agent.id === selectedDashboardAgentId) ??
     dashboardData?.latestAgent ??
     null;
+  const selectedTelegramSession = useMemo(() => {
+    if (!agentRecord || !dashboardData?.telegramSessions.length) {
+      return null;
+    }
+
+    return dashboardData.telegramSessions.find((session) => session.agentId === agentRecord.id) ?? null;
+  }, [agentRecord, dashboardData?.telegramSessions]);
+  const selectedTelegramActive = selectedTelegramSession?.webhookStatus === "active";
   const dashboardAgentCount = agentRecords.length;
   const activeTemplate = useMemo(
     () =>
@@ -615,6 +697,15 @@ export function Dashboard({
     },
   ];
   const isAdminActionRunning = adminActionStatus === "running";
+
+  useEffect(() => {
+    if (telegramOwnerLinkStatus !== "idle") {
+      return;
+    }
+
+    setTelegramOwnerLinkMessage(getTelegramOwnerLinkIdleMessage(selectedTelegramActive));
+  }, [selectedTelegramActive, telegramOwnerLinkStatus]);
+
   const diagnosticRows = [
     {
       label: "Deploy function",
@@ -789,9 +880,7 @@ export function Dashboard({
     setSelectedDashboardAgentId(agentId);
     clearTelegramOwnerLink();
     setTelegramOwnerLinkStatus("idle");
-    setTelegramOwnerLinkMessage(
-      "Owner chat linking is available after the selected Telegram session is active.",
-    );
+    setTelegramOwnerLinkMessage("Owner chat linking follows the selected agent.");
   }
 
   async function handleIssueTelegramOwnerLink() {
@@ -799,6 +888,15 @@ export function Dashboard({
       clearTelegramOwnerLink();
       setTelegramOwnerLinkStatus("error");
       setTelegramOwnerLinkMessage("Sign in and deploy a demo agent before linking Telegram chat.");
+      return;
+    }
+
+    if (!selectedTelegramActive) {
+      clearTelegramOwnerLink();
+      setTelegramOwnerLinkStatus("error");
+      setTelegramOwnerLinkMessage(
+        "Owner link requires an active Telegram session for the selected agent.",
+      );
       return;
     }
 
@@ -1007,6 +1105,9 @@ export function Dashboard({
                   agentTemplates.find((item) => item.id === agent.templateId) ??
                   selectedTemplate;
                 const selected = agent.id === agentRecord?.id;
+                const telegramSession =
+                  dashboardData?.telegramSessions.find((session) => session.agentId === agent.id) ??
+                  null;
 
                 return (
                   <button
@@ -1022,7 +1123,7 @@ export function Dashboard({
                     </span>
                     <span>
                       <small>{agent.handle}</small>
-                      <em>{formatRuntimeValue(agent.telegramStatus)}</em>
+                      <em>{getTelegramSessionLabel(telegramSession, agent.telegramStatus)}</em>
                     </span>
                   </button>
                 );
@@ -1092,19 +1193,16 @@ export function Dashboard({
           <section className="dashboard-panel telegram-status-panel">
             <div className="panel-title">
               <span>Telegram connection</span>
-              <span>{agentRecord ? "selected agent" : "locked"}</span>
+              <span>{agentRecord ? getTelegramSessionLabel(selectedTelegramSession) : "locked"}</span>
             </div>
             <div className="telegram-status-card">
               <span className="telegram-status-icon">
                 <Bot size={18} />
               </span>
               <div>
-                <small>Telegram live connect</small>
-                <strong>Owner chat not linked</strong>
-                <p>
-                  Bot connection uses backend-only token handling. Link the owner chat
-                  before read-only Telegram commands are enabled.
-                </p>
+                <small>{selectedTelegramSession?.botHandle ?? "Telegram status"}</small>
+                <strong>{getTelegramSessionHeadline(selectedTelegramSession)}</strong>
+                <p>{getTelegramSessionDescription(selectedTelegramSession)}</p>
               </div>
             </div>
             {authSession && agentRecord ? (
@@ -1118,8 +1216,8 @@ export function Dashboard({
                     <span>Deploy flow next</span>
                   </div>
                   <p className="telegram-connect-message telegram-connect-idle">
-                    Connection changes belong in deploy or reconnect flow. Dashboard only shows
-                    selected-agent status and owner pairing.
+                    Connection changes belong in deploy or reconnect flow. Dashboard shows
+                    selected-agent Telegram status and owner pairing only.
                   </p>
                 </div>
                 <div className="telegram-owner-link-gate">
@@ -1132,7 +1230,7 @@ export function Dashboard({
                       className="button button-ghost"
                       type="button"
                       onClick={handleIssueTelegramOwnerLink}
-                      disabled={telegramOwnerLinkStatus === "running"}
+                      disabled={telegramOwnerLinkStatus === "running" || !selectedTelegramActive}
                     >
                       <KeyRound size={16} />
                       {telegramOwnerLinkStatus === "running" ? "Generating" : "Generate owner link"}
