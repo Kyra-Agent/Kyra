@@ -316,8 +316,25 @@ function getTelegramSessionDescription(session: DemoTelegramSessionSummary | nul
 
 function getTelegramOwnerLinkIdleMessage(active: boolean) {
   return active
-    ? "Owner chat linking is available for the selected active Telegram session."
+    ? "Generate a one-time link, then open Telegram and send the prefilled start command from the owner chat."
     : "Owner link requires an active Telegram session for the selected agent.";
+}
+
+function getTelegramOwnerLinkReadyMessage(expiresAtLabel: string) {
+  const expiry = expiresAtLabel ? ` until ${expiresAtLabel}` : "";
+
+  return `Owner link ready${expiry}. Open Telegram and send the prefilled start command from the signed-in owner chat.`;
+}
+
+function getTelegramOwnerLinkButtonLabel(
+  status: TelegramOwnerLinkUiStatus,
+  hasLink: boolean,
+) {
+  if (status === "running") {
+    return "Generating";
+  }
+
+  return hasLink ? "Regenerate owner link" : "Generate owner link";
 }
 
 function getTelegramSessionRank(session: DemoTelegramSessionSummary) {
@@ -911,6 +928,12 @@ export function Dashboard({
     setTelegramOwnerLinkExpiresAt(null);
   }
 
+  function handleClearTelegramOwnerLink() {
+    clearTelegramOwnerLink();
+    setTelegramOwnerLinkStatus("idle");
+    setTelegramOwnerLinkMessage(getTelegramOwnerLinkIdleMessage(selectedTelegramActive));
+  }
+
   function handleSelectDashboardAgent(agentId: string) {
     setSelectedDashboardAgentId(agentId);
     clearTelegramOwnerLink();
@@ -961,9 +984,7 @@ export function Dashboard({
         setTelegramOwnerLinkUrl(result.telegramLink);
         setTelegramOwnerLinkExpiresAt(result.expiresAt);
         setTelegramOwnerLinkMessage(
-          result.expiresAt
-            ? `Owner link ready until ${formatTelegramOwnerLinkExpiry(result.expiresAt)}.`
-            : result.message,
+          getTelegramOwnerLinkReadyMessage(formatTelegramOwnerLinkExpiry(result.expiresAt)),
         );
         return;
       }
@@ -1269,7 +1290,7 @@ export function Dashboard({
                       disabled={telegramOwnerLinkStatus === "running" || !selectedTelegramActive}
                     >
                       <KeyRound size={16} />
-                      {telegramOwnerLinkStatus === "running" ? "Generating" : "Generate owner link"}
+                      {getTelegramOwnerLinkButtonLabel(telegramOwnerLinkStatus, Boolean(telegramOwnerLinkUrl))}
                     </button>
                     {telegramOwnerLinkUrl ? (
                       <>
@@ -1285,7 +1306,7 @@ export function Dashboard({
                         <button
                           className="button button-ghost telegram-cancel-button"
                           type="button"
-                          onClick={clearTelegramOwnerLink}
+                          onClick={handleClearTelegramOwnerLink}
                           aria-label="Clear Telegram owner link"
                         >
                           <X size={16} />
