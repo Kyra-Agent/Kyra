@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   Copy,
   Database,
-  ExternalLink,
   LockKeyhole,
   MessageSquareText,
   Radio,
@@ -34,7 +33,7 @@ interface PublicAgentProps {
 const capabilityRows = [
   {
     title: "Telegram interface",
-    summary: "Telegram demo ready. Real Telegram bot not connected.",
+    summary: "Telegram status is controlled by the owner dashboard.",
     icon: Bot,
   },
   {
@@ -91,7 +90,6 @@ export function PublicAgent({
   onBackHome,
 }: PublicAgentProps) {
   const [copied, setCopied] = useState(false);
-  const [telegramPrimed, setTelegramPrimed] = useState(false);
   const [publicStatus, setPublicStatus] = useState<PublicAgentProfileStatus>("loading");
   const [publicProfile, setPublicProfile] = useState<PublicAgentProfile | null>(null);
   const [publicError, setPublicError] = useState<string | null>(null);
@@ -247,14 +245,10 @@ export function PublicAgent({
             <button
               className="button button-primary"
               type="button"
-              onClick={() => setTelegramPrimed(true)}
+              onClick={onBackDashboard}
             >
-              Preview Telegram Demo
-              <ExternalLink size={16} />
-            </button>
-            <button className="button button-ghost" type="button" disabled>
-              <LockKeyhole size={16} />
-              Connect Telegram
+              Open Dashboard
+              <ArrowLeft size={16} />
             </button>
             <button className="button button-ghost" type="button" onClick={onBackHome}>
               View Website
@@ -264,11 +258,9 @@ export function PublicAgent({
               {copied ? "Copied" : "Copy Profile"}
             </button>
           </div>
-          {telegramPrimed ? (
-            <span className="demo-action-note">
-              Telegram launch is simulated. No live bot token is connected in this demo.
-            </span>
-          ) : null}
+          <span className="demo-action-note">
+            Telegram connection changes are owner-only and handled from deploy or dashboard flows.
+          </span>
         </div>
 
         <div className="agent-identity-card">
@@ -345,27 +337,27 @@ export function PublicAgent({
         <article className="public-panel telegram-status-panel">
           <div className="panel-title">
             <span>Telegram connection</span>
-            <span>coming next</span>
+            <span>owner controlled</span>
           </div>
           <div className="telegram-status-card">
             <span className="telegram-status-icon">
               <Bot size={18} />
             </span>
             <div>
-              <small>Telegram demo ready</small>
-              <strong>Real Telegram bot not connected</strong>
+              <small>Telegram status</small>
+              <strong>Controlled from dashboard</strong>
               <p>
-                Current Telegram actions are simulated. No live webhook, BotFather token,
-                or command processor is connected in this preview.
+                Public profiles never collect bot tokens. Owners connect or reconnect
+                Telegram during deploy and manage pairing from the dashboard.
               </p>
             </div>
           </div>
           <div className="telegram-status-actions">
-            <button className="button button-ghost" type="button" disabled>
+            <button className="button button-ghost" type="button" onClick={onBackDashboard}>
               <LockKeyhole size={16} />
-              Connect Telegram
+              Owner Dashboard
             </button>
-            <span>Coming next</span>
+            <span>Status only</span>
           </div>
         </article>
 
