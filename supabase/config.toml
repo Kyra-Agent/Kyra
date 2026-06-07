@@ -4,6 +4,12 @@
 [functions.telegram-connect]
 verify_jwt = true
 
+# Telegram dashboard status is called by a signed-in dashboard user. Keep
+# Supabase gateway JWT verification enabled in addition to future function
+# ownership validation and bounded status reads.
+[functions.telegram-dashboard-status]
+verify_jwt = true
+
 # Telegram disconnect is called by a signed-in dashboard user. Keep Supabase
 # gateway JWT verification enabled in addition to future function ownership
 # validation and operator action checks.
