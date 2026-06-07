@@ -320,6 +320,45 @@ function getTelegramOwnerLinkIdleMessage(active: boolean) {
     : "Owner link requires an active Telegram session for the selected agent.";
 }
 
+function getTelegramSessionRank(session: DemoTelegramSessionSummary) {
+  if (session.webhookStatus === "active") {
+    return 0;
+  }
+
+  if (session.webhookStatus === "queued") {
+    return 1;
+  }
+
+  if (session.webhookStatus === "paused") {
+    return 2;
+  }
+
+  return 3;
+}
+
+function selectTelegramSessionForAgent(
+  sessions: DemoTelegramSessionSummary[] | undefined,
+  agentId: string | undefined,
+) {
+  if (!sessions?.length || !agentId) {
+    return null;
+  }
+
+  return (
+    sessions
+      .filter((session) => session.agentId === agentId)
+      .sort((left, right) => {
+        const rankDifference = getTelegramSessionRank(left) - getTelegramSessionRank(right);
+
+        if (rankDifference !== 0) {
+          return rankDifference;
+        }
+
+        return Date.parse(right.createdAt) - Date.parse(left.createdAt);
+      })[0] ?? null
+  );
+}
+
 export function Dashboard({
   selectedTemplate,
   templates,
@@ -540,11 +579,7 @@ export function Dashboard({
     dashboardData?.latestAgent ??
     null;
   const selectedTelegramSession = useMemo(() => {
-    if (!agentRecord || !dashboardData?.telegramSessions.length) {
-      return null;
-    }
-
-    return dashboardData.telegramSessions.find((session) => session.agentId === agentRecord.id) ?? null;
+    return selectTelegramSessionForAgent(dashboardData?.telegramSessions, agentRecord?.id);
   }, [agentRecord, dashboardData?.telegramSessions]);
   const selectedTelegramActive = selectedTelegramSession?.webhookStatus === "active";
   const dashboardAgentCount = agentRecords.length;
@@ -1105,9 +1140,10 @@ export function Dashboard({
                   agentTemplates.find((item) => item.id === agent.templateId) ??
                   selectedTemplate;
                 const selected = agent.id === agentRecord?.id;
-                const telegramSession =
-                  dashboardData?.telegramSessions.find((session) => session.agentId === agent.id) ??
-                  null;
+                const telegramSession = selectTelegramSessionForAgent(
+                  dashboardData?.telegramSessions,
+                  agent.id,
+                );
 
                 return (
                   <button
