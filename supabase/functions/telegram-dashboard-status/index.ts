@@ -3,16 +3,26 @@ import {
   handleTelegramDashboardStatusRequest,
   type TelegramDashboardStatusDependencies,
 } from "./core.ts";
+import { type OptionalEnvReader } from "./runtime-config.ts";
+import { createTelegramDashboardStatusDependenciesFromOptions } from "./dependencies.ts";
 import {
-  createTelegramDashboardStatusRuntimeConfig,
-  type OptionalEnvReader,
-} from "./runtime-config.ts";
+  type TelegramDashboardStatusLookupClient,
+} from "./status-lookup.ts";
 
 export * from "./core.ts";
+export * from "./dependencies.ts";
 export * from "./runtime-config.ts";
+export * from "./status-lookup.ts";
 
 export interface TelegramDashboardStatusRuntimeOptions {
+  getEnv?: (key: string) => string;
   getOptionalEnv?: OptionalEnvReader;
+  createServiceClient?: (
+    supabaseUrl: string,
+    serviceRoleKey: string,
+  ) =>
+    | Promise<TelegramDashboardStatusLookupClient>
+    | TelegramDashboardStatusLookupClient;
 }
 
 export function getEnv(key: string) {
@@ -65,24 +75,35 @@ export async function getUser(
   return data.user;
 }
 
+export async function createServiceClient(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+) {
+  const { createClient } = await import(
+    "https://esm.sh/@supabase/supabase-js@2"
+  );
+
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  }) as unknown as TelegramDashboardStatusLookupClient;
+}
+
 export function createTelegramDashboardStatusDependencies(
   options: TelegramDashboardStatusRuntimeOptions = {},
 ): TelegramDashboardStatusDependencies {
+  const readRequiredEnv = options.getEnv ?? getEnv;
   const readOptionalEnv = options.getOptionalEnv ?? getOptionalEnv;
-  const dashboardStatusRuntimeConfig =
-    createTelegramDashboardStatusRuntimeConfig(readOptionalEnv);
-  const dependencies: TelegramDashboardStatusDependencies = {
-    dashboardStatusRuntimeConfig,
-  };
+  const createLookupClient = options.createServiceClient ?? createServiceClient;
 
-  if (!dashboardStatusRuntimeConfig.enabled) {
-    return dependencies;
-  }
-
-  dependencies.getEnv = getEnv;
-  dependencies.getUser = getUser;
-
-  return dependencies;
+  return createTelegramDashboardStatusDependenciesFromOptions({
+    getEnv: readRequiredEnv,
+    getOptionalEnv: readOptionalEnv,
+    getUser,
+    createServiceClient: createLookupClient,
+  });
 }
 
 if (import.meta.main) {

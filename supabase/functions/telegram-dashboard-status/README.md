@@ -16,6 +16,8 @@ Future enabled contract:
 - Validate the Supabase session.
 - Accept only `{ "agentIds": string[] }`.
 - Verify ownership before returning any agent status.
+- Use service-role reads only inside the Edge Function after the runtime gate,
+  bearer validation, session validation, and request validation pass.
 - Return only bounded dashboard fields:
   `agentId`, `botHandle`, `webhookStatus`, `ownerChatLinked`,
   `ownerLinkAvailable`, and `lastEventAt`.

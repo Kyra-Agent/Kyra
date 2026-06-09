@@ -9713,3 +9713,45 @@ Still blocked:
   errors.
 - Do not push or deploy automatically while Netlify credit timing is still being
   managed manually.
+
+## Phase 5DI.14 - Dashboard Status Lookup Adapter
+
+Phase 5DI.14 adds the backend lookup adapter contract for
+`telegram-dashboard-status`. The function remains default-off until
+`KYRA_TELEGRAM_DASHBOARD_STATUS_ENABLED=true` is explicitly set and the function
+is separately deployed.
+
+Adapter behavior:
+
+- Validate requested agent IDs before any database lookup.
+- Read `agent_instances` and `workspaces` with service-role access inside the
+  Edge Function only.
+- Require every requested agent to belong to the signed-in owner.
+- Return `404 agent_not_found` when a requested agent does not exist.
+- Return `403 forbidden` when a requested agent belongs to another owner.
+- Read active owner authorization only from private
+  `telegram_chat_authorizations` inside the Edge Function.
+- Read safe Telegram session metadata from `telegram_sessions`, selecting only
+  `agent_id`, `bot_handle`, `webhook_status`, `created_at`, and
+  `last_event_at`.
+- Return only bounded dashboard status fields to the browser.
+
+Security rules preserved:
+
+- No browser role receives direct access to `telegram_chat_authorizations`.
+- No token ref, webhook secret ref, Telegram user ID, Telegram chat ID,
+  workspace ID, owner user ID, session ID, challenge hash, or raw DB error is
+  returned.
+- Default-off requests still return `not_configured` before reading body,
+  required env values, sessions, service-role secrets, or database rows.
+- Service-role client creation is lazy and happens only behind the backend
+  runtime gate and lookup path.
+
+Still blocked:
+
+- Do not enable `KYRA_TELEGRAM_DASHBOARD_STATUS_ENABLED` in production until the
+  function has been deployed and smoke tested.
+- Do not enable the frontend `VITE_KYRA_ENABLE_TELEGRAM_DASHBOARD_STATUS` gate
+  until the backend endpoint is deployed and verified.
+- Do not push or deploy automatically while Netlify credit timing is still being
+  managed manually.

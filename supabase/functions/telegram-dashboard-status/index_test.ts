@@ -5,6 +5,8 @@ import {
   type TelegramDashboardStatusDependencies,
   type TelegramDashboardStatusRecord,
 } from "./core.ts";
+import { createTelegramDashboardStatusDependenciesFromOptions } from "./dependencies.ts";
+import type { TelegramDashboardStatusLookupClient } from "./status-lookup.ts";
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -76,6 +78,57 @@ function createEnabledDependencies(
       },
     ],
     ...overrides,
+  };
+}
+
+function createRuntimeLookupClient(): TelegramDashboardStatusLookupClient {
+  const rows = {
+    agent_instances: [{ id: agentId, workspace_id: secondAgentId }],
+    workspaces: [{ id: secondAgentId, owner_user_id: ownerUserId }],
+    telegram_sessions: [
+      {
+        agent_id: agentId,
+        bot_handle: "@kyra_test_bot",
+        webhook_status: "active",
+        created_at: "2026-06-07T01:02:03.000Z",
+        last_event_at: null,
+      },
+    ],
+    telegram_chat_authorizations: [
+      {
+        agent_id: agentId,
+        role: "owner",
+        command_scope: "read_only",
+        revoked_at: null,
+      },
+    ],
+  };
+
+  return {
+    from(table) {
+      const builder = {
+        select() {
+          return builder;
+        },
+        eq() {
+          return builder;
+        },
+        is() {
+          return builder;
+        },
+        in() {
+          return builder;
+        },
+        order() {
+          return builder;
+        },
+        async limit<T>() {
+          return { data: rows[table] as T[], error: null };
+        },
+      };
+
+      return builder;
+    },
   };
 }
 
@@ -354,6 +407,65 @@ Deno.test("telegram-dashboard-status sanitizes lookup errors and malformed rows"
     assert(!serialized.includes("telegram_chat_id"), "Error must hide chat id.");
     assert(!serialized.includes("token_secret_ref"), "Error must hide token ref.");
   }
+});
+
+Deno.test("telegram-dashboard-status runtime dependencies stay inert while disabled", () => {
+  const dependencies = createTelegramDashboardStatusDependenciesFromOptions({
+    getOptionalEnv: () => "",
+    getEnv: () => {
+      throw new Error("Disabled runtime must not read required env.");
+    },
+    getUser: async () => {
+      throw new Error("Disabled runtime must not validate user.");
+    },
+    createServiceClient: () => {
+      throw new Error("Disabled runtime must not create service client.");
+    },
+  });
+
+  assertEquals(dependencies.dashboardStatusRuntimeConfig?.enabled, false);
+  assertEquals(dependencies.lookupDashboardTelegramStatuses, undefined);
+});
+
+Deno.test("telegram-dashboard-status runtime lookup reads service role lazily", async () => {
+  const envReads: string[] = [];
+  const serviceClientInputs: string[] = [];
+  const dependencies = createTelegramDashboardStatusDependenciesFromOptions({
+    getOptionalEnv: () => "true",
+    getEnv: (key) => {
+      envReads.push(key);
+      return `env-${key}`;
+    },
+    getUser: async () => ({ id: ownerUserId }),
+    createServiceClient: (supabaseUrl, serviceRoleKey) => {
+      serviceClientInputs.push(`${supabaseUrl}:${serviceRoleKey}`);
+      return createRuntimeLookupClient();
+    },
+  });
+
+  assertEquals(dependencies.dashboardStatusRuntimeConfig?.enabled, true);
+  assertEquals(typeof dependencies.lookupDashboardTelegramStatuses, "function");
+  assertEquals(envReads.length, 0);
+  assertEquals(serviceClientInputs.length, 0);
+
+  const result = await dependencies.lookupDashboardTelegramStatuses?.({
+    agentIds: [agentId],
+    ownerUserId,
+  });
+
+  assertEquals(envReads.join(","), "SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY");
+  assertEquals(
+    serviceClientInputs.join(","),
+    "env-SUPABASE_URL:env-SUPABASE_SERVICE_ROLE_KEY",
+  );
+  assertEquals(result?.[0]?.agentId, agentId);
+  assertEquals(result?.[0]?.ownerChatLinked, true);
+
+  await dependencies.lookupDashboardTelegramStatuses?.({
+    agentIds: [agentId],
+    ownerUserId,
+  });
+  assertEquals(serviceClientInputs.length, 1);
 });
 
 Deno.test("telegram-dashboard-status OPTIONS returns CORS response", async () => {

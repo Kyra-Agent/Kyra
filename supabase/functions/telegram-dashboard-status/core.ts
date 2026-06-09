@@ -92,7 +92,11 @@ export async function handleTelegramDashboardStatusRequest(
         agentIds,
         ownerUserId,
       });
-    } catch {
+    } catch (error) {
+      if (error instanceof HttpError) {
+        throw error;
+      }
+
       throw new HttpError(
         500,
         "server_error",
