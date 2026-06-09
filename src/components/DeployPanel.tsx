@@ -205,6 +205,12 @@ export function DeployPanel({
   const atDeployStep = wizardStep === wizardSteps.length - 1;
   const atAccountStep = wizardStep === 0;
   const quotaBlocksDeploy = Boolean(authSession && agentQuota.reached);
+  const telegramConnectTokenInputEnabled = appConfig.featureFlags.telegramConnectTokenInput;
+  const telegramStepTitle = telegramConnectTokenInputEnabled ? "Connect Telegram" : "Prepare Telegram";
+  const telegramStepDescription = telegramConnectTokenInputEnabled
+    ? "Optionally connect Telegram while deploying this agent. Token handling stays backend-only and the field clears after submit."
+    : "Telegram connect belongs in deploy or explicit reconnect after backend token storage is enabled. This step stays status-only until the gate is on.";
+  const telegramInterfaceStatus = telegramConnectTokenInputEnabled ? "deploy scoped" : "backend gated";
   const activePublicPath = persistedRecord?.publicSlug
     ? `/agents/${persistedRecord.publicSlug}`
     : agentRecord.publicPath;
@@ -342,9 +348,7 @@ export function DeployPanel({
       return;
     }
 
-    const telegramTokenForDeploy = appConfig.featureFlags.telegramConnectTokenInput
-      ? telegramBotToken.trim()
-      : "";
+    const telegramTokenForDeploy = telegramConnectTokenInputEnabled ? telegramBotToken.trim() : "";
 
     deployingRef.current = true;
     setDeploying(true);
@@ -748,13 +752,10 @@ export function DeployPanel({
             {wizardStep === 3 ? (
               <div className="wizard-screen">
                 <span className="wizard-kicker">Step 04</span>
-                <h3>Connect Telegram</h3>
-                <p>
-                  Optionally connect Telegram while deploying this agent. Token handling stays
-                  backend-only and the field clears after submit.
-                </p>
+                <h3>{telegramStepTitle}</h3>
+                <p>{telegramStepDescription}</p>
 
-                {appConfig.featureFlags.telegramConnectTokenInput ? (
+                {telegramConnectTokenInputEnabled ? (
                   <div className="deploy-telegram-token-box">
                     <label className="field">
                       <span>Telegram bot token</span>
@@ -797,13 +798,25 @@ export function DeployPanel({
 
                 <div className="telegram-guide-card">
                   <span className="mini-label-inline">
-                    {authSession ? "Deploy scoped" : "Sign in required"}
+                    {telegramConnectTokenInputEnabled
+                      ? authSession
+                        ? "Deploy scoped"
+                        : "Sign in required"
+                      : "Backend gated"}
                   </span>
-                  <ol>
-                    <li>Open Telegram and message @BotFather.</li>
-                    <li>Create a bot with /newbot and choose a handle.</li>
-                    <li>Paste the token only during deploy or reconnect.</li>
-                  </ol>
+                  {telegramConnectTokenInputEnabled ? (
+                    <ol>
+                      <li>Open Telegram and message @BotFather.</li>
+                      <li>Create a bot with /newbot and choose a handle.</li>
+                      <li>Paste the token only during deploy or reconnect.</li>
+                    </ol>
+                  ) : (
+                    <ol>
+                      <li>Telegram bots are created through @BotFather.</li>
+                      <li>Token entry stays hidden until backend storage and webhook gates are enabled.</li>
+                      <li>Dashboard and public profiles show selected-agent status only.</li>
+                    </ol>
+                  )}
                 </div>
                 <div
                   className={`deploy-persist-note persist-${
@@ -820,7 +833,7 @@ export function DeployPanel({
                   <span>
                     <Bot size={16} />
                     Telegram interface
-                    <strong>ready</strong>
+                    <strong>{telegramInterfaceStatus}</strong>
                   </span>
                 </div>
               </div>
