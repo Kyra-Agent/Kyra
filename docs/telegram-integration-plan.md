@@ -9934,3 +9934,53 @@ When credits return:
 6. Enable runtime gates one at a time using the Phase 5DJ order, stopping on the
    first unexpected response, exposed secret-like field, verifier failure, or
    production mismatch.
+
+## Phase 5DL - Telegram Product UX Boundary
+
+Phase 5DL records the product boundary for Telegram UX after the dashboard
+review. This is documentation only; it does not change frontend behavior,
+runtime gates, SQL, secrets, Edge Functions, Netlify state, or deployment
+settings.
+
+Product decision:
+
+- Telegram BotFather token entry belongs in an agent deploy or explicit
+  reconnect flow, not as a persistent dashboard control.
+- The dashboard is the owner control plane for selected-agent status, owner chat
+  pairing, approval queues, wallet policy, and diagnostics.
+- The public agent page is status-only for Telegram. It must never collect
+  BotFather tokens or imply that public viewers can connect an owner's bot.
+- Users with multiple deployed agents need a visible agent selector so the
+  dashboard clearly shows which agent's Telegram status and owner pairing are in
+  view.
+- The website remains the safest place for deployment, wallet approval, account
+  state, and future onchain approval UX. Telegram should start with read-only or
+  low-risk commands, then expand only behind explicit command gates.
+
+Current local UX alignment:
+
+- The deploy wizard contains the optional BotFather token input behind
+  `VITE_KYRA_ENABLE_TELEGRAM_CONNECT_TOKEN_INPUT`.
+- The dashboard Telegram panel shows selected-agent Telegram status, keeps
+  reconnect disabled/gated, and exposes owner chat pairing only after a Telegram
+  session is active.
+- The dashboard has a horizontal `Viewing agent` selector for the persisted demo
+  agents in the signed-in workspace.
+- The public agent page routes owners back to the dashboard and remains
+  token-free.
+- The global header label is expected to show `Account` when local auth session
+  state is active; if production still shows `Sign in`, first confirm whether
+  Netlify is serving an older published build during the credit hold.
+
+Release cautions:
+
+- Do not reintroduce BotFather token input into dashboard status cards or public
+  agent profiles.
+- Do not claim live Telegram command support until the webhook, owner-link, and
+  command gates are deployed and enabled in order.
+- Do not move wallet execution into Telegram until wallet approval, command
+  authorization, replay protection, and risk-specific command policies have a
+  separate approved release plan.
+- If Netlify production is behind GitHub `main`, screenshots from the live site
+  may show older Telegram copy or controls; verify against the local build before
+  treating that as a new code regression.
