@@ -9755,3 +9755,118 @@ Still blocked:
   until the backend endpoint is deployed and verified.
 - Do not push or deploy automatically while Netlify credit timing is still being
   managed manually.
+
+## Phase 5DJ - Production Enablement Gate Checklist
+
+Phase 5DJ defines the ordered gates for moving the Telegram integration from
+local default-off code toward controlled production smoke tests. It does not
+change runtime behavior, apply SQL, read secrets, deploy Edge Functions, publish
+Netlify, or enable any environment gate.
+
+Current deployment facts:
+
+- `netlify.toml` builds and publishes only the static Vite app from `dist`.
+- A Netlify static deploy does not apply Supabase SQL and does not deploy
+  Supabase Edge Functions.
+- Supabase Edge Function deployment remains a separate manual gate.
+- Pushing to `main` can still spend Netlify build credits if auto publishing is
+  enabled, so push timing must remain deliberate while credits are limited.
+- `supabase/config.toml` keeps gateway JWT verification enabled for
+  `telegram-connect`, `telegram-dashboard-status`, `telegram-disconnect`, and
+  `telegram-link`; `telegram-webhook` intentionally has gateway JWT verification
+  disabled because Telegram calls it without a Supabase bearer token.
+
+Pre-push gate:
+
+1. Confirm working tree is clean.
+2. Run local verification:
+   - `npm run check:functions`
+   - `deno test supabase/functions/telegram-connect supabase/functions/telegram-webhook supabase/functions/telegram-link supabase/functions/telegram-disconnect supabase/functions/telegram-dashboard-status`
+   - `npm exec tsc -- --noEmit`
+   - `npm run build`
+   - `git diff --check`
+3. Confirm no local `.env.local` or secret values were read during verification.
+4. Confirm Netlify credit timing and auto-publish state before pushing.
+5. Push only as an intentional batch, not after every small Telegram slice.
+
+Edge Function deployment gate:
+
+1. Deploy only after the pushed commit is the intended source of truth.
+2. Deploy with all Telegram runtime gates unset or disabled first.
+3. Deploy the relevant functions explicitly; do not rely on Netlify:
+   - `telegram-connect`
+   - `telegram-webhook`
+   - `telegram-link`
+   - `telegram-disconnect`
+   - `telegram-dashboard-status`
+4. Smoke default-off behavior before enabling any gate.
+5. Stop if any default-off function reads request bodies, service-role env,
+   secrets, or database rows earlier than its documented contract allows.
+
+Backend runtime gate order:
+
+1. `KYRA_TELEGRAM_DASHBOARD_STATUS_ENABLED=true`
+   - Enable only after `telegram-dashboard-status` is deployed.
+   - Smoke with signed-in dashboard auth.
+   - Confirm response is bounded and contains no owner IDs, workspace IDs,
+     Telegram user/chat IDs, session IDs, token refs, webhook refs, or raw DB
+     errors.
+2. `KYRA_TELEGRAM_LINK_ISSUE_ENABLED=true`
+   - Enable only after an active Telegram session exists and owner-link SQL
+     verifiers pass.
+   - Smoke challenge generation without exposing challenge hashes or Telegram
+     identities in browser state.
+3. `KYRA_TELEGRAM_WEBHOOK_LOOKUP_ENABLED=true`
+   - Enable only after webhook secret/session lookup SQL is verified.
+   - Confirm invalid or unknown webhook secrets reject before update parsing.
+4. `KYRA_TELEGRAM_WEBHOOK_PARSE_ENABLED=true`
+   - Enable only after lookup smoke passes.
+   - Confirm unsupported updates and invalid JSON are sanitized.
+5. `KYRA_TELEGRAM_WEBHOOK_OWNER_LINK_CONSUME_ENABLED=true`
+   - Enable only after issue generation and webhook lookup/parse are verified.
+   - Confirm owner-link consume returns generic acknowledgements and does not
+     expose challenge internals.
+6. `KYRA_TELEGRAM_CONNECT_GETME_ENABLED=true`
+   - Enable only after disposable-bot smoke timing is approved.
+   - Confirm token validation runs only after bearer auth and ownership.
+7. `KYRA_TELEGRAM_CONNECT_STORE_ENABLED=true`
+   - Enable only after Vault/RPC storage verifiers pass.
+   - Confirm no raw BotFather token is stored in public tables, frontend state,
+     logs, or API responses.
+8. `KYRA_TELEGRAM_CONNECT_SESSION_WRITE_ENABLED=true`
+   - Enable only after token storage smoke passes.
+   - Confirm only safe session metadata plus opaque token refs are persisted.
+9. `KYRA_TELEGRAM_CONNECT_WEBHOOK_REGISTER_ENABLED=true`
+   - Enable only after `KYRA_TELEGRAM_WEBHOOK_URL` points to the deployed
+     `telegram-webhook` endpoint and rollback is ready.
+   - Confirm failed registration revokes newly created secret material and does
+     not break an existing active session.
+10. Read-only webhook command gates:
+    - Enable chat authorization, claim, and delivery only after owner-link smoke
+      and delivery token resolution smoke pass.
+    - Keep write, approval, wallet, admin, and onchain commands out of scope for
+      the first Telegram production milestone.
+11. `KYRA_TELEGRAM_DISCONNECT_ENABLED=true`
+    - Enable after connect and dashboard status behavior are stable.
+    - Smoke pause/disconnect/revoke with rollback ready.
+
+Frontend gate order:
+
+1. `VITE_KYRA_ENABLE_TELEGRAM_DASHBOARD_STATUS=true`
+   - Enable only after backend dashboard status is deployed, backend gate is on,
+     and signed-in smoke proves bounded responses.
+2. `VITE_KYRA_ENABLE_TELEGRAM_CONNECT_TOKEN_INPUT=true`
+   - Enable only after backend token validation, token storage, session write,
+     and webhook registration gates are ready for the selected smoke window.
+   - The BotFather token must remain transient form input only during submit.
+
+Stop conditions:
+
+- Any Supabase verifier returns `false`.
+- Any runtime gate is unexpectedly enabled.
+- Any response exposes token refs, webhook refs, owner IDs, workspace IDs,
+  Telegram user/chat IDs, raw DB errors, raw request bodies, or raw tokens.
+- Any function logs request bodies or secret-like values.
+- Any smoke test needs a manual secret, SQL apply, deploy, or Netlify publish
+  that has not been explicitly approved for that exact step.
+- Netlify credits or auto-publish state are unclear before push.
