@@ -32,7 +32,10 @@ export interface TelegramLinkResult {
 }
 
 function sanitizeTelegramLinkMessage(message: string) {
-  return sanitizeSupabaseMessage(message).replace(/(start|link)=[A-Za-z0-9_-]+/gi, "$1=[hidden]");
+  return sanitizeSupabaseMessage(message)
+    .replace(/\b\d{5,20}:[A-Za-z0-9_-]{20,128}\b/g, "[telegram_token_hidden]")
+    .replace(/\b(start|link)=[A-Za-z0-9_-]{16,256}\b/gi, "$1=[hidden]")
+    .replace(/\/start\s+[A-Za-z0-9_-]{32,128}/gi, "/start [hidden]");
 }
 
 function getTelegramLinkMessage(status: TelegramLinkStatus, message: string) {
