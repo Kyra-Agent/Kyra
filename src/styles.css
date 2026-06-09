@@ -2252,8 +2252,16 @@ h2 {
 
 .dashboard-agent-selector {
   display: grid;
-  gap: 0.7rem;
+  gap: 0.62rem;
   margin-bottom: 1rem;
+}
+
+.dashboard-agent-selector p {
+  max-width: 74ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.55;
 }
 
 .dashboard-agent-strip {

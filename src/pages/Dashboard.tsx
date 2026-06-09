@@ -1282,9 +1282,13 @@ export function Dashboard({
         {agentRecords.length ? (
           <section className="dashboard-agent-selector" aria-label="Dashboard agent selector">
             <div className="panel-title">
-              <span>Viewing agent</span>
-              <span>{agentRecords.length}/{demoAgentLimits.maxAgentsPerWorkspace}</span>
+              <span>Selected agent</span>
+              <span>{agentRecords.length}/{demoAgentLimits.maxAgentsPerWorkspace} deployed</span>
             </div>
+            <p>
+              Choose which deployed agent powers the dashboard panels below. Telegram status,
+              approvals, public route, and owner pairing follow the selected agent.
+            </p>
             <div className="dashboard-agent-strip" role="list">
               {agentRecords.map((agent) => {
                 const template =
@@ -1308,6 +1312,7 @@ export function Dashboard({
                     key={agent.id}
                     onClick={() => handleSelectDashboardAgent(agent.id)}
                     aria-pressed={selected}
+                    aria-label={`View ${agent.displayName} dashboard`}
                   >
                     <span>
                       <strong>{agent.displayName}</strong>
