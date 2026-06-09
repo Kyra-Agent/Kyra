@@ -259,7 +259,7 @@ export function PublicAgent({
             </button>
           </div>
           <span className="demo-action-note">
-            Telegram connection changes are owner-only and handled from deploy or dashboard flows.
+            Telegram connection changes are owner-only and handled from deploy or explicit reconnect flows.
           </span>
         </div>
 
@@ -347,8 +347,8 @@ export function PublicAgent({
               <small>Telegram status</small>
               <strong>Controlled from dashboard</strong>
               <p>
-                Public profiles never collect bot tokens. Owners connect or reconnect
-                Telegram during deploy and manage pairing from the dashboard.
+                Public profiles never collect bot tokens. Owners connect Telegram during
+                deploy and manage selected-agent status or owner pairing from the dashboard.
               </p>
             </div>
           </div>

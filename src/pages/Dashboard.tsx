@@ -1403,13 +1403,13 @@ export function Dashboard({
                   <div className="telegram-status-actions">
                     <button className="button button-ghost" type="button" disabled>
                       <LockKeyhole size={16} />
-                      Reconnect Telegram
+                      Reconnect via deploy
                     </button>
-                    <span>Deploy flow next</span>
+                    <span>Status only</span>
                   </div>
                   <p className="telegram-connect-message telegram-connect-idle">
-                    Connection changes belong in deploy or reconnect flow. Dashboard shows
-                    selected-agent Telegram status and owner pairing only.
+                    Dashboard shows selected-agent Telegram status and owner pairing only.
+                    BotFather token submit belongs in deploy or an explicit reconnect flow.
                   </p>
                 </div>
                 <div className="telegram-owner-link-gate">
