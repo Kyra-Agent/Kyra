@@ -29,7 +29,7 @@ export const faqs: FAQItem[] = [
   {
     question: "Do I need a Telegram bot token to try the demo?",
     answer:
-      "No. The current backend-connected demo does not ask for a real BotFather token. When Telegram integration ships, users will create a bot through @BotFather and paste the token only into Kyra's secure backend connection screen.",
+      "No. The current backend-connected demo does not ask for a real BotFather token. When Telegram integration ships, owners will create a bot through @BotFather and paste the token only during agent deploy or an explicit reconnect flow.",
   },
   {
     question: "What is the Base action layer?",
