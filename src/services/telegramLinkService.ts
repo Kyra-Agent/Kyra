@@ -35,6 +35,14 @@ function sanitizeTelegramLinkMessage(message: string) {
   return sanitizeSupabaseMessage(message).replace(/(start|link)=[A-Za-z0-9_-]+/gi, "$1=[hidden]");
 }
 
+function getTelegramLinkMessage(status: TelegramLinkStatus, message: string) {
+  if (status === "owner_link_unavailable") {
+    return "Owner link needs one active Telegram session for the selected agent. Refresh dashboard status, then reconnect via deploy if it still stays unavailable.";
+  }
+
+  return message;
+}
+
 async function parseTelegramLinkResponse(response: Response): Promise<TelegramLinkPayload> {
   const text = await response.text();
 
@@ -126,7 +134,10 @@ export async function issueTelegramOwnerLink({
     return {
       ok: Boolean(payload.ok) && response.ok && Boolean(telegramLink),
       status,
-      message: sanitizeTelegramLinkMessage(payload.message ?? fallbackMessage),
+      message: getTelegramLinkMessage(
+        status,
+        sanitizeTelegramLinkMessage(payload.message ?? fallbackMessage),
+      ),
       telegramLink,
       expiresAt: readExpiresAt(payload.expiresAt),
     };
