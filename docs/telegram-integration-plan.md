@@ -9984,3 +9984,59 @@ Release cautions:
 - If Netlify production is behind GitHub `main`, screenshots from the live site
   may show older Telegram copy or controls; verify against the local build before
   treating that as a new code regression.
+
+## Phase 5DM - Owner-Link Eligibility Diagnostic
+
+Phase 5DM adds a local read-only SQL diagnostic for the first owner-link
+troubleshooting pass. It does not change frontend behavior, Edge Function
+runtime behavior, schema/RLS, grants, secrets, Netlify state, or Telegram API
+calls.
+
+Local artifact:
+
+- `supabase/diagnose_telegram_owner_link_eligibility.sql`
+
+Purpose:
+
+- Explain why `telegram-link` can return `owner_link_unavailable` after an
+  active Telegram session appears in the dashboard.
+- Distinguish the safe operational states:
+  - `ready_to_issue_owner_link`
+  - `already_linked`
+  - `no_active_session`
+  - `duplicate_active_sessions`
+  - `agent_issue_rate_limited`
+- Reduce future screenshot/manual debugging by producing one compact SQL result
+  row per recent agent.
+
+Safety contract:
+
+- The diagnostic is read-only and contains no executable `create`, `alter`,
+  `grant`, `revoke`, `insert`, `update`, `delete`, `drop`, or `truncate`
+  statements.
+- It must not select or print `token_secret_ref`, webhook secret refs,
+  `owner_user_id`, challenge hashes, raw BotFather tokens, Telegram user IDs, or
+  Telegram chat IDs.
+- It is safe to run from Supabase SQL Editor after manual approval because it
+  only reads existing status/count metadata.
+
+Recommended use:
+
+1. Run the diagnostic after a dashboard owner-link request returns
+   `owner_link_unavailable`.
+2. If the selected agent reports `ready_to_issue_owner_link`, prefer checking
+   deployed function version and runtime gate state before changing SQL/data.
+3. If it reports `already_linked`, refresh dashboard status and stop generating
+   new owner links for that agent.
+4. If it reports `no_active_session`, reconnect the selected agent through the
+   deploy/reconnect flow before trying owner pairing again.
+5. If it reports `duplicate_active_sessions` or `agent_issue_rate_limited`, stop
+   live pairing and use a reviewed cleanup or wait window before retrying.
+
+Still not allowed:
+
+- Do not run cleanup SQL based only on this diagnostic.
+- Do not expose private identifiers in frontend diagnostics.
+- Do not enable owner-link gates without a separate deploy/gate smoke step.
+- Do not push or deploy while Netlify support has not restored normal project
+  availability, unless that exact action is separately approved.
