@@ -368,107 +368,133 @@ export function DeployPanel({
           window.setTimeout(async () => {
             let deploySession = authSession;
 
-            if (authSession) {
-              setPersistMessage("Checking account session before deploy...");
+            try {
+              if (authSession) {
+                setPersistMessage("Checking account session before deploy...");
 
-              const freshAuth = await ensureFreshAuthSession(authSession);
+                const freshAuth = await ensureFreshAuthSession(authSession);
 
-              syncFreshAuthSession(authSession, freshAuth);
+                syncFreshAuthSession(authSession, freshAuth);
 
-              if (!freshAuth.session) {
-                const blockedResult: DeployPersistenceResult = {
-                  status: "error",
-                  message: freshAuth.message,
-                  workspaceId: null,
-                  agentId: null,
-                  publicSlug: null,
-                  telegramHandle: null,
-                  source: "local",
-                };
+                if (!freshAuth.session) {
+                  const blockedResult: DeployPersistenceResult = {
+                    status: "error",
+                    message: freshAuth.message,
+                    workspaceId: null,
+                    agentId: null,
+                    publicSlug: null,
+                    telegramHandle: null,
+                    source: "local",
+                  };
 
-                setPersistStatus(blockedResult.status);
-                setPersistMessage(blockedResult.message);
-                setPersistedRecord(blockedResult);
-                recordBackendEvent({
-                  kind: "deploy",
-                  status: "blocked",
-                  message: blockedResult.message,
-                  source: "account session",
-                  code: "session_refresh_failed",
-                });
-                if (telegramTokenForDeploy) {
-                  setTelegramDeployConnectStatus("error");
-                  setTelegramDeployConnectMessage("Telegram connect skipped because account session refresh failed.");
-                  setTelegramBotToken("");
+                  setPersistStatus(blockedResult.status);
+                  setPersistMessage(blockedResult.message);
+                  setPersistedRecord(blockedResult);
+                  recordBackendEvent({
+                    kind: "deploy",
+                    status: "blocked",
+                    message: blockedResult.message,
+                    source: "account session",
+                    code: "session_refresh_failed",
+                  });
+                  if (telegramTokenForDeploy) {
+                    setTelegramDeployConnectStatus("error");
+                    setTelegramDeployConnectMessage("Telegram connect skipped because account session refresh failed.");
+                  }
+                  return;
                 }
-                deployingRef.current = false;
-                setDeploying(false);
-                setDeployed(true);
-                return;
+
+                deploySession = freshAuth.session;
               }
 
-              deploySession = freshAuth.session;
-            }
+              recordBackendEvent({
+                kind: "deploy",
+                status: "running",
+                message: `Deploy attempt started for ${selectedTemplate.name}.`,
+                source: deploySession ? "backend" : "local preview",
+              });
 
-            recordBackendEvent({
-              kind: "deploy",
-              status: "running",
-              message: `Deploy attempt started for ${selectedTemplate.name}.`,
-              source: deploySession ? "backend" : "local preview",
-            });
+              const result = await saveSupabaseDemoDeployment({
+                session: deploySession,
+                template: selectedTemplate,
+                agentName,
+                selectedActions,
+              });
+              setPersistStatus(result.status);
+              setPersistMessage(result.message);
+              setPersistedRecord(result);
+              const deployEventSource =
+                result.source === "edge-function" || result.source === "supabase-rest"
+                  ? "Backend"
+                  : "local preview";
+              recordBackendEvent({
+                kind: "deploy",
+                status: result.status === "saved" ? "success" : result.status === "error" ? "error" : "info",
+                message:
+                  result.status === "saved"
+                    ? `Deploy persisted through ${deployEventSource}.`
+                    : result.message,
+                source: result.source,
+                code: result.code,
+              });
+              if (telegramTokenForDeploy) {
+                if (result.status !== "saved" || !deploySession || !result.agentId) {
+                  setTelegramDeployConnectStatus("error");
+                  setTelegramDeployConnectMessage("Telegram connect skipped because deploy was not persisted.");
+                } else {
+                  setTelegramDeployConnectStatus("running");
+                  setTelegramDeployConnectMessage("Connecting Telegram for the deployed agent...");
 
-            const result = await saveSupabaseDemoDeployment({
-              session: deploySession,
-              template: selectedTemplate,
-              agentName,
-              selectedActions,
-            });
-            setPersistStatus(result.status);
-            setPersistMessage(result.message);
-            setPersistedRecord(result);
-            const deployEventSource =
-              result.source === "edge-function" || result.source === "supabase-rest"
-                ? "Backend"
-                : "local preview";
-            recordBackendEvent({
-              kind: "deploy",
-              status: result.status === "saved" ? "success" : result.status === "error" ? "error" : "info",
-              message:
-                result.status === "saved"
-                  ? `Deploy persisted through ${deployEventSource}.`
-                  : result.message,
-              source: result.source,
-              code: result.code,
-            });
-            if (telegramTokenForDeploy) {
-              if (result.status !== "saved" || !deploySession || !result.agentId) {
+                  const telegramResult = await connectTelegramBot({
+                    session: deploySession,
+                    agentId: result.agentId,
+                    botToken: telegramTokenForDeploy,
+                  });
+
+                  setTelegramDeployConnectStatus(getTelegramDeployConnectTone(telegramResult.status));
+                  setTelegramDeployConnectMessage(telegramResult.message);
+                  recordBackendEvent({
+                    kind: "deploy",
+                    status: telegramResult.ok ? "success" : "error",
+                    message: telegramResult.message,
+                    source: "telegram-connect",
+                    code: telegramResult.status,
+                  });
+                }
+              }
+            } catch {
+              const message = "Demo deploy failed unexpectedly. No public route was confirmed.";
+
+              setPersistStatus("error");
+              setPersistMessage(message);
+              setPersistedRecord({
+                status: "error",
+                message,
+                workspaceId: null,
+                agentId: null,
+                publicSlug: null,
+                telegramHandle: null,
+                source: "local",
+                code: "deploy_unexpected_error",
+                failureKind: "unknown",
+              });
+              recordBackendEvent({
+                kind: "deploy",
+                status: "error",
+                message,
+                source: "deploy flow",
+                code: "deploy_unexpected_error",
+              });
+              if (telegramTokenForDeploy) {
                 setTelegramDeployConnectStatus("error");
-                setTelegramDeployConnectMessage("Telegram connect skipped because deploy was not persisted.");
-              } else {
-                setTelegramDeployConnectStatus("running");
-                setTelegramDeployConnectMessage("Connecting Telegram for the deployed agent...");
-
-                const telegramResult = await connectTelegramBot({
-                  session: deploySession,
-                  agentId: result.agentId,
-                  botToken: telegramTokenForDeploy,
-                });
-
-                setTelegramDeployConnectStatus(getTelegramDeployConnectTone(telegramResult.status));
-                setTelegramDeployConnectMessage(telegramResult.message);
-                recordBackendEvent({
-                  kind: "deploy",
-                  status: telegramResult.ok ? "success" : "error",
-                  message: telegramResult.message,
-                  source: "telegram-connect",
-                  code: telegramResult.status,
-                });
+                setTelegramDeployConnectMessage("Telegram connect skipped because deploy failed before completion.");
               }
+            } finally {
+              setTelegramBotToken("");
+              deployingRef.current = false;
+              setDeploying(false);
+              setDeployed(true);
             }
-            setTelegramBotToken("");
-            deployingRef.current = false;
-            setDeploying(false);
-            setDeployed(true);
           }, 700);
         }
       }, 420 * (index + 1));

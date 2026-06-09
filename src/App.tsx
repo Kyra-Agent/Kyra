@@ -102,11 +102,12 @@ function App() {
   );
   const [templateCatalogError, setTemplateCatalogError] = useState<string | null>(null);
   const [authSession, setAuthSession] = useState<KyraAuthSession | null>(() => loadStoredAuthSession());
+  const hasInitialAuthSession = Boolean(authSession);
   const [authStatus, setAuthStatus] = useState<KyraAuthStatus>(() =>
-    loadStoredAuthSession() ? "signed-in" : appConfig.supabase.configured ? "signed-out" : "not-configured",
+    hasInitialAuthSession ? "signed-in" : appConfig.supabase.configured ? "signed-out" : "not-configured",
   );
   const [authMessage, setAuthMessage] = useState(() =>
-    loadStoredAuthSession()
+    hasInitialAuthSession
       ? "Stored account session loaded."
       : appConfig.supabase.configured
         ? "Sign in to load account-scoped demo records."
