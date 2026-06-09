@@ -9870,3 +9870,67 @@ Stop conditions:
 - Any smoke test needs a manual secret, SQL apply, deploy, or Netlify publish
   that has not been explicitly approved for that exact step.
 - Netlify credits or auto-publish state are unclear before push.
+
+## Phase 5DK - Netlify Credit Hold Release Hardening
+
+Phase 5DK records the release posture while Netlify deploy credits are
+exhausted. This section is documentation only; it does not change runtime
+behavior, apply SQL, read secrets, deploy Edge Functions, publish Netlify, or
+enable any environment gate.
+
+Current hold state:
+
+- Netlify reports that the project has run out of credits, so production
+  deploys are disabled until credits are restored.
+- GitHub `main` contains the Phase 5 Telegram bundle through
+  `5563515 Document Telegram production enablement gates`.
+- The latest observed published Netlify production deploy remains the earlier
+  `0c73541 Add Telegram owner-link dashboard UI` commit until Netlify credits
+  return and a publish or retry is explicitly approved.
+- Production should be treated as stable but intentionally behind `main`.
+- Supabase Edge Function deployment remains separate from Netlify, but runtime
+  gates should still stay disabled while the latest frontend is not confirmed
+  live.
+
+Allowed while the credit hold is active:
+
+- Continue local-only audits, docs updates, code hardening, tests, and local
+  commits.
+- Keep Telegram runtime behavior default-off unless a separate production gate
+  is explicitly approved.
+- Keep dashboard and public-agent copy accurate about backend-gated or
+  not-yet-active Telegram behavior.
+- Preserve the current production demo while public attention is active.
+
+Blocked while the credit hold is active:
+
+- Do not push unless the user explicitly approves a GitHub update even though
+  Netlify credits are unavailable.
+- Do not retry or trigger a Netlify production deploy.
+- Do not unlock or change Netlify auto-publish settings.
+- Do not deploy Supabase Edge Functions that depend on the latest frontend being
+  live.
+- Do not enable frontend or backend Telegram runtime gates.
+- Do not apply SQL/schema/RLS changes, create/read secrets, or read `.env.local`
+  unless that exact manual step is approved.
+
+When credits return:
+
+1. Confirm Netlify credits are available and the user approves spending one
+   production deploy.
+2. Confirm whether the next action is a normal Git push, a Netlify deploy retry,
+   or a manual publish.
+3. Re-run the local verification gate:
+   - `git status --short`
+   - `npm run check:functions`
+   - `deno test supabase/functions/telegram-connect supabase/functions/telegram-webhook supabase/functions/telegram-link supabase/functions/telegram-disconnect supabase/functions/telegram-dashboard-status`
+   - `npm exec tsc -- --noEmit`
+   - `npm run build`
+   - `git diff --check`
+4. Publish or retry Netlify once, then smoke the public site and signed-in
+   dashboard before enabling any Telegram gate.
+5. Deploy Supabase Edge Functions only as a separate approved step, with all
+   Telegram runtime gates still default-off first.
+6. Enable runtime gates one at a time using the Phase 5DJ order, stopping on the
+   first unexpected response, exposed secret-like field, verifier failure, or
+   production mismatch.
