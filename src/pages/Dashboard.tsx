@@ -82,6 +82,7 @@ interface DashboardProps {
   ) => void;
   onBackHome: () => void;
   onOpenAgent: (target?: { templateId?: string; publicPath?: string }) => void;
+  onSelectTemplate: (templateId: string) => void;
 }
 
 const dashboardSectionIds = [
@@ -422,6 +423,7 @@ export function Dashboard({
   onAuthSessionChange,
   onBackHome,
   onOpenAgent,
+  onSelectTemplate,
 }: DashboardProps) {
   const agentTemplates = templates;
   const [dashboardStatus, setDashboardStatus] = useState<SupabaseDashboardStatus>(
@@ -1049,6 +1051,12 @@ export function Dashboard({
   }
 
   function handleSelectDashboardAgent(agentId: string) {
+    const nextAgent = agentRecords.find((agent) => agent.id === agentId);
+
+    if (nextAgent) {
+      onSelectTemplate(nextAgent.templateId);
+    }
+
     setSelectedDashboardAgentId(agentId);
     clearTelegramOwnerLink();
     setTelegramOwnerLinkStatus("idle");

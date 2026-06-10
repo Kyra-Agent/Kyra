@@ -471,6 +471,7 @@ function App() {
           onAuthSessionChange={updateAuthSession}
           onBackHome={() => navigate("home")}
           onOpenAgent={(target) => navigate("agent", target)}
+          onSelectTemplate={setSelectedId}
         />
       ) : route === "agent" ? (
         <PublicAgent
