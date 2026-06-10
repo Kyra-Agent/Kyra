@@ -39,6 +39,7 @@ interface DeployPanelProps {
   templates: AgentTemplate[];
   selectedTemplate: AgentTemplate;
   authSession: KyraAuthSession | null;
+  initialStepId?: DeployWizardStepId | null;
   onOpenAccount: () => void;
   onSelectTemplate: (templateId: string) => void;
   onOpenAgent: (target?: { templateId?: string; publicPath?: string }) => void;
@@ -93,7 +94,23 @@ const wizardSteps = [
   },
 ];
 
+export type DeployWizardStepId =
+  | "account"
+  | "template"
+  | "configure"
+  | "telegram"
+  | "wallet"
+  | "deploy";
 type TelegramDeployConnectUiStatus = "idle" | "ready" | "running" | "success" | "error";
+
+function getWizardStepIndex(stepId?: DeployWizardStepId | null) {
+  if (!stepId) {
+    return 0;
+  }
+
+  const index = wizardSteps.findIndex((step) => step.id === stepId);
+  return index >= 0 ? index : 0;
+}
 
 function getDeployFailureTitle(kind?: DeployFailureKind) {
   switch (kind) {
@@ -119,6 +136,7 @@ export function DeployPanel({
   templates,
   selectedTemplate,
   authSession,
+  initialStepId,
   onOpenAccount,
   onSelectTemplate,
   onOpenAgent,
@@ -127,7 +145,7 @@ export function DeployPanel({
   const [agentName, setAgentName] = useState("Kyra Operator");
   const [deploying, setDeploying] = useState(false);
   const [activeLogStep, setActiveLogStep] = useState(0);
-  const [wizardStep, setWizardStep] = useState(0);
+  const [wizardStep, setWizardStep] = useState(() => getWizardStepIndex(initialStepId));
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
   const [deployed, setDeployed] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -342,6 +360,11 @@ export function DeployPanel({
   useEffect(() => {
     resetTelegramDeployConnectState();
   }, [authSession?.user.id, selectedTemplate.id]);
+
+  useEffect(() => {
+    setTemplateMenuOpen(false);
+    setWizardStep(getWizardStepIndex(initialStepId));
+  }, [initialStepId]);
 
   function runDeploySimulation() {
     if (deployingRef.current) {

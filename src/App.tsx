@@ -4,7 +4,7 @@ import { AnimatedBackground } from "./components/AnimatedBackground";
 import { ActionConsole } from "./components/ActionConsole";
 import { CoreModules } from "./components/CoreModules";
 import { DashboardPreview } from "./components/DashboardPreview";
-import { DeployPanel } from "./components/DeployPanel";
+import { DeployPanel, type DeployWizardStepId } from "./components/DeployPanel";
 import { FAQSection } from "./components/FAQSection";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
@@ -125,6 +125,7 @@ function App() {
 
     return getHomeSectionIdFromPath(window.location.pathname);
   });
+  const [deployInitialStepId, setDeployInitialStepId] = useState<DeployWizardStepId>("account");
   const [route, setRoute] = useState<"home" | "dashboard" | "agent">(() => {
     if (typeof window === "undefined") {
       return "home";
@@ -382,11 +383,15 @@ function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function openHomeSection(sectionId: string) {
+  function openHomeSection(
+    sectionId: string,
+    options?: { deployStepId?: DeployWizardStepId },
+  ) {
     if (!isHomeSectionId(sectionId)) {
       return;
     }
 
+    setDeployInitialStepId(sectionId === "deploy" ? options?.deployStepId ?? "account" : "account");
     setRoute("home");
     setHomeSectionId(sectionId);
     window.history.pushState({}, "", `/${sectionId}`);
@@ -470,7 +475,7 @@ function App() {
           authMessage={authMessage}
           onAuthSessionChange={updateAuthSession}
           onBackHome={() => navigate("home")}
-          onOpenDeploy={() => openHomeSection("deploy")}
+          onOpenDeploy={() => openHomeSection("deploy", { deployStepId: "telegram" })}
           onOpenAgent={(target) => navigate("agent", target)}
           onSelectTemplate={setSelectedId}
         />
@@ -550,6 +555,7 @@ function App() {
               templates={agentTemplates}
               selectedTemplate={selectedTemplate}
               authSession={authSession}
+              initialStepId={deployInitialStepId}
               onOpenAccount={openAccountSession}
               onSelectTemplate={setSelectedId}
               onOpenAgent={(target) => navigate("agent", target)}
