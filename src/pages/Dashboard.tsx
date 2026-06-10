@@ -81,6 +81,7 @@ interface DashboardProps {
     message: string,
   ) => void;
   onBackHome: () => void;
+  onOpenDeploy: () => void;
   onOpenAgent: (target?: { templateId?: string; publicPath?: string }) => void;
   onSelectTemplate: (templateId: string) => void;
 }
@@ -422,6 +423,7 @@ export function Dashboard({
   authMessage,
   onAuthSessionChange,
   onBackHome,
+  onOpenDeploy,
   onOpenAgent,
   onSelectTemplate,
 }: DashboardProps) {
@@ -1414,15 +1416,15 @@ export function Dashboard({
               <>
                 <div className="telegram-connect-gate">
                   <div className="telegram-status-actions">
-                    <button className="button button-ghost" type="button" disabled>
+                    <button className="button button-ghost" type="button" onClick={onOpenDeploy}>
                       <LockKeyhole size={16} />
                       Reconnect via deploy
                     </button>
-                    <span>Status only</span>
+                    <span>Deploy scoped</span>
                   </div>
                   <p className="telegram-connect-message telegram-connect-idle">
                     Dashboard shows selected-agent Telegram status and owner pairing only.
-                    BotFather token submit belongs in deploy or an explicit reconnect flow.
+                    BotFather token submit belongs in the deploy flow or an explicit reconnect flow.
                   </p>
                 </div>
                 <div className="telegram-owner-link-gate">

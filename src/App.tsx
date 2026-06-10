@@ -470,6 +470,7 @@ function App() {
           authMessage={authMessage}
           onAuthSessionChange={updateAuthSession}
           onBackHome={() => navigate("home")}
+          onOpenDeploy={() => openHomeSection("deploy")}
           onOpenAgent={(target) => navigate("agent", target)}
           onSelectTemplate={setSelectedId}
         />
