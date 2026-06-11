@@ -71,7 +71,8 @@ Kyra is in the production-safe backend-connected demo phase.
 - Supabase Auth
 - Supabase Postgres + RLS
 - Supabase Edge Functions
-- Netlify-ready static build config
+- Vercel-ready static build config
+- Netlify static build config retained as a fallback
 
 ## Supabase And Edge Function Role
 
@@ -144,6 +145,11 @@ VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 VITE_KYRA_DEPLOY_FUNCTION_URL=
 VITE_KYRA_RESET_FUNCTION_URL=
+VITE_KYRA_TELEGRAM_CONNECT_FUNCTION_URL=
+VITE_KYRA_TELEGRAM_LINK_FUNCTION_URL=
+VITE_KYRA_TELEGRAM_DASHBOARD_STATUS_FUNCTION_URL=
+VITE_KYRA_ENABLE_TELEGRAM_CONNECT_TOKEN_INPUT=false
+VITE_KYRA_ENABLE_TELEGRAM_DASHBOARD_STATUS=false
 VITE_DEMO_MODE=true
 ```
 
@@ -155,6 +161,9 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-or-publishable-key
 VITE_KYRA_DEPLOY_FUNCTION_URL=https://your-project.supabase.co/functions/v1/deploy-agent
 VITE_KYRA_RESET_FUNCTION_URL=https://your-project.supabase.co/functions/v1/reset-demo-workspace
+VITE_KYRA_TELEGRAM_CONNECT_FUNCTION_URL=https://your-project.supabase.co/functions/v1/telegram-connect
+VITE_KYRA_TELEGRAM_LINK_FUNCTION_URL=https://your-project.supabase.co/functions/v1/telegram-link
+VITE_KYRA_TELEGRAM_DASHBOARD_STATUS_FUNCTION_URL=https://your-project.supabase.co/functions/v1/telegram-dashboard-status
 ```
 
 Demo UI gating for the internal Admin actions panel uses the Supabase user's
@@ -191,7 +200,16 @@ Build output:
 dist
 ```
 
-Netlify settings:
+Vercel settings:
+
+- Framework preset: Vite
+- Install command: `npm ci`
+- Build command: `npm run build`
+- Output directory: `dist`
+- Static config: `vercel.json`
+- SPA fallback: `vercel.json` rewrite to `/index.html`
+
+Netlify fallback settings:
 
 - Build command: `npm run build`
 - Publish directory: `dist`

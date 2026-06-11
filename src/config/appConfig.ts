@@ -31,7 +31,7 @@ export const appConfig = {
   mode: requestedDataProvider === "supabase" ? "backend-demo" : "frontend-demo",
   dataProvider: requestedDataProvider,
   network: "Base",
-  publishTarget: "netlify",
+  publishTarget: "vercel",
   supabase: {
     url: supabaseUrl,
     hasAnonKey: Boolean(supabaseAnonKey),
