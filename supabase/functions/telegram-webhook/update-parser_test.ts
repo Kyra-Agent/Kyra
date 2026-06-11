@@ -47,9 +47,11 @@ function createUpdate(text: unknown = "/status") {
   };
 }
 
-Deno.test("telegram update parser accepts read-only help and status commands", () => {
+Deno.test("telegram update parser accepts supported read-only commands", () => {
   const status = parseTelegramWebhookUpdate(createUpdate("/status"));
   const help = parseTelegramWebhookUpdate(createUpdate("/help"));
+  const agent = parseTelegramWebhookUpdate(createUpdate("/agent"));
+  const actions = parseTelegramWebhookUpdate(createUpdate("/actions"));
 
   assertEquals(status.updateId, "9001");
   assertEquals(status.messageId, "42");
@@ -59,6 +61,10 @@ Deno.test("telegram update parser accepts read-only help and status commands", (
   assertEquals(status.commandKind, "read_only");
   assertEquals(help.command, "help");
   assertEquals(help.commandKind, "read_only");
+  assertEquals(agent.command, "agent");
+  assertEquals(agent.commandKind, "read_only");
+  assertEquals(actions.command, "actions");
+  assertEquals(actions.commandKind, "read_only");
 });
 
 Deno.test("telegram update parser discards group command bot username", () => {

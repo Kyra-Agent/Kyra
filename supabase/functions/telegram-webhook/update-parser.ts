@@ -1,6 +1,10 @@
 import { HttpError } from "./core.ts";
 
-export type TelegramWebhookParsedCommandName = "help" | "status";
+export type TelegramWebhookParsedCommandName =
+  | "help"
+  | "status"
+  | "agent"
+  | "actions";
 
 export interface TelegramWebhookParsedCommand {
   updateId: string;
@@ -18,6 +22,8 @@ export interface TelegramWebhookUpdateParseOptions {
 const supportedCommands = new Set<TelegramWebhookParsedCommandName>([
   "help",
   "status",
+  "agent",
+  "actions",
 ]);
 const telegramCommandPattern =
   /^\/([A-Za-z][A-Za-z0-9_]*)(?:@([A-Za-z0-9_]{5,32}))?$/;

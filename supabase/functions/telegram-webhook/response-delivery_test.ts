@@ -304,7 +304,17 @@ Deno.test("telegram response delivery validators return bounded values", () => {
     command: "help",
     text: "Kyra Telegram commands",
   });
+  const agentResponse = assertTelegramDeliveryResponse({
+    command: "agent",
+    text: "Kyra agent: active",
+  });
+  const actionsResponse = assertTelegramDeliveryResponse({
+    command: "actions",
+    text: "Available read-only commands",
+  });
 
   assertEquals(response.command, "help");
   assertEquals(response.text, "Kyra Telegram commands");
+  assertEquals(agentResponse.command, "agent");
+  assertEquals(actionsResponse.command, "actions");
 });

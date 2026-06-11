@@ -64,6 +64,11 @@ Deno.test("telegram read-only help response is static and limited", () => {
   assertEquals(response.command, "help");
   assert(response.text.includes("/help"), "Help response must list /help.");
   assert(response.text.includes("/status"), "Help response must list /status.");
+  assert(response.text.includes("/agent"), "Help response must list /agent.");
+  assert(
+    response.text.includes("/actions"),
+    "Help response must list /actions.",
+  );
   assert(
     response.text.includes("actions are disabled"),
     "Help response must state disabled actions.",
@@ -88,6 +93,38 @@ Deno.test("telegram read-only status response is static and safety-scoped", () =
   assert(
     response.text.includes("actions: disabled"),
     "Status response must state disabled actions.",
+  );
+  assertEquals(Object.keys(response).sort().join(","), "command,text");
+  assertSafeStaticResponse(response.text);
+});
+
+Deno.test("telegram read-only agent response is static and safety-scoped", () => {
+  const response = buildTelegramReadOnlyCommandResponse("agent");
+
+  assertEquals(response.command, "agent");
+  assert(
+    response.text.includes("Kyra agent: active"),
+    "Agent response must state active agent mode.",
+  );
+  assert(
+    response.text.includes("read-only Telegram interface"),
+    "Agent response must stay read-only.",
+  );
+  assertEquals(Object.keys(response).sort().join(","), "command,text");
+  assertSafeStaticResponse(response.text);
+});
+
+Deno.test("telegram read-only actions response is static and bounded", () => {
+  const response = buildTelegramReadOnlyCommandResponse("actions");
+
+  assertEquals(response.command, "actions");
+  assert(
+    response.text.includes("/help"),
+    "Actions response must list read-only commands.",
+  );
+  assert(
+    response.text.includes("actions are disabled"),
+    "Actions response must state disabled actions.",
   );
   assertEquals(Object.keys(response).sort().join(","), "command,text");
   assertSafeStaticResponse(response.text);

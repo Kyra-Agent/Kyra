@@ -52,6 +52,29 @@ Deno.test("telegram claimed response plan builds one static response", () => {
   assert(result.response.text.includes("read-only"), "Expected static status.");
 });
 
+Deno.test("telegram claimed response plan supports additional read-only commands", () => {
+  const agent = planTelegramClaimedReadOnlyResponse(
+    { claimed: true, status: "claimed" },
+    "agent",
+  );
+  const actions = planTelegramClaimedReadOnlyResponse(
+    { claimed: true, status: "claimed" },
+    "actions",
+  );
+
+  if (agent.status !== "claimed" || actions.status !== "claimed") {
+    throw new Error("Expected claimed response plans.");
+  }
+
+  assertEquals(agent.response.command, "agent");
+  assert(agent.response.text.includes("read-only"), "Expected safe agent text.");
+  assertEquals(actions.response.command, "actions");
+  assert(
+    actions.response.text.includes("/help"),
+    "Expected safe action command list.",
+  );
+});
+
 Deno.test("telegram duplicate response plan is a bounded no-op", () => {
   const result = planTelegramClaimedReadOnlyResponse(
     { claimed: false, status: "duplicate" },
