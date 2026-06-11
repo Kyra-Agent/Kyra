@@ -154,6 +154,18 @@ export type {
   TelegramAgentBrainRequest,
 } from "./agent-brain.ts";
 export {
+  buildTelegramTemplateContext,
+  buildTelegramTemplateContextReply,
+  classifyTemplateAction,
+} from "./template-context.ts";
+export type {
+  TelegramTemplateActionAvailability,
+  TelegramTemplateActionContext,
+  TelegramTemplateContext,
+  TelegramTemplateContextSource,
+  TelegramTemplateModuleContext,
+} from "./template-context.ts";
+export {
   assertResolvedTelegramDeliveryBotToken,
   assertTelegramDeliveryTokenResolverRpcResult,
   resolveTelegramDeliveryBotToken,

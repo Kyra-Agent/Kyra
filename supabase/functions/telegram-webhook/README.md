@@ -72,6 +72,14 @@ responses. It builds sanitized read-only prompts and validates provider output,
 but it is not wired into the live webhook handler and does not call any LLM
 provider by itself.
 
+## Template And Module Context
+
+`template-context.ts` defines the local-only template/module context boundary for
+future Telegram responses. It normalizes template actions and modules, marks
+read-only-ready actions separately from dashboard-gated and Phase 6 wallet-gated
+actions, and keeps Executor-style wallet automation gated until Base MCP work is
+approved.
+
 ## Future Work
 
 Before expanding beyond read-only commands, add a reviewed command processor
