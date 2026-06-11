@@ -140,6 +140,20 @@ export type {
   TelegramResponseDeliveryResult,
 } from "./response-delivery.ts";
 export {
+  assertTelegramAgentBrainCommand,
+  assertTelegramAgentBrainReply,
+  buildTelegramAgentBrainRequest,
+  generateTelegramAgentBrainReply,
+  sanitizeTelegramAgentBrainProviderError,
+} from "./agent-brain.ts";
+export type {
+  TelegramAgentBrainMessage,
+  TelegramAgentBrainPromptInput,
+  TelegramAgentBrainProvider,
+  TelegramAgentBrainReply,
+  TelegramAgentBrainRequest,
+} from "./agent-brain.ts";
+export {
   assertResolvedTelegramDeliveryBotToken,
   assertTelegramDeliveryTokenResolverRpcResult,
   resolveTelegramDeliveryBotToken,

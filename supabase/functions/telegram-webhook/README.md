@@ -65,6 +65,13 @@ Keep the webhook path staged behind runtime gates:
 Do not enable write, approval, wallet, Base MCP, onchain, or LLM command
 execution from this webhook without a separate reviewed implementation.
 
+## Agent Brain Boundary
+
+`agent-brain.ts` defines the local-only LLM/provider boundary for future Telegram
+responses. It builds sanitized read-only prompts and validates provider output,
+but it is not wired into the live webhook handler and does not call any LLM
+provider by itself.
+
 ## Future Work
 
 Before expanding beyond read-only commands, add a reviewed command processor
