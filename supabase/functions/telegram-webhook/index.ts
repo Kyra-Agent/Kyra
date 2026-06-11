@@ -166,6 +166,16 @@ export type {
   TelegramTemplateModuleContext,
 } from "./template-context.ts";
 export {
+  lookupTelegramTemplateContext,
+  sanitizeTelegramTemplateContextLookupError,
+} from "./template-context-lookup.ts";
+export type {
+  TelegramTemplateContextLookupBuilder,
+  TelegramTemplateContextLookupClient,
+  TelegramTemplateContextLookupOutput,
+  TelegramTemplateContextLookupResult,
+} from "./template-context-lookup.ts";
+export {
   assertResolvedTelegramDeliveryBotToken,
   assertTelegramDeliveryTokenResolverRpcResult,
   resolveTelegramDeliveryBotToken,

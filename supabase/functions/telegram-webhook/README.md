@@ -80,6 +80,10 @@ read-only-ready actions separately from dashboard-gated and Phase 6 wallet-gated
 actions, and keeps Executor-style wallet automation gated until Base MCP work is
 approved.
 
+`template-context-lookup.ts` defines the injectable lookup adapter for future
+runtime wiring. It reads only agent/template profile fields, sanitizes malformed
+rows and database failures, and is not wired into the live webhook handler yet.
+
 ## Future Work
 
 Before expanding beyond read-only commands, add a reviewed command processor
