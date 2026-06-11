@@ -1,7 +1,9 @@
 # telegram-webhook Edge Function
 
-This local Phase 5 webhook receiver is default-off and has not been redeployed
-with the owner-link consume path.
+This Phase 5 webhook receiver is gate-controlled. The latest implementation can
+resolve active sessions, consume owner-link challenges, authorize read-only
+commands, claim updates, and deliver bounded read-only replies only when the
+corresponding runtime gates are enabled.
 
 ## Safety Contract
 
@@ -16,6 +18,8 @@ with the owner-link consume path.
 - Owner-link candidates bypass normal chat authorization, normal update claim,
   token resolution, and Telegram response delivery.
 - Normal read-only commands preserve the existing gated webhook pipeline.
+- Supported read-only commands are `/help`, `/status`, `/agent`, and
+  `/actions`.
 - Does not log the request body.
 - Does not expose webhook secrets, challenge material, challenge hashes,
   Telegram identities, session IDs, token refs, BotFather tokens, or raw
@@ -46,8 +50,23 @@ Requests without the webhook secret header return:
 }
 ```
 
+## Gate Order
+
+Keep the webhook path staged behind runtime gates:
+
+1. Active session lookup.
+2. Update parsing.
+3. Owner-link consume.
+4. Chat authorization.
+5. Atomic update claim.
+6. Token resolution.
+7. Read-only response delivery.
+
+Do not enable write, approval, wallet, Base MCP, onchain, or LLM command
+execution from this webhook without a separate reviewed implementation.
+
 ## Future Work
 
-Do not deploy or enable the owner-link consume gate until durable rate-limit
-and abuse controls, deployment ordering, rollback steps, and production smoke
-checks are separately approved.
+Before expanding beyond read-only commands, add a reviewed command processor
+contract, LLM provider boundary, prompt-injection protections, approval queue
+mapping, abuse limits, rollback steps, and production smoke checks.
