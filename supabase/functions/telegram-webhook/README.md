@@ -19,7 +19,7 @@ corresponding runtime gates are enabled.
   token resolution, and Telegram response delivery.
 - Normal read-only commands preserve the existing gated webhook pipeline.
 - Supported read-only commands are `/help`, `/status`, `/agent`, `/actions`,
-  and `/modules`.
+  `/modules`, and `/policy`.
 - Template context enrichment is default-off and only applies to `/agent`,
   `/actions`, and `/modules` after session lookup, chat authorization, and
   atomic update claim.
@@ -97,11 +97,13 @@ approved.
 runtime wiring. It reads only agent/template profile fields and sanitizes
 malformed rows and database failures.
 
-The webhook can enrich `/agent` and `/actions` replies with template context
-only when `KYRA_TELEGRAM_WEBHOOK_TEMPLATE_CONTEXT_ENABLED` is exactly `true`.
-The gate is disabled by default. The runtime lookup is lazy, uses read-only REST
-queries for `agent_instances` and `agent_templates`, and runs only after the
-webhook secret, active session, chat authorization, and atomic claim gates pass.
+The webhook can enrich `/agent`, `/actions`, and `/modules` replies with
+template context only when `KYRA_TELEGRAM_WEBHOOK_TEMPLATE_CONTEXT_ENABLED` is
+exactly `true`. The gate is disabled by default. The runtime lookup is lazy,
+uses read-only REST queries for `agent_instances` and `agent_templates`, and
+runs only after the webhook secret, active session, chat authorization, and
+atomic claim gates pass. `/policy` stays static so safety boundaries remain
+available even when optional context gates are disabled.
 
 ## Future Work
 

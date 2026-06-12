@@ -111,6 +111,7 @@ Deno.test("telegram agent brain accepts only read-only commands", () => {
   assertEquals(assertTelegramAgentBrainCommand("agent"), "agent");
   assertEquals(assertTelegramAgentBrainCommand("actions"), "actions");
   assertEquals(assertTelegramAgentBrainCommand("modules"), "modules");
+  assertEquals(assertTelegramAgentBrainCommand("policy"), "policy");
 });
 
 Deno.test("telegram agent brain rejects unsupported commands safely", async () => {
@@ -136,7 +137,7 @@ Deno.test("telegram agent brain provider receives bounded request and returns re
       command: "actions",
       agentName: "Kyra Strategist",
       agentRole: "market planning",
-      capabilities: ["help", "status", "agent", "actions", "modules"],
+      capabilities: ["help", "status", "agent", "actions", "modules", "policy"],
     },
     {
       async complete(request) {

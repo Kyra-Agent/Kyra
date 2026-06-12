@@ -5,7 +5,8 @@ export type TelegramWebhookParsedCommandName =
   | "status"
   | "agent"
   | "actions"
-  | "modules";
+  | "modules"
+  | "policy";
 
 export interface TelegramWebhookParsedCommand {
   updateId: string;
@@ -26,6 +27,7 @@ const supportedCommands = new Set<TelegramWebhookParsedCommandName>([
   "agent",
   "actions",
   "modules",
+  "policy",
 ]);
 const telegramCommandPattern =
   /^\/([A-Za-z][A-Za-z0-9_]*)(?:@([A-Za-z0-9_]{5,32}))?$/;

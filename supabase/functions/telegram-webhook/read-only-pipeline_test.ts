@@ -106,6 +106,14 @@ Deno.test("telegram read-only pipeline authorizes additional read-only commands"
       ownerTelegramChatId: -987654,
     },
   });
+  const policy = processVerifiedTelegramReadOnlyUpdate({
+    update: createUpdate("/policy"),
+    chatPolicy: {
+      mode: "personal",
+      ownerTelegramUserId: 123456,
+      ownerTelegramChatId: -987654,
+    },
+  });
 
   assertEquals(agent.command, "agent");
   assertEquals(agent.authorizationRole, "owner");
@@ -116,6 +124,9 @@ Deno.test("telegram read-only pipeline authorizes additional read-only commands"
   assertEquals(modules.command, "modules");
   assertEquals(modules.authorizationRole, "owner");
   assertEquals(modules.response.command, "modules");
+  assertEquals(policy.command, "policy");
+  assertEquals(policy.authorizationRole, "owner");
+  assertEquals(policy.response.command, "policy");
 });
 
 Deno.test("telegram read-only pipeline allows community public read-only command", () => {

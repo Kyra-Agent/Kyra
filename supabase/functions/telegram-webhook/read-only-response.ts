@@ -8,7 +8,7 @@ export interface TelegramReadOnlyCommandResponse {
 
 const helpText = [
   "Kyra Telegram commands",
-  "/help, /status, /agent, /actions, /modules",
+  "/help, /status, /agent, /actions, /modules, /policy",
   "Read-only mode.",
   "Write, approval, wallet, and onchain actions are disabled.",
 ].join("\n");
@@ -26,13 +26,18 @@ const agentText = [
 ].join("\n");
 
 const actionsText = [
-  "Available read-only commands: /help, /status, /agent, /actions, /modules",
+  "Available read-only commands: /help, /status, /agent, /actions, /modules, /policy",
   "Write, wallet, approval, and onchain actions are disabled.",
 ].join("\n");
 
 const modulesText = [
   "Kyra modules: available through read-only Telegram context",
   "Module execution, wallet actions, and onchain actions stay gated.",
+].join("\n");
+
+const policyText = [
+  "Kyra policy: approval required",
+  "Wallet, write, and onchain actions stay disabled from Telegram.",
 ].join("\n");
 
 export function buildTelegramReadOnlyCommandResponse(
@@ -56,6 +61,10 @@ export function buildTelegramReadOnlyCommandResponse(
 
   if (command === "modules") {
     return { command, text: modulesText };
+  }
+
+  if (command === "policy") {
+    return { command, text: policyText };
   }
 
   throw new HttpError(

@@ -33,6 +33,7 @@ const supportedReadOnlyCommands = new Set<TelegramWebhookParsedCommandName>([
   "agent",
   "actions",
   "modules",
+  "policy",
 ]);
 const maxAgentNameLength = 48;
 const maxAgentRoleLength = 72;
@@ -190,7 +191,7 @@ function sanitizePromptFragment(
 
 function sanitizeCapabilities(value: unknown) {
   if (!Array.isArray(value)) {
-    return ["help", "status", "agent", "actions", "modules"];
+    return ["help", "status", "agent", "actions", "modules", "policy"];
   }
 
   const capabilities = value
@@ -201,7 +202,7 @@ function sanitizeCapabilities(value: unknown) {
 
   return capabilities.length
     ? capabilities
-    : ["help", "status", "agent", "actions", "modules"];
+    : ["help", "status", "agent", "actions", "modules", "policy"];
 }
 
 function sanitizeForPrompt(value: string) {

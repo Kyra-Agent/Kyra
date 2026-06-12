@@ -73,6 +73,7 @@ Deno.test("telegram read-only help response is static and limited", () => {
     response.text.includes("/modules"),
     "Help response must list /modules.",
   );
+  assert(response.text.includes("/policy"), "Help response must list /policy.");
   assert(
     response.text.includes("actions are disabled"),
     "Help response must state disabled actions.",
@@ -145,6 +146,22 @@ Deno.test("telegram read-only modules response is static and bounded", () => {
   assert(
     response.text.includes("stay gated"),
     "Modules response must preserve execution gates.",
+  );
+  assertEquals(Object.keys(response).sort().join(","), "command,text");
+  assertSafeStaticResponse(response.text);
+});
+
+Deno.test("telegram read-only policy response is static and bounded", () => {
+  const response = buildTelegramReadOnlyCommandResponse("policy");
+
+  assertEquals(response.command, "policy");
+  assert(
+    response.text.includes("approval required"),
+    "Policy response must state approval policy.",
+  );
+  assert(
+    response.text.includes("actions stay disabled"),
+    "Policy response must preserve Telegram safety gates.",
   );
   assertEquals(Object.keys(response).sort().join(","), "command,text");
   assertSafeStaticResponse(response.text);
