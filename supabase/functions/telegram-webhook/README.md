@@ -22,6 +22,8 @@ corresponding runtime gates are enabled.
   `/actions`.
 - Template context enrichment is default-off and only applies to `/agent` and
   `/actions` after session lookup, chat authorization, and atomic update claim.
+- Agent-brain enrichment is default-off and only applies to `/agent` and
+  `/actions` when a reviewed provider dependency is injected.
 - Does not log the request body.
 - Does not expose webhook secrets, challenge material, challenge hashes,
   Telegram identities, session IDs, token refs, BotFather tokens, or raw
@@ -62,8 +64,9 @@ Keep the webhook path staged behind runtime gates:
 4. Chat authorization.
 5. Atomic update claim.
 6. Optional template context lookup for `/agent` and `/actions`.
-7. Token resolution.
-8. Read-only response delivery.
+7. Optional agent-brain response enrichment for `/agent` and `/actions`.
+8. Token resolution.
+9. Read-only response delivery.
 
 Do not enable write, approval, wallet, Base MCP, onchain, or LLM command
 execution from this webhook without a separate reviewed implementation.
@@ -72,8 +75,13 @@ execution from this webhook without a separate reviewed implementation.
 
 `agent-brain.ts` defines the local-only LLM/provider boundary for future Telegram
 responses. It builds sanitized read-only prompts and validates provider output,
-but it is not wired into the live webhook handler and does not call any LLM
-provider by itself.
+but it does not call any LLM provider by itself.
+
+The webhook can use agent-brain output only when
+`KYRA_TELEGRAM_WEBHOOK_AGENT_BRAIN_ENABLED` is exactly `true` and a reviewed
+provider dependency is injected. Without that dependency, the gate falls back to
+the existing static or template-context response instead of breaking delivery.
+No provider API key is read by this webhook runtime slice.
 
 ## Template And Module Context
 

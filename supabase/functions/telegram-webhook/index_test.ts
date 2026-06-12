@@ -15,6 +15,7 @@ import {
   telegramWebhookChatAuthEnabledEnvKey,
   telegramWebhookClaimEnabledEnvKey,
   telegramWebhookDeliveryEnabledEnvKey,
+  telegramWebhookAgentBrainEnabledEnvKey,
   telegramWebhookLookupEnabledEnvKey,
   telegramWebhookOwnerLinkConsumeEnabledEnvKey,
   telegramWebhookParseEnabledEnvKey,
@@ -1240,6 +1241,203 @@ Deno.test("telegram-webhook template context gate enriches agent response", asyn
   );
 });
 
+Deno.test("telegram-webhook agent brain gate stays off by default", async () => {
+  let agentBrainCalled = false;
+  const deliveries: Array<Record<string, unknown>> = [];
+
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("/agent@kyra_test_bot")),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      parseRuntimeConfig: { enabled: true },
+      chatAuthRuntimeConfig: { enabled: true },
+      claimRuntimeConfig: { enabled: true },
+      deliveryRuntimeConfig: { enabled: true },
+      templateContextRuntimeConfig: { enabled: true },
+      agentBrainRuntimeConfig: { enabled: false },
+      lookupTelegramWebhookSession: async () => ({
+        sessionId: "telegram-session-1",
+        agentId: "agent-1",
+        workspaceId: "workspace-1",
+        ownerUserId: "owner-1",
+        botHandle: "@kyra_test_bot",
+        webhookStatus: "active",
+      }),
+      lookupTelegramChatAuthorization: async () => ({
+        authorized: true,
+        role: "owner",
+      }),
+      claimTelegramUpdate: async () => ({ claimed: true, status: "claimed" }),
+      lookupTelegramTemplateContext: async () => ({
+        context: {
+          templateId: "strategist",
+          name: "Strategist",
+          role: "Market and campaign intelligence agent",
+          summary: "Market planning agent.",
+          actions: [],
+          modules: [],
+          readOnlyActions: ["market brief"],
+          gatedActions: [],
+          safetyNote: "Telegram is read-only.",
+        },
+        text: "Strategist template reply.",
+      }),
+      generateTelegramAgentBrainReply: async () => {
+        agentBrainCalled = true;
+        throw new Error("Disabled agent brain must not be called.");
+      },
+      deliverTelegramReadOnlyResponse: async (input) => {
+        deliveries.push(input);
+        return { delivered: true };
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const deliveredResponse = deliveries[0]?.response as
+    | Record<string, unknown>
+    | undefined;
+
+  assertEquals(response.status, 200);
+  assertEquals(body.status, "delivered");
+  assertEquals(agentBrainCalled, false);
+  assertEquals(deliveredResponse?.text, "Strategist template reply.");
+});
+
+Deno.test("telegram-webhook agent brain gate enriches template response", async () => {
+  const deliveries: Array<Record<string, unknown>> = [];
+  const brainInputs: Array<Record<string, unknown>> = [];
+
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("/actions@kyra_test_bot")),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      parseRuntimeConfig: { enabled: true },
+      chatAuthRuntimeConfig: { enabled: true },
+      claimRuntimeConfig: { enabled: true },
+      deliveryRuntimeConfig: { enabled: true },
+      templateContextRuntimeConfig: { enabled: true },
+      agentBrainRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => ({
+        sessionId: "telegram-session-1",
+        agentId: "agent-1",
+        workspaceId: "workspace-1",
+        ownerUserId: "owner-1",
+        botHandle: "@kyra_test_bot",
+        webhookStatus: "active",
+      }),
+      lookupTelegramChatAuthorization: async () => ({
+        authorized: true,
+        role: "owner",
+      }),
+      claimTelegramUpdate: async () => ({ claimed: true, status: "claimed" }),
+      lookupTelegramTemplateContext: async () => ({
+        context: {
+          templateId: "strategist",
+          name: "Strategist",
+          role: "Market and campaign intelligence agent",
+          summary: "Market planning agent.",
+          actions: [],
+          modules: [],
+          readOnlyActions: ["market brief", "campaign plan"],
+          gatedActions: ["custom prompt"],
+          safetyNote: "Telegram is read-only.",
+        },
+        text: "Template fallback should be replaced.",
+      }),
+      generateTelegramAgentBrainReply: async (input) => {
+        brainInputs.push(input as unknown as Record<string, unknown>);
+        return { text: "Strategist can summarize read-only campaign options." };
+      },
+      deliverTelegramReadOnlyResponse: async (input) => {
+        deliveries.push(input);
+        return { delivered: true };
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const deliveredResponse = deliveries[0]?.response as
+    | Record<string, unknown>
+    | undefined;
+
+  assertEquals(response.status, 200);
+  assertEquals(body.status, "delivered");
+  assertEquals(brainInputs.length, 1);
+  assertEquals(brainInputs[0]?.command, "actions");
+  assertEquals(brainInputs[0]?.agentName, "Strategist");
+  assertEquals(
+    brainInputs[0]?.agentRole,
+    "Market and campaign intelligence agent",
+  );
+  assertEquals(
+    Array.isArray(brainInputs[0]?.capabilities),
+    true,
+  );
+  assertEquals(deliveredResponse?.command, "actions");
+  assertEquals(
+    deliveredResponse?.text,
+    "Strategist can summarize read-only campaign options.",
+  );
+});
+
+Deno.test("telegram-webhook agent brain gate falls back without dependency", async () => {
+  const deliveries: Array<Record<string, unknown>> = [];
+
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("/agent@kyra_test_bot")),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      parseRuntimeConfig: { enabled: true },
+      chatAuthRuntimeConfig: { enabled: true },
+      claimRuntimeConfig: { enabled: true },
+      deliveryRuntimeConfig: { enabled: true },
+      templateContextRuntimeConfig: { enabled: true },
+      agentBrainRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => ({
+        sessionId: "telegram-session-1",
+        agentId: "agent-1",
+        workspaceId: "workspace-1",
+        ownerUserId: "owner-1",
+        botHandle: "@kyra_test_bot",
+        webhookStatus: "active",
+      }),
+      lookupTelegramChatAuthorization: async () => ({
+        authorized: true,
+        role: "owner",
+      }),
+      claimTelegramUpdate: async () => ({ claimed: true, status: "claimed" }),
+      lookupTelegramTemplateContext: async () => ({
+        context: {
+          templateId: "strategist",
+          name: "Strategist",
+          role: "Market and campaign intelligence agent",
+          summary: "Market planning agent.",
+          actions: [],
+          modules: [],
+          readOnlyActions: ["market brief"],
+          gatedActions: [],
+          safetyNote: "Telegram is read-only.",
+        },
+        text: "Template fallback remains available.",
+      }),
+      deliverTelegramReadOnlyResponse: async (input) => {
+        deliveries.push(input);
+        return { delivered: true };
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const deliveredResponse = deliveries[0]?.response as
+    | Record<string, unknown>
+    | undefined;
+
+  assertEquals(response.status, 200);
+  assertEquals(body.status, "delivered");
+  assertEquals(deliveredResponse?.text, "Template fallback remains available.");
+});
+
 Deno.test("telegram-webhook template context gate ignores status command", async () => {
   let templateContextCalled = false;
 
@@ -1543,14 +1741,16 @@ Deno.test("telegram-webhook runtime dependencies keep lookup disabled without se
   assertEquals(dependencies.deliveryRuntimeConfig?.enabled, false);
   assertEquals(dependencies.ownerLinkConsumeRuntimeConfig?.enabled, false);
   assertEquals(dependencies.templateContextRuntimeConfig?.enabled, false);
+  assertEquals(dependencies.agentBrainRuntimeConfig?.enabled, false);
   assertEquals(dependencies.lookupTelegramWebhookSession, undefined);
   assertEquals(dependencies.claimTelegramUpdate, undefined);
   assertEquals(dependencies.deliverTelegramReadOnlyResponse, undefined);
   assertEquals(dependencies.consumeTelegramOwnerLinkChallenge, undefined);
   assertEquals(dependencies.lookupTelegramTemplateContext, undefined);
+  assertEquals(dependencies.generateTelegramAgentBrainReply, undefined);
   assertEquals(
     keys.join(","),
-    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey},${telegramWebhookOwnerLinkConsumeEnabledEnvKey},${telegramWebhookTemplateContextEnabledEnvKey}`,
+    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey},${telegramWebhookOwnerLinkConsumeEnabledEnvKey},${telegramWebhookTemplateContextEnabledEnvKey},${telegramWebhookAgentBrainEnabledEnvKey}`,
   );
 });
 
@@ -1570,6 +1770,7 @@ Deno.test("telegram-webhook runtime dependencies enable lookup lazily", () => {
   assertEquals(dependencies.deliveryRuntimeConfig?.enabled, true);
   assertEquals(dependencies.ownerLinkConsumeRuntimeConfig?.enabled, true);
   assertEquals(dependencies.templateContextRuntimeConfig?.enabled, true);
+  assertEquals(dependencies.agentBrainRuntimeConfig?.enabled, true);
   assertEquals(typeof dependencies.lookupTelegramWebhookSession, "function");
   assertEquals(typeof dependencies.lookupTelegramChatAuthorization, "function");
   assertEquals(typeof dependencies.claimTelegramUpdate, "function");
@@ -1579,9 +1780,10 @@ Deno.test("telegram-webhook runtime dependencies enable lookup lazily", () => {
     "function",
   );
   assertEquals(typeof dependencies.lookupTelegramTemplateContext, "function");
+  assertEquals(dependencies.generateTelegramAgentBrainReply, undefined);
   assertEquals(
     keys.join(","),
-    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey},${telegramWebhookOwnerLinkConsumeEnabledEnvKey},${telegramWebhookTemplateContextEnabledEnvKey}`,
+    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey},${telegramWebhookOwnerLinkConsumeEnabledEnvKey},${telegramWebhookTemplateContextEnabledEnvKey},${telegramWebhookAgentBrainEnabledEnvKey}`,
   );
 });
 
