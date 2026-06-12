@@ -31,6 +31,7 @@ import {
 } from "./idempotency.ts";
 import {
   createTelegramWebhookAgentBrainRuntimeConfig,
+  createTelegramWebhookAgentBrainProviderRuntimeConfig,
   createTelegramWebhookChatAuthRuntimeConfig,
   createTelegramWebhookClaimRuntimeConfig,
   createTelegramWebhookDeliveryRuntimeConfig,
@@ -39,6 +40,7 @@ import {
   createTelegramWebhookParseRuntimeConfig,
   createTelegramWebhookTemplateContextRuntimeConfig,
   type OptionalEnvReader,
+  type TelegramWebhookAgentBrainProviderRuntimeConfig,
   type TelegramWebhookAgentBrainRuntimeConfig,
   type TelegramWebhookChatAuthRuntimeConfig,
   type TelegramWebhookClaimRuntimeConfig,
@@ -48,10 +50,16 @@ import {
   type TelegramWebhookParseRuntimeConfig,
   type TelegramWebhookTemplateContextRuntimeConfig,
 } from "./runtime-config.ts";
-import type {
-  TelegramAgentBrainPromptInput,
-  TelegramAgentBrainReply,
+import {
+  generateTelegramAgentBrainReply as generateTelegramAgentBrainReplyWithProvider,
+  type TelegramAgentBrainPromptInput,
+  type TelegramAgentBrainProvider,
+  type TelegramAgentBrainReply,
 } from "./agent-brain.ts";
+import {
+  createOpenAiCompatibleTelegramAgentBrainProvider,
+  type TelegramAgentBrainProviderFetch,
+} from "./agent-brain-provider.ts";
 import {
   parseTelegramWebhookUpdate,
   type TelegramWebhookParsedCommand,
@@ -227,6 +235,7 @@ export type {
 } from "./chat-authorization-lookup.ts";
 export {
   createTelegramWebhookAgentBrainRuntimeConfig,
+  createTelegramWebhookAgentBrainProviderRuntimeConfig,
   createTelegramWebhookChatAuthRuntimeConfig,
   createTelegramWebhookClaimRuntimeConfig,
   createTelegramWebhookDeliveryRuntimeConfig,
@@ -235,6 +244,7 @@ export {
   createTelegramWebhookParseRuntimeConfig,
   createTelegramWebhookTemplateContextRuntimeConfig,
   isTelegramWebhookAgentBrainEnabled,
+  isTelegramWebhookAgentBrainProviderEnabled,
   isTelegramWebhookChatAuthEnabled,
   isTelegramWebhookClaimEnabled,
   isTelegramWebhookDeliveryEnabled,
@@ -243,6 +253,7 @@ export {
   isTelegramWebhookParseEnabled,
   isTelegramWebhookTemplateContextEnabled,
   telegramWebhookAgentBrainEnabledEnvKey,
+  telegramWebhookAgentBrainProviderEnabledEnvKey,
   telegramWebhookChatAuthEnabledEnvKey,
   telegramWebhookClaimEnabledEnvKey,
   telegramWebhookDeliveryEnabledEnvKey,
@@ -253,6 +264,7 @@ export {
 } from "./runtime-config.ts";
 export type {
   OptionalEnvReader,
+  TelegramWebhookAgentBrainProviderRuntimeConfig,
   TelegramWebhookAgentBrainRuntimeConfig,
   TelegramWebhookChatAuthRuntimeConfig,
   TelegramWebhookClaimRuntimeConfig,
@@ -268,7 +280,9 @@ export interface TelegramWebhookRuntimeOptions {
   getOptionalEnv?: OptionalEnvReader;
   fetchRpc?: typeof fetch;
   fetchTelegram?: TelegramResponseDeliveryFetch;
+  fetchAgentBrain?: TelegramAgentBrainProviderFetch;
   telegramDeliveryTimeoutMs?: number;
+  telegramAgentBrainTimeoutMs?: number;
 }
 
 export interface TelegramWebhookDependencies {
@@ -280,6 +294,7 @@ export interface TelegramWebhookDependencies {
   ownerLinkConsumeRuntimeConfig?: TelegramWebhookOwnerLinkConsumeRuntimeConfig;
   templateContextRuntimeConfig?: TelegramWebhookTemplateContextRuntimeConfig;
   agentBrainRuntimeConfig?: TelegramWebhookAgentBrainRuntimeConfig;
+  agentBrainProviderRuntimeConfig?: TelegramWebhookAgentBrainProviderRuntimeConfig;
   lookupTelegramWebhookSession?: (
     webhookSecretHeader: string,
   ) => Promise<TelegramWebhookSessionLookupRecord>;
@@ -329,6 +344,10 @@ const disabledTelegramWebhookTemplateContextRuntimeConfig:
   TelegramWebhookTemplateContextRuntimeConfig = { enabled: false };
 const disabledTelegramWebhookAgentBrainRuntimeConfig:
   TelegramWebhookAgentBrainRuntimeConfig = { enabled: false };
+
+const telegramAgentBrainApiKeyEnvKey = "KYRA_TELEGRAM_AGENT_BRAIN_API_KEY";
+const telegramAgentBrainModelEnvKey = "KYRA_TELEGRAM_AGENT_BRAIN_MODEL";
+const telegramAgentBrainEndpointEnvKey = "KYRA_TELEGRAM_AGENT_BRAIN_ENDPOINT";
 
 export function getEnv(key: string) {
   const value = Deno.env.get(key);
@@ -480,6 +499,8 @@ export function createTelegramWebhookDependencies(
     createTelegramWebhookTemplateContextRuntimeConfig(readOptionalEnv);
   const agentBrainRuntimeConfig =
     createTelegramWebhookAgentBrainRuntimeConfig(readOptionalEnv);
+  const agentBrainProviderRuntimeConfig =
+    createTelegramWebhookAgentBrainProviderRuntimeConfig(readOptionalEnv);
   const dependencies: TelegramWebhookDependencies = {
     lookupRuntimeConfig,
     parseRuntimeConfig,
@@ -489,6 +510,7 @@ export function createTelegramWebhookDependencies(
     ownerLinkConsumeRuntimeConfig,
     templateContextRuntimeConfig,
     agentBrainRuntimeConfig,
+    agentBrainProviderRuntimeConfig,
   };
 
   if (!lookupRuntimeConfig.enabled) {
@@ -498,6 +520,7 @@ export function createTelegramWebhookDependencies(
   const fetchRpc = options.fetchRpc ?? fetch;
   let rpcClient: TelegramWebhookSessionLookupRpcClient | null = null;
   let restClient: TelegramTemplateContextLookupClient | null = null;
+  let agentBrainProvider: TelegramAgentBrainProvider | null = null;
   const getRpcClient = () => {
     if (!rpcClient) {
       const supabaseUrl = readRequiredEnv("SUPABASE_URL");
@@ -523,6 +546,19 @@ export function createTelegramWebhookDependencies(
     }
 
     return restClient;
+  };
+  const getAgentBrainProvider = () => {
+    if (!agentBrainProvider) {
+      agentBrainProvider = createOpenAiCompatibleTelegramAgentBrainProvider({
+        apiKey: readRequiredEnv(telegramAgentBrainApiKeyEnvKey),
+        model: readRequiredEnv(telegramAgentBrainModelEnvKey),
+        endpoint: readOptionalEnv(telegramAgentBrainEndpointEnvKey),
+        fetch: options.fetchAgentBrain,
+        timeoutMs: options.telegramAgentBrainTimeoutMs,
+      });
+    }
+
+    return agentBrainProvider;
   };
 
   dependencies.lookupTelegramWebhookSession = async (webhookSecretHeader) => {
@@ -589,6 +625,18 @@ export function createTelegramWebhookDependencies(
         agentId,
         serviceClient: getRestClient(),
       });
+    };
+  }
+
+  if (
+    agentBrainRuntimeConfig.enabled &&
+    agentBrainProviderRuntimeConfig.enabled
+  ) {
+    dependencies.generateTelegramAgentBrainReply = async (input) => {
+      return await generateTelegramAgentBrainReplyWithProvider(
+        input,
+        getAgentBrainProvider(),
+      );
     };
   }
 

@@ -1,5 +1,6 @@
 import {
   createTelegramWebhookAgentBrainRuntimeConfig,
+  createTelegramWebhookAgentBrainProviderRuntimeConfig,
   createTelegramWebhookChatAuthRuntimeConfig,
   createTelegramWebhookClaimRuntimeConfig,
   createTelegramWebhookDeliveryRuntimeConfig,
@@ -8,6 +9,7 @@ import {
   createTelegramWebhookParseRuntimeConfig,
   createTelegramWebhookTemplateContextRuntimeConfig,
   isTelegramWebhookAgentBrainEnabled,
+  isTelegramWebhookAgentBrainProviderEnabled,
   isTelegramWebhookChatAuthEnabled,
   isTelegramWebhookClaimEnabled,
   isTelegramWebhookDeliveryEnabled,
@@ -16,6 +18,7 @@ import {
   isTelegramWebhookParseEnabled,
   isTelegramWebhookTemplateContextEnabled,
   telegramWebhookAgentBrainEnabledEnvKey,
+  telegramWebhookAgentBrainProviderEnabledEnvKey,
   telegramWebhookChatAuthEnabledEnvKey,
   telegramWebhookClaimEnabledEnvKey,
   telegramWebhookDeliveryEnabledEnvKey,
@@ -310,4 +313,35 @@ Deno.test("telegram webhook agent brain config reads only its gate key", () => {
 
   assertEquals(config.enabled, false);
   assertEquals(keys.join(","), telegramWebhookAgentBrainEnabledEnvKey);
+});
+
+Deno.test("telegram webhook agent brain provider gate defaults off and requires exact true", () => {
+  const disabledValues = [
+    undefined,
+    null,
+    "",
+    " ",
+    "false",
+    "1",
+    "yes",
+    "TRUE",
+    " true ",
+  ];
+
+  for (const value of disabledValues) {
+    assertEquals(isTelegramWebhookAgentBrainProviderEnabled(value), false);
+  }
+
+  assertEquals(isTelegramWebhookAgentBrainProviderEnabled("true"), true);
+});
+
+Deno.test("telegram webhook agent brain provider config reads only its gate key", () => {
+  const keys: string[] = [];
+  const config = createTelegramWebhookAgentBrainProviderRuntimeConfig((key) => {
+    keys.push(key);
+    return "";
+  });
+
+  assertEquals(config.enabled, false);
+  assertEquals(keys.join(","), telegramWebhookAgentBrainProviderEnabledEnvKey);
 });

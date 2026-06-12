@@ -14,6 +14,8 @@ export const telegramWebhookTemplateContextEnabledEnvKey =
   "KYRA_TELEGRAM_WEBHOOK_TEMPLATE_CONTEXT_ENABLED";
 export const telegramWebhookAgentBrainEnabledEnvKey =
   "KYRA_TELEGRAM_WEBHOOK_AGENT_BRAIN_ENABLED";
+export const telegramWebhookAgentBrainProviderEnabledEnvKey =
+  "KYRA_TELEGRAM_WEBHOOK_AGENT_BRAIN_PROVIDER_ENABLED";
 
 export type OptionalEnvReader = (key: string) => string;
 
@@ -39,6 +41,9 @@ export type TelegramWebhookTemplateContextRuntimeConfig =
   | { enabled: false }
   | { enabled: true };
 export type TelegramWebhookAgentBrainRuntimeConfig =
+  | { enabled: false }
+  | { enabled: true };
+export type TelegramWebhookAgentBrainProviderRuntimeConfig =
   | { enabled: false }
   | { enabled: true };
 
@@ -71,6 +76,10 @@ export function isTelegramWebhookTemplateContextEnabled(value: unknown) {
 }
 
 export function isTelegramWebhookAgentBrainEnabled(value: unknown) {
+  return value === "true";
+}
+
+export function isTelegramWebhookAgentBrainProviderEnabled(value: unknown) {
   return value === "true";
 }
 
@@ -177,6 +186,20 @@ export function createTelegramWebhookAgentBrainRuntimeConfig(
 ): TelegramWebhookAgentBrainRuntimeConfig {
   const enabled = isTelegramWebhookAgentBrainEnabled(
     readOptionalEnv(telegramWebhookAgentBrainEnabledEnvKey),
+  );
+
+  if (!enabled) {
+    return { enabled: false };
+  }
+
+  return { enabled: true };
+}
+
+export function createTelegramWebhookAgentBrainProviderRuntimeConfig(
+  readOptionalEnv: OptionalEnvReader,
+): TelegramWebhookAgentBrainProviderRuntimeConfig {
+  const enabled = isTelegramWebhookAgentBrainProviderEnabled(
+    readOptionalEnv(telegramWebhookAgentBrainProviderEnabledEnvKey),
   );
 
   if (!enabled) {

@@ -90,8 +90,10 @@ The webhook can use agent-brain output only when
 `KYRA_TELEGRAM_WEBHOOK_AGENT_BRAIN_ENABLED` is exactly `true` and a reviewed
 provider dependency is injected. Without that dependency, the gate falls back to
 the existing static or template-context response instead of breaking delivery.
-No provider API key is read by this webhook runtime slice unless a future
-separately reviewed dependency factory is added and enabled.
+The OpenAI-compatible adapter is additionally protected by
+`KYRA_TELEGRAM_WEBHOOK_AGENT_BRAIN_PROVIDER_ENABLED`; provider API key and model
+env values are read lazily only when both agent-brain and provider gates are
+enabled and an eligible read-only command reaches the provider path.
 
 ## Template And Module Context
 

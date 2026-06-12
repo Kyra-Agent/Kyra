@@ -16,6 +16,7 @@ import {
   telegramWebhookClaimEnabledEnvKey,
   telegramWebhookDeliveryEnabledEnvKey,
   telegramWebhookAgentBrainEnabledEnvKey,
+  telegramWebhookAgentBrainProviderEnabledEnvKey,
   telegramWebhookLookupEnabledEnvKey,
   telegramWebhookOwnerLinkConsumeEnabledEnvKey,
   telegramWebhookParseEnabledEnvKey,
@@ -1899,6 +1900,7 @@ Deno.test("telegram-webhook runtime dependencies keep lookup disabled without se
   assertEquals(dependencies.ownerLinkConsumeRuntimeConfig?.enabled, false);
   assertEquals(dependencies.templateContextRuntimeConfig?.enabled, false);
   assertEquals(dependencies.agentBrainRuntimeConfig?.enabled, false);
+  assertEquals(dependencies.agentBrainProviderRuntimeConfig?.enabled, false);
   assertEquals(dependencies.lookupTelegramWebhookSession, undefined);
   assertEquals(dependencies.claimTelegramUpdate, undefined);
   assertEquals(dependencies.deliverTelegramReadOnlyResponse, undefined);
@@ -1907,7 +1909,7 @@ Deno.test("telegram-webhook runtime dependencies keep lookup disabled without se
   assertEquals(dependencies.generateTelegramAgentBrainReply, undefined);
   assertEquals(
     keys.join(","),
-    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey},${telegramWebhookOwnerLinkConsumeEnabledEnvKey},${telegramWebhookTemplateContextEnabledEnvKey},${telegramWebhookAgentBrainEnabledEnvKey}`,
+    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey},${telegramWebhookOwnerLinkConsumeEnabledEnvKey},${telegramWebhookTemplateContextEnabledEnvKey},${telegramWebhookAgentBrainEnabledEnvKey},${telegramWebhookAgentBrainProviderEnabledEnvKey}`,
   );
 });
 
@@ -1928,6 +1930,7 @@ Deno.test("telegram-webhook runtime dependencies enable lookup lazily", () => {
   assertEquals(dependencies.ownerLinkConsumeRuntimeConfig?.enabled, true);
   assertEquals(dependencies.templateContextRuntimeConfig?.enabled, true);
   assertEquals(dependencies.agentBrainRuntimeConfig?.enabled, true);
+  assertEquals(dependencies.agentBrainProviderRuntimeConfig?.enabled, true);
   assertEquals(typeof dependencies.lookupTelegramWebhookSession, "function");
   assertEquals(typeof dependencies.lookupTelegramChatAuthorization, "function");
   assertEquals(typeof dependencies.claimTelegramUpdate, "function");
@@ -1937,10 +1940,111 @@ Deno.test("telegram-webhook runtime dependencies enable lookup lazily", () => {
     "function",
   );
   assertEquals(typeof dependencies.lookupTelegramTemplateContext, "function");
-  assertEquals(dependencies.generateTelegramAgentBrainReply, undefined);
+  assertEquals(typeof dependencies.generateTelegramAgentBrainReply, "function");
   assertEquals(
     keys.join(","),
-    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey},${telegramWebhookOwnerLinkConsumeEnabledEnvKey},${telegramWebhookTemplateContextEnabledEnvKey},${telegramWebhookAgentBrainEnabledEnvKey}`,
+    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey},${telegramWebhookOwnerLinkConsumeEnabledEnvKey},${telegramWebhookTemplateContextEnabledEnvKey},${telegramWebhookAgentBrainEnabledEnvKey},${telegramWebhookAgentBrainProviderEnabledEnvKey}`,
+  );
+});
+
+Deno.test("telegram-webhook runtime agent brain provider stays absent without provider gate", () => {
+  let requiredEnvRead = false;
+  const dependencies = createTelegramWebhookDependencies({
+    getEnv: () => {
+      requiredEnvRead = true;
+      throw new Error("Provider-disabled runtime must not read required env.");
+    },
+    getOptionalEnv: (key) =>
+      key === telegramWebhookLookupEnabledEnvKey ||
+        key === telegramWebhookAgentBrainEnabledEnvKey
+        ? "true"
+        : "",
+  });
+
+  assertEquals(dependencies.lookupRuntimeConfig?.enabled, true);
+  assertEquals(dependencies.agentBrainRuntimeConfig?.enabled, true);
+  assertEquals(dependencies.agentBrainProviderRuntimeConfig?.enabled, false);
+  assertEquals(dependencies.generateTelegramAgentBrainReply, undefined);
+  assert(
+    !requiredEnvRead,
+    "Provider-disabled runtime must not read provider env.",
+  );
+});
+
+Deno.test("telegram-webhook runtime agent brain provider reads env lazily and uses fake fetch", async () => {
+  const requiredKeys: string[] = [];
+  const optionalKeys: string[] = [];
+  let providerFetchCalled = false;
+  const dependencies = createTelegramWebhookDependencies({
+    getEnv: (key) => {
+      requiredKeys.push(key);
+
+      if (key === "SUPABASE_URL") {
+        return "https://project.supabase.co";
+      }
+
+      if (key === "SUPABASE_SERVICE_ROLE_KEY") {
+        return "test-service-role-key";
+      }
+
+      if (key === "KYRA_TELEGRAM_AGENT_BRAIN_API_KEY") {
+        return "test-provider-key";
+      }
+
+      if (key === "KYRA_TELEGRAM_AGENT_BRAIN_MODEL") {
+        return "gpt-test-safe";
+      }
+
+      throw new Error(`Unexpected required env ${key}`);
+    },
+    getOptionalEnv: (key) => {
+      optionalKeys.push(key);
+      return key === telegramWebhookLookupEnabledEnvKey ||
+          key === telegramWebhookAgentBrainEnabledEnvKey ||
+          key === telegramWebhookAgentBrainProviderEnabledEnvKey
+        ? "true"
+        : "";
+    },
+    fetchAgentBrain: async (_input, init) => {
+      providerFetchCalled = true;
+      const body = String(init?.body ?? "");
+
+      assert(
+        !body.includes("test-provider-key"),
+        "Provider request body must not include API key.",
+      );
+
+      return new Response(
+        JSON.stringify({
+          output_text: "Kyra can answer read-only template questions.",
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    },
+  });
+
+  assertEquals(typeof dependencies.generateTelegramAgentBrainReply, "function");
+  assertEquals(requiredKeys.join(","), "");
+
+  const reply = await dependencies.generateTelegramAgentBrainReply?.({
+    command: "agent",
+    agentName: "Kyra",
+    agentRole: "Telegram read-only agent",
+    capabilities: ["status", "agent", "actions"],
+  });
+
+  assertEquals(
+    requiredKeys.join(","),
+    "KYRA_TELEGRAM_AGENT_BRAIN_API_KEY,KYRA_TELEGRAM_AGENT_BRAIN_MODEL",
+  );
+  assert(
+    optionalKeys.includes("KYRA_TELEGRAM_AGENT_BRAIN_ENDPOINT"),
+    "Provider endpoint env should be optional and lazy.",
+  );
+  assertEquals(providerFetchCalled, true);
+  assertEquals(
+    reply?.text,
+    "Kyra can answer read-only template questions.",
   );
 });
 
