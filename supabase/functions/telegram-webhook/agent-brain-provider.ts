@@ -185,7 +185,7 @@ function readProviderModel(value: unknown) {
   if (
     !model ||
     model.length > maxModelLength ||
-    !/^[A-Za-z0-9._:-]+$/.test(model)
+    !/^[A-Za-z0-9._:/-]+$/.test(model)
   ) {
     throw providerUnavailable();
   }

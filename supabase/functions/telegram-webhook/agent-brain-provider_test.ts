@@ -232,6 +232,55 @@ Deno.test("telegram agent brain provider supports common response envelopes", as
   );
 });
 
+Deno.test("telegram agent brain provider supports OpenRouter chat completions", async () => {
+  const openRouterModel = "openai/gpt-test-safe";
+  let capturedUrl = "";
+  let capturedAuthorization = "";
+  let capturedBody = "";
+  const provider = createOpenAiCompatibleTelegramAgentBrainProvider({
+    apiKey: testApiKey,
+    model: openRouterModel,
+    endpoint: "https://openrouter.ai/api/v1/chat/completions",
+    fetch: async (url, init) => {
+      capturedUrl = url;
+      capturedAuthorization = String(
+        new Headers(init?.headers).get("authorization") ?? "",
+      );
+      capturedBody = String(init?.body ?? "");
+
+      return jsonResponse({
+        choices: [
+          {
+            message: {
+              content: "OpenRouter read-only response.",
+            },
+          },
+        ],
+      });
+    },
+  });
+
+  const reply = await generateTelegramAgentBrainReply(
+    {
+      command: "agent",
+      agentName: "Kyra",
+      agentRole: "Telegram read-only agent",
+      capabilities: ["agent"],
+    },
+    provider,
+  );
+  const payload = JSON.parse(capturedBody);
+
+  assertEquals(capturedUrl, "https://openrouter.ai/api/v1/chat/completions");
+  assertEquals(capturedAuthorization, `Bearer ${testApiKey}`);
+  assertEquals(payload.model, openRouterModel);
+  assert(
+    !capturedBody.includes(testApiKey),
+    "Request body must not include API key.",
+  );
+  assertEquals(reply.text, "OpenRouter read-only response.");
+});
+
 Deno.test("telegram agent brain provider maps provider failures safely", async () => {
   const rawSecret = "1234567890:abcdefghijklmnopqrstuvwxyz";
   const rateLimitedProvider = createOpenAiCompatibleTelegramAgentBrainProvider({

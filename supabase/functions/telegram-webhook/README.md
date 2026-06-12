@@ -95,6 +95,20 @@ The OpenAI-compatible adapter is additionally protected by
 env values are read lazily only when both agent-brain and provider gates are
 enabled and an eligible read-only command reaches the provider path.
 
+For OpenRouter, keep the same backend-only boundary and configure the provider
+through Supabase Edge Function secrets/env only:
+
+- `KYRA_TELEGRAM_WEBHOOK_AGENT_BRAIN_ENABLED=true`
+- `KYRA_TELEGRAM_WEBHOOK_AGENT_BRAIN_PROVIDER_ENABLED=true`
+- `KYRA_TELEGRAM_AGENT_BRAIN_ENDPOINT=https://openrouter.ai/api/v1/chat/completions`
+- `KYRA_TELEGRAM_AGENT_BRAIN_MODEL=<openrouter model id>`
+- `KYRA_TELEGRAM_AGENT_BRAIN_API_KEY=<Supabase Edge Function secret>`
+
+Never put the OpenRouter API key in the repo, browser storage, frontend state,
+logs, screenshots, or chat. The runtime should read it only inside the Edge
+Function after the webhook, session, chat authorization, update claim, and
+agent-brain gates pass.
+
 ## Template And Module Context
 
 `template-context.ts` defines the local-only template/module context boundary for
