@@ -61,8 +61,15 @@ Deno.test("telegram claimed response plan supports additional read-only commands
     { claimed: true, status: "claimed" },
     "actions",
   );
+  const modules = planTelegramClaimedReadOnlyResponse(
+    { claimed: true, status: "claimed" },
+    "modules",
+  );
 
-  if (agent.status !== "claimed" || actions.status !== "claimed") {
+  if (
+    agent.status !== "claimed" || actions.status !== "claimed" ||
+    modules.status !== "claimed"
+  ) {
     throw new Error("Expected claimed response plans.");
   }
 
@@ -72,6 +79,11 @@ Deno.test("telegram claimed response plan supports additional read-only commands
   assert(
     actions.response.text.includes("/help"),
     "Expected safe action command list.",
+  );
+  assertEquals(modules.response.command, "modules");
+  assert(
+    modules.response.text.includes("modules"),
+    "Expected safe modules command response.",
   );
 });
 

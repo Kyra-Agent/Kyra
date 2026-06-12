@@ -883,13 +883,13 @@ export async function handleTelegramWebhookRequest(
 function shouldUseTelegramTemplateContext(
   command: TelegramWebhookParsedCommand["command"],
 ) {
-  return command === "agent" || command === "actions";
+  return command === "agent" || command === "actions" || command === "modules";
 }
 
 function shouldUseTelegramAgentBrain(
   command: TelegramWebhookParsedCommand["command"],
 ) {
-  return command === "agent" || command === "actions";
+  return command === "agent" || command === "actions" || command === "modules";
 }
 
 if (import.meta.main) {

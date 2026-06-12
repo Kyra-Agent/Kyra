@@ -160,7 +160,8 @@ export function assertTelegramDeliveryResponse(
     response.command !== "help" &&
     response.command !== "status" &&
     response.command !== "agent" &&
-    response.command !== "actions"
+    response.command !== "actions" &&
+    response.command !== "modules"
   ) {
     throw invalidTelegramDeliveryResponse();
   }

@@ -52,6 +52,7 @@ Deno.test("telegram update parser accepts supported read-only commands", () => {
   const help = parseTelegramWebhookUpdate(createUpdate("/help"));
   const agent = parseTelegramWebhookUpdate(createUpdate("/agent"));
   const actions = parseTelegramWebhookUpdate(createUpdate("/actions"));
+  const modules = parseTelegramWebhookUpdate(createUpdate("/modules"));
 
   assertEquals(status.updateId, "9001");
   assertEquals(status.messageId, "42");
@@ -65,6 +66,8 @@ Deno.test("telegram update parser accepts supported read-only commands", () => {
   assertEquals(agent.commandKind, "read_only");
   assertEquals(actions.command, "actions");
   assertEquals(actions.commandKind, "read_only");
+  assertEquals(modules.command, "modules");
+  assertEquals(modules.commandKind, "read_only");
 });
 
 Deno.test("telegram update parser discards group command bot username", () => {

@@ -18,12 +18,13 @@ corresponding runtime gates are enabled.
 - Owner-link candidates bypass normal chat authorization, normal update claim,
   token resolution, and Telegram response delivery.
 - Normal read-only commands preserve the existing gated webhook pipeline.
-- Supported read-only commands are `/help`, `/status`, `/agent`, and
-  `/actions`.
-- Template context enrichment is default-off and only applies to `/agent` and
-  `/actions` after session lookup, chat authorization, and atomic update claim.
-- Agent-brain enrichment is default-off and only applies to `/agent` and
-  `/actions` when a reviewed provider dependency is injected.
+- Supported read-only commands are `/help`, `/status`, `/agent`, `/actions`,
+  and `/modules`.
+- Template context enrichment is default-off and only applies to `/agent`,
+  `/actions`, and `/modules` after session lookup, chat authorization, and
+  atomic update claim.
+- Agent-brain enrichment is default-off and only applies to `/agent`,
+  `/actions`, and `/modules` when a reviewed provider dependency is injected.
 - Does not log the request body.
 - Does not expose webhook secrets, challenge material, challenge hashes,
   Telegram identities, session IDs, token refs, BotFather tokens, or raw
@@ -63,8 +64,9 @@ Keep the webhook path staged behind runtime gates:
 3. Owner-link consume.
 4. Chat authorization.
 5. Atomic update claim.
-6. Optional template context lookup for `/agent` and `/actions`.
-7. Optional agent-brain response enrichment for `/agent` and `/actions`.
+6. Optional template context lookup for `/agent`, `/actions`, and `/modules`.
+7. Optional agent-brain response enrichment for `/agent`, `/actions`, and
+   `/modules`.
 8. Token resolution.
 9. Read-only response delivery.
 

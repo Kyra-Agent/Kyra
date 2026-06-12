@@ -1241,6 +1241,83 @@ Deno.test("telegram-webhook template context gate enriches agent response", asyn
   );
 });
 
+Deno.test("telegram-webhook template context gate enriches modules response", async () => {
+  const deliveries: Array<Record<string, unknown>> = [];
+  const templateContextAgentIds: string[] = [];
+
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("/modules@kyra_test_bot")),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      parseRuntimeConfig: { enabled: true },
+      chatAuthRuntimeConfig: { enabled: true },
+      claimRuntimeConfig: { enabled: true },
+      deliveryRuntimeConfig: { enabled: true },
+      templateContextRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => ({
+        sessionId: "telegram-session-1",
+        agentId: "agent-1",
+        workspaceId: "workspace-1",
+        ownerUserId: "owner-1",
+        botHandle: "@kyra_test_bot",
+        webhookStatus: "active",
+      }),
+      lookupTelegramChatAuthorization: async () => ({
+        authorized: true,
+        role: "owner",
+      }),
+      claimTelegramUpdate: async () => ({ claimed: true, status: "claimed" }),
+      lookupTelegramTemplateContext: async (agentId) => {
+        templateContextAgentIds.push(agentId);
+        return {
+          context: {
+            templateId: "strategist",
+            name: "Strategist",
+            role: "Market and campaign intelligence agent",
+            summary: "Market planning agent.",
+            actions: [],
+            modules: [
+              {
+                name: "NIRA-01",
+                title: "Narrative intelligence",
+                telegramStatus: "active",
+              },
+              {
+                name: "ASTRA-03",
+                title: "Execution guard",
+                telegramStatus: "guard",
+              },
+            ],
+            readOnlyActions: ["market brief"],
+            gatedActions: [],
+            safetyNote: "Telegram is read-only.",
+          },
+          text: "Strategist modules: NIRA-01 active, ASTRA-03 guarded.",
+        };
+      },
+      deliverTelegramReadOnlyResponse: async (input) => {
+        deliveries.push(input);
+        return { delivered: true };
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const deliveredResponse = deliveries[0]?.response as
+    | Record<string, unknown>
+    | undefined;
+
+  assertEquals(response.status, 200);
+  assertEquals(body.status, "delivered");
+  assertEquals(templateContextAgentIds.join(","), "agent-1");
+  assertEquals(deliveries.length, 1);
+  assertEquals(deliveredResponse?.command, "modules");
+  assertEquals(
+    deliveredResponse?.text,
+    "Strategist modules: NIRA-01 active, ASTRA-03 guarded.",
+  );
+});
+
 Deno.test("telegram-webhook agent brain gate stays off by default", async () => {
   let agentBrainCalled = false;
   const deliveries: Array<Record<string, unknown>> = [];
@@ -1378,6 +1455,86 @@ Deno.test("telegram-webhook agent brain gate enriches template response", async 
   assertEquals(
     deliveredResponse?.text,
     "Strategist can summarize read-only campaign options.",
+  );
+});
+
+Deno.test("telegram-webhook agent brain gate enriches modules response", async () => {
+  const deliveries: Array<Record<string, unknown>> = [];
+  const brainInputs: Array<Record<string, unknown>> = [];
+
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("/modules@kyra_test_bot")),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      parseRuntimeConfig: { enabled: true },
+      chatAuthRuntimeConfig: { enabled: true },
+      claimRuntimeConfig: { enabled: true },
+      deliveryRuntimeConfig: { enabled: true },
+      templateContextRuntimeConfig: { enabled: true },
+      agentBrainRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => ({
+        sessionId: "telegram-session-1",
+        agentId: "agent-1",
+        workspaceId: "workspace-1",
+        ownerUserId: "owner-1",
+        botHandle: "@kyra_test_bot",
+        webhookStatus: "active",
+      }),
+      lookupTelegramChatAuthorization: async () => ({
+        authorized: true,
+        role: "owner",
+      }),
+      claimTelegramUpdate: async () => ({ claimed: true, status: "claimed" }),
+      lookupTelegramTemplateContext: async () => ({
+        context: {
+          templateId: "strategist",
+          name: "Strategist",
+          role: "Market and campaign intelligence agent",
+          summary: "Market planning agent.",
+          actions: [],
+          modules: [
+            {
+              name: "NIRA-01",
+              title: "Narrative intelligence",
+              telegramStatus: "active",
+            },
+            {
+              name: "ASTRA-03",
+              title: "Execution guard",
+              telegramStatus: "guard",
+            },
+          ],
+          readOnlyActions: ["market brief"],
+          gatedActions: [],
+          safetyNote: "Telegram is read-only.",
+        },
+        text: "Template modules fallback should be replaced.",
+      }),
+      generateTelegramAgentBrainReply: async (input) => {
+        brainInputs.push(input as unknown as Record<string, unknown>);
+        return { text: "Strategist modules are available in read-only mode." };
+      },
+      deliverTelegramReadOnlyResponse: async (input) => {
+        deliveries.push(input);
+        return { delivered: true };
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const deliveredResponse = deliveries[0]?.response as
+    | Record<string, unknown>
+    | undefined;
+
+  assertEquals(response.status, 200);
+  assertEquals(body.status, "delivered");
+  assertEquals(brainInputs.length, 1);
+  assertEquals(brainInputs[0]?.command, "modules");
+  assertEquals(brainInputs[0]?.agentName, "Strategist");
+  assertEquals(deliveredResponse?.command, "modules");
+  assertEquals(
+    deliveredResponse?.text,
+    "Strategist modules are available in read-only mode.",
   );
 });
 
