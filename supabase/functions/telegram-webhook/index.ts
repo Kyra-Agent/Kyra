@@ -167,6 +167,14 @@ export type {
   TelegramAgentBrainRequest,
 } from "./agent-brain.ts";
 export {
+  buildOpenAiCompatibleAgentBrainPayload,
+  createOpenAiCompatibleTelegramAgentBrainProvider,
+} from "./agent-brain-provider.ts";
+export type {
+  OpenAiCompatibleTelegramAgentBrainProviderOptions,
+  TelegramAgentBrainProviderFetch,
+} from "./agent-brain-provider.ts";
+export {
   buildTelegramTemplateContext,
   buildTelegramTemplateContextReply,
   classifyTemplateAction,

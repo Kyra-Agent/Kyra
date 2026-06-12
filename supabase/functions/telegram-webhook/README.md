@@ -79,11 +79,19 @@ execution from this webhook without a separate reviewed implementation.
 responses. It builds sanitized read-only prompts and validates provider output,
 but it does not call any LLM provider by itself.
 
+`agent-brain-provider.ts` defines an OpenAI-compatible provider adapter that can
+turn the sanitized local request into an outbound provider request when a future
+reviewed runtime dependency explicitly injects it. It validates endpoint, model,
+API key presence, response shape, timeout behavior, and sanitized failure states,
+but it is not wired into production dependencies and does not read environment
+values by itself.
+
 The webhook can use agent-brain output only when
 `KYRA_TELEGRAM_WEBHOOK_AGENT_BRAIN_ENABLED` is exactly `true` and a reviewed
 provider dependency is injected. Without that dependency, the gate falls back to
 the existing static or template-context response instead of breaking delivery.
-No provider API key is read by this webhook runtime slice.
+No provider API key is read by this webhook runtime slice unless a future
+separately reviewed dependency factory is added and enabled.
 
 ## Template And Module Context
 
