@@ -20,6 +20,8 @@ corresponding runtime gates are enabled.
 - Normal read-only commands preserve the existing gated webhook pipeline.
 - Supported read-only commands are `/help`, `/status`, `/agent`, and
   `/actions`.
+- Template context enrichment is default-off and only applies to `/agent` and
+  `/actions` after session lookup, chat authorization, and atomic update claim.
 - Does not log the request body.
 - Does not expose webhook secrets, challenge material, challenge hashes,
   Telegram identities, session IDs, token refs, BotFather tokens, or raw
@@ -59,8 +61,9 @@ Keep the webhook path staged behind runtime gates:
 3. Owner-link consume.
 4. Chat authorization.
 5. Atomic update claim.
-6. Token resolution.
-7. Read-only response delivery.
+6. Optional template context lookup for `/agent` and `/actions`.
+7. Token resolution.
+8. Read-only response delivery.
 
 Do not enable write, approval, wallet, Base MCP, onchain, or LLM command
 execution from this webhook without a separate reviewed implementation.
@@ -81,8 +84,14 @@ actions, and keeps Executor-style wallet automation gated until Base MCP work is
 approved.
 
 `template-context-lookup.ts` defines the injectable lookup adapter for future
-runtime wiring. It reads only agent/template profile fields, sanitizes malformed
-rows and database failures, and is not wired into the live webhook handler yet.
+runtime wiring. It reads only agent/template profile fields and sanitizes
+malformed rows and database failures.
+
+The webhook can enrich `/agent` and `/actions` replies with template context
+only when `KYRA_TELEGRAM_WEBHOOK_TEMPLATE_CONTEXT_ENABLED` is exactly `true`.
+The gate is disabled by default. The runtime lookup is lazy, uses read-only REST
+queries for `agent_instances` and `agent_templates`, and runs only after the
+webhook secret, active session, chat authorization, and atomic claim gates pass.
 
 ## Future Work
 
