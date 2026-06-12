@@ -36,6 +36,7 @@ import {
   createTelegramWebhookLookupRuntimeConfig,
   createTelegramWebhookOwnerLinkConsumeRuntimeConfig,
   createTelegramWebhookParseRuntimeConfig,
+  createTelegramWebhookTemplateContextRuntimeConfig,
   type OptionalEnvReader,
   type TelegramWebhookChatAuthRuntimeConfig,
   type TelegramWebhookClaimRuntimeConfig,
@@ -43,6 +44,7 @@ import {
   type TelegramWebhookLookupRuntimeConfig,
   type TelegramWebhookOwnerLinkConsumeRuntimeConfig,
   type TelegramWebhookParseRuntimeConfig,
+  type TelegramWebhookTemplateContextRuntimeConfig,
 } from "./runtime-config.ts";
 import {
   parseTelegramWebhookUpdate,
@@ -65,6 +67,11 @@ import {
   type TelegramOwnerLinkConsumeRpcClient,
 } from "./owner-link-consume.ts";
 import { dispatchVerifiedTelegramWebhookUpdate } from "./owner-link-dispatch.ts";
+import {
+  lookupTelegramTemplateContext,
+  type TelegramTemplateContextLookupClient,
+  type TelegramTemplateContextLookupOutput,
+} from "./template-context-lookup.ts";
 
 export {
   assertActiveTelegramWebhookSession,
@@ -211,18 +218,21 @@ export {
   createTelegramWebhookLookupRuntimeConfig,
   createTelegramWebhookOwnerLinkConsumeRuntimeConfig,
   createTelegramWebhookParseRuntimeConfig,
+  createTelegramWebhookTemplateContextRuntimeConfig,
   isTelegramWebhookChatAuthEnabled,
   isTelegramWebhookClaimEnabled,
   isTelegramWebhookDeliveryEnabled,
   isTelegramWebhookLookupEnabled,
   isTelegramWebhookOwnerLinkConsumeEnabled,
   isTelegramWebhookParseEnabled,
+  isTelegramWebhookTemplateContextEnabled,
   telegramWebhookChatAuthEnabledEnvKey,
   telegramWebhookClaimEnabledEnvKey,
   telegramWebhookDeliveryEnabledEnvKey,
   telegramWebhookLookupEnabledEnvKey,
   telegramWebhookOwnerLinkConsumeEnabledEnvKey,
   telegramWebhookParseEnabledEnvKey,
+  telegramWebhookTemplateContextEnabledEnvKey,
 } from "./runtime-config.ts";
 export type {
   OptionalEnvReader,
@@ -232,6 +242,7 @@ export type {
   TelegramWebhookLookupRuntimeConfig,
   TelegramWebhookOwnerLinkConsumeRuntimeConfig,
   TelegramWebhookParseRuntimeConfig,
+  TelegramWebhookTemplateContextRuntimeConfig,
 } from "./runtime-config.ts";
 
 export interface TelegramWebhookRuntimeOptions {
@@ -249,6 +260,7 @@ export interface TelegramWebhookDependencies {
   claimRuntimeConfig?: TelegramWebhookClaimRuntimeConfig;
   deliveryRuntimeConfig?: TelegramWebhookDeliveryRuntimeConfig;
   ownerLinkConsumeRuntimeConfig?: TelegramWebhookOwnerLinkConsumeRuntimeConfig;
+  templateContextRuntimeConfig?: TelegramWebhookTemplateContextRuntimeConfig;
   lookupTelegramWebhookSession?: (
     webhookSecretHeader: string,
   ) => Promise<TelegramWebhookSessionLookupRecord>;
@@ -274,6 +286,9 @@ export interface TelegramWebhookDependencies {
     telegramChatId: string;
     challengeHash: string;
   }) => Promise<TelegramOwnerLinkConsumeResult>;
+  lookupTelegramTemplateContext?: (
+    agentId: string,
+  ) => Promise<TelegramTemplateContextLookupOutput>;
 }
 
 const disabledTelegramWebhookLookupRuntimeConfig:
@@ -288,6 +303,8 @@ const disabledTelegramWebhookDeliveryRuntimeConfig:
   TelegramWebhookDeliveryRuntimeConfig = { enabled: false };
 const disabledTelegramWebhookOwnerLinkConsumeRuntimeConfig:
   TelegramWebhookOwnerLinkConsumeRuntimeConfig = { enabled: false };
+const disabledTelegramWebhookTemplateContextRuntimeConfig:
+  TelegramWebhookTemplateContextRuntimeConfig = { enabled: false };
 
 export function getEnv(key: string) {
   const value = Deno.env.get(key);
@@ -351,6 +368,68 @@ export function createTelegramWebhookSessionLookupRpcClient(
   };
 }
 
+export function createTelegramWebhookRestLookupClient(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  fetchRpc: typeof fetch = fetch,
+): TelegramTemplateContextLookupClient {
+  const restBaseUrl = `${supabaseUrl.replace(/\/+$/, "")}/rest/v1`;
+
+  return {
+    from(table) {
+      let selectedColumns = "";
+      const filters: Array<{ column: string; value: string }> = [];
+
+      return {
+        select(columns) {
+          selectedColumns = columns;
+          return this;
+        },
+        eq(column, value) {
+          filters.push({ column, value });
+          return this;
+        },
+        async limit<T>(count: number) {
+          const url = new URL(`${restBaseUrl}/${table}`);
+
+          url.searchParams.set("select", selectedColumns);
+          url.searchParams.set("limit", String(count));
+
+          for (const filter of filters) {
+            url.searchParams.set(filter.column, `eq.${filter.value}`);
+          }
+
+          const response = await fetchRpc(url.toString(), {
+            method: "GET",
+            headers: {
+              apikey: serviceRoleKey,
+              authorization: `Bearer ${serviceRoleKey}`,
+            },
+          });
+          let payload: unknown = null;
+
+          try {
+            payload = await response.json();
+          } catch {
+            payload = null;
+          }
+
+          if (!response.ok) {
+            return {
+              data: null,
+              error: payload ?? {
+                message: "Telegram template context lookup failed.",
+              },
+            };
+          }
+
+          return { data: payload as T[], error: null };
+        },
+      };
+    },
+  };
+}
+
 export function createTelegramWebhookDependencies(
   options: TelegramWebhookRuntimeOptions = {},
 ): TelegramWebhookDependencies {
@@ -373,6 +452,8 @@ export function createTelegramWebhookDependencies(
   );
   const ownerLinkConsumeRuntimeConfig =
     createTelegramWebhookOwnerLinkConsumeRuntimeConfig(readOptionalEnv);
+  const templateContextRuntimeConfig =
+    createTelegramWebhookTemplateContextRuntimeConfig(readOptionalEnv);
   const dependencies: TelegramWebhookDependencies = {
     lookupRuntimeConfig,
     parseRuntimeConfig,
@@ -380,6 +461,7 @@ export function createTelegramWebhookDependencies(
     claimRuntimeConfig,
     deliveryRuntimeConfig,
     ownerLinkConsumeRuntimeConfig,
+    templateContextRuntimeConfig,
   };
 
   if (!lookupRuntimeConfig.enabled) {
@@ -388,6 +470,7 @@ export function createTelegramWebhookDependencies(
 
   const fetchRpc = options.fetchRpc ?? fetch;
   let rpcClient: TelegramWebhookSessionLookupRpcClient | null = null;
+  let restClient: TelegramTemplateContextLookupClient | null = null;
   const getRpcClient = () => {
     if (!rpcClient) {
       const supabaseUrl = readRequiredEnv("SUPABASE_URL");
@@ -400,6 +483,19 @@ export function createTelegramWebhookDependencies(
     }
 
     return rpcClient;
+  };
+  const getRestClient = () => {
+    if (!restClient) {
+      const supabaseUrl = readRequiredEnv("SUPABASE_URL");
+      const serviceRoleKey = readRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
+      restClient = createTelegramWebhookRestLookupClient(
+        supabaseUrl,
+        serviceRoleKey,
+        fetchRpc,
+      );
+    }
+
+    return restClient;
   };
 
   dependencies.lookupTelegramWebhookSession = async (webhookSecretHeader) => {
@@ -460,6 +556,15 @@ export function createTelegramWebhookDependencies(
     };
   }
 
+  if (templateContextRuntimeConfig.enabled) {
+    dependencies.lookupTelegramTemplateContext = async (agentId) => {
+      return await lookupTelegramTemplateContext({
+        agentId,
+        serviceClient: getRestClient(),
+      });
+    };
+  }
+
   return dependencies;
 }
 
@@ -491,6 +596,9 @@ export async function handleTelegramWebhookRequest(
     const ownerLinkConsumeRuntimeConfig =
       dependencies.ownerLinkConsumeRuntimeConfig ??
         disabledTelegramWebhookOwnerLinkConsumeRuntimeConfig;
+    const templateContextRuntimeConfig =
+      dependencies.templateContextRuntimeConfig ??
+        disabledTelegramWebhookTemplateContextRuntimeConfig;
     let lookupSession: TelegramWebhookSessionLookupRecord | null = null;
     let parsedUpdate: TelegramWebhookParsedCommand | null = null;
     let chatAuthorization: TelegramWebhookChatAuthorization | null = null;
@@ -644,6 +752,29 @@ export async function handleTelegramWebhookRequest(
         );
       }
 
+      let response = deliveryPlan.response;
+
+      if (
+        templateContextRuntimeConfig.enabled &&
+        shouldUseTelegramTemplateContext(parsedUpdate.command)
+      ) {
+        if (!dependencies.lookupTelegramTemplateContext) {
+          throw new HttpError(
+            500,
+            "server_error",
+            "Telegram template context lookup is not configured.",
+          );
+        }
+
+        const templateContext = await dependencies.lookupTelegramTemplateContext(
+          lookupSession.agentId,
+        );
+        response = {
+          command: parsedUpdate.command,
+          text: templateContext.text,
+        };
+      }
+
       if (!dependencies.deliverTelegramReadOnlyResponse) {
         throw new HttpError(
           500,
@@ -656,7 +787,7 @@ export async function handleTelegramWebhookRequest(
         await dependencies.deliverTelegramReadOnlyResponse({
           telegramSessionId: lookupSession.sessionId,
           telegramChatId: parsedUpdate.telegramChatId,
-          response: deliveryPlan.response,
+          response,
         });
       } catch (error) {
         if (error instanceof HttpError) {
@@ -705,6 +836,12 @@ export async function handleTelegramWebhookRequest(
       500,
     );
   }
+}
+
+function shouldUseTelegramTemplateContext(
+  command: TelegramWebhookParsedCommand["command"],
+) {
+  return command === "agent" || command === "actions";
 }
 
 if (import.meta.main) {

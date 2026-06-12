@@ -10,6 +10,8 @@ export const telegramWebhookDeliveryEnabledEnvKey =
   "KYRA_TELEGRAM_WEBHOOK_DELIVERY_ENABLED";
 export const telegramWebhookOwnerLinkConsumeEnabledEnvKey =
   "KYRA_TELEGRAM_WEBHOOK_OWNER_LINK_CONSUME_ENABLED";
+export const telegramWebhookTemplateContextEnabledEnvKey =
+  "KYRA_TELEGRAM_WEBHOOK_TEMPLATE_CONTEXT_ENABLED";
 
 export type OptionalEnvReader = (key: string) => string;
 
@@ -29,6 +31,9 @@ export type TelegramWebhookDeliveryRuntimeConfig =
   | { enabled: false }
   | { enabled: true };
 export type TelegramWebhookOwnerLinkConsumeRuntimeConfig =
+  | { enabled: false }
+  | { enabled: true };
+export type TelegramWebhookTemplateContextRuntimeConfig =
   | { enabled: false }
   | { enabled: true };
 
@@ -53,6 +58,10 @@ export function isTelegramWebhookDeliveryEnabled(value: unknown) {
 }
 
 export function isTelegramWebhookOwnerLinkConsumeEnabled(value: unknown) {
+  return value === "true";
+}
+
+export function isTelegramWebhookTemplateContextEnabled(value: unknown) {
   return value === "true";
 }
 
@@ -131,6 +140,20 @@ export function createTelegramWebhookOwnerLinkConsumeRuntimeConfig(
 ): TelegramWebhookOwnerLinkConsumeRuntimeConfig {
   const enabled = isTelegramWebhookOwnerLinkConsumeEnabled(
     readOptionalEnv(telegramWebhookOwnerLinkConsumeEnabledEnvKey),
+  );
+
+  if (!enabled) {
+    return { enabled: false };
+  }
+
+  return { enabled: true };
+}
+
+export function createTelegramWebhookTemplateContextRuntimeConfig(
+  readOptionalEnv: OptionalEnvReader,
+): TelegramWebhookTemplateContextRuntimeConfig {
+  const enabled = isTelegramWebhookTemplateContextEnabled(
+    readOptionalEnv(telegramWebhookTemplateContextEnabledEnvKey),
   );
 
   if (!enabled) {

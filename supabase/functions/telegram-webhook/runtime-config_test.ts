@@ -5,18 +5,21 @@ import {
   createTelegramWebhookLookupRuntimeConfig,
   createTelegramWebhookOwnerLinkConsumeRuntimeConfig,
   createTelegramWebhookParseRuntimeConfig,
+  createTelegramWebhookTemplateContextRuntimeConfig,
   isTelegramWebhookChatAuthEnabled,
   isTelegramWebhookClaimEnabled,
   isTelegramWebhookDeliveryEnabled,
   isTelegramWebhookLookupEnabled,
   isTelegramWebhookOwnerLinkConsumeEnabled,
   isTelegramWebhookParseEnabled,
+  isTelegramWebhookTemplateContextEnabled,
   telegramWebhookChatAuthEnabledEnvKey,
   telegramWebhookClaimEnabledEnvKey,
   telegramWebhookDeliveryEnabledEnvKey,
   telegramWebhookLookupEnabledEnvKey,
   telegramWebhookOwnerLinkConsumeEnabledEnvKey,
   telegramWebhookParseEnabledEnvKey,
+  telegramWebhookTemplateContextEnabledEnvKey,
 } from "./index.ts";
 
 function assert(condition: boolean, message: string) {
@@ -242,4 +245,35 @@ Deno.test("telegram webhook owner-link consume config reads only its gate key", 
 
   assertEquals(config.enabled, false);
   assertEquals(keys.join(","), telegramWebhookOwnerLinkConsumeEnabledEnvKey);
+});
+
+Deno.test("telegram webhook template context gate defaults off and requires exact true", () => {
+  const disabledValues = [
+    undefined,
+    null,
+    "",
+    " ",
+    "false",
+    "1",
+    "yes",
+    "TRUE",
+    " true ",
+  ];
+
+  for (const value of disabledValues) {
+    assertEquals(isTelegramWebhookTemplateContextEnabled(value), false);
+  }
+
+  assertEquals(isTelegramWebhookTemplateContextEnabled("true"), true);
+});
+
+Deno.test("telegram webhook template context config reads only its gate key", () => {
+  const keys: string[] = [];
+  const config = createTelegramWebhookTemplateContextRuntimeConfig((key) => {
+    keys.push(key);
+    return "";
+  });
+
+  assertEquals(config.enabled, false);
+  assertEquals(keys.join(","), telegramWebhookTemplateContextEnabledEnvKey);
 });
