@@ -386,6 +386,21 @@ function assertContextualTelegramAgentBrainReply(
   }
 
   if (
+    context.command === "modules" &&
+    !hasTelegramSectionLabel(text, "Active")
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
+    context.command === "modules" &&
+    context.modules.some((module) => module.status === "standby") &&
+    !hasTelegramSectionLabel(text, "Standby")
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
     context.command === "actions" &&
     context.capabilities.length &&
     !context.capabilities.some((capability) =>
@@ -406,6 +421,10 @@ function assertContextualTelegramAgentBrainReply(
 
 function includesTextFolded(text: string, fragment: string) {
   return text.toLowerCase().includes(fragment.toLowerCase());
+}
+
+function hasTelegramSectionLabel(text: string, label: string) {
+  return new RegExp(`(?:^|\\n)\\s*${label}\\s*:`, "i").test(text);
 }
 
 function assertSafeTelegramAgentBrainText(text: string) {
