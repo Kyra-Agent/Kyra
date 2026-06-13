@@ -1,6 +1,7 @@
 # telegram-webhook Edge Function
 
-This Phase 5 webhook receiver is gate-controlled. The latest implementation can
+This Phase 5 webhook receiver is gate-controlled and production-live for
+read-only Telegram + LLM replies. The latest implementation can
 resolve active sessions, consume owner-link challenges, authorize read-only
 commands and bounded natural chat, claim updates, and deliver bounded read-only
 replies only when the corresponding runtime gates are enabled.
@@ -81,7 +82,7 @@ execution from this webhook without a separate reviewed implementation.
 
 ## Agent Brain Boundary
 
-`agent-brain.ts` defines the local-only LLM/provider boundary for future Telegram
+`agent-brain.ts` defines the local-only LLM/provider boundary for Telegram
 responses. It builds sanitized read-only prompts and validates provider output,
 but it does not call any LLM provider by itself.
 
@@ -124,7 +125,7 @@ agent-brain gates pass.
 ## Template And Module Context
 
 `template-context.ts` defines the local-only template/module context boundary for
-future Telegram responses. It normalizes template actions and modules, marks
+Telegram responses. It normalizes template actions and modules, marks
 read-only-ready actions separately from dashboard-gated and Phase 6 wallet-gated
 actions, and keeps Executor-style wallet automation gated until Base MCP work is
 approved.
@@ -144,7 +145,7 @@ are disabled.
 
 ## Future Work
 
-Before expanding beyond read-only commands and natural read-only chat, add a
-reviewed write command processor contract, stronger prompt-injection
-protections, approval queue mapping, abuse limits, rollback steps, and
-production smoke checks.
+Before expanding beyond read-only commands and natural read-only chat in Phase
+6, add a reviewed write command processor contract, stronger prompt-injection
+protections, approval queue mapping, abuse limits, rollback steps, wallet
+approval checks, Base MCP execution boundaries, and production smoke checks.

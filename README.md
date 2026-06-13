@@ -1,6 +1,6 @@
 # KYRA-AGENT
 
-Kyra Agent is a backend-connected Base agent console demo for approval-first onchain workflows. It lets a user choose an agent template, configure a Telegram-native agent identity, deploy a persisted demo agent, connect a backend-only Telegram bot session, and inspect dashboard/public profile records before wallet-approved Base execution is connected.
+Kyra Agent is a backend-connected Base agent console demo for approval-first onchain workflows. It lets a user choose an agent template, configure a Telegram-native agent identity, deploy a persisted demo agent, connect a backend-only Telegram bot session, use live read-only Telegram/LLM replies, and inspect dashboard/public profile records before wallet-approved Base execution is connected.
 
 Live demo: https://kyraagent.xyz
 
@@ -10,19 +10,21 @@ Core positioning:
 Deploy Base agents with approval-first onchain workflows.
 ```
 
-Current caveat: the product is still a backend-connected demo. It shows the product flow and persistence model, but it does not execute live onchain transactions.
+Current caveat: the product is still a backend-connected demo. Telegram is live for read-only commands and natural chat, but Kyra does not execute live wallet, approval, Base MCP, or onchain transactions yet.
 
 ## Current Status
 
-Kyra is in the production-safe backend-connected demo phase.
+Kyra is in the production-safe backend-connected demo phase with Phase 5 Telegram read-only integration closed.
 
 - No real transactions are executed.
 - No private keys, seed phrases, or wallet custody are used.
 - Telegram bot tokens are accepted only as transient deploy input when the
   production feature gate is enabled; tokens are validated before quota is used
   and are cleared from frontend state after submit.
-- Telegram webhooks support live read-only commands through Supabase Edge
-  Functions when the backend gates are enabled.
+- Telegram webhooks support live read-only commands and bounded natural chat
+  through Supabase Edge Functions when the backend gates are enabled.
+- Backend-only LLM enrichment is enabled for eligible read-only Telegram
+  planning replies through an OpenAI-compatible provider.
 - Base MCP and wallet execution are still simulated/disabled.
 - Supabase can provide auth, template catalog, dashboard records, public agent profiles, activity logs, and persisted demo deploy receipts.
 - The `deploy-agent` Supabase Edge Function is the preferred server-side deploy boundary when configured.
@@ -30,17 +32,18 @@ Kyra is in the production-safe backend-connected demo phase.
 - Production demo writes are intended to be Edge-only; authenticated browser clients should only read their own dashboard records.
 - Frontend demo fallback remains available when Supabase is not configured.
 - Phase 4 production smoke passed for signed-out, admin, and non-admin demo flows.
+- Phase 5 Telegram + LLM read-only production smoke passed and is closed.
 
 ## Core Flow
 
 1. Choose an agent template.
 2. Configure the agent name and enabled actions.
-3. Link the simulated Telegram command surface.
+3. Link the Telegram command and read-only chat surface.
 4. Confirm wallet approval policy.
 5. Deploy a demo agent.
 6. Review the deploy receipt.
 7. Open the private dashboard and public agent route.
-8. Later phases connect real Telegram and wallet-approved Base execution.
+8. Later phases connect wallet-approved Base execution.
 
 ## Agent Templates
 
@@ -67,6 +70,8 @@ Kyra is in the production-safe backend-connected demo phase.
 - Live read-only Telegram command support for `/help`, `/status`, `/agent`,
   `/actions`, `/modules`, and `/policy` when the connected bot/webhook gates are
   enabled.
+- Live bounded natural Telegram chat for read-only planning requests such as
+  campaign plans, narrative maps, launch copy, community pulse, and risk review.
 - Optional backend-only LLM enrichment for eligible read-only Telegram replies
   through an OpenAI-compatible provider such as OpenRouter.
 - Demo-safe safety copy throughout the product flow.
@@ -232,7 +237,7 @@ Netlify fallback settings:
 - Static config: `netlify.toml`
 - SPA fallback: `public/_redirects` and `netlify.toml`
 
-Production is currently deployed as a backend-connected demo. Keep live onchain execution disabled until the Telegram, wallet, Base MCP, rate-limit, and security-review phases are complete.
+Production is currently deployed as a backend-connected demo with live read-only Telegram/LLM replies. Keep live wallet, approval, Base MCP, and onchain execution disabled until the Phase 6 wallet/Base security work is complete.
 
 ## Supabase Files
 
@@ -292,6 +297,11 @@ Production is currently deployed as a backend-connected demo. Keep live onchain 
 - Bot token stored server-side only.
 - Webhook handling.
 - Agent command interface.
+- Natural read-only Telegram chat.
+- Backend-only LLM enrichment for eligible read-only replies.
+- Wallet, approval, Base MCP, write, and onchain actions refused from Telegram.
+
+Status: complete for Telegram + LLM read-only production-live scope.
 
 ### Phase 6 - Wallet And Base Integration
 

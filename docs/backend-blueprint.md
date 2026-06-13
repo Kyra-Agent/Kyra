@@ -1,6 +1,9 @@
 # Kyra Agent Backend Blueprint
 
-This is the backend plan for Kyra Agent. The product is still demo-only, but Supabase now powers the template catalog, auth sessions, dashboard records, public agent profiles, and persisted demo deploy receipts when configured.
+This is the backend plan for Kyra Agent. The product is still demo-only for
+onchain execution, but Supabase now powers the template catalog, auth sessions,
+dashboard records, public agent profiles, persisted demo deploy receipts, and
+live read-only Telegram replies when configured.
 
 Concrete starter files now live in:
 
@@ -37,7 +40,7 @@ The first backend version should prove the product flow:
 1. A user signs in.
 2. The user creates a Kyra workspace.
 3. The user deploys a demo agent from a template.
-4. Kyra stores the agent instance and Telegram settings placeholder.
+4. Kyra stores the agent instance and Telegram session metadata.
 5. The dashboard reads logs, approvals, wallet policy, and public profile data from the backend.
 6. Onchain actions remain simulated until the security model is ready.
 
@@ -47,7 +50,8 @@ The first backend version should prove the product flow:
 - Supabase Postgres for records.
 - Supabase Row Level Security for workspace isolation.
 - Supabase Edge Functions or a small Node API for deploy/log actions.
-- Later: Telegram bot webhook and Base MCP action preparation service.
+- Current: Telegram bot webhook for read-only commands and natural chat.
+- Later: Base MCP action preparation service.
 
 ## Core Tables
 
@@ -173,13 +177,13 @@ Minimum RLS rules:
 
 ## Approval Flow
 
-Demo phase:
+Demo/read-only phase:
 
-1. User enters command in the UI or Telegram demo.
-2. API creates an `approval_requests` row.
-3. API writes an `activity_logs` row.
-4. Dashboard shows `waiting_wallet` or `read_only_ready`.
-5. No transaction payload is signed or submitted.
+1. User enters a command in the UI or a read-only request in Telegram.
+2. Telegram can answer allowed planning, status, module, and policy requests.
+3. Unsafe wallet, approval, Base MCP, write, swap, transfer, or onchain requests
+   are refused from Telegram.
+4. No transaction payload is signed or submitted.
 
 Live phase:
 
@@ -202,6 +206,8 @@ Live phase:
 
 Phase 2 should only add persistence and auth. It should not execute real transactions.
 
-Phase 3 can add Telegram webhooks and Base MCP preparation.
+Phase 5 added Telegram webhooks for read-only commands and natural chat.
 
-Phase 4 can enable live wallet-approved execution after security review, rate limits, monitoring, and audit logging are in place.
+Phase 6 can add Base MCP preparation and live wallet-approved execution only
+after security review, rate limits, monitoring, approval policy, and audit
+logging are in place.

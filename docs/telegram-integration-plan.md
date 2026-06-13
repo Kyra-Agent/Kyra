@@ -1,5 +1,9 @@
 # Telegram Integration Plan
 
+Status note: this file is the historical Phase 5 planning/audit log. The final
+Phase 5 production closeout is recorded in
+`docs/phase-5-telegram-closeout.md`.
+
 Phase 5A.1 is documentation and planning only. It does not implement Telegram
 connectivity, token handling, webhook registration, command processing, schema
 changes, RLS changes, or production behavior changes.
@@ -20,7 +24,7 @@ changes, RLS changes, or production behavior changes.
   to `mocked` and `token_secret_ref` set to `null`.
 - No current code path accepts, stores, logs, validates, or registers a real
   Telegram bot token.
-- No current Edge Function handles Telegram webhook updates.
+- At initial Phase 5A.1, no Edge Function handled Telegram webhook updates.
 
 ## Recommended Architecture
 

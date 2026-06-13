@@ -1,5 +1,9 @@
 # Phase 3 Feedback Tracker
 
+Status note: this is a historical public-demo feedback tracker. Current product
+status is maintained in `README.md` and the Phase 5 closeout is maintained in
+`docs/phase-5-telegram-closeout.md`.
+
 Kyra Agent is now live as a backend-connected demo. Phase 3 is for public demo feedback,
 light polish, and planning the next build steps without pretending the product is live
 onchain.
@@ -8,7 +12,7 @@ onchain.
 
 - Live site: https://kyra-agent.netlify.app/
 - Official X: https://x.com/Kyra_Agent
-- Current phase: public demo feedback after first X post.
+- Historical phase: public demo feedback after first X post.
 - Demo status: backend-connected, not live onchain execution.
 - Safety line: no real transactions, no wallet private keys, no Telegram bot tokens, no
   real funds touched.
@@ -90,7 +94,7 @@ Backlog:
 - Structured logs and error monitoring.
 - Stronger workspace model.
 - LLM reasoning layer.
-- Telegram integration.
+- Telegram integration. Phase 5 later closed the read-only Telegram + LLM scope.
 - Base MCP and wallet integration.
 
 ## Phase 4 Candidates

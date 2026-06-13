@@ -1,6 +1,8 @@
 # Backend Demo Skeleton
 
-Kyra is still safe demo mode. The Supabase demo backend is now partially connected without enabling live onchain execution.
+Kyra is still safe demo mode. The Supabase demo backend is connected for
+persistence, dashboard records, public profiles, and live read-only Telegram
+replies without enabling live onchain execution.
 
 ## What Exists Now
 
@@ -17,6 +19,8 @@ Kyra is still safe demo mode. The Supabase demo backend is now partially connect
 - `src/services/deployFunctionHealthService.ts` checks the deploy function health endpoint for dashboard readiness.
 - `.env.example` includes the provider and Supabase env names.
 - `supabase/lockdown_authenticated_demo_writes.sql` keeps production authenticated clients read-only for demo records, while Edge Functions continue writing with `service_role`.
+- `supabase/functions/telegram-webhook` handles Phase 5 live read-only Telegram
+  commands and bounded natural chat when the backend runtime gates are enabled.
 
 ## Tables
 
@@ -33,6 +37,7 @@ The demo backend is built around these records:
 ## Safety Defaults
 
 - `walletExecution` stays `disabled`.
+- Telegram execution stays read-only.
 - No seed phrase, private key, or raw Telegram bot token belongs in the database.
 - `prepared_tx` and `tx_hash` exist only for the future live phase.
 - Public reads should use `public_agent_profiles`, not private workspace tables.
@@ -101,4 +106,6 @@ The frontend already prefers the Edge Function when configured. The production b
 10. Run `supabase/lockdown_authenticated_demo_writes.sql`.
 11. Run `supabase/verify_authenticated_demo_write_lockdown.sql` and confirm authenticated inserts are false while service role inserts remain true.
 
-Keep live onchain execution disabled until wallet approval, rate limits, Telegram token storage, and security review are complete.
+Keep live onchain execution disabled until Phase 6 wallet approval, Base MCP,
+rate limits, execution-specific Telegram gates, and security review are
+complete.
