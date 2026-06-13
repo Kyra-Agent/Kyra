@@ -2,6 +2,7 @@ import { HttpError } from "./core.ts";
 import {
   buildTelegramTemplateContextReply,
   type TelegramTemplateContext,
+  type TelegramTemplateContextReplyCommand,
 } from "./template-context.ts";
 
 export interface TelegramTemplateContextLookupResult<T> {
@@ -48,6 +49,7 @@ const uuidPattern =
 
 export async function lookupTelegramTemplateContext(input: {
   agentId: unknown;
+  command?: TelegramTemplateContextReplyCommand;
   serviceClient: TelegramTemplateContextLookupClient;
 }): Promise<TelegramTemplateContextLookupOutput> {
   try {
@@ -68,7 +70,7 @@ export async function lookupTelegramTemplateContext(input: {
       summary: template.summary,
       actions: template.actions,
       modules: template.modules,
-    });
+    }, input.command ?? "agent");
   } catch (error) {
     if (
       error instanceof HttpError &&

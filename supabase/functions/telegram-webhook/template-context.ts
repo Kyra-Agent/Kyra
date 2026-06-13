@@ -37,6 +37,11 @@ export interface TelegramTemplateContext {
   safetyNote: string;
 }
 
+export type TelegramTemplateContextReplyCommand =
+  | "agent"
+  | "actions"
+  | "modules";
+
 const maxTemplateIdLength = 48;
 const maxTemplateNameLength = 48;
 const maxTemplateRoleLength = 72;
@@ -155,27 +160,10 @@ export function buildTelegramTemplateContext(
 
 export function buildTelegramTemplateContextReply(
   source: TelegramTemplateContextSource,
+  command: TelegramTemplateContextReplyCommand = "agent",
 ) {
   const context = buildTelegramTemplateContext(source);
-  const activeModules = context.modules
-    .filter((module) => module.telegramStatus === "active")
-    .map((module) => module.name);
-  const guardModules = context.modules
-    .filter((module) => module.telegramStatus === "guard")
-    .map((module) => module.name);
-  const standbyModules = context.modules
-    .filter((module) => module.telegramStatus === "standby")
-    .map((module) => module.name);
-  const lines = [
-    `${context.name}: ${context.role}`,
-    context.summary,
-    `Read-only actions: ${formatTelegramContextList(context.readOnlyActions)}`,
-    `Gated actions: ${formatTelegramContextList(context.gatedActions)}`,
-    `Active modules: ${formatTelegramContextList(activeModules)}`,
-    `Guard modules: ${formatTelegramContextList(guardModules)}`,
-    `Standby modules: ${formatTelegramContextList(standbyModules)}`,
-    context.safetyNote,
-  ];
+  const lines = buildTelegramTemplateContextReplyLines(context, command);
   const text = lines.join("\n").slice(0, maxTemplateContextReplyCharacters)
     .trim();
 
@@ -185,6 +173,49 @@ export function buildTelegramTemplateContextReply(
     context,
     text,
   };
+}
+
+function buildTelegramTemplateContextReplyLines(
+  context: TelegramTemplateContext,
+  command: TelegramTemplateContextReplyCommand,
+) {
+  const activeModules = context.modules
+    .filter((module) => module.telegramStatus === "active")
+    .map((module) => module.name);
+  const guardModules = context.modules
+    .filter((module) => module.telegramStatus === "guard")
+    .map((module) => module.name);
+  const standbyModules = context.modules
+    .filter((module) => module.telegramStatus === "standby")
+    .map((module) => module.name);
+
+  if (command === "actions") {
+    return [
+      `${context.name} actions`,
+      `Read-only: ${formatTelegramContextList(context.readOnlyActions)}`,
+      `Gated: ${formatTelegramContextList(context.gatedActions)}`,
+      "Write, wallet, approval, and onchain actions stay disabled from Telegram.",
+    ];
+  }
+
+  if (command === "modules") {
+    return [
+      `${context.name} modules`,
+      `Active: ${formatTelegramContextList(activeModules)}`,
+      `Guard: ${formatTelegramContextList(guardModules)}`,
+      `Standby: ${formatTelegramContextList(standbyModules)}`,
+      "Module execution stays gated. Telegram can only describe module readiness.",
+    ];
+  }
+
+  return [
+    `${context.name}: ${context.role}`,
+    context.summary,
+    `Telegram access: read-only`,
+    `Active modules: ${formatTelegramContextList(activeModules)}`,
+    "Use /actions or /modules for focused details.",
+    context.safetyNote,
+  ];
 }
 
 export function classifyTemplateAction(

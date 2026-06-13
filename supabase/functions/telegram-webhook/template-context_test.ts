@@ -141,6 +141,52 @@ Deno.test("telegram template context supports every current template safely", ()
   }
 });
 
+Deno.test("telegram template context returns distinct command replies", () => {
+  const agentReply = buildTelegramTemplateContextReply(seedTemplates[4], "agent")
+    .text;
+  const actionsReply = buildTelegramTemplateContextReply(
+    seedTemplates[4],
+    "actions",
+  ).text;
+  const modulesReply = buildTelegramTemplateContextReply(
+    seedTemplates[4],
+    "modules",
+  ).text;
+
+  assert(
+    agentReply.includes("Use /actions or /modules for focused details."),
+    "Agent reply must route users to focused command details.",
+  );
+  assert(
+    actionsReply.includes("Strategist actions"),
+    "Actions reply must have an actions-specific heading.",
+  );
+  assert(
+    actionsReply.includes("Read-only: market brief, campaign plan"),
+    "Actions reply must focus on read-only actions.",
+  );
+  assert(
+    modulesReply.includes("Strategist modules"),
+    "Modules reply must have a modules-specific heading.",
+  );
+  assert(
+    modulesReply.includes("Active: ASTRA-03, VEXA-02"),
+    "Modules reply must focus on active modules.",
+  );
+  assert(
+    modulesReply.includes("Standby: NOVA-04"),
+    "Modules reply must include standby modules.",
+  );
+
+  assert(agentReply !== actionsReply, "Agent and actions replies must differ.");
+  assert(agentReply !== modulesReply, "Agent and modules replies must differ.");
+  assert(
+    actionsReply !== modulesReply,
+    "Actions and modules replies must differ.",
+  );
+  assertNoSensitiveMaterial({ agentReply, actionsReply, modulesReply });
+});
+
 Deno.test("telegram template context gates executor wallet actions for phase 6", () => {
   const context = buildTelegramTemplateContext(seedTemplates[3]);
 

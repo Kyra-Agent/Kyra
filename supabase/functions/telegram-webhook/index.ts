@@ -322,6 +322,7 @@ export interface TelegramWebhookDependencies {
   }) => Promise<TelegramOwnerLinkConsumeResult>;
   lookupTelegramTemplateContext?: (
     agentId: string,
+    command: "agent" | "actions" | "modules",
   ) => Promise<TelegramTemplateContextLookupOutput>;
   generateTelegramAgentBrainReply?: (
     input: TelegramAgentBrainPromptInput,
@@ -620,9 +621,10 @@ export function createTelegramWebhookDependencies(
   }
 
   if (templateContextRuntimeConfig.enabled) {
-    dependencies.lookupTelegramTemplateContext = async (agentId) => {
+    dependencies.lookupTelegramTemplateContext = async (agentId, command) => {
       return await lookupTelegramTemplateContext({
         agentId,
+        command,
         serviceClient: getRestClient(),
       });
     };
@@ -847,6 +849,7 @@ export async function handleTelegramWebhookRequest(
 
         templateContext = await dependencies.lookupTelegramTemplateContext(
           lookupSession.agentId,
+          parsedUpdate.command,
         );
         response = {
           command: parsedUpdate.command,

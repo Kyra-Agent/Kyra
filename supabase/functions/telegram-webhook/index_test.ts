@@ -1179,6 +1179,7 @@ Deno.test("telegram-webhook template context gate stays off by default", async (
 Deno.test("telegram-webhook template context gate enriches agent response", async () => {
   const deliveries: Array<Record<string, unknown>> = [];
   const templateContextAgentIds: string[] = [];
+  const templateContextCommands: string[] = [];
 
   const response = await handleTelegramWebhookRequest(
     createJsonWebhookRequest(createWebhookUpdate("/agent@kyra_test_bot")),
@@ -1202,8 +1203,9 @@ Deno.test("telegram-webhook template context gate enriches agent response", asyn
         role: "owner",
       }),
       claimTelegramUpdate: async () => ({ claimed: true, status: "claimed" }),
-      lookupTelegramTemplateContext: async (agentId) => {
+      lookupTelegramTemplateContext: async (agentId, command) => {
         templateContextAgentIds.push(agentId);
+        templateContextCommands.push(command);
         return {
           context: {
             templateId: "strategist",
@@ -1234,6 +1236,7 @@ Deno.test("telegram-webhook template context gate enriches agent response", asyn
   assertEquals(response.status, 200);
   assertEquals(body.status, "delivered");
   assertEquals(templateContextAgentIds.join(","), "agent-1");
+  assertEquals(templateContextCommands.join(","), "agent");
   assertEquals(deliveries.length, 1);
   assertEquals(deliveredResponse?.command, "agent");
   assertEquals(
@@ -1245,6 +1248,7 @@ Deno.test("telegram-webhook template context gate enriches agent response", asyn
 Deno.test("telegram-webhook template context gate enriches modules response", async () => {
   const deliveries: Array<Record<string, unknown>> = [];
   const templateContextAgentIds: string[] = [];
+  const templateContextCommands: string[] = [];
 
   const response = await handleTelegramWebhookRequest(
     createJsonWebhookRequest(createWebhookUpdate("/modules@kyra_test_bot")),
@@ -1268,8 +1272,9 @@ Deno.test("telegram-webhook template context gate enriches modules response", as
         role: "owner",
       }),
       claimTelegramUpdate: async () => ({ claimed: true, status: "claimed" }),
-      lookupTelegramTemplateContext: async (agentId) => {
+      lookupTelegramTemplateContext: async (agentId, command) => {
         templateContextAgentIds.push(agentId);
+        templateContextCommands.push(command);
         return {
           context: {
             templateId: "strategist",
@@ -1311,6 +1316,7 @@ Deno.test("telegram-webhook template context gate enriches modules response", as
   assertEquals(response.status, 200);
   assertEquals(body.status, "delivered");
   assertEquals(templateContextAgentIds.join(","), "agent-1");
+  assertEquals(templateContextCommands.join(","), "modules");
   assertEquals(deliveries.length, 1);
   assertEquals(deliveredResponse?.command, "modules");
   assertEquals(
