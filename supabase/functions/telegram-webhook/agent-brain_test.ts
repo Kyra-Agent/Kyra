@@ -99,6 +99,10 @@ Deno.test("telegram agent brain request is read-only and sanitized", () => {
     "System prompt must forbid execution claims.",
   );
   assert(
+    request.messages[0].content.includes("Use plain text only"),
+    "System prompt must forbid raw Markdown formatting.",
+  );
+  assert(
     request.messages[1].content.includes("Command: /agent"),
     "User prompt must include only the normalized command.",
   );
@@ -181,6 +185,29 @@ Deno.test("telegram agent brain rejects sensitive or unsafe provider text", asyn
     "The transaction executed successfully.",
     "Wallet approved the swap.",
     "Here is a seed phrase.",
+  ];
+
+  for (const text of unsafeTexts) {
+    const error = await assertRejectsHttpError(
+      () => assertTelegramAgentBrainReply({ text }),
+      502,
+      "agent_brain_invalid_response",
+    );
+
+    assertEquals(
+      error.message,
+      "Kyra agent brain returned an invalid response.",
+    );
+  }
+});
+
+Deno.test("telegram agent brain rejects raw Markdown provider text", async () => {
+  const unsafeTexts = [
+    "**Agent 666 Active**",
+    "# Agent 666",
+    "| Module | Description |\n|---|---|\n| market | brief |",
+    "---\nUse /actions",
+    "```text\nAgent\n```",
   ];
 
   for (const text of unsafeTexts) {

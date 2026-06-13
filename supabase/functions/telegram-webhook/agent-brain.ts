@@ -60,6 +60,14 @@ const unsafeExecutionClaims = [
   /private\s+key/i,
   /seed\s+phrase/i,
 ];
+const rawMarkdownPatterns = [
+  /\*\*/,
+  /^#{1,6}\s/m,
+  /^```/m,
+  /^---+$/m,
+  /^\s*\|.+\|\s*$/m,
+  /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/m,
+];
 
 export function buildTelegramAgentBrainRequest(
   input: TelegramAgentBrainPromptInput,
@@ -89,6 +97,9 @@ export function buildTelegramAgentBrainRequest(
           "Do not claim that wallet, approval, Base, or onchain actions were executed.",
           "Do not include secrets, internal IDs, token refs, webhook refs, or raw database details.",
           "Keep the reply concise and safe for Telegram.",
+          "Use plain text only: no Markdown tables, bold markers, code fences, headings, or horizontal rules.",
+          "Use short label lines and hyphen bullets when listing capabilities.",
+          "Answer the requested command directly and do not add unfinished helper text.",
         ].join(" "),
       },
       {
@@ -219,6 +230,12 @@ function sanitizeForPrompt(value: string) {
 }
 
 function assertSafeTelegramAgentBrainText(text: string) {
+  for (const pattern of rawMarkdownPatterns) {
+    if (pattern.test(text)) {
+      throw invalidAgentBrainResponse();
+    }
+  }
+
   for (const pattern of secretLikePatterns) {
     if (pattern.test(text)) {
       throw invalidAgentBrainResponse();
