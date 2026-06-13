@@ -398,8 +398,21 @@ function assertContextualTelegramAgentBrainReply(
 
   if (
     context.command === "modules" &&
-    context.modules.some((module) => module.status === "standby") &&
+    !hasTelegramSectionLabel(text, "Guard")
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
+    context.command === "modules" &&
     !hasTelegramSectionLabel(text, "Standby")
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
+    context.command === "modules" &&
+    !hasTelegramSectionLabel(text, "Boundary")
   ) {
     throw invalidAgentBrainResponse();
   }
@@ -462,6 +475,41 @@ function assertContextualTelegramAgentBrainReply(
     context.command === "agent" &&
     context.agentName !== "Kyra Agent" &&
     !includesTextFolded(text, context.agentName)
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
+    context.command === "agent" &&
+    !hasTelegramSectionLabel(text, "Role")
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
+    context.command === "agent" &&
+    !hasTelegramSectionLabel(text, "Focus")
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
+    context.command === "agent" &&
+    !hasTelegramSectionLabel(text, "Telegram access")
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
+    context.command === "agent" &&
+    !hasTelegramSectionLabel(text, "Template stack")
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
+    context.command === "agent" &&
+    !hasTelegramSectionLabel(text, "Next")
   ) {
     throw invalidAgentBrainResponse();
   }

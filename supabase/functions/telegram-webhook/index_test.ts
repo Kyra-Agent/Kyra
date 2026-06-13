@@ -2116,7 +2116,8 @@ Deno.test("telegram-webhook runtime agent brain provider reads env lazily and us
 
       return new Response(
         JSON.stringify({
-          output_text: "Kyra can answer read-only template questions.",
+          output_text:
+            "Kyra\nRole: Telegram read-only agent\nFocus: Read-only template questions.\nTelegram access: read-only\nTemplate stack: active none; guard none; standby none\nNext: /actions or /modules",
         }),
         { status: 200, headers: { "content-type": "application/json" } },
       );
@@ -2144,7 +2145,7 @@ Deno.test("telegram-webhook runtime agent brain provider reads env lazily and us
   assertEquals(providerFetchCalled, true);
   assertEquals(
     reply?.text,
-    "Kyra can answer read-only template questions.",
+    "Kyra\nRole: Telegram read-only agent\nFocus: Read-only template questions.\nTelegram access: read-only\nTemplate stack: active none; guard none; standby none\nNext: /actions or /modules",
   );
 });
 

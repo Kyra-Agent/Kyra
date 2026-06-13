@@ -138,7 +138,7 @@ Deno.test("telegram agent brain provider sends sanitized request with fake fetch
 
     return jsonResponse({
       output_text:
-        "Kyra can answer read-only agent questions. Wallet actions stay gated.",
+        "Kyra\nRole: Telegram read-only agent\nFocus: Read-only agent questions.\nTelegram access: read-only\nTemplate stack: active none; guard none; standby none\nNext: /actions or /modules",
     });
   };
   const provider = createOpenAiCompatibleTelegramAgentBrainProvider({
@@ -171,7 +171,7 @@ Deno.test("telegram agent brain provider sends sanitized request with fake fetch
   );
   assertEquals(
     reply.text,
-    "Kyra can answer read-only agent questions. Wallet actions stay gated.",
+    "Kyra\nRole: Telegram read-only agent\nFocus: Read-only agent questions.\nTelegram access: read-only\nTemplate stack: active none; guard none; standby none\nNext: /actions or /modules",
   );
 });
 
@@ -284,7 +284,8 @@ Deno.test("telegram agent brain provider supports OpenRouter chat completions", 
         choices: [
           {
             message: {
-              content: "Kyra is online in read-only Telegram mode.",
+              content:
+                "Kyra\nRole: Telegram read-only agent\nFocus: Online in read-only Telegram mode.\nTelegram access: read-only\nTemplate stack: active none; guard none; standby none\nNext: /actions or /modules",
             },
           },
         ],
@@ -316,7 +317,10 @@ Deno.test("telegram agent brain provider supports OpenRouter chat completions", 
     !capturedBody.includes(testApiKey),
     "Request body must not include API key.",
   );
-  assertEquals(reply.text, "Kyra is online in read-only Telegram mode.");
+  assertEquals(
+    reply.text,
+    "Kyra\nRole: Telegram read-only agent\nFocus: Online in read-only Telegram mode.\nTelegram access: read-only\nTemplate stack: active none; guard none; standby none\nNext: /actions or /modules",
+  );
 });
 
 Deno.test("telegram agent brain provider maps provider failures safely", async () => {

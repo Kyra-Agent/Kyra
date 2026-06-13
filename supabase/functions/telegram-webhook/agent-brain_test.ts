@@ -199,6 +199,53 @@ Deno.test("telegram agent brain prompt carries actionable template context", () 
   );
 });
 
+Deno.test("telegram agent brain accepts polished agent and module replies", async () => {
+  const agentReply = await generateTelegramAgentBrainReply(
+    {
+      command: "agent",
+      agentName: "Agent 666",
+      agentRole: "Market intelligence",
+      agentSummary: "Tracks market narratives and launch positioning.",
+    },
+    {
+      async complete() {
+        return {
+          text:
+            "Agent 666\nRole: Market intelligence\nFocus: Tracks market narratives and launch positioning.\nTelegram access: read-only\nTemplate stack: active ASTRA-03, VEXA-02; guard none; standby NOVA-04\nNext: /actions or /modules",
+        };
+      },
+    },
+  );
+  const modulesReply = await generateTelegramAgentBrainReply(
+    {
+      command: "modules",
+      agentName: "Agent 666",
+      modules: [
+        { name: "ASTRA-03", title: "Research Agent", telegramStatus: "active" },
+        { name: "VEXA-02", title: "Recon Agent", telegramStatus: "active" },
+        { name: "NOVA-04", title: "Data Agent", telegramStatus: "standby" },
+      ],
+    },
+    {
+      async complete() {
+        return {
+          text:
+            "Agent 666 template module stack\nActive: ASTRA-03 (Research Agent), VEXA-02 (Recon Agent)\nGuard: none\nStandby: NOVA-04 (Data Agent)\nBoundary: This is the deployed template stack. Execution stays gated from Telegram.",
+        };
+      },
+    },
+  );
+
+  assert(
+    agentReply.text.includes("Template stack: active ASTRA-03"),
+    "Agent reply must include the template stack label.",
+  );
+  assert(
+    modulesReply.text.includes("Standby: NOVA-04 (Data Agent)"),
+    "Modules reply must include standby modules.",
+  );
+});
+
 Deno.test("telegram agent brain preserves empty template action buckets", () => {
   const request = buildTelegramAgentBrainRequest({
     command: "actions",
@@ -363,6 +410,28 @@ Deno.test("telegram agent brain rejects malformed contextual polish", async () =
     () =>
       generateTelegramAgentBrainReply(
         {
+          command: "agent",
+          agentName: "Agent 666",
+          agentRole: "Market intelligence",
+          agentSummary: "Tracks market narratives.",
+        },
+        {
+          async complete() {
+            return {
+              text:
+                "Agent 666 is a market intelligence planner. Telegram access is read-only. Use /actions or /modules.",
+            };
+          },
+        },
+      ),
+    502,
+    "agent_brain_invalid_response",
+  );
+
+  await assertRejectsHttpError(
+    () =>
+      generateTelegramAgentBrainReply(
+        {
           command: "modules",
           agentName: "Agent 666",
           modules: [
@@ -383,6 +452,38 @@ Deno.test("telegram agent brain rejects malformed contextual polish", async () =
             return {
               text:
                 "Template module stack\n- ASTRA-03 (Research Agent): Active\n- NOVA-04 (Data Agent): Standby\n\nBoundary: Telegram is read-only.",
+            };
+          },
+        },
+      ),
+    502,
+    "agent_brain_invalid_response",
+  );
+
+  await assertRejectsHttpError(
+    () =>
+      generateTelegramAgentBrainReply(
+        {
+          command: "modules",
+          agentName: "Agent 666",
+          modules: [
+            {
+              name: "ASTRA-03",
+              title: "Research Agent",
+              telegramStatus: "active",
+            },
+            {
+              name: "NOVA-04",
+              title: "Data Agent",
+              telegramStatus: "standby",
+            },
+          ],
+        },
+        {
+          async complete() {
+            return {
+              text:
+                "Agent 666 template module stack\nActive: ASTRA-03 (Research Agent)\nStandby: NOVA-04 (Data Agent)\nBoundary: Telegram is read-only.",
             };
           },
         },
