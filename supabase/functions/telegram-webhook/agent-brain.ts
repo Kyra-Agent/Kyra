@@ -352,15 +352,15 @@ function formatPromptModules(
 
 function buildCommandResponseGuide(command: TelegramWebhookParsedCommandName) {
   if (command === "modules") {
-    return "Report only actual module readiness with exact module names and statuses. Group by active, guard, and standby when available. Do not label wallet, approval, Base MCP, or onchain execution as modules. End with read-only boundary.";
+    return "Use labels Template module stack, Active, Guard, Standby, Boundary. Report only actual template modules with exact names and statuses. Do not label wallet, approval, Base MCP, or onchain execution as modules.";
   }
 
   if (command === "actions") {
-    return "Separate ready read-only actions from gated actions. Explain Telegram can brief or plan, not execute wallet or onchain actions.";
+    return "Use labels Ready in Telegram, Dashboard gated, Phase 6 gated, Boundary. Separate read-only actions from gated actions. Explain Telegram can brief or plan, not execute wallet or onchain actions.";
   }
 
   if (command === "agent") {
-    return "Describe the agent profile, role, focus, current read-only access, and next useful commands.";
+    return "Use labels Role, Focus, Telegram access, Template stack, Next. Describe the deployed template profile and keep the read-only boundary explicit.";
   }
 
   return "Answer the command directly with the current read-only safety boundary.";

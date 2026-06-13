@@ -70,7 +70,14 @@ const seedTemplates = [
     role: "Personal wallet action agent",
     summary:
       "A private Telegram-native agent for wallet checks, swaps, sends, action logs, and approval-driven execution on Base.",
-    actions: ["balance", "swap", "send", "portfolio", "tx history", "price alert"],
+    actions: [
+      "balance",
+      "swap",
+      "send",
+      "portfolio",
+      "tx history",
+      "price alert",
+    ],
     modules: ["NIRA-01", "NOVA-04", "NYX-05"],
   },
   {
@@ -79,7 +86,13 @@ const seedTemplates = [
     role: "Recon and launch monitor",
     summary:
       "A research-forward agent that watches new launches, token activity, and Base ecosystem signals before summarizing what matters.",
-    actions: ["launch monitor", "token scan", "watchlist", "market brief", "project summary"],
+    actions: [
+      "launch monitor",
+      "token scan",
+      "watchlist",
+      "market brief",
+      "project summary",
+    ],
     modules: ["NIRA-01", "VEXA-02", "ASTRA-03", "NOVA-04", "NYX-05"],
   },
   {
@@ -88,7 +101,13 @@ const seedTemplates = [
     role: "Project and community agent",
     summary:
       "A public-facing agent for token communities that can answer project questions, verify holders, and surface token context.",
-    actions: ["faq", "holder verify", "token info", "announcement", "tx summary"],
+    actions: [
+      "faq",
+      "holder verify",
+      "token info",
+      "announcement",
+      "tx summary",
+    ],
     modules: ["NIRA-01", "ASTRA-03", "NOVA-04", "NYX-05"],
   },
   {
@@ -106,7 +125,13 @@ const seedTemplates = [
     role: "Market and campaign intelligence agent",
     summary:
       "A planning agent that turns token, market, and community context into launch narratives, campaign plans, and decision-ready briefs.",
-    actions: ["market brief", "campaign plan", "narrative map", "launch copy", "community pulse"],
+    actions: [
+      "market brief",
+      "campaign plan",
+      "narrative map",
+      "launch copy",
+      "community pulse",
+    ],
     modules: ["ASTRA-03", "NOVA-04", "VEXA-02"],
   },
   {
@@ -115,7 +140,12 @@ const seedTemplates = [
     role: "Build your own agent",
     summary:
       "Choose the personality, modules, actions, and safety limits for a Kyra agent built around a specific workflow.",
-    actions: ["choose modules", "choose actions", "custom prompt", "safety limits"],
+    actions: [
+      "choose modules",
+      "choose actions",
+      "custom prompt",
+      "safety limits",
+    ],
     modules: ["NIRA-01", "NYX-05"],
   },
 ];
@@ -142,8 +172,9 @@ Deno.test("telegram template context supports every current template safely", ()
 });
 
 Deno.test("telegram template context returns distinct command replies", () => {
-  const agentReply = buildTelegramTemplateContextReply(seedTemplates[4], "agent")
-    .text;
+  const agentReply =
+    buildTelegramTemplateContextReply(seedTemplates[4], "agent")
+      .text;
   const actionsReply = buildTelegramTemplateContextReply(
     seedTemplates[4],
     "actions",
@@ -154,7 +185,7 @@ Deno.test("telegram template context returns distinct command replies", () => {
   ).text;
 
   assert(
-    agentReply.includes("Use /actions or /modules for focused details."),
+    agentReply.includes("Next: /actions or /modules"),
     "Agent reply must route users to focused command details.",
   );
   assert(
@@ -162,19 +193,21 @@ Deno.test("telegram template context returns distinct command replies", () => {
     "Actions reply must have an actions-specific heading.",
   );
   assert(
-    actionsReply.includes("Read-only: market brief, campaign plan"),
+    actionsReply.includes("Ready in Telegram: market brief, campaign plan"),
     "Actions reply must focus on read-only actions.",
   );
   assert(
-    modulesReply.includes("Strategist modules"),
+    modulesReply.includes("Strategist template module stack"),
     "Modules reply must have a modules-specific heading.",
   );
   assert(
-    modulesReply.includes("Active: ASTRA-03, VEXA-02"),
+    modulesReply.includes(
+      "Active: ASTRA-03 (Research Agent), VEXA-02 (Recon Agent)",
+    ),
     "Modules reply must focus on active modules.",
   );
   assert(
-    modulesReply.includes("Standby: NOVA-04"),
+    modulesReply.includes("Standby: NOVA-04 (Data Agent)"),
     "Modules reply must include standby modules.",
   );
 
@@ -192,7 +225,10 @@ Deno.test("telegram template context gates executor wallet actions for phase 6",
 
   assertEquals(context.templateId, "executor");
   assertEquals(context.readOnlyActions.length, 0);
-  assertEquals(context.gatedActions.join(","), "conditional swap,dca,stop loss,lp manage,lend");
+  assertEquals(
+    context.gatedActions.join(","),
+    "conditional swap,dca,stop loss,lp manage,lend",
+  );
 
   for (const action of context.actions) {
     assertEquals(action.availability, "phase6_wallet_gated");
@@ -239,8 +275,7 @@ Deno.test("telegram template context exposes module statuses without execution c
 Deno.test("telegram template context sanitizes unsafe template fields", () => {
   const { context, text } = buildTelegramTemplateContextReply({
     templateId: "safe-template",
-    name:
-      "Kyra <script> 1234567890:abcdefghijklmnopqrstuvwxyz owner_user_id",
+    name: "Kyra <script> 1234567890:abcdefghijklmnopqrstuvwxyz owner_user_id",
     role: "workspace_id strategist\nwebhook_secret",
     summary: "token_secret_ref and api.telegram.org should be hidden",
     actions: ["market brief", "token_secret_ref", "swap"],

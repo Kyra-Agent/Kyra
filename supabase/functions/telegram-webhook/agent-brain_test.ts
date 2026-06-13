@@ -147,7 +147,8 @@ Deno.test("telegram agent brain provider receives bounded request and returns re
       async complete(request) {
         capturedRequest = request;
         return {
-          text: "Read-only commands are available. Wallet actions remain disabled.",
+          text:
+            "Read-only commands are available. Wallet actions remain disabled.",
         };
       },
     },
@@ -191,6 +192,10 @@ Deno.test("telegram agent brain prompt carries actionable template context", () 
   assert(
     userMessage.includes("ASTRA-03 (Research Agent, active)"),
     "Prompt must include module status context.",
+  );
+  assert(
+    userMessage.includes("Template module stack"),
+    "Prompt must request the polished modules format.",
   );
 });
 

@@ -33,6 +33,8 @@ export interface TelegramTemplateContext {
   actions: readonly TelegramTemplateActionContext[];
   modules: readonly TelegramTemplateModuleContext[];
   readOnlyActions: readonly string[];
+  dashboardGatedActions: readonly string[];
+  phase6GatedActions: readonly string[];
   gatedActions: readonly string[];
   safetyNote: string;
 }
@@ -140,6 +142,12 @@ export function buildTelegramTemplateContext(
   const readOnlyActions = actions
     .filter((action) => action.availability === "read_only_ready")
     .map((action) => action.name);
+  const dashboardGatedActions = actions
+    .filter((action) => action.availability === "dashboard_gated")
+    .map((action) => action.name);
+  const phase6GatedActions = actions
+    .filter((action) => action.availability === "phase6_wallet_gated")
+    .map((action) => action.name);
   const gatedActions = actions
     .filter((action) => action.availability !== "read_only_ready")
     .map((action) => action.name);
@@ -152,6 +160,8 @@ export function buildTelegramTemplateContext(
     actions,
     modules,
     readOnlyActions,
+    dashboardGatedActions,
+    phase6GatedActions,
     gatedActions,
     safetyNote:
       "Telegram is read-only. Wallet, approval, Base MCP, and onchain execution stay gated for Phase 6.",
@@ -180,40 +190,47 @@ function buildTelegramTemplateContextReplyLines(
   command: TelegramTemplateContextReplyCommand,
 ) {
   const activeModules = context.modules
-    .filter((module) => module.telegramStatus === "active")
-    .map((module) => module.name);
+    .filter((module) => module.telegramStatus === "active");
   const guardModules = context.modules
-    .filter((module) => module.telegramStatus === "guard")
-    .map((module) => module.name);
+    .filter((module) => module.telegramStatus === "guard");
   const standbyModules = context.modules
-    .filter((module) => module.telegramStatus === "standby")
-    .map((module) => module.name);
+    .filter((module) => module.telegramStatus === "standby");
 
   if (command === "actions") {
     return [
       `${context.name} actions`,
-      `Read-only: ${formatTelegramContextList(context.readOnlyActions)}`,
-      `Gated: ${formatTelegramContextList(context.gatedActions)}`,
-      "Write, wallet, approval, and onchain actions stay disabled from Telegram.",
+      `Ready in Telegram: ${
+        formatTelegramContextList(context.readOnlyActions)
+      }`,
+      `Dashboard gated: ${
+        formatTelegramContextList(context.dashboardGatedActions)
+      }`,
+      `Phase 6 gated: ${formatTelegramContextList(context.phase6GatedActions)}`,
+      "Boundary: Telegram can brief and plan only. Wallet, write, approval, and onchain execution stay disabled.",
     ];
   }
 
   if (command === "modules") {
     return [
-      `${context.name} modules`,
-      `Active: ${formatTelegramContextList(activeModules)}`,
-      `Guard: ${formatTelegramContextList(guardModules)}`,
-      `Standby: ${formatTelegramContextList(standbyModules)}`,
-      "Module execution stays gated. Telegram can only describe module readiness.",
+      `${context.name} template module stack`,
+      `Active: ${formatTelegramModuleList(activeModules)}`,
+      `Guard: ${formatTelegramModuleList(guardModules)}`,
+      `Standby: ${formatTelegramModuleList(standbyModules)}`,
+      "Boundary: This is the deployed template stack, not global Kyra modules. Execution stays gated from Telegram.",
     ];
   }
 
   return [
-    `${context.name}: ${context.role}`,
-    context.summary,
+    `${context.name}`,
+    `Role: ${context.role}`,
+    `Focus: ${context.summary}`,
     `Telegram access: read-only`,
-    `Active modules: ${formatTelegramContextList(activeModules)}`,
-    "Use /actions or /modules for focused details.",
+    `Template stack: active ${
+      formatTelegramModuleNameList(activeModules)
+    }; guard ${formatTelegramModuleNameList(guardModules)}; standby ${
+      formatTelegramModuleNameList(standbyModules)
+    }`,
+    "Next: /actions or /modules",
     context.safetyNote,
   ];
 }
@@ -287,11 +304,13 @@ function sanitizeModuleList(value: unknown) {
     .map((module) => sanitizeTemplateText(module, maxTemplateModuleLength, ""))
     .filter(Boolean)
     .slice(0, maxTemplateModuleCount)
-    .map((module) => moduleCatalog.get(module) ?? {
-      name: module,
-      title: "Custom Module",
-      telegramStatus: "standby" as const,
-    });
+    .map((module) =>
+      moduleCatalog.get(module) ?? {
+        name: module,
+        title: "Custom Module",
+        telegramStatus: "standby" as const,
+      }
+    );
 
   if (!modules.length) {
     throw invalidTemplateContext();
@@ -323,6 +342,22 @@ function sanitizeTemplateText(
 
 function formatTelegramContextList(values: readonly string[]) {
   return values.length ? values.join(", ") : "none";
+}
+
+function formatTelegramModuleList(
+  modules: readonly TelegramTemplateModuleContext[],
+) {
+  return modules.length
+    ? modules.map((module) => `${module.name} (${module.title})`).join(", ")
+    : "none";
+}
+
+function formatTelegramModuleNameList(
+  modules: readonly TelegramTemplateModuleContext[],
+) {
+  return modules.length
+    ? modules.map((module) => module.name).join(", ")
+    : "none";
 }
 
 function assertSafeTelegramTemplateContextText(text: string) {
