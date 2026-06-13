@@ -237,6 +237,45 @@ Deno.test("telegram agent brain rejects generic context-free provider replies", 
   );
 });
 
+Deno.test("telegram agent brain rejects malformed contextual polish", async () => {
+  await assertRejectsHttpError(
+    () =>
+      generateTelegramAgentBrainReply(
+        {
+          command: "modules",
+          agentName: "Agent 666",
+          modules: [
+            {
+              name: "ASTRA-03",
+              title: "Research Agent",
+              telegramStatus: "active",
+            },
+          ],
+        },
+        {
+          async complete() {
+            return {
+              text:
+                "Agent 666 modules\n\nActive Modules\n- ASTRA-03 (Research Agent) - active\n\nGated Modules\n- Wallet - gated",
+            };
+          },
+        },
+      ),
+    502,
+    "agent_brain_invalid_response",
+  );
+
+  await assertRejectsHttpError(
+    () =>
+      assertTelegramAgentBrainReply({
+        text:
+          "Agent 666 is a market intelligence planner.\nCurrent access: read-only.\nNO",
+      }),
+    502,
+    "agent_brain_invalid_response",
+  );
+});
+
 Deno.test("telegram agent brain validates provider response shape", async () => {
   await assertRejectsHttpError(
     () => assertTelegramAgentBrainReply({ text: "ok", raw: "private" }),

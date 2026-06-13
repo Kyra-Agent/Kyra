@@ -97,6 +97,7 @@ const rawMarkdownPatterns = [
   /^\s*\|.+\|\s*$/m,
   /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/m,
 ];
+const incompleteTrailingLinePattern = /(?:^|\n)\s*[A-Z]{1,3}\s*$/;
 
 export function buildTelegramAgentBrainRequest(
   input: TelegramAgentBrainPromptInput,
@@ -349,7 +350,7 @@ function formatPromptModules(
 
 function buildCommandResponseGuide(command: TelegramWebhookParsedCommandName) {
   if (command === "modules") {
-    return "Report module readiness with exact module names and statuses. Group by active, guard, and standby when available. End with read-only boundary.";
+    return "Report only actual module readiness with exact module names and statuses. Group by active, guard, and standby when available. Do not label wallet, approval, Base MCP, or onchain execution as modules. End with read-only boundary.";
   }
 
   if (command === "actions") {
@@ -371,6 +372,13 @@ function assertContextualTelegramAgentBrainReply(
     context.command === "modules" &&
     context.modules.length &&
     !context.modules.some((module) => includesTextFolded(text, module.name))
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
+    context.command === "modules" &&
+    /\bgated modules\b/i.test(text)
   ) {
     throw invalidAgentBrainResponse();
   }
@@ -399,6 +407,10 @@ function includesTextFolded(text: string, fragment: string) {
 }
 
 function assertSafeTelegramAgentBrainText(text: string) {
+  if (incompleteTrailingLinePattern.test(text)) {
+    throw invalidAgentBrainResponse();
+  }
+
   for (const pattern of rawMarkdownPatterns) {
     if (pattern.test(text)) {
       throw invalidAgentBrainResponse();
