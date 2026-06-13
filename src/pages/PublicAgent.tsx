@@ -68,6 +68,36 @@ function formatDemoRouteStatus(status: string) {
   return status === "mocked" ? "simulated" : status;
 }
 
+function getPublicTelegramPanelStatus(status: string) {
+  if (status === "active") {
+    return {
+      eyebrow: "Telegram live connect",
+      headline: "Telegram bot connected",
+      description:
+        "This agent has an active Telegram bot connection. Public commands stay read-only while wallet, approval, and onchain actions remain gated.",
+      label: "Read-only live",
+    };
+  }
+
+  if (status === "queued") {
+    return {
+      eyebrow: "Telegram setup queued",
+      headline: "Waiting for activation",
+      description:
+        "The owner has queued Telegram setup. Public profiles never collect bot tokens, and activation stays owner-controlled.",
+      label: "Queued",
+    };
+  }
+
+  return {
+    eyebrow: "Telegram status",
+    headline: "Controlled from dashboard",
+    description:
+      "Public profiles never collect bot tokens. Owners connect Telegram during deploy and manage selected-agent status or owner pairing from the dashboard.",
+    label: "Status only",
+  };
+}
+
 function getPublicAgentHeadline(displayName: string, templateName: string) {
   const normalizedName = displayName.trim();
   const normalizedTemplateName = templateName.trim();
@@ -101,6 +131,7 @@ export function PublicAgent({
   const approvalPolicy = agentRecord ? kyraDataService.getApprovalPolicyForAgent(agentRecord) : null;
   const commandRows = activeTemplate ? kyraDataService.listPriorityApprovalRequests(activeTemplate.id, 4) : [];
   const profileSource = publicProfile ? "Persisted demo profile" : "Local demo preview";
+  const telegramPanelStatus = getPublicTelegramPanelStatus(agentRecord?.telegramStatus ?? "mocked");
 
   useEffect(() => {
     let active = true;
@@ -337,19 +368,16 @@ export function PublicAgent({
         <article className="public-panel telegram-status-panel">
           <div className="panel-title">
             <span>Telegram connection</span>
-            <span>owner controlled</span>
+            <span>{formatDemoRouteStatus(agentRecord.telegramStatus)}</span>
           </div>
           <div className="telegram-status-card">
             <span className="telegram-status-icon">
               <Bot size={18} />
             </span>
             <div>
-              <small>Telegram status</small>
-              <strong>Controlled from dashboard</strong>
-              <p>
-                Public profiles never collect bot tokens. Owners connect Telegram during
-                deploy and manage selected-agent status or owner pairing from the dashboard.
-              </p>
+              <small>{telegramPanelStatus.eyebrow}</small>
+              <strong>{telegramPanelStatus.headline}</strong>
+              <p>{telegramPanelStatus.description}</p>
             </div>
           </div>
           <div className="telegram-status-actions">
@@ -357,7 +385,7 @@ export function PublicAgent({
               <LockKeyhole size={16} />
               Owner Dashboard
             </button>
-            <span>Status only</span>
+            <span>{telegramPanelStatus.label}</span>
           </div>
         </article>
 
