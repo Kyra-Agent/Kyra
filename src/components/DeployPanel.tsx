@@ -33,6 +33,7 @@ import { recordBackendEvent } from "../services/backendObservabilityService";
 import {
   connectTelegramBot,
   type TelegramConnectStatus,
+  validateTelegramBotTokenForDeploy,
 } from "../services/telegramConnectService";
 
 interface DeployPanelProps {
@@ -382,7 +383,7 @@ export function DeployPanel({
     setPersistedRecord(null);
     if (telegramTokenForDeploy) {
       setTelegramDeployConnectStatus("ready");
-      setTelegramDeployConnectMessage("Telegram connect will run after backend deploy creates the agent.");
+      setTelegramDeployConnectMessage("Telegram bot token will be validated before agent deploy uses quota.");
     } else {
       setTelegramDeployConnectStatus("idle");
       setTelegramDeployConnectMessage("Telegram can be connected later from the selected agent flow.");
@@ -432,6 +433,83 @@ export function DeployPanel({
                 }
 
                 deploySession = freshAuth.session;
+              }
+
+              if (telegramTokenForDeploy) {
+                if (!deploySession) {
+                  const message = "Sign in before deploying with Telegram token validation.";
+
+                  setTelegramDeployConnectStatus("error");
+                  setTelegramDeployConnectMessage(`${message} No agent quota was used.`);
+                  setPersistStatus("error");
+                  setPersistMessage(message);
+                  setPersistedRecord({
+                    status: "error",
+                    message,
+                    workspaceId: null,
+                    agentId: null,
+                    publicSlug: null,
+                    telegramHandle: null,
+                    source: "local",
+                    code: "sign_in_required",
+                    failureKind: "session",
+                  });
+                  recordBackendEvent({
+                    kind: "deploy",
+                    status: "blocked",
+                    message,
+                    source: "telegram preflight",
+                    code: "sign_in_required",
+                  });
+                  return;
+                }
+
+                setTelegramDeployConnectStatus("running");
+                setTelegramDeployConnectMessage("Validating Telegram bot token before deploy...");
+
+                const telegramPreflight = await validateTelegramBotTokenForDeploy({
+                  session: deploySession,
+                  botToken: telegramTokenForDeploy,
+                });
+
+                setTelegramDeployConnectStatus(getTelegramDeployConnectTone(telegramPreflight.status));
+                setTelegramDeployConnectMessage(telegramPreflight.message);
+                recordBackendEvent({
+                  kind: "deploy",
+                  status: telegramPreflight.ok ? "success" : "blocked",
+                  message: telegramPreflight.message,
+                  source: "telegram preflight",
+                  code: telegramPreflight.status,
+                });
+
+                if (!telegramPreflight.ok) {
+                  const message = `${telegramPreflight.message} No agent quota was used.`;
+
+                  setPersistStatus("error");
+                  setPersistMessage(message);
+                  setPersistedRecord({
+                    status: "error",
+                    message,
+                    workspaceId: null,
+                    agentId: null,
+                    publicSlug: null,
+                    telegramHandle: null,
+                    source: "local",
+                    code: telegramPreflight.status,
+                    failureKind:
+                      telegramPreflight.status === "unauthorized"
+                        ? "session"
+                        : telegramPreflight.status === "function_not_configured" ||
+                            telegramPreflight.status === "function_unavailable" ||
+                            telegramPreflight.status === "not_configured"
+                          ? "configuration"
+                          : "request",
+                  });
+                  return;
+                }
+
+                setTelegramDeployConnectStatus("success");
+                setTelegramDeployConnectMessage("Telegram bot token validated. Deploying agent...");
               }
 
               recordBackendEvent({
@@ -790,7 +868,7 @@ export function DeployPanel({
                           setTelegramDeployConnectStatus(event.target.value.trim() ? "ready" : "idle");
                           setTelegramDeployConnectMessage(
                             event.target.value.trim()
-                              ? "Telegram connect will run after this agent deploy is persisted."
+                              ? "Telegram bot token will be validated before this deploy uses quota."
                               : "Optional: connect Telegram during deploy. Token is cleared after submit.",
                           );
                         }}

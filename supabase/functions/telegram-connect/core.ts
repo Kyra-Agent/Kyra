@@ -1,6 +1,7 @@
 export interface TelegramConnectRequest {
   agentId?: unknown;
   botToken?: unknown;
+  mode?: unknown;
 }
 
 export interface AuthenticatedUser {
@@ -168,6 +169,9 @@ export interface TelegramConnectDependencies {
   validateTelegramBotToken?: (
     botToken: string,
   ) => Promise<TelegramBotValidationResult>;
+  lookupActiveTelegramBotConnection?: (
+    telegramBotId: string,
+  ) => Promise<boolean>;
   storeTelegramBotToken?: (
     input: StoreTelegramBotTokenInput,
   ) => Promise<StoreTelegramBotTokenResult>;
@@ -407,6 +411,10 @@ export function assertBotToken(value: unknown) {
   return botToken;
 }
 
+function isTelegramTokenValidationMode(value: unknown) {
+  return value === "validate_token";
+}
+
 export function assertTelegramBotValidationResult(value: unknown) {
   if (!value || typeof value !== "object") {
     throw new HttpError(
@@ -508,6 +516,25 @@ export function sanitizeTelegramTokenStorageError(error: unknown) {
     500,
     "server_error",
     "Telegram token storage failed.",
+  );
+}
+
+export function sanitizeTelegramDuplicateLookupError(error: unknown) {
+  if (
+    error instanceof HttpError &&
+    (error.statusCode === 409 || error.code === "duplicate_bot_active")
+  ) {
+    return new HttpError(
+      409,
+      "duplicate_bot_active",
+      "Telegram bot is already connected.",
+    );
+  }
+
+  return new HttpError(
+    500,
+    "server_error",
+    "Telegram bot duplicate check failed.",
   );
 }
 
@@ -720,6 +747,58 @@ export async function handleTelegramConnectRequest(
     const userId = assertAuthenticatedUserId(user);
 
     const body = await readTelegramConnectBody(request);
+
+    if (isTelegramTokenValidationMode(body.mode)) {
+      if (!dependencies.validateTelegramBotToken) {
+        return jsonResponse(
+          {
+            ok: false,
+            status: "not_configured",
+            message: "Telegram token validation is not enabled yet.",
+          },
+          501,
+        );
+      }
+
+      const botToken = assertBotToken(body.botToken);
+
+      try {
+        const bot = await dependencies.validateTelegramBotToken(botToken);
+        const telegramBot = assertTelegramBotValidationResult(bot);
+        const botHandle = formatTelegramBotHandle(telegramBot.username);
+
+        if (dependencies.lookupActiveTelegramBotConnection) {
+          let duplicateActive: boolean;
+
+          try {
+            duplicateActive = await dependencies
+              .lookupActiveTelegramBotConnection(telegramBot.telegramBotId);
+          } catch (error) {
+            throw sanitizeTelegramDuplicateLookupError(error);
+          }
+
+          if (duplicateActive) {
+            throw new HttpError(
+              409,
+              "duplicate_bot_active",
+              "Telegram bot is already connected.",
+            );
+          }
+        }
+
+        return telegramConnectSuccessResponse("validated", botHandle);
+      } catch (error) {
+        if (error instanceof HttpError) {
+          throw error;
+        }
+
+        throw new HttpError(
+          500,
+          "server_error",
+          "Telegram bot token validation failed.",
+        );
+      }
+    }
 
     const agentId = assertAgentId(body.agentId);
 

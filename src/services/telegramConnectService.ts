@@ -129,3 +129,55 @@ export async function connectTelegramBot({
     };
   }
 }
+
+export async function validateTelegramBotTokenForDeploy({
+  session,
+  botToken,
+}: {
+  session: KyraAuthSession;
+  botToken: string;
+}): Promise<TelegramConnectResult> {
+  if (!appConfig.functions.telegramConnectConfigured) {
+    return {
+      ok: false,
+      status: "function_not_configured",
+      message: "Telegram connect backend is not configured yet.",
+    };
+  }
+
+  try {
+    const response = await fetch(appConfig.functions.telegramConnectUrl, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        apikey: getSupabaseApiKey(),
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      body: JSON.stringify({
+        mode: "validate_token",
+        botToken,
+      }),
+    });
+    const payload = await parseTelegramConnectResponse(response);
+    const status = normalizeTelegramConnectStatus(payload.status);
+    const fallbackMessage = response.ok
+      ? "Telegram bot token validated."
+      : `Telegram token validation failed with ${response.status}.`;
+
+    return {
+      ok: Boolean(payload.ok) && response.ok && status === "validated",
+      status,
+      message: sanitizeTelegramConnectMessage(payload.message ?? fallbackMessage),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: "function_unavailable",
+      message:
+        error instanceof Error
+          ? sanitizeTelegramConnectMessage(error.message)
+          : "Telegram connect backend is unavailable.",
+    };
+  }
+}

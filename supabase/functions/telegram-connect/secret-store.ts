@@ -100,12 +100,27 @@ function sanitizeRpcSecretStoreError(error: unknown) {
   const errorCode = typeof error === "object" && error
     ? (error as Record<string, unknown>).code
     : undefined;
+  const errorMessage = typeof error === "object" && error
+    ? (error as Record<string, unknown>).message
+    : undefined;
 
   if (errorCode === "secret_not_found") {
     return new HttpError(
       404,
       "secret_not_found",
       "Telegram token secret was not found.",
+    );
+  }
+
+  if (
+    errorCode === "23505" ||
+    errorCode === "telegram_bot_already_connected" ||
+    errorMessage === "telegram_bot_already_connected"
+  ) {
+    return new HttpError(
+      409,
+      "duplicate_bot_active",
+      "Telegram bot is already connected.",
     );
   }
 

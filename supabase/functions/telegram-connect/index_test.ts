@@ -991,6 +991,118 @@ Deno.test("telegram-connect rejects malformed botToken before mocked validator c
   );
 });
 
+Deno.test("telegram-connect token validation mode runs before ownership and storage", async () => {
+  const order: string[] = [];
+
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({
+        mode: "validate_token",
+        botToken: testBotToken,
+      }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => {
+        order.push("session");
+        return { id: testUserId };
+      },
+      lookupAgentOwnership: async () => {
+        throw new Error("ownership must not run during token validation mode");
+      },
+      validateTelegramBotToken: async (botToken) => {
+        order.push("validator");
+        assertEquals(botToken, testBotToken);
+        return {
+          telegramBotId: testTelegramBotId,
+          username: "kyra_test_bot",
+          firstName: "Kyra Test",
+        };
+      },
+      lookupActiveTelegramBotConnection: async (telegramBotId) => {
+        order.push("duplicate-check");
+        assertEquals(telegramBotId, testTelegramBotId);
+        return false;
+      },
+      storeTelegramBotToken: async () => {
+        throw new Error("store must not run during token validation mode");
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(order.join(","), "session,validator,duplicate-check");
+  assertEquals(response.status, 200);
+  assertEquals(body.ok, true);
+  assertEquals(body.status, "validated");
+  assertEquals(
+    body.message,
+    "Telegram bot token validated. Connection is not active yet.",
+  );
+  assertEquals(body.botHandle, "@kyra_test_bot");
+  assert(
+    !serializedBody.includes(testBotToken),
+    "Response must not echo botToken.",
+  );
+  assert(
+    !serializedBody.includes(testTelegramBotId),
+    "Response must not echo telegramBotId.",
+  );
+});
+
+Deno.test("telegram-connect token validation mode blocks duplicate active bots before deploy storage", async () => {
+  let storeCalled = false;
+
+  const response = await handleTelegramConnectRequest(
+    makeConnectRequest({
+      authorization: "Bearer valid-test-jwt",
+      contentType: "application/json",
+      body: JSON.stringify({
+        mode: "validate_token",
+        botToken: testBotToken,
+      }),
+    }),
+    {
+      getEnv: () => "test-value",
+      getUser: async () => ({ id: testUserId }),
+      validateTelegramBotToken: async () => ({
+        telegramBotId: testTelegramBotId,
+        username: "kyra_test_bot",
+        firstName: "Kyra Test",
+      }),
+      lookupActiveTelegramBotConnection: async () => true,
+      storeTelegramBotToken: async () => {
+        storeCalled = true;
+        return {
+          tokenSecretRef: testTokenSecretRef,
+          provider: "supabase_vault",
+        };
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const serializedBody = JSON.stringify(body);
+
+  assertEquals(response.status, 409);
+  assertEquals(body.ok, false);
+  assertEquals(body.status, "duplicate_bot_active");
+  assertEquals(body.message, "Telegram bot is already connected.");
+  assert(!storeCalled, "Duplicate preflight must not store token.");
+  assert(
+    !serializedBody.includes(testBotToken),
+    "Response must not echo botToken.",
+  );
+  assert(
+    !serializedBody.includes(testTelegramBotId),
+    "Response must not echo telegramBotId.",
+  );
+});
+
 Deno.test("telegram-connect token validation success returns bounded validated response", async () => {
   const order: string[] = [];
 

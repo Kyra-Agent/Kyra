@@ -112,6 +112,24 @@ export async function persistTelegramSession(
   );
 }
 
+export async function lookupActiveTelegramBotConnection(
+  serviceClient: KyraSupabaseClient,
+  telegramBotId: string,
+) {
+  const { data, error } = await serviceClient
+    .from("telegram_bot_token_secrets")
+    .select("telegram_bot_id")
+    .eq("telegram_bot_id", telegramBotId)
+    .is("revoked_at", null)
+    .limit(1);
+
+  if (error) {
+    throw error;
+  }
+
+  return Array.isArray(data) && data.length > 0;
+}
+
 export function createTelegramConnectDependencies(
   options: TelegramConnectRuntimeOptions = {},
 ): TelegramConnectDependencies {
@@ -153,6 +171,9 @@ export function createTelegramConnectDependencies(
   }
 
   if (storeEnabled) {
+    dependencies.lookupActiveTelegramBotConnection = (telegramBotId) =>
+      lookupActiveTelegramBotConnection(getServiceClient(), telegramBotId);
+
     const secretStore = createRpcTelegramBotTokenSecretStore({
       rpc: async (functionName, args) => {
         return await getServiceClient().rpc(functionName, args);

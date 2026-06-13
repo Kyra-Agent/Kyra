@@ -330,6 +330,47 @@ Deno.test("rpc telegram secret store maps missing secret to sanitized 404", asyn
   );
 });
 
+Deno.test("rpc telegram secret store maps duplicate bot conflicts to sanitized duplicate status", async () => {
+  const { client } = createMockRpcClient([
+    {
+      data: null,
+      error: {
+        code: "23505",
+        message:
+          `telegram_bot_already_connected ${testBotToken} ${testOwnerUserId} ${testTokenSecretRef}`,
+      },
+    },
+  ]);
+  const store = createRpcTelegramBotTokenSecretStore(client);
+
+  const error = await captureError(() =>
+    store.storeTelegramBotToken({
+      agentId: testAgentId,
+      ownerUserId: testOwnerUserId,
+      telegramBotId: testTelegramBotId,
+      botToken: testBotToken,
+    })
+  );
+  const serializedError = JSON.stringify(error);
+
+  assert(error instanceof HttpError, "Duplicate bot error must throw HttpError.");
+  assertEquals((error as HttpError).statusCode, 409);
+  assertEquals((error as HttpError).code, "duplicate_bot_active");
+  assertEquals((error as HttpError).message, "Telegram bot is already connected.");
+  assert(
+    !serializedError.includes(testBotToken),
+    "Sanitized error must not expose botToken.",
+  );
+  assert(
+    !serializedError.includes(testOwnerUserId),
+    "Sanitized error must not expose ownerUserId.",
+  );
+  assert(
+    !serializedError.includes(testTokenSecretRef),
+    "Sanitized error must not expose tokenSecretRef.",
+  );
+});
+
 Deno.test("rpc telegram secret store sanitizes rpc availability errors", async () => {
   const { client } = createMockRpcClient([
     {
