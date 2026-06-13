@@ -1,6 +1,6 @@
 # KYRA-AGENT
 
-Kyra Agent is a backend-connected Base agent console demo for approval-first onchain workflows. It lets a user choose an agent template, configure a Telegram-style agent identity, deploy a persisted demo agent, and inspect dashboard/public profile records before live Telegram and wallet-approved Base execution are connected.
+Kyra Agent is a backend-connected Base agent console demo for approval-first onchain workflows. It lets a user choose an agent template, configure a Telegram-native agent identity, deploy a persisted demo agent, connect a backend-only Telegram bot session, and inspect dashboard/public profile records before wallet-approved Base execution is connected.
 
 Live demo: https://kyraagent.xyz
 
@@ -18,8 +18,12 @@ Kyra is in the production-safe backend-connected demo phase.
 
 - No real transactions are executed.
 - No private keys, seed phrases, or wallet custody are used.
-- No real Telegram bot token is required in the browser.
-- Base MCP, Telegram webhooks, and wallet execution are simulated.
+- Telegram bot tokens are accepted only as transient deploy input when the
+  production feature gate is enabled; tokens are validated before quota is used
+  and are cleared from frontend state after submit.
+- Telegram webhooks support live read-only commands through Supabase Edge
+  Functions when the backend gates are enabled.
+- Base MCP and wallet execution are still simulated/disabled.
 - Supabase can provide auth, template catalog, dashboard records, public agent profiles, activity logs, and persisted demo deploy receipts.
 - The `deploy-agent` Supabase Edge Function is the preferred server-side deploy boundary when configured.
 - The `reset-demo-workspace` Supabase Edge Function is the admin-only reset boundary when deployed.
@@ -60,6 +64,11 @@ Kyra is in the production-safe backend-connected demo phase.
 - Public agent profile route for deployed demo agents.
 - Explicit expired/unavailable state for stale public agent routes.
 - Session refresh guard before dashboard fetch, deploy, and reset operations.
+- Live read-only Telegram command support for `/help`, `/status`, `/agent`,
+  `/actions`, `/modules`, and `/policy` when the connected bot/webhook gates are
+  enabled.
+- Optional backend-only LLM enrichment for eligible read-only Telegram replies
+  through an OpenAI-compatible provider such as OpenRouter.
 - Demo-safe safety copy throughout the product flow.
 
 ## Tech Stack
@@ -97,7 +106,7 @@ Kyra's current demo mode is intentionally limited:
 - No private key input.
 - No seed phrase input.
 - No wallet custody.
-- No real Telegram bot token in browser code.
+- No persisted Telegram bot token in browser code or frontend storage.
 - No live transaction submission.
 - No gas spending.
 - No onchain execution.
@@ -176,7 +185,14 @@ Edge Function secrets must be configured in Supabase, not exposed through `VITE_
 ```bash
 SUPABASE_SERVICE_ROLE_KEY=server-side-only
 KYRA_DEMO_AGENT_LIMIT=3
+KYRA_TELEGRAM_AGENT_BRAIN_ENDPOINT=https://openrouter.ai/api/v1/chat/completions
+KYRA_TELEGRAM_AGENT_BRAIN_MODEL=provider/model-id
+KYRA_TELEGRAM_AGENT_BRAIN_API_KEY=server-side-only
 ```
+
+Telegram and agent-brain runtime gates are Supabase Edge Function environment
+settings. Keep them backend-only; do not expose OpenRouter keys through `VITE_`
+variables or browser storage.
 
 ## Build And Deploy
 

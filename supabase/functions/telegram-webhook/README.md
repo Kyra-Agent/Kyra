@@ -80,11 +80,12 @@ responses. It builds sanitized read-only prompts and validates provider output,
 but it does not call any LLM provider by itself.
 
 `agent-brain-provider.ts` defines an OpenAI-compatible provider adapter that can
-turn the sanitized local request into an outbound provider request when a future
-reviewed runtime dependency explicitly injects it. It validates endpoint, model,
-API key presence, response shape, timeout behavior, and sanitized failure states,
-but it is not wired into production dependencies and does not read environment
-values by itself.
+turn the sanitized local request into an outbound provider request when the
+reviewed runtime gates are enabled. It validates endpoint, model, API key
+presence, response shape, timeout behavior, and sanitized failure states. The
+runtime wires it lazily only after the agent-brain and provider gates are
+enabled, and only reads provider environment values when an eligible read-only
+command reaches the provider path.
 
 The webhook can use agent-brain output only when
 `KYRA_TELEGRAM_WEBHOOK_AGENT_BRAIN_ENABLED` is exactly `true` and a reviewed
@@ -103,6 +104,10 @@ through Supabase Edge Function secrets/env only:
 - `KYRA_TELEGRAM_AGENT_BRAIN_ENDPOINT=https://openrouter.ai/api/v1/chat/completions`
 - `KYRA_TELEGRAM_AGENT_BRAIN_MODEL=<openrouter model id>`
 - `KYRA_TELEGRAM_AGENT_BRAIN_API_KEY=<Supabase Edge Function secret>`
+
+OpenRouter uses the chat completions request shape at
+`/api/v1/chat/completions`; the provider sends `messages` for that endpoint and
+keeps the Responses API `input` shape for `/v1/responses`-style endpoints.
 
 Never put the OpenRouter API key in the repo, browser storage, frontend state,
 logs, screenshots, or chat. The runtime should read it only inside the Edge

@@ -36,7 +36,11 @@ export function createOpenAiCompatibleTelegramAgentBrainProvider(
 
   return {
     async complete(request) {
-      const payload = buildOpenAiCompatibleAgentBrainPayload(request, model);
+      const payload = buildOpenAiCompatibleAgentBrainPayload(
+        request,
+        model,
+        endpoint,
+      );
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -84,16 +88,32 @@ export function createOpenAiCompatibleTelegramAgentBrainProvider(
 export function buildOpenAiCompatibleAgentBrainPayload(
   request: TelegramAgentBrainRequest,
   model: unknown,
+  endpoint?: unknown,
 ) {
   const checkedModel = readProviderModel(model);
   const checkedRequest = assertProviderRequest(request);
+  const checkedEndpoint = readProviderEndpoint(endpoint);
+  const messages = checkedRequest.messages.map((message) => ({
+    role: message.role,
+    content: message.content,
+  }));
+
+  if (isChatCompletionsEndpoint(checkedEndpoint)) {
+    return {
+      model: checkedModel,
+      messages,
+      max_completion_tokens: 220,
+      temperature: 0.2,
+      metadata: {
+        kyra_surface: "telegram",
+        kyra_mode: checkedRequest.mode,
+      },
+    };
+  }
 
   return {
     model: checkedModel,
-    input: checkedRequest.messages.map((message) => ({
-      role: message.role,
-      content: message.content,
-    })),
+    input: messages,
     max_output_tokens: 220,
     temperature: 0.2,
     metadata: {
@@ -101,6 +121,10 @@ export function buildOpenAiCompatibleAgentBrainPayload(
       kyra_mode: checkedRequest.mode,
     },
   };
+}
+
+function isChatCompletionsEndpoint(endpoint: string) {
+  return /\/chat\/completions\/?$/i.test(new URL(endpoint).pathname);
 }
 
 function assertProviderRequest(request: TelegramAgentBrainRequest) {

@@ -74,13 +74,45 @@ Deno.test("telegram agent brain provider builds bounded OpenAI-compatible payloa
     testModel,
   );
   const serialized = JSON.stringify(payload);
+  const input = "input" in payload ? payload.input : null;
 
   assertEquals(payload.model, testModel);
-  assertEquals(payload.input.length, 2);
+  if (!Array.isArray(input)) {
+    throw new Error("Responses payload must include input.");
+  }
+  assertEquals(input.length, 2);
   assertEquals(payload.max_output_tokens, 220);
   assertEquals(payload.temperature, 0.2);
   assertEquals(payload.metadata.kyra_surface, "telegram");
   assertEquals(payload.metadata.kyra_mode, "read_only");
+  assert(
+    !serialized.includes(testApiKey),
+    "Provider payload must not include API keys.",
+  );
+});
+
+Deno.test("telegram agent brain provider builds chat completions payload for OpenRouter", () => {
+  const payload = buildOpenAiCompatibleAgentBrainPayload(
+    testRequest,
+    "openai/gpt-test-safe",
+    "https://openrouter.ai/api/v1/chat/completions",
+  );
+  const serialized = JSON.stringify(payload);
+  const messages = "messages" in payload ? payload.messages : null;
+
+  assertEquals(payload.model, "openai/gpt-test-safe");
+  if (!Array.isArray(messages)) {
+    throw new Error("Chat completions payload must include messages.");
+  }
+  assertEquals(messages.length, 2);
+  assertEquals(payload.max_completion_tokens, 220);
+  assertEquals(payload.temperature, 0.2);
+  assertEquals(payload.metadata.kyra_surface, "telegram");
+  assertEquals(payload.metadata.kyra_mode, "read_only");
+  assert(
+    !("input" in payload),
+    "Chat completions payload must not use Responses API input.",
+  );
   assert(
     !serialized.includes(testApiKey),
     "Provider payload must not include API keys.",
@@ -274,6 +306,12 @@ Deno.test("telegram agent brain provider supports OpenRouter chat completions", 
   assertEquals(capturedUrl, "https://openrouter.ai/api/v1/chat/completions");
   assertEquals(capturedAuthorization, `Bearer ${testApiKey}`);
   assertEquals(payload.model, openRouterModel);
+  assertEquals(payload.messages.length, 2);
+  assertEquals(payload.max_completion_tokens, 220);
+  assert(
+    !("input" in payload),
+    "OpenRouter request must use chat completions messages.",
+  );
   assert(
     !capturedBody.includes(testApiKey),
     "Request body must not include API key.",
