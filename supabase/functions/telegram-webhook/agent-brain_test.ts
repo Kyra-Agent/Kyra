@@ -148,7 +148,7 @@ Deno.test("telegram agent brain provider receives bounded request and returns re
         capturedRequest = request;
         return {
           text:
-            "Read-only commands are available. Wallet actions remain disabled.",
+            "Agent actions\n\nReady in Telegram: help, status, agent, actions, modules, policy\nDashboard gated: none\nPhase 6 gated: none\nBoundary: Telegram can brief and plan only.",
         };
       },
     },
@@ -156,7 +156,7 @@ Deno.test("telegram agent brain provider receives bounded request and returns re
 
   assertEquals(
     reply.text,
-    "Read-only commands are available. Wallet actions remain disabled.",
+    "Agent actions\n\nReady in Telegram: help, status, agent, actions, modules, policy\nDashboard gated: none\nPhase 6 gated: none\nBoundary: Telegram can brief and plan only.",
   );
   assertNoSensitiveMaterial(capturedRequest);
 });
@@ -199,6 +199,33 @@ Deno.test("telegram agent brain prompt carries actionable template context", () 
   );
 });
 
+Deno.test("telegram agent brain preserves empty template action buckets", () => {
+  const request = buildTelegramAgentBrainRequest({
+    command: "actions",
+    agentName: "Agent 666",
+    capabilities: [
+      "market brief",
+      "campaign plan",
+      "narrative map",
+      "launch copy",
+      "community pulse",
+    ],
+    gatedActions: [],
+  });
+  const userMessage = request.messages[1]?.content ?? "";
+
+  assert(
+    userMessage.includes(
+      "Read-only actions: market brief, campaign plan, narrative map, launch copy, community pulse",
+    ),
+    "Prompt must keep provided read-only actions.",
+  );
+  assert(
+    userMessage.includes("Gated actions: none"),
+    "Prompt must not replace an empty gated action list with wallet defaults.",
+  );
+});
+
 Deno.test("telegram agent brain rejects generic context-free provider replies", async () => {
   await assertRejectsHttpError(
     () =>
@@ -234,6 +261,48 @@ Deno.test("telegram agent brain rejects generic context-free provider replies", 
         {
           async complete() {
             return { text: "I can help with strategy." };
+          },
+        },
+      ),
+    502,
+    "agent_brain_invalid_response",
+  );
+
+  await assertRejectsHttpError(
+    () =>
+      generateTelegramAgentBrainReply(
+        {
+          command: "actions",
+          capabilities: ["market brief", "campaign plan"],
+          gatedActions: [],
+        },
+        {
+          async complete() {
+            return {
+              text:
+                "Agent 666 Actions\n\nRead-only (Ready in Telegram)\n- market brief\n- campaign plan\n\nGated (Phase 6 only)\n- none\n\nTelegram can brief and plan but cannot execute wallet or onchain actions.",
+            };
+          },
+        },
+      ),
+    502,
+    "agent_brain_invalid_response",
+  );
+
+  await assertRejectsHttpError(
+    () =>
+      generateTelegramAgentBrainReply(
+        {
+          command: "actions",
+          capabilities: [],
+          gatedActions: ["conditional swap", "dca", "stop loss"],
+        },
+        {
+          async complete() {
+            return {
+              text:
+                "Agent actions\n\nReady in Telegram: none\n\nPhase 6 gated: controlled execution only\n\nBoundary: Telegram can brief and plan only.",
+            };
           },
         },
       ),
@@ -346,6 +415,27 @@ Deno.test("telegram agent brain rejects malformed contextual polish", async () =
             return {
               text:
                 "Agent 666 actions\n\nRead-only actions (Telegram ready):\n- market brief - token and market context summary\n- campaign plan - launch campaign roadmap\n\nGated actions (Phase 6):\n- wallet - transaction signing\n\nActive modules:\n- ASTRA-03 Research - online\n- NOVA-04",
+            };
+          },
+        },
+      ),
+    502,
+    "agent_brain_invalid_response",
+  );
+
+  await assertRejectsHttpError(
+    () =>
+      generateTelegramAgentBrainReply(
+        {
+          command: "actions",
+          capabilities: ["market brief", "campaign plan"],
+          gatedActions: [],
+        },
+        {
+          async complete() {
+            return {
+              text:
+                "Agent 666 Actions\n\nReady in Telegram:\n- market brief\n- campaign plan\n\nPhase 6 gated:\n- wallet\n- approval\n\nBoundary: Telegram can brief and plan only.",
             };
           },
         },

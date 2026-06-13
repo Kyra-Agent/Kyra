@@ -130,8 +130,8 @@ export function buildTelegramAgentBrainRequest(
           `Agent: ${context.agentName}`,
           `Role: ${context.agentRole}`,
           `Summary: ${context.agentSummary}`,
-          `Read-only actions: ${context.capabilities.join(", ")}`,
-          `Gated actions: ${context.gatedActions.join(", ")}`,
+          `Read-only actions: ${formatPromptList(context.capabilities)}`,
+          `Gated actions: ${formatPromptList(context.gatedActions)}`,
           `Modules: ${formatPromptModules(context.modules)}`,
           `Safety: ${context.safetyNote}`,
           `Response guide: ${buildCommandResponseGuide(context.command)}`,
@@ -254,7 +254,7 @@ function sanitizePromptList(
     .filter(Boolean)
     .slice(0, maxCount);
 
-  return items.length ? [...new Set(items)] : [...fallback];
+  return [...new Set(items)];
 }
 
 function sanitizePromptModules(value: unknown) {
@@ -350,6 +350,10 @@ function formatPromptModules(
     .join("; ");
 }
 
+function formatPromptList(values: readonly string[]) {
+  return values.length ? values.join(", ") : "none";
+}
+
 function buildCommandResponseGuide(command: TelegramWebhookParsedCommandName) {
   if (command === "modules") {
     return "Use labels Template module stack, Active, Guard, Standby, Boundary. Report only actual template modules with exact names and statuses. Do not label wallet, approval, Base MCP, or onchain execution as modules.";
@@ -402,10 +406,39 @@ function assertContextualTelegramAgentBrainReply(
 
   if (
     context.command === "actions" &&
-    context.capabilities.length &&
+    !hasTelegramSectionLabel(text, "Ready in Telegram")
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
+    context.command === "actions" &&
+    !hasTelegramSectionLabel(text, "Dashboard gated")
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
+    context.command === "actions" &&
+    !hasTelegramSectionLabel(text, "Phase 6 gated")
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
+    context.command === "actions" &&
+    !hasTelegramSectionLabel(text, "Boundary")
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
+    context.command === "actions" &&
+    hasExpectedActions(context) &&
     !context.capabilities.some((capability) =>
       includesTextFolded(text, capability)
-    )
+    ) &&
+    !context.gatedActions.some((action) => includesTextFolded(text, action))
   ) {
     throw invalidAgentBrainResponse();
   }
@@ -413,6 +446,14 @@ function assertContextualTelegramAgentBrainReply(
   if (
     context.command === "actions" &&
     /\b(?:active|standby|guard)\s+modules?\s*:/i.test(text)
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
+    context.command === "actions" &&
+    context.gatedActions.length === 0 &&
+    /^\s*-\s*(wallet|approval|base\s+mcp|onchain\s+execution)\b/im.test(text)
   ) {
     throw invalidAgentBrainResponse();
   }
@@ -428,6 +469,10 @@ function assertContextualTelegramAgentBrainReply(
 
 function includesTextFolded(text: string, fragment: string) {
   return text.toLowerCase().includes(fragment.toLowerCase());
+}
+
+function hasExpectedActions(context: NormalizedTelegramAgentBrainPromptInput) {
+  return context.capabilities.length > 0 || context.gatedActions.length > 0;
 }
 
 function hasTelegramSectionLabel(text: string, label: string) {
