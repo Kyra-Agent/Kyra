@@ -1,34 +1,88 @@
 <svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect width="1200" height="630" fill="#05070A"/>
-  <path d="M0 0H1200V630H0V0Z" fill="url(#bg)"/>
-  <g opacity="0.38">
-    <path d="M80 108H1120" stroke="#5EA2FF" stroke-opacity="0.2"/>
-    <path d="M80 184H1120" stroke="#5EA2FF" stroke-opacity="0.14"/>
-    <path d="M80 260H1120" stroke="#5EA2FF" stroke-opacity="0.14"/>
-    <path d="M80 336H1120" stroke="#5EA2FF" stroke-opacity="0.14"/>
-    <path d="M80 412H1120" stroke="#5EA2FF" stroke-opacity="0.14"/>
-    <path d="M80 488H1120" stroke="#5EA2FF" stroke-opacity="0.14"/>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <path d="M72 92H1128M72 178H1128M72 264H1128M72 350H1128M72 436H1128M72 522H1128" stroke="#7DD3FC" stroke-opacity="0.08"/>
+  <path d="M166 48V582M322 48V582M478 48V582M634 48V582M790 48V582M946 48V582" stroke="#7DD3FC" stroke-opacity="0.06"/>
+
+  <rect x="64" y="54" width="1072" height="522" rx="34" fill="#080D14" fill-opacity="0.88" stroke="url(#frame)" stroke-width="1.5"/>
+  <rect x="92" y="82" width="1016" height="466" rx="26" fill="#0A111B" fill-opacity="0.82" stroke="#26384E"/>
+
+  <g transform="translate(102 96)">
+    <rect x="0" y="0" width="174" height="34" rx="17" fill="#0F2A1F" stroke="#41F1A0" stroke-opacity="0.5"/>
+    <circle cx="18" cy="17" r="5" fill="#41F1A0"/>
+    <text x="34" y="22" fill="#8CFFC6" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="800" letter-spacing="1.6">PHASE 5 LIVE</text>
   </g>
-  <rect x="72" y="72" width="1056" height="486" rx="28" fill="#0B1018" fill-opacity="0.86" stroke="#5EA2FF" stroke-opacity="0.28"/>
-  <rect x="96" y="96" width="318" height="42" rx="21" fill="#102035" stroke="#8AE6B1" stroke-opacity="0.32"/>
-  <text x="122" y="123" fill="#8AE6B1" font-family="Consolas, monospace" font-size="18" font-weight="700">BACKEND-CONNECTED DEMO</text>
-  <text x="96" y="220" fill="#EEF5FF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="72" font-weight="800">Kyra Agent</text>
-  <text x="96" y="292" fill="#EEF5FF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="44" font-weight="700">Base Onchain Agent Console</text>
-  <text x="96" y="368" fill="#9DAFC6" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28">Deploy Telegram-native AI agents with</text>
-  <text x="96" y="408" fill="#9DAFC6" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28">approval-first Base workflows in demo mode.</text>
-  <g transform="translate(820 156)">
-    <circle cx="132" cy="132" r="126" fill="#07111F" stroke="#5EA2FF" stroke-opacity="0.36"/>
-    <circle cx="132" cy="132" r="82" fill="#05070A" stroke="#8AE6B1" stroke-opacity="0.34"/>
-    <text x="132" y="120" text-anchor="middle" fill="#5EA2FF" font-family="Consolas, monospace" font-size="34" font-weight="800">KYRA</text>
-    <text x="132" y="159" text-anchor="middle" fill="#EEF5FF" font-family="Consolas, monospace" font-size="22" font-weight="700">BASE</text>
-    <path d="M132 18V42M132 222V246M18 132H42M222 132H246" stroke="#8AE6B1" stroke-opacity="0.62" stroke-width="4" stroke-linecap="round"/>
+
+  <text x="102" y="238" fill="#F8FBFF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="74" font-weight="850">Kyra Agent</text>
+  <text x="106" y="278" fill="#8EB8FF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28" font-weight="700">Telegram-native AI agents for Base</text>
+  <text x="106" y="328" fill="#B9C7D9" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="25">Read-only Telegram commands. LLM planning.</text>
+  <text x="106" y="364" fill="#B9C7D9" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="25">Wallet and onchain execution stay approval-gated.</text>
+
+  <g transform="translate(106 400)">
+    <rect x="0" y="0" width="158" height="46" rx="12" fill="#0D1824" stroke="#2C4158"/>
+    <text x="18" y="29" fill="#F8FBFF" font-family="Consolas, ui-monospace, monospace" font-size="16" font-weight="700">/agent</text>
+    <rect x="174" y="0" width="178" height="46" rx="12" fill="#0D1824" stroke="#2C4158"/>
+    <text x="192" y="29" fill="#F8FBFF" font-family="Consolas, ui-monospace, monospace" font-size="16" font-weight="700">/actions</text>
+    <rect x="368" y="0" width="188" height="46" rx="12" fill="#0D1824" stroke="#2C4158"/>
+    <text x="386" y="29" fill="#F8FBFF" font-family="Consolas, ui-monospace, monospace" font-size="16" font-weight="700">/modules</text>
   </g>
-  <text x="96" y="504" fill="#8AE6B1" font-family="Consolas, monospace" font-size="24" font-weight="700">No seed phrases. No custody. Wallet approval required.</text>
+
+  <g transform="translate(106 476)">
+    <path d="M0 18H500" stroke="#26384E"/>
+    <rect x="0" y="0" width="126" height="36" rx="18" fill="#071B31" stroke="#2F7CFF"/>
+    <text x="20" y="24" fill="#8EB8FF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="800">TELEGRAM</text>
+    <rect x="156" y="0" width="148" height="36" rx="18" fill="#151425" stroke="#A78BFA"/>
+    <text x="178" y="24" fill="#D8C7FF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="800">AGENT BRAIN</text>
+    <rect x="334" y="0" width="166" height="36" rx="18" fill="#0D2418" stroke="#41F1A0"/>
+    <text x="356" y="24" fill="#8CFFC6" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="800">APPROVAL FIRST</text>
+  </g>
+
+  <g transform="translate(704 104)">
+    <rect x="0" y="0" width="354" height="378" rx="28" fill="#0D1520" stroke="#2C4158"/>
+    <rect x="24" y="24" width="306" height="58" rx="17" fill="#101C2A" stroke="#314963"/>
+    <text x="46" y="59" fill="#8CFFC6" font-family="Consolas, ui-monospace, monospace" font-size="18" font-weight="800">/status</text>
+    <circle cx="286" cy="53" r="9" fill="#41F1A0"/>
+
+    <rect x="24" y="106" width="252" height="72" rx="18" fill="#111A26" stroke="#26384E"/>
+    <text x="46" y="135" fill="#F8FBFF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="800">Telegram session: active</text>
+    <text x="46" y="160" fill="#9FB0C4" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">Access: read-only natural chat</text>
+
+    <rect x="78" y="202" width="252" height="86" rx="18" fill="#071B31" stroke="#2F7CFF"/>
+    <text x="100" y="232" fill="#F8FBFF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="800">Campaign plan ready</text>
+    <text x="100" y="258" fill="#B9C7D9" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">Narrative, launch copy,</text>
+    <text x="100" y="279" fill="#B9C7D9" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">community pulse</text>
+
+    <rect x="24" y="312" width="216" height="42" rx="14" fill="#21141A" stroke="#F97373" stroke-opacity="0.7"/>
+    <text x="46" y="339" fill="#FFC0C0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="800">Execution gated Phase 6</text>
+  </g>
+
+  <g transform="translate(955 421)">
+    <circle cx="78" cy="78" r="78" fill="#060A10" stroke="url(#ring)" stroke-width="1.5"/>
+    <circle cx="78" cy="78" r="52" fill="#0B111A" stroke="#2F7CFF" stroke-opacity="0.75"/>
+    <path d="M78 15V35M78 121V141M15 78H35M121 78H141" stroke="#41F1A0" stroke-width="4" stroke-linecap="round"/>
+    <text x="78" y="75" text-anchor="middle" fill="#F8FBFF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="850">KYRA</text>
+    <text x="78" y="101" text-anchor="middle" fill="#8EB8FF" font-family="Consolas, ui-monospace, monospace" font-size="14" font-weight="800">BASE</text>
+  </g>
+
+  <text x="102" y="552" fill="#7DD3FC" font-family="Consolas, ui-monospace, monospace" font-size="20" font-weight="700">No custody. No seed phrases. No hidden execution.</text>
+
   <defs>
-    <radialGradient id="bg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(954 74) rotate(130) scale(760 540)">
-      <stop stop-color="#173A71"/>
-      <stop offset="0.45" stop-color="#07111F"/>
+    <linearGradient id="bg" x1="72" y1="40" x2="1080" y2="610" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0C1020"/>
+      <stop offset="0.42" stop-color="#071B31"/>
+      <stop offset="0.72" stop-color="#0B111A"/>
       <stop offset="1" stop-color="#05070A"/>
-    </radialGradient>
+    </linearGradient>
+    <linearGradient id="frame" x1="64" y1="54" x2="1136" y2="576" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#41F1A0"/>
+      <stop offset="0.42" stop-color="#2F7CFF"/>
+      <stop offset="0.74" stop-color="#A78BFA"/>
+      <stop offset="1" stop-color="#26384E"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0" y1="0" x2="156" y2="156" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#41F1A0"/>
+      <stop offset="0.55" stop-color="#2F7CFF"/>
+      <stop offset="1" stop-color="#A78BFA"/>
+    </linearGradient>
   </defs>
 </svg>
