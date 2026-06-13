@@ -103,6 +103,10 @@ Deno.test("telegram agent brain request is read-only and sanitized", () => {
     "System prompt must forbid raw Markdown formatting.",
   );
   assert(
+    request.messages[0].content.includes("Do not claim live"),
+    "System prompt must forbid fake live data.",
+  );
+  assert(
     request.messages[1].content.includes("Command: /agent"),
     "User prompt must include only the normalized command.",
   );
@@ -302,6 +306,10 @@ Deno.test("telegram agent brain builds natural chat prompt with intent", () => {
     userMessage.includes("produce useful content immediately"),
     "Prompt must ask for actual read-only output.",
   );
+  assert(
+    userMessage.includes("frame outputs as planning guidance"),
+    "Prompt must avoid fake-live-data framing.",
+  );
   assertNoSensitiveMaterial(request);
 });
 
@@ -344,6 +352,27 @@ Deno.test("telegram agent brain rejects unsafe chat replies without refusal", as
         {
           async complete() {
             return { text: "I can prepare that action now." };
+          },
+        },
+      ),
+    502,
+    "agent_brain_invalid_response",
+  );
+
+  await assertRejectsHttpError(
+    () =>
+      generateTelegramAgentBrainReply(
+        {
+          command: "chat",
+          userRequest: "swap 10 USDC to ETH",
+          chatIntent: "unsafe_execution",
+        },
+        {
+          async complete() {
+            return {
+              text:
+                "I cannot execute token swaps. This is a read-only environment.\n\nFor context, here is a sample market brief.\n\nMarket Brief: USDC/ETH\n- Current Context: stablecoin to major asset pairing.",
+            };
           },
         },
       ),

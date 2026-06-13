@@ -8,15 +8,15 @@ export interface TelegramReadOnlyCommandResponse {
 
 const helpText = [
   "Kyra Telegram",
-  "/help /status /agent /actions /modules /policy",
-  "Plain text works too: campaign plan, launch copy, narrative map, market brief, community pulse.",
-  "Boundary: wallet, write, approval, and onchain execution are disabled.",
+  "Commands: /help /status /agent /actions /modules /policy",
+  "Plain text: campaign plan for Agent 666; launch copy; narrative map; community pulse; risk review.",
+  "Boundary: wallet and onchain execution are disabled.",
 ].join("\n");
 
 const statusText = [
   "Kyra Telegram session: active",
   "Command access: read-only",
-  "Live replies: agent, actions, modules",
+  "Live replies: commands and read-only natural chat",
   "Execution: wallet, write, approval, and onchain disabled",
 ].join("\n");
 
@@ -29,7 +29,8 @@ const agentText = [
 
 const actionsText = [
   "Kyra actions",
-  "Ready in Telegram: /help, /status, /agent, /actions, /modules",
+  "Ready in Telegram: market brief, campaign plan, narrative map, launch copy, community pulse",
+  "Use commands or plain text requests.",
   "Dashboard gated: write and approval",
   "Phase 6 gated: wallet and onchain execution",
 ].join("\n");
@@ -169,7 +170,7 @@ function buildTelegramReadOnlyChatFallbackText(text: unknown) {
     return [
       "Kyra cannot execute that from Telegram.",
       "Wallet, approval, Base MCP, and onchain actions are disabled.",
-      "I can help turn it into a read-only brief, plan, checklist, or risk review.",
+      "I can turn it into a read-only risk review or checklist.",
     ].join("\n");
   }
 

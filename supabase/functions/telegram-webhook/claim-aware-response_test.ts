@@ -81,8 +81,8 @@ Deno.test("telegram claimed response plan supports additional read-only commands
   assert(agent.response.text.includes("read-only"), "Expected safe agent text.");
   assertEquals(actions.response.command, "actions");
   assert(
-    actions.response.text.includes("/help"),
-    "Expected safe action command list.",
+    actions.response.text.includes("plain text requests"),
+    "Expected safe natural action request guidance.",
   );
   assertEquals(modules.response.command, "modules");
   assert(

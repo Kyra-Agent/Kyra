@@ -81,6 +81,10 @@ Deno.test("telegram read-only help response is static and limited", () => {
     response.text.includes("execution are disabled"),
     "Help response must state disabled actions.",
   );
+  assert(
+    response.text.includes("Plain text:"),
+    "Help response must show natural chat examples.",
+  );
   assertEquals(Object.keys(response).sort().join(","), "command,text");
   assert(!serialized.includes("private"), "Help response must remain static.");
   assertSafeStaticResponse(response.text);
@@ -97,6 +101,10 @@ Deno.test("telegram read-only status response is static and safety-scoped", () =
   assert(
     response.text.includes("Command access: read-only"),
     "Status response must state read-only access.",
+  );
+  assert(
+    response.text.includes("read-only natural chat"),
+    "Status response must mention natural chat readiness.",
   );
   assert(
     response.text.includes("Execution: wallet"),
@@ -129,6 +137,10 @@ Deno.test("telegram read-only actions response is static and bounded", () => {
   assert(
     response.text.includes("Ready in Telegram"),
     "Actions response must list read-only commands.",
+  );
+  assert(
+    response.text.includes("plain text requests"),
+    "Actions response must explain natural action requests.",
   );
   assert(
     response.text.includes("Phase 6 gated"),
@@ -199,6 +211,10 @@ Deno.test("telegram read-only chat fallback refuses execution safely", () => {
   assert(
     response.text.includes("onchain actions are disabled"),
     "Chat fallback must preserve onchain boundary.",
+  );
+  assert(
+    !response.text.toLowerCase().includes("market brief"),
+    "Unsafe fallback must not auto-generate a market brief.",
   );
   assertEquals(Object.keys(response).sort().join(","), "command,text");
 });

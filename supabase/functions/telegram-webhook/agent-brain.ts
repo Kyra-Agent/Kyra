@@ -141,6 +141,7 @@ export function buildTelegramAgentBrainRequest(
           "Use plain text only: no Markdown tables, bold markers, code fences, headings, or horizontal rules.",
           "Use short label lines and hyphen bullets when listing capabilities.",
           "Answer the requested command directly and do not add unfinished helper text.",
+          "Do not claim live, real-time, current, latest, price, or market data unless the user provides that data in the request.",
         ].join(" "),
       },
       {
@@ -386,9 +387,9 @@ function buildCommandResponseGuide(command: TelegramWebhookParsedCommandName) {
   if (command === "chat") {
     return [
       "Answer the user's read-only request directly.",
-      "If the intent is unsafe_execution, refuse clearly and offer a read-only brief, plan, checklist, or risk review instead.",
+      "If the intent is unsafe_execution, only refuse clearly and offer a read-only risk review or checklist; do not add a market brief, campaign plan, sample analysis, or extra generated content.",
       "For market_brief, campaign_plan, narrative_map, launch_copy, or community_pulse, produce useful content immediately with concise labels and bullets.",
-      "Use available agent, action, and module context, but do not pretend to have live market data unless it is in the request.",
+      "Use available agent, action, and module context, but frame outputs as planning guidance unless the user supplies data.",
       "Keep wallet, approval, Base MCP, and onchain execution disabled.",
     ].join(" ");
   }
@@ -559,6 +560,14 @@ function assertContextualTelegramAgentBrainReply(
   ) {
     throw invalidAgentBrainResponse();
   }
+
+  if (
+    context.command === "chat" &&
+    context.chatIntent === "unsafe_execution" &&
+    hasUnsafeExecutionOveranswer(text)
+  ) {
+    throw invalidAgentBrainResponse();
+  }
 }
 
 function sanitizeChatIntent(value: unknown): TelegramReadOnlyChatIntent {
@@ -582,6 +591,14 @@ function hasExpectedActions(context: NormalizedTelegramAgentBrainPromptInput) {
 
 function hasTelegramSectionLabel(text: string, label: string) {
   return new RegExp(`(?:^|\\n)\\s*${label}\\s*:`, "i").test(text);
+}
+
+function hasUnsafeExecutionOveranswer(text: string) {
+  return (
+    text.split("\n").filter((line) => line.trim()).length > 4 ||
+    /\b(market brief|campaign plan|sample|for context|current context|trend lens|phase\s+\d|objective:|strategy:)\b/i
+      .test(text)
+  );
 }
 
 function assertSafeTelegramAgentBrainText(text: string) {
