@@ -50,10 +50,6 @@ import {
   type SupabaseConnectionStatus,
 } from "../services/supabaseKyraRepository";
 import {
-  issueTelegramOwnerLink,
-  type TelegramLinkStatus,
-} from "../services/telegramLinkService";
-import {
   fetchTelegramDashboardStatuses,
   type TelegramDashboardStatusRecord,
 } from "../services/telegramDashboardStatusService";
@@ -81,7 +77,6 @@ interface DashboardProps {
     message: string,
   ) => void;
   onBackHome: () => void;
-  onOpenDeploy: () => void;
   onOpenAgent: (target?: { templateId?: string; publicPath?: string }) => void;
   onSelectTemplate: (templateId: string) => void;
 }
@@ -185,7 +180,6 @@ function getCatalogValue(status: SupabaseConnectionStatus, templateCount: number
 }
 
 type DeployChecklistState = "complete" | "active" | "blocked" | "todo";
-type TelegramOwnerLinkUiStatus = "idle" | "running" | "success" | "error";
 type TelegramDashboardStatusLoadState = "idle" | "loading" | "ready" | "unavailable";
 
 interface TelegramSessionDisplayStatus {
@@ -335,31 +329,20 @@ function getTelegramSessionDescription(session: TelegramSessionDisplayStatus | n
   return "This agent is still on a simulated Telegram demo session.";
 }
 
-function getTelegramOwnerLinkIdleMessage(active: boolean, ownerChatLinked = false) {
+function getTelegramOwnerPairingLabel(active: boolean, ownerChatLinked = false) {
   if (ownerChatLinked) {
-    return "Owner chat is linked for this agent. One-time pairing links are no longer needed.";
+    return "Owner chat linked";
   }
 
-  return active
-    ? "Generate a one-time link, then open Telegram and send the prefilled start command from the owner chat."
-    : "Owner link requires an active Telegram session for the selected agent.";
+  return active ? "Owner chat pending" : "Waiting for bot";
 }
 
-function getTelegramOwnerLinkReadyMessage(expiresAtLabel: string) {
-  const expiry = expiresAtLabel ? ` until ${expiresAtLabel}` : "";
-
-  return `Owner link ready${expiry}. Open Telegram and send the prefilled start command from the signed-in owner chat.`;
-}
-
-function getTelegramOwnerLinkButtonLabel(
-  status: TelegramOwnerLinkUiStatus,
-  hasLink: boolean,
-) {
-  if (status === "running") {
-    return "Generating";
+function getTelegramCommandAccessLabel(active: boolean, ownerChatLinked = false) {
+  if (ownerChatLinked) {
+    return "Read-only enabled";
   }
 
-  return hasLink ? "Regenerate owner link" : "Generate owner link";
+  return active ? "Pairing pending" : "Disabled";
 }
 
 function getTelegramSessionRank(session: DemoTelegramSessionSummary) {
@@ -423,7 +406,6 @@ export function Dashboard({
   authMessage,
   onAuthSessionChange,
   onBackHome,
-  onOpenDeploy,
   onOpenAgent,
   onSelectTemplate,
 }: DashboardProps) {
@@ -453,13 +435,6 @@ export function Dashboard({
   );
   const [deployFunctionMessage, setDeployFunctionMessage] = useState("");
   const [selectedDashboardAgentId, setSelectedDashboardAgentId] = useState<string | null>(null);
-  const [telegramOwnerLinkStatus, setTelegramOwnerLinkStatus] =
-    useState<TelegramOwnerLinkUiStatus>("idle");
-  const [telegramOwnerLinkMessage, setTelegramOwnerLinkMessage] = useState(
-    "Owner chat linking is available after the selected Telegram session is active.",
-  );
-  const [telegramOwnerLinkUrl, setTelegramOwnerLinkUrl] = useState<string | null>(null);
-  const [telegramOwnerLinkExpiresAt, setTelegramOwnerLinkExpiresAt] = useState<string | null>(null);
   const [telegramDashboardStatusState, setTelegramDashboardStatusState] =
     useState<TelegramDashboardStatusLoadState>("idle");
   const [telegramDashboardStatusMessage, setTelegramDashboardStatusMessage] = useState(
@@ -710,8 +685,6 @@ export function Dashboard({
   const selectedTelegramStatus = selectedTelegramDashboardStatus ?? selectedTelegramSession;
   const selectedTelegramActive = selectedTelegramStatus?.webhookStatus === "active";
   const selectedTelegramOwnerChatLinked = selectedTelegramDashboardStatus?.ownerChatLinked ?? false;
-  const selectedTelegramOwnerLinkAvailable =
-    selectedTelegramDashboardStatus?.ownerLinkAvailable ?? selectedTelegramActive;
   const telegramDashboardStatusEnabled = appConfig.featureFlags.telegramDashboardStatusReadModel;
   const dashboardAgentCount = agentRecords.length;
   const activeTemplate = useMemo(
@@ -864,16 +837,6 @@ export function Dashboard({
   ];
   const isAdminActionRunning = adminActionStatus === "running";
 
-  useEffect(() => {
-    if (telegramOwnerLinkStatus !== "idle") {
-      return;
-    }
-
-    setTelegramOwnerLinkMessage(
-      getTelegramOwnerLinkIdleMessage(selectedTelegramActive, selectedTelegramOwnerChatLinked),
-    );
-  }, [selectedTelegramActive, selectedTelegramOwnerChatLinked, telegramOwnerLinkStatus]);
-
   const diagnosticRows = [
     {
       label: "Deploy function",
@@ -1023,35 +986,6 @@ export function Dashboard({
     setDashboardReloadKey((key) => key + 1);
   }
 
-  function getTelegramOwnerLinkTone(status: TelegramLinkStatus) {
-    return status === "link_ready" ? "success" : "error";
-  }
-
-  function formatTelegramOwnerLinkExpiry(value: string | null) {
-    if (!value) {
-      return "";
-    }
-
-    return new Date(value).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-  }
-
-  function clearTelegramOwnerLink() {
-    setTelegramOwnerLinkUrl(null);
-    setTelegramOwnerLinkExpiresAt(null);
-  }
-
-  function handleClearTelegramOwnerLink() {
-    clearTelegramOwnerLink();
-    setTelegramOwnerLinkStatus("idle");
-    setTelegramOwnerLinkMessage(
-      getTelegramOwnerLinkIdleMessage(selectedTelegramActive, selectedTelegramOwnerChatLinked),
-    );
-  }
-
   function handleSelectDashboardAgent(agentId: string) {
     const nextAgent = agentRecords.find((agent) => agent.id === agentId);
 
@@ -1060,80 +994,6 @@ export function Dashboard({
     }
 
     setSelectedDashboardAgentId(agentId);
-    clearTelegramOwnerLink();
-    setTelegramOwnerLinkStatus("idle");
-    setTelegramOwnerLinkMessage("Owner chat linking follows the selected agent.");
-  }
-
-  async function handleIssueTelegramOwnerLink() {
-    if (!authSession || !agentRecord) {
-      clearTelegramOwnerLink();
-      setTelegramOwnerLinkStatus("error");
-      setTelegramOwnerLinkMessage("Sign in and deploy a demo agent before linking Telegram chat.");
-      return;
-    }
-
-    if (!selectedTelegramActive) {
-      clearTelegramOwnerLink();
-      setTelegramOwnerLinkStatus("error");
-      setTelegramOwnerLinkMessage(
-        "Owner link requires an active Telegram session for the selected agent.",
-      );
-      return;
-    }
-
-    if (selectedTelegramOwnerChatLinked) {
-      clearTelegramOwnerLink();
-      setTelegramOwnerLinkStatus("idle");
-      setTelegramOwnerLinkMessage(
-        "Owner chat is already linked for this agent. No new owner link is required.",
-      );
-      return;
-    }
-
-    if (!selectedTelegramOwnerLinkAvailable) {
-      clearTelegramOwnerLink();
-      setTelegramOwnerLinkStatus("error");
-      setTelegramOwnerLinkMessage("Owner link is not available for the selected agent.");
-      return;
-    }
-
-    clearTelegramOwnerLink();
-    setTelegramOwnerLinkStatus("running");
-    setTelegramOwnerLinkMessage("Generating a one-time Telegram owner link...");
-
-    try {
-      const freshAuth = await ensureFreshAuthSession(authSession);
-
-      syncFreshAuthSession(authSession, freshAuth);
-
-      if (!freshAuth.session) {
-        setTelegramOwnerLinkStatus("error");
-        setTelegramOwnerLinkMessage(freshAuth.message);
-        return;
-      }
-
-      const result = await issueTelegramOwnerLink({
-        session: freshAuth.session,
-        agentId: agentRecord.id,
-      });
-
-      setTelegramOwnerLinkStatus(getTelegramOwnerLinkTone(result.status));
-
-      if (result.ok && result.telegramLink) {
-        setTelegramOwnerLinkUrl(result.telegramLink);
-        setTelegramOwnerLinkExpiresAt(result.expiresAt);
-        setTelegramOwnerLinkMessage(
-          getTelegramOwnerLinkReadyMessage(formatTelegramOwnerLinkExpiry(result.expiresAt)),
-        );
-        return;
-      }
-
-      setTelegramOwnerLinkMessage(result.message);
-    } catch {
-      setTelegramOwnerLinkStatus("error");
-      setTelegramOwnerLinkMessage("Telegram owner-link request failed safely.");
-    }
   }
 
   return (
@@ -1415,67 +1275,34 @@ export function Dashboard({
             {authSession && agentRecord ? (
               <>
                 <div className="telegram-connect-gate">
-                  <div className="telegram-status-actions">
-                    <button className="button button-ghost" type="button" onClick={onOpenDeploy}>
-                      <LockKeyhole size={16} />
-                      Reconnect via deploy
-                    </button>
-                    <span>Deploy scoped</span>
+                  <div className="telegram-status-readout">
+                    <span>
+                      <small>Bot session</small>
+                      <strong>{getTelegramSessionLabel(selectedTelegramStatus)}</strong>
+                    </span>
+                    <span>
+                      <small>Owner chat</small>
+                      <strong>
+                        {getTelegramOwnerPairingLabel(
+                          selectedTelegramActive,
+                          selectedTelegramOwnerChatLinked,
+                        )}
+                      </strong>
+                    </span>
+                    <span>
+                      <small>Command access</small>
+                      <strong>
+                        {getTelegramCommandAccessLabel(
+                          selectedTelegramActive,
+                          selectedTelegramOwnerChatLinked,
+                        )}
+                      </strong>
+                    </span>
                   </div>
                   <p className="telegram-connect-message telegram-connect-idle">
-                    Dashboard shows selected-agent Telegram status and owner pairing only.
-                    BotFather token submit belongs in the deploy flow or an explicit reconnect flow.
-                  </p>
-                </div>
-                <div className="telegram-owner-link-gate">
-                  <div>
-                    <small>Owner pairing</small>
-                    <strong>Link signed-in owner chat</strong>
-                  </div>
-                  <div className="telegram-status-actions">
-                    <button
-                      className="button button-ghost"
-                      type="button"
-                      onClick={handleIssueTelegramOwnerLink}
-                      disabled={
-                        telegramOwnerLinkStatus === "running" ||
-                        !selectedTelegramActive ||
-                        selectedTelegramOwnerChatLinked ||
-                        !selectedTelegramOwnerLinkAvailable
-                      }
-                    >
-                      <KeyRound size={16} />
-                      {selectedTelegramOwnerChatLinked
-                        ? "Owner chat linked"
-                        : getTelegramOwnerLinkButtonLabel(
-                            telegramOwnerLinkStatus,
-                            Boolean(telegramOwnerLinkUrl),
-                          )}
-                    </button>
-                    {telegramOwnerLinkUrl ? (
-                      <>
-                        <a
-                          className="button button-primary telegram-open-link"
-                          href={telegramOwnerLinkUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Open Telegram
-                          <ExternalLink size={16} />
-                        </a>
-                        <button
-                          className="button button-ghost telegram-cancel-button"
-                          type="button"
-                          onClick={handleClearTelegramOwnerLink}
-                          aria-label="Clear Telegram owner link"
-                        >
-                          <X size={16} />
-                        </button>
-                      </>
-                    ) : null}
-                  </div>
-                  <p className={`telegram-connect-message telegram-connect-${telegramOwnerLinkStatus}`}>
-                    {telegramOwnerLinkMessage}
+                    Dashboard is status-only. BotFather token validation, backend token
+                    storage, webhook activation, and owner pairing happen during deploy or a
+                    dedicated reconnect flow.
                   </p>
                   {telegramDashboardStatusEnabled && telegramDashboardStatusState !== "ready" ? (
                     <p className="telegram-connect-message telegram-connect-idle">

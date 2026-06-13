@@ -2486,50 +2486,41 @@ h2 {
   margin-top: 0.85rem;
 }
 
-.telegram-owner-link-gate {
-  display: grid;
-  gap: 0.65rem;
-  margin-top: 0.85rem;
-  padding-top: 0.85rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.telegram-owner-link-gate small {
-  color: var(--muted);
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 0.72rem;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.telegram-owner-link-gate strong {
-  display: block;
-  margin-top: 0.18rem;
-}
-
-.telegram-token-field {
-  margin: 0;
-}
-
-.telegram-token-field input {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-}
-
-.telegram-cancel-button {
-  width: 42px;
-  padding-inline: 0;
-}
-
-.telegram-open-link {
-  min-height: 40px;
-  text-decoration: none;
-}
-
 .telegram-connect-message {
   margin: 0;
   color: var(--muted);
   font-size: 0.86rem;
   line-height: 1.45;
+}
+
+.telegram-status-readout {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.telegram-status-readout span {
+  min-width: 0;
+  padding: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.telegram-status-readout small {
+  color: var(--muted);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.telegram-status-readout strong {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--text);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
 }
 
 .telegram-connect-running {
@@ -4019,6 +4010,10 @@ h2 {
     min-height: 42px;
     padding: 0.62rem;
     font-size: 0.8rem;
+  }
+
+  .telegram-status-readout {
+    grid-template-columns: 1fr;
   }
 
   .template-grid,

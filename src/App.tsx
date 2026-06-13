@@ -475,7 +475,6 @@ function App() {
           authMessage={authMessage}
           onAuthSessionChange={updateAuthSession}
           onBackHome={() => navigate("home")}
-          onOpenDeploy={() => openHomeSection("deploy", { deployStepId: "telegram" })}
           onOpenAgent={(target) => navigate("agent", target)}
           onSelectTemplate={setSelectedId}
         />
