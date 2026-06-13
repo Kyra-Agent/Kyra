@@ -1,0 +1,151 @@
+# Phase 6B Base MCP Preparation Plan
+
+Phase 6B goal: audit and define the first safe Base MCP preparation path without
+signing or submitting transactions.
+
+Primary rule: user privacy, wallet security, and Telegram bot token security are
+number one. Prepared action data should be minimized, owner-scoped, and excluded
+from public surfaces by default.
+
+## Outcome
+
+At the end of 6B, Kyra should know exactly which Base MCP action can be prepared
+first, what payload it returns, and how that payload will be shown to the owner
+before wallet signing.
+
+6B should not enable live transaction submission.
+
+## Source Audit
+
+Start by reading these areas:
+
+- `src/config/appConfig.ts`
+- `src/components/ActionConsole.tsx`
+- `src/components/WalletApprovalModal.tsx`
+- `src/data/actions.ts`
+- `src/data/demoScenarios.ts`
+- `src/types/agent.ts`
+- `src/types/backend.ts`
+- `src/types/database.ts`
+- `supabase/schema.sql`
+- `docs/backend-blueprint.md`
+- `docs/phase-6-wallet-base-checklist.md`
+
+Search targets:
+
+- `Base MCP`
+- `base_mcp`
+- `wallet`
+- `approval`
+- `prepared_tx`
+- `tx_hash`
+- `requires_wallet`
+
+Questions to answer:
+
+- What Base MCP endpoint/config exists today?
+- Is Base MCP currently only copy/config, or is there a callable adapter?
+- What action type is safest to prepare first?
+- What data must the owner see before signing?
+- What data must never be public?
+- Which errors should be sanitized?
+
+## First Candidate Rules
+
+Prefer the smallest safe candidate:
+
+1. Read-only Base MCP health/status if available.
+2. Quote-like or preparation-only action if available.
+3. Prepared transaction preview without wallet prompt.
+4. Wallet prompt only after 6C approval/signing handoff.
+
+Do not start with:
+
+- arbitrary swaps
+- arbitrary transfers
+- arbitrary contract calls
+- Telegram-triggered execution
+- autonomous trading
+
+## Prepared Action Contract Draft
+
+The first prepared action should include:
+
+- action id
+- agent id
+- owner/workspace scope
+- action kind
+- target chain
+- target address or route summary
+- value summary
+- calldata summary or opaque backend reference
+- risk level
+- expiry time
+- status
+- created timestamp
+
+Possible statuses:
+
+- `draft`
+- `preparing`
+- `prepared`
+- `review_required`
+- `approved`
+- `rejected`
+- `expired`
+- `failed`
+
+## UI Requirements
+
+Prepared action preview should show:
+
+- action name
+- chain/network
+- target/route summary
+- estimated value or spend summary
+- risk level
+- approval requirement
+- expiry
+- reject/cancel option
+
+It should not show:
+
+- raw private data
+- confusing hex-only transaction payload as the primary UX
+- success copy before wallet signing/submission
+
+## Backend/Data Requirements
+
+- Prefer opaque backend references over exposing raw transaction details when a
+  summary is enough for the UI.
+- Keep wallet-sensitive and Telegram-token-sensitive data out of public routes,
+  browser logs, and user-facing errors.
+- Store prepared actions owner-scoped.
+- Do not expose prepared transaction payloads on public profiles.
+- Keep raw provider/MCP errors out of UI.
+- Add expiry/replay protection before signing.
+- Fail closed for unknown action kinds.
+
+## Tests And Verification
+
+- [ ] MCP config audit completed.
+- [ ] First action candidate selected.
+- [ ] Prepared action shape documented or typed.
+- [ ] Unsupported action kind fails closed.
+- [ ] Public profile cannot read prepared tx data.
+- [ ] Dashboard preview shows safe summary.
+- [ ] Telegram direct execution still refused.
+- [ ] `npm run check:functions` if Edge Functions change.
+- [ ] relevant Deno tests if Edge Functions change.
+- [ ] `npm run build`
+- [ ] `git diff --check`
+
+## Done Criteria
+
+- Prepared action privacy boundaries are explicit.
+- Wallet and Telegram token security boundaries remain explicit.
+- Base MCP preparation target is clear.
+- Prepared action contract is bounded.
+- Owner review UI requirements are clear.
+- No signing or submission is enabled yet.
+- Phase 6C can start with a reviewed prepared-action foundation.

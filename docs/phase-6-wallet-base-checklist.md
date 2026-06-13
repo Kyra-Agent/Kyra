@@ -1,0 +1,338 @@
+# Phase 6 Wallet And Base MCP Checklist
+
+Phase 6 goal: connect Kyra's execution layer safely without weakening the Phase
+5 Telegram read-only boundary.
+
+## Product Objective
+
+Move Kyra from read-only Telegram + LLM planning into wallet-approved Base action
+preparation.
+
+Kyra should be able to prepare an action, show the risk and transaction context,
+and ask the user's wallet for approval. Kyra must not custody keys, bypass wallet
+approval, or execute hidden transactions.
+
+Primary rule: user privacy and security are the first priority. Every Phase 6
+decision should prefer less exposure, less persistence, and narrower access when
+there is any uncertainty.
+
+Crown jewels:
+
+- User wallet security.
+- User Telegram bot token security.
+
+These two areas must stay protected even if it slows down product velocity.
+
+## Phase 6 Targets
+
+Primary target:
+
+- Kyra can prepare a Base action and hand it to the user's connected wallet for
+  explicit approval without custody or hidden execution.
+
+Product targets:
+
+- Dashboard shows wallet readiness clearly.
+- Dashboard shows approval policy clearly.
+- Dashboard can show a prepared action preview before signing.
+- Owner can approve, reject, or cancel an action from the product surface.
+- Execution state is visible after wallet interaction.
+- Telegram remains read-only unless an execution request is converted into a
+  dashboard/wallet approval draft.
+
+Technical targets:
+
+- Wallet connection state is represented safely in frontend and backend models.
+- Approval policy gates every execution path.
+- Base MCP preparation is isolated behind a narrow adapter.
+- Prepared action payloads are typed, bounded, expiring, and owner-scoped.
+- Risk review is explicit before signing.
+- Transaction hash is stored only after user submission.
+- Failure states are sanitized and recoverable.
+
+Security targets:
+
+- User wallet security stays first-class.
+- User Telegram bot token security stays first-class.
+- No private key or seed phrase path exists.
+- No Telegram message can directly execute a transaction.
+- No public route exposes wallet-sensitive data.
+- No raw provider, wallet, MCP, or backend error leaks to users.
+- Unsupported action requests fail closed.
+- BotFather tokens remain backend-only and never appear in browser storage,
+  logs, public profiles, screenshots, or API responses.
+
+Launch target:
+
+- Phase 6 should end with one narrow, reviewed wallet-approved Base action path,
+  not broad arbitrary execution.
+
+## Phase 6 Non-Targets
+
+Do not attempt these in the first Phase 6 pass:
+
+- Arbitrary token swaps from Telegram.
+- Arbitrary transfers.
+- Arbitrary contract calls.
+- Autonomous trading.
+- Multi-wallet routing.
+- Public viewer-triggered actions.
+- Token launch claims or financial claims.
+- Removing the Phase 5 read-only Telegram boundary.
+
+## Milestone Plan
+
+Detailed sub-plans:
+
+- `docs/phase-6A-wallet-readiness-plan.md`
+- `docs/phase-6B-base-mcp-prep-plan.md`
+
+### Milestone 6A - Wallet Readiness
+
+- Wallet connection/readiness state is visible.
+- Wallet policy is visible.
+- No signing or Base MCP execution yet.
+
+Target result:
+
+- The product can say whether an owner is ready for wallet-approved execution.
+
+### Milestone 6B - Prepared Action Preview
+
+- Base MCP capability is audited.
+- One narrow action candidate is selected.
+- Prepared action preview can be shown without signing.
+
+Target result:
+
+- Kyra can prepare and display an action safely before asking the wallet.
+
+### Milestone 6C - Approval And Signing Handoff
+
+- Owner explicitly approves or rejects the prepared action.
+- Wallet prompt is user-initiated.
+- User rejection and network mismatch are handled cleanly.
+
+Target result:
+
+- Kyra can hand off a prepared action to the user's wallet without custody.
+
+### Milestone 6D - Execution State And Audit Trail
+
+- Submitted/failed/confirmed states are logged.
+- Dashboard reflects the result.
+- Public profile stays share-safe.
+
+Target result:
+
+- Every execution attempt has a clean, inspectable state trail.
+
+### Milestone 6E - Telegram Execution Gate Design
+
+- Telegram still refuses direct swaps/transfers.
+- Telegram can optionally create a read-only approval draft only after the
+  dashboard/wallet path is safe.
+
+Target result:
+
+- Telegram cannot bypass wallet approval.
+
+## Non-Negotiable Boundaries
+
+- User privacy is number one.
+- User wallet security is number one.
+- User Telegram bot token security is number one.
+- No seed phrases.
+- No private keys.
+- No wallet custody.
+- No hidden transaction execution.
+- No Telegram-triggered execution until wallet approval policy is reviewed.
+- No Base MCP transaction path without simulation, review, and explicit approval.
+- No production gate enablement before local tests and live smoke are done.
+
+## Phase 6 Flow
+
+1. Wallet connection model.
+2. Wallet policy and approval boundary.
+3. Base MCP capability audit.
+4. Prepared action contract.
+5. Risk and permission review.
+6. User wallet signing handoff.
+7. Execution result logging.
+8. Telegram execution-gate design.
+
+## Step 1 - Wallet Connection Model
+
+- [ ] Audit current wallet UI and data model.
+- [ ] Confirm which wallet provider path will be used first.
+- [ ] Define connected wallet display fields.
+- [ ] Keep wallet address out of public profiles unless explicitly share-safe.
+- [ ] Confirm disconnect behavior.
+- [ ] Confirm signed-out behavior.
+- [ ] Add tests for wallet connection state if implementation changes.
+
+Definition of done:
+
+- The app can represent wallet connection state without storing private material.
+- The dashboard can show safe wallet readiness state.
+- Public pages do not leak private wallet details.
+
+## Step 2 - Wallet Policy And Approval Boundary
+
+- [ ] Audit existing `wallet_policies` table usage.
+- [ ] Define allowed action categories.
+- [ ] Define approval-required behavior.
+- [ ] Define daily limit display and enforcement boundary.
+- [ ] Define rejected/expired approval states.
+- [ ] Confirm policy updates require authenticated owner context.
+- [ ] Confirm Telegram cannot bypass policy.
+
+Definition of done:
+
+- Kyra has a clear policy contract before any Base action is prepared.
+- Approval states are explicit and auditable.
+
+## Step 3 - Base MCP Capability Audit
+
+- [ ] Inspect current Base MCP config and references.
+- [ ] Confirm the target Base MCP endpoint and supported actions.
+- [ ] Identify which action should be first live candidate.
+- [ ] Define request/response shape for MCP preparation.
+- [ ] Define timeout and failure behavior.
+- [ ] Define sanitized error messages.
+- [ ] Confirm no secrets are exposed to frontend or Telegram.
+
+Definition of done:
+
+- We know exactly what Base MCP can prepare first and what remains out of scope.
+
+## Step 4 - Prepared Action Contract
+
+- [ ] Define a prepared action payload type.
+- [ ] Include action kind, chain, target, value, calldata/route summary, and risk.
+- [ ] Store prepared payload only in owner-scoped backend records.
+- [ ] Keep public profile free of prepared transaction data.
+- [ ] Add replay/expiry fields.
+- [ ] Add idempotency key or claim strategy if needed.
+- [ ] Add tests for malformed payloads.
+
+Definition of done:
+
+- Prepared actions are structured, bounded, expiring, and owner-scoped.
+
+## Step 5 - Risk And Permission Review
+
+- [ ] Define NYX-05 risk gate role.
+- [ ] Classify low/medium/high risk actions.
+- [ ] Require explicit approval for high-risk actions.
+- [ ] Display fees, route, target contract, and chain before signing.
+- [ ] Refuse unknown or unsupported action types.
+- [ ] Add safety copy for failed or risky preparation.
+- [ ] Add tests for risk classification.
+
+Definition of done:
+
+- Users see what they are approving before wallet signing.
+- Unsupported action types fail closed.
+
+## Step 6 - User Wallet Signing Handoff
+
+- [ ] Define unsigned transaction handoff.
+- [ ] Confirm wallet prompts are user-initiated.
+- [ ] Confirm Kyra does not sign on behalf of the user.
+- [ ] Confirm user pays gas.
+- [ ] Handle user rejection cleanly.
+- [ ] Handle wallet/network mismatch cleanly.
+- [ ] Add tests around signing state transitions where practical.
+
+Definition of done:
+
+- Kyra can hand off a prepared action to the user's wallet without custody.
+
+## Step 7 - Execution Result Logging
+
+- [ ] Store pending, approved, rejected, submitted, failed, and confirmed states.
+- [ ] Store transaction hash only after submission.
+- [ ] Store sanitized failure reason.
+- [ ] Show result in dashboard activity.
+- [ ] Keep public profile display bounded and share-safe.
+- [ ] Add rollback/retry rules.
+
+Definition of done:
+
+- Every execution attempt has an auditable state trail.
+
+## Step 8 - Telegram Execution Gate Design
+
+- [ ] Keep Phase 5 Telegram read-only behavior unchanged first.
+- [ ] Define which Telegram messages can create an approval draft.
+- [ ] Require dashboard or wallet approval before any execution.
+- [ ] Refuse direct Telegram swaps/transfers until reviewed.
+- [ ] Add command-level replay protection.
+- [ ] Add abuse/rate limits.
+- [ ] Smoke test refusal behavior after execution gates are added.
+
+Definition of done:
+
+- Telegram can never directly execute a wallet or onchain action without the
+  approved wallet flow.
+
+## Suggested First Live Candidate
+
+Start with the smallest safe action:
+
+- Read-only Base MCP status or quote-like preparation, if available.
+- Then a prepared transaction preview without signing.
+- Then wallet prompt behind explicit owner action.
+
+Do not start Phase 6 with arbitrary swaps, transfers, or contract calls.
+
+## Acceptance Tests
+
+Phase 6 is not done until these user-facing checks pass:
+
+- Signed-out user cannot prepare or approve an action.
+- Wrong workspace owner cannot see or approve another owner's prepared action.
+- Connected owner can see wallet readiness.
+- Owner can see action summary before signing.
+- Owner can reject action without side effects.
+- Wallet/network mismatch produces a clean failure state.
+- Unsupported Telegram execution request is refused.
+- Unsupported dashboard execution request fails closed.
+- Public agent page does not expose prepared transaction data.
+- Activity log shows the final action state without leaking raw sensitive data.
+
+## Verification Gate
+
+Before any push/deploy:
+
+- [ ] `git status --short`
+- [ ] `npm run check:functions`
+- [ ] relevant Deno tests
+- [ ] `npm run build`
+- [ ] `git diff --check`
+- [ ] manual dashboard smoke
+- [ ] manual Telegram refusal smoke
+
+Before enabling production gates:
+
+- [ ] Confirm no private keys or seed phrases are accepted.
+- [ ] Confirm Telegram bot tokens remain backend-only and are never exposed.
+- [ ] Confirm no secret values appear in logs or UI.
+- [ ] Confirm unsupported execution requests fail closed.
+- [ ] Confirm wallet approval is required.
+- [ ] Confirm transaction details are visible before signing.
+- [ ] Confirm user rejection is handled cleanly.
+
+## Phase 6 Done Criteria
+
+- User privacy is preserved across dashboard, Telegram, public profiles, logs,
+  and backend records.
+- User wallet security and Telegram bot token security remain protected.
+- Wallet connection state is represented safely.
+- Approval policy is enforced before execution.
+- Base MCP preparation is bounded and tested.
+- Prepared action review is visible to the owner.
+- Wallet signing remains user-controlled.
+- Execution results are logged.
+- Telegram remains safe and cannot bypass wallet approval.
