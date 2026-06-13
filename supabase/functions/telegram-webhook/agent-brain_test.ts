@@ -274,6 +274,16 @@ Deno.test("telegram agent brain rejects malformed contextual polish", async () =
     502,
     "agent_brain_invalid_response",
   );
+
+  await assertRejectsHttpError(
+    () =>
+      assertTelegramAgentBrainReply({
+        text:
+          "Agent 666 Module Status\n\nActive\n- ASTRA-03 Research Agent\n\nGated Actions",
+      }),
+    502,
+    "agent_brain_invalid_response",
+  );
 });
 
 Deno.test("telegram agent brain validates provider response shape", async () => {

@@ -98,6 +98,8 @@ const rawMarkdownPatterns = [
   /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/m,
 ];
 const incompleteTrailingLinePattern = /(?:^|\n)\s*[A-Z]{1,3}\s*$/;
+const orphanTrailingHeadingPattern =
+  /(?:^|\n)\s*(active|standby|guard|gated actions|read-only boundary|current access)\s*$/i;
 
 export function buildTelegramAgentBrainRequest(
   input: TelegramAgentBrainPromptInput,
@@ -407,7 +409,10 @@ function includesTextFolded(text: string, fragment: string) {
 }
 
 function assertSafeTelegramAgentBrainText(text: string) {
-  if (incompleteTrailingLinePattern.test(text)) {
+  if (
+    incompleteTrailingLinePattern.test(text) ||
+    orphanTrailingHeadingPattern.test(text)
+  ) {
     throw invalidAgentBrainResponse();
   }
 
