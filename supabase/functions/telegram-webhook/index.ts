@@ -862,18 +862,21 @@ export async function handleTelegramWebhookRequest(
         dependencies.generateTelegramAgentBrainReply &&
         shouldUseTelegramAgentBrain(parsedUpdate.command)
       ) {
-        const agentBrainReply = await dependencies.generateTelegramAgentBrainReply(
-          {
+        try {
+          const agentBrainReply = await dependencies.generateTelegramAgentBrainReply({
             command: parsedUpdate.command,
             agentName: templateContext?.context.name,
             agentRole: templateContext?.context.role,
             capabilities: templateContext?.context.readOnlyActions,
-          },
-        );
-        response = {
-          command: parsedUpdate.command,
-          text: agentBrainReply.text,
-        };
+          });
+          response = {
+            command: parsedUpdate.command,
+            text: agentBrainReply.text,
+          };
+        } catch {
+          // Agent-brain is optional. Preserve read-only delivery if the provider
+          // times out, rejects output, or returns a malformed response.
+        }
       }
 
       if (!dependencies.deliverTelegramReadOnlyResponse) {

@@ -1602,6 +1602,77 @@ Deno.test("telegram-webhook agent brain gate falls back without dependency", asy
   assertEquals(deliveredResponse?.text, "Template fallback remains available.");
 });
 
+Deno.test("telegram-webhook agent brain provider failure keeps template fallback", async () => {
+  const deliveries: Array<Record<string, unknown>> = [];
+  let agentBrainCalled = false;
+
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("/modules@kyra_test_bot")),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      parseRuntimeConfig: { enabled: true },
+      chatAuthRuntimeConfig: { enabled: true },
+      claimRuntimeConfig: { enabled: true },
+      deliveryRuntimeConfig: { enabled: true },
+      templateContextRuntimeConfig: { enabled: true },
+      agentBrainRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => ({
+        sessionId: "telegram-session-1",
+        agentId: "agent-1",
+        workspaceId: "workspace-1",
+        ownerUserId: "owner-1",
+        botHandle: "@kyra_test_bot",
+        webhookStatus: "active",
+      }),
+      lookupTelegramChatAuthorization: async () => ({
+        authorized: true,
+        role: "owner",
+      }),
+      claimTelegramUpdate: async () => ({ claimed: true, status: "claimed" }),
+      lookupTelegramTemplateContext: async () => ({
+        context: {
+          templateId: "strategist",
+          name: "Strategist",
+          role: "Market and campaign intelligence agent",
+          summary: "Market planning agent.",
+          actions: [],
+          modules: [],
+          readOnlyActions: ["market brief"],
+          gatedActions: [],
+          safetyNote: "Telegram is read-only.",
+        },
+        text: "Template modules fallback remains available.",
+      }),
+      generateTelegramAgentBrainReply: async () => {
+        agentBrainCalled = true;
+        throw new HttpError(
+          502,
+          "agent_brain_invalid_response",
+          "Kyra agent brain returned an invalid response.",
+        );
+      },
+      deliverTelegramReadOnlyResponse: async (input) => {
+        deliveries.push(input);
+        return { delivered: true };
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const deliveredResponse = deliveries[0]?.response as
+    | Record<string, unknown>
+    | undefined;
+
+  assertEquals(response.status, 200);
+  assertEquals(body.status, "delivered");
+  assertEquals(agentBrainCalled, true);
+  assertEquals(deliveredResponse?.command, "modules");
+  assertEquals(
+    deliveredResponse?.text,
+    "Template modules fallback remains available.",
+  );
+});
+
 Deno.test("telegram-webhook template context gate ignores status command", async () => {
   let templateContextCalled = false;
 
