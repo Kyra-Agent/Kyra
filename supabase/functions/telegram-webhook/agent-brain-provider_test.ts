@@ -284,7 +284,7 @@ Deno.test("telegram agent brain provider supports OpenRouter chat completions", 
         choices: [
           {
             message: {
-              content: "OpenRouter read-only response.",
+              content: "Kyra is online in read-only Telegram mode.",
             },
           },
         ],
@@ -316,7 +316,7 @@ Deno.test("telegram agent brain provider supports OpenRouter chat completions", 
     !capturedBody.includes(testApiKey),
     "Request body must not include API key.",
   );
-  assertEquals(reply.text, "OpenRouter read-only response.");
+  assertEquals(reply.text, "Kyra is online in read-only Telegram mode.");
 });
 
 Deno.test("telegram agent brain provider maps provider failures safely", async () => {

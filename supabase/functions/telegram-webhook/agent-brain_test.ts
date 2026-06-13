@@ -160,6 +160,83 @@ Deno.test("telegram agent brain provider receives bounded request and returns re
   assertNoSensitiveMaterial(capturedRequest);
 });
 
+Deno.test("telegram agent brain prompt carries actionable template context", () => {
+  const request = buildTelegramAgentBrainRequest({
+    command: "modules",
+    agentName: "Agent 666",
+    agentRole: "Market intelligence",
+    agentSummary: "Tracks market narratives and launch positioning.",
+    capabilities: ["market brief", "campaign plan"],
+    gatedActions: ["wallet", "Base MCP"],
+    modules: [
+      { name: "ASTRA-03", title: "Research Agent", telegramStatus: "active" },
+      { name: "NYX-05", title: "Security Agent", telegramStatus: "guard" },
+    ],
+    safetyNote: "Telegram is read-only.",
+  });
+  const userMessage = request.messages[1]?.content ?? "";
+
+  assert(
+    userMessage.includes("Summary: Tracks market narratives"),
+    "Prompt must include the agent summary.",
+  );
+  assert(
+    userMessage.includes("Read-only actions: market brief, campaign plan"),
+    "Prompt must include ready actions.",
+  );
+  assert(
+    userMessage.includes("Gated actions: wallet, Base MCP"),
+    "Prompt must include gated actions.",
+  );
+  assert(
+    userMessage.includes("ASTRA-03 (Research Agent, active)"),
+    "Prompt must include module status context.",
+  );
+});
+
+Deno.test("telegram agent brain rejects generic context-free provider replies", async () => {
+  await assertRejectsHttpError(
+    () =>
+      generateTelegramAgentBrainReply(
+        {
+          command: "modules",
+          agentName: "Agent 666",
+          modules: [
+            {
+              name: "ASTRA-03",
+              title: "Research Agent",
+              telegramStatus: "active",
+            },
+          ],
+        },
+        {
+          async complete() {
+            return { text: "Modules are available in read-only mode." };
+          },
+        },
+      ),
+    502,
+    "agent_brain_invalid_response",
+  );
+
+  await assertRejectsHttpError(
+    () =>
+      generateTelegramAgentBrainReply(
+        {
+          command: "actions",
+          capabilities: ["market brief"],
+        },
+        {
+          async complete() {
+            return { text: "I can help with strategy." };
+          },
+        },
+      ),
+    502,
+    "agent_brain_invalid_response",
+  );
+});
+
 Deno.test("telegram agent brain validates provider response shape", async () => {
   await assertRejectsHttpError(
     () => assertTelegramAgentBrainReply({ text: "ok", raw: "private" }),

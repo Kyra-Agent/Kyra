@@ -1458,6 +1458,11 @@ Deno.test("telegram-webhook agent brain gate enriches template response", async 
     Array.isArray(brainInputs[0]?.capabilities),
     true,
   );
+  assertEquals(brainInputs[0]?.agentSummary, "Market planning agent.");
+  assertEquals(
+    Array.isArray(brainInputs[0]?.gatedActions),
+    true,
+  );
   assertEquals(deliveredResponse?.command, "actions");
   assertEquals(
     deliveredResponse?.text,
@@ -1538,6 +1543,10 @@ Deno.test("telegram-webhook agent brain gate enriches modules response", async (
   assertEquals(brainInputs.length, 1);
   assertEquals(brainInputs[0]?.command, "modules");
   assertEquals(brainInputs[0]?.agentName, "Strategist");
+  assertEquals(
+    Array.isArray(brainInputs[0]?.modules),
+    true,
+  );
   assertEquals(deliveredResponse?.command, "modules");
   assertEquals(
     deliveredResponse?.text,

@@ -867,7 +867,11 @@ export async function handleTelegramWebhookRequest(
             command: parsedUpdate.command,
             agentName: templateContext?.context.name,
             agentRole: templateContext?.context.role,
+            agentSummary: templateContext?.context.summary,
             capabilities: templateContext?.context.readOnlyActions,
+            gatedActions: templateContext?.context.gatedActions,
+            modules: templateContext?.context.modules,
+            safetyNote: templateContext?.context.safetyNote,
           });
           response = {
             command: parsedUpdate.command,

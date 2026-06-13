@@ -5,7 +5,11 @@ export interface TelegramAgentBrainPromptInput {
   command: unknown;
   agentName?: unknown;
   agentRole?: unknown;
+  agentSummary?: unknown;
   capabilities?: unknown;
+  gatedActions?: unknown;
+  modules?: unknown;
+  safetyNote?: unknown;
 }
 
 export interface TelegramAgentBrainRequest {
@@ -27,6 +31,23 @@ export interface TelegramAgentBrainReply {
   text: string;
 }
 
+interface TelegramAgentBrainPromptModule {
+  name: string;
+  title: string;
+  status: string;
+}
+
+interface NormalizedTelegramAgentBrainPromptInput {
+  command: TelegramWebhookParsedCommandName;
+  agentName: string;
+  agentRole: string;
+  agentSummary: string;
+  capabilities: readonly string[];
+  gatedActions: readonly string[];
+  modules: readonly TelegramAgentBrainPromptModule[];
+  safetyNote: string;
+}
+
 const supportedReadOnlyCommands = new Set<TelegramWebhookParsedCommandName>([
   "help",
   "status",
@@ -37,8 +58,16 @@ const supportedReadOnlyCommands = new Set<TelegramWebhookParsedCommandName>([
 ]);
 const maxAgentNameLength = 48;
 const maxAgentRoleLength = 72;
+const maxAgentSummaryLength = 180;
 const maxCapabilityCount = 6;
 const maxCapabilityLength = 32;
+const maxGatedActionCount = 8;
+const maxGatedActionLength = 32;
+const maxModuleCount = 8;
+const maxModuleNameLength = 32;
+const maxModuleTitleLength = 48;
+const maxModuleStatusLength = 16;
+const maxSafetyNoteLength = 180;
 const maxAgentBrainOutputCharacters = 700;
 const secretLikePatterns = [
   /\d{5,20}:[A-Za-z0-9_-]{20,128}/,
@@ -72,18 +101,7 @@ const rawMarkdownPatterns = [
 export function buildTelegramAgentBrainRequest(
   input: TelegramAgentBrainPromptInput,
 ): TelegramAgentBrainRequest {
-  const command = assertTelegramAgentBrainCommand(input.command);
-  const agentName = sanitizePromptFragment(
-    input.agentName,
-    maxAgentNameLength,
-    "Kyra Agent",
-  );
-  const agentRole = sanitizePromptFragment(
-    input.agentRole,
-    maxAgentRoleLength,
-    "Telegram read-only agent",
-  );
-  const capabilities = sanitizeCapabilities(input.capabilities);
+  const context = normalizeTelegramAgentBrainPromptInput(input);
 
   return {
     mode: "read_only",
@@ -105,10 +123,15 @@ export function buildTelegramAgentBrainRequest(
       {
         role: "user",
         content: [
-          `Command: /${command}`,
-          `Agent: ${agentName}`,
-          `Role: ${agentRole}`,
-          `Allowed capabilities: ${capabilities.join(", ")}`,
+          `Command: /${context.command}`,
+          `Agent: ${context.agentName}`,
+          `Role: ${context.agentRole}`,
+          `Summary: ${context.agentSummary}`,
+          `Read-only actions: ${context.capabilities.join(", ")}`,
+          `Gated actions: ${context.gatedActions.join(", ")}`,
+          `Modules: ${formatPromptModules(context.modules)}`,
+          `Safety: ${context.safetyNote}`,
+          `Response guide: ${buildCommandResponseGuide(context.command)}`,
         ].join("\n"),
       },
     ],
@@ -119,11 +142,14 @@ export async function generateTelegramAgentBrainReply(
   input: TelegramAgentBrainPromptInput,
   provider: TelegramAgentBrainProvider,
 ): Promise<TelegramAgentBrainReply> {
+  const context = normalizeTelegramAgentBrainPromptInput(input);
   const request = buildTelegramAgentBrainRequest(input);
 
   try {
     const response = await provider.complete(request);
-    return assertTelegramAgentBrainReply(response);
+    const reply = assertTelegramAgentBrainReply(response);
+    assertContextualTelegramAgentBrainReply(reply.text, context);
+    return reply;
   } catch (error) {
     if (error instanceof HttpError) {
       throw error;
@@ -201,19 +227,63 @@ function sanitizePromptFragment(
 }
 
 function sanitizeCapabilities(value: unknown) {
+  return sanitizePromptList(
+    value,
+    maxCapabilityCount,
+    maxCapabilityLength,
+    ["help", "status", "agent", "actions", "modules", "policy"],
+  );
+}
+
+function sanitizePromptList(
+  value: unknown,
+  maxCount: number,
+  maxLength: number,
+  fallback: readonly string[],
+) {
   if (!Array.isArray(value)) {
-    return ["help", "status", "agent", "actions", "modules", "policy"];
+    return [...fallback];
   }
 
-  const capabilities = value
+  const items = value
     .filter((item): item is string => typeof item === "string")
-    .map((item) => sanitizeForPrompt(item).slice(0, maxCapabilityLength).trim())
+    .map((item) => sanitizeForPrompt(item).slice(0, maxLength).trim())
     .filter(Boolean)
-    .slice(0, maxCapabilityCount);
+    .slice(0, maxCount);
 
-  return capabilities.length
-    ? capabilities
-    : ["help", "status", "agent", "actions", "modules", "policy"];
+  return items.length ? [...new Set(items)] : [...fallback];
+}
+
+function sanitizePromptModules(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((item): item is Record<string, unknown> =>
+      !!item && typeof item === "object" && !Array.isArray(item)
+    )
+    .map((item) => {
+      const name = sanitizePromptFragment(
+        item.name,
+        maxModuleNameLength,
+        "",
+      );
+      const title = sanitizePromptFragment(
+        item.title,
+        maxModuleTitleLength,
+        "Module",
+      );
+      const status = sanitizePromptFragment(
+        item.telegramStatus ?? item.status,
+        maxModuleStatusLength,
+        "standby",
+      ).toLowerCase();
+
+      return name ? { name, title, status } : null;
+    })
+    .filter((item): item is TelegramAgentBrainPromptModule => item !== null)
+    .slice(0, maxModuleCount);
 }
 
 function sanitizeForPrompt(value: string) {
@@ -227,6 +297,105 @@ function sanitizeForPrompt(value: string) {
   }
 
   return sanitized;
+}
+
+function normalizeTelegramAgentBrainPromptInput(
+  input: TelegramAgentBrainPromptInput,
+): NormalizedTelegramAgentBrainPromptInput {
+  return {
+    command: assertTelegramAgentBrainCommand(input.command),
+    agentName: sanitizePromptFragment(
+      input.agentName,
+      maxAgentNameLength,
+      "Kyra Agent",
+    ),
+    agentRole: sanitizePromptFragment(
+      input.agentRole,
+      maxAgentRoleLength,
+      "Telegram read-only agent",
+    ),
+    agentSummary: sanitizePromptFragment(
+      input.agentSummary,
+      maxAgentSummaryLength,
+      "Kyra agent profile.",
+    ),
+    capabilities: sanitizeCapabilities(input.capabilities),
+    gatedActions: sanitizePromptList(
+      input.gatedActions,
+      maxGatedActionCount,
+      maxGatedActionLength,
+      ["wallet", "approval", "Base MCP", "onchain execution"],
+    ),
+    modules: sanitizePromptModules(input.modules),
+    safetyNote: sanitizePromptFragment(
+      input.safetyNote,
+      maxSafetyNoteLength,
+      "Telegram is read-only.",
+    ),
+  };
+}
+
+function formatPromptModules(
+  modules: readonly TelegramAgentBrainPromptModule[],
+) {
+  if (!modules.length) {
+    return "none";
+  }
+
+  return modules
+    .map((module) => `${module.name} (${module.title}, ${module.status})`)
+    .join("; ");
+}
+
+function buildCommandResponseGuide(command: TelegramWebhookParsedCommandName) {
+  if (command === "modules") {
+    return "Report module readiness with exact module names and statuses. Group by active, guard, and standby when available. End with read-only boundary.";
+  }
+
+  if (command === "actions") {
+    return "Separate ready read-only actions from gated actions. Explain Telegram can brief or plan, not execute wallet or onchain actions.";
+  }
+
+  if (command === "agent") {
+    return "Describe the agent profile, role, focus, current read-only access, and next useful commands.";
+  }
+
+  return "Answer the command directly with the current read-only safety boundary.";
+}
+
+function assertContextualTelegramAgentBrainReply(
+  text: string,
+  context: NormalizedTelegramAgentBrainPromptInput,
+) {
+  if (
+    context.command === "modules" &&
+    context.modules.length &&
+    !context.modules.some((module) => includesTextFolded(text, module.name))
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
+    context.command === "actions" &&
+    context.capabilities.length &&
+    !context.capabilities.some((capability) =>
+      includesTextFolded(text, capability)
+    )
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
+    context.command === "agent" &&
+    context.agentName !== "Kyra Agent" &&
+    !includesTextFolded(text, context.agentName)
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+}
+
+function includesTextFolded(text: string, fragment: string) {
+  return text.toLowerCase().includes(fragment.toLowerCase());
 }
 
 function assertSafeTelegramAgentBrainText(text: string) {
