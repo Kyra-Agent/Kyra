@@ -122,9 +122,19 @@ Deno.test("telegram update parser rejects unknown commands and arguments", () =>
   );
 });
 
-Deno.test("telegram update parser rejects non-command text", () => {
+Deno.test("telegram update parser accepts bounded read-only chat text", () => {
+  const parsed = parseTelegramWebhookUpdate(
+    createUpdate("make a campaign plan for Agent 666"),
+  );
+
+  assertEquals(parsed.command, "chat");
+  assertEquals(parsed.commandKind, "read_only");
+  assertEquals(parsed.text, "make a campaign plan for Agent 666");
+});
+
+Deno.test("telegram update parser rejects oversized read-only chat text", () => {
   assertThrowsHttpError(
-    () => parseTelegramWebhookUpdate(createUpdate("show private status")),
+    () => parseTelegramWebhookUpdate(createUpdate("x".repeat(1001))),
     422,
     "unsupported_update",
   );

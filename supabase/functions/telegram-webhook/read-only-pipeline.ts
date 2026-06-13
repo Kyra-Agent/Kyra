@@ -39,7 +39,10 @@ export function processVerifiedTelegramReadOnlyUpdate(
     input.chatPolicy,
     parsed.commandKind,
   );
-  const response = buildTelegramReadOnlyCommandResponse(parsed.command);
+  const response = buildTelegramReadOnlyCommandResponse(
+    parsed.command,
+    parsed.text,
+  );
 
   return {
     command: parsed.command,

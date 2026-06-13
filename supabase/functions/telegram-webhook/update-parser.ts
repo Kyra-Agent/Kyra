@@ -6,7 +6,8 @@ export type TelegramWebhookParsedCommandName =
   | "agent"
   | "actions"
   | "modules"
-  | "policy";
+  | "policy"
+  | "chat";
 
 export interface TelegramWebhookParsedCommand {
   updateId: string;
@@ -15,6 +16,7 @@ export interface TelegramWebhookParsedCommand {
   telegramChatId: string;
   command: TelegramWebhookParsedCommandName;
   commandKind: "read_only";
+  text?: string;
 }
 
 export interface TelegramWebhookUpdateParseOptions {
@@ -32,6 +34,7 @@ const supportedCommands = new Set<TelegramWebhookParsedCommandName>([
 const telegramCommandPattern =
   /^\/([A-Za-z][A-Za-z0-9_]*)(?:@([A-Za-z0-9_]{5,32}))?$/;
 const telegramBotUsernamePattern = /^[A-Za-z0-9_]{5,32}$/;
+const maxReadOnlyChatTextLength = 1000;
 
 export function parseTelegramWebhookUpdate(
   value: unknown,
@@ -45,7 +48,7 @@ export function parseTelegramWebhookUpdate(
   const chat = assertRecord(message.chat);
   const telegramUserId = readPositiveSafeInteger(from.id);
   const telegramChatId = readNonZeroSafeInteger(chat.id);
-  const command = parseReadOnlyCommand(
+  const parsedMessage = parseReadOnlyMessageText(
     message.text,
     options.expectedBotUsername,
   );
@@ -55,8 +58,9 @@ export function parseTelegramWebhookUpdate(
     messageId: String(messageId),
     telegramUserId: String(telegramUserId),
     telegramChatId: String(telegramChatId),
-    command,
+    command: parsedMessage.command,
     commandKind: "read_only",
+    ...(parsedMessage.text ? { text: parsedMessage.text } : {}),
   };
 }
 
@@ -68,15 +72,33 @@ function readMessage(value: unknown) {
   return assertRecord(value);
 }
 
-function parseReadOnlyCommand(
+function parseReadOnlyMessageText(
   value: unknown,
   expectedBotUsername: string | null | undefined,
-): TelegramWebhookParsedCommandName {
+): { command: TelegramWebhookParsedCommandName; text?: string } {
   if (typeof value !== "string") {
     throw unsupportedUpdate();
   }
 
-  const match = telegramCommandPattern.exec(value);
+  const text = value.trim();
+
+  if (!text) {
+    throw unsupportedUpdate();
+  }
+
+  if (!value.startsWith("/")) {
+    if (text.length > maxReadOnlyChatTextLength) {
+      throw unsupportedUpdate();
+    }
+
+    return { command: "chat", text };
+  }
+
+  if (text !== value) {
+    throw unsupportedUpdate();
+  }
+
+  const match = telegramCommandPattern.exec(text);
   const command = match?.[1]?.toLowerCase();
   const targetBotUsername = match?.[2];
 
@@ -95,7 +117,7 @@ function parseReadOnlyCommand(
     throw unsupportedUpdate();
   }
 
-  return command as TelegramWebhookParsedCommandName;
+  return { command: command as TelegramWebhookParsedCommandName };
 }
 
 function normalizeExpectedBotUsername(value: string | null | undefined) {

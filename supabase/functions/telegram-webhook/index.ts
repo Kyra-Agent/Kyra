@@ -30,8 +30,8 @@ import {
   type TelegramUpdateClaimRpcClient,
 } from "./idempotency.ts";
 import {
-  createTelegramWebhookAgentBrainRuntimeConfig,
   createTelegramWebhookAgentBrainProviderRuntimeConfig,
+  createTelegramWebhookAgentBrainRuntimeConfig,
   createTelegramWebhookChatAuthRuntimeConfig,
   createTelegramWebhookClaimRuntimeConfig,
   createTelegramWebhookDeliveryRuntimeConfig,
@@ -51,7 +51,8 @@ import {
   type TelegramWebhookTemplateContextRuntimeConfig,
 } from "./runtime-config.ts";
 import {
-  generateTelegramAgentBrainReply as generateTelegramAgentBrainReplyWithProvider,
+  generateTelegramAgentBrainReply
+    as generateTelegramAgentBrainReplyWithProvider,
   type TelegramAgentBrainPromptInput,
   type TelegramAgentBrainProvider,
   type TelegramAgentBrainReply,
@@ -65,7 +66,10 @@ import {
   type TelegramWebhookParsedCommand,
 } from "./update-parser.ts";
 import { planTelegramClaimedReadOnlyResponse } from "./claim-aware-response.ts";
-import type { TelegramReadOnlyCommandResponse } from "./read-only-response.ts";
+import {
+  classifyTelegramReadOnlyChatIntent,
+  type TelegramReadOnlyCommandResponse,
+} from "./read-only-response.ts";
 import {
   deliverTelegramReadOnlyResponse as deliverTelegramReadOnlyResponseToApi,
   sanitizeTelegramResponseDeliveryError,
@@ -124,8 +128,14 @@ export type {
   TelegramWebhookParsedCommandName,
   TelegramWebhookUpdateParseOptions,
 } from "./update-parser.ts";
-export { buildTelegramReadOnlyCommandResponse } from "./read-only-response.ts";
-export type { TelegramReadOnlyCommandResponse } from "./read-only-response.ts";
+export {
+  buildTelegramReadOnlyCommandResponse,
+  classifyTelegramReadOnlyChatIntent,
+} from "./read-only-response.ts";
+export type {
+  TelegramReadOnlyChatIntent,
+  TelegramReadOnlyCommandResponse,
+} from "./read-only-response.ts";
 export { processVerifiedTelegramReadOnlyUpdate } from "./read-only-pipeline.ts";
 export type {
   TelegramVerifiedReadOnlyPipelineInput,
@@ -234,8 +244,8 @@ export type {
   TelegramChatAuthorizationLookupRpcRow,
 } from "./chat-authorization-lookup.ts";
 export {
-  createTelegramWebhookAgentBrainRuntimeConfig,
   createTelegramWebhookAgentBrainProviderRuntimeConfig,
+  createTelegramWebhookAgentBrainRuntimeConfig,
   createTelegramWebhookChatAuthRuntimeConfig,
   createTelegramWebhookClaimRuntimeConfig,
   createTelegramWebhookDeliveryRuntimeConfig,
@@ -294,7 +304,8 @@ export interface TelegramWebhookDependencies {
   ownerLinkConsumeRuntimeConfig?: TelegramWebhookOwnerLinkConsumeRuntimeConfig;
   templateContextRuntimeConfig?: TelegramWebhookTemplateContextRuntimeConfig;
   agentBrainRuntimeConfig?: TelegramWebhookAgentBrainRuntimeConfig;
-  agentBrainProviderRuntimeConfig?: TelegramWebhookAgentBrainProviderRuntimeConfig;
+  agentBrainProviderRuntimeConfig?:
+    TelegramWebhookAgentBrainProviderRuntimeConfig;
   lookupTelegramWebhookSession?: (
     webhookSecretHeader: string,
   ) => Promise<TelegramWebhookSessionLookupRecord>;
@@ -498,8 +509,9 @@ export function createTelegramWebhookDependencies(
     createTelegramWebhookOwnerLinkConsumeRuntimeConfig(readOptionalEnv);
   const templateContextRuntimeConfig =
     createTelegramWebhookTemplateContextRuntimeConfig(readOptionalEnv);
-  const agentBrainRuntimeConfig =
-    createTelegramWebhookAgentBrainRuntimeConfig(readOptionalEnv);
+  const agentBrainRuntimeConfig = createTelegramWebhookAgentBrainRuntimeConfig(
+    readOptionalEnv,
+  );
   const agentBrainProviderRuntimeConfig =
     createTelegramWebhookAgentBrainProviderRuntimeConfig(readOptionalEnv);
   const dependencies: TelegramWebhookDependencies = {
@@ -676,9 +688,8 @@ export async function handleTelegramWebhookRequest(
     const templateContextRuntimeConfig =
       dependencies.templateContextRuntimeConfig ??
         disabledTelegramWebhookTemplateContextRuntimeConfig;
-    const agentBrainRuntimeConfig =
-      dependencies.agentBrainRuntimeConfig ??
-        disabledTelegramWebhookAgentBrainRuntimeConfig;
+    const agentBrainRuntimeConfig = dependencies.agentBrainRuntimeConfig ??
+      disabledTelegramWebhookAgentBrainRuntimeConfig;
     let lookupSession: TelegramWebhookSessionLookupRecord | null = null;
     let parsedUpdate: TelegramWebhookParsedCommand | null = null;
     let chatAuthorization: TelegramWebhookChatAuthorization | null = null;
@@ -819,6 +830,7 @@ export async function handleTelegramWebhookRequest(
       const deliveryPlan = planTelegramClaimedReadOnlyResponse(
         claimResult,
         parsedUpdate.command,
+        parsedUpdate.text,
       );
 
       if (!deliveryPlan.shouldDeliver) {
@@ -849,12 +861,14 @@ export async function handleTelegramWebhookRequest(
 
         templateContext = await dependencies.lookupTelegramTemplateContext(
           lookupSession.agentId,
-          parsedUpdate.command,
+          getTelegramTemplateContextCommand(parsedUpdate.command),
         );
-        response = {
-          command: parsedUpdate.command,
-          text: templateContext.text,
-        };
+        if (parsedUpdate.command !== "chat") {
+          response = {
+            command: parsedUpdate.command,
+            text: templateContext.text,
+          };
+        }
       }
 
       if (
@@ -863,16 +877,19 @@ export async function handleTelegramWebhookRequest(
         shouldUseTelegramAgentBrain(parsedUpdate.command)
       ) {
         try {
-          const agentBrainReply = await dependencies.generateTelegramAgentBrainReply({
-            command: parsedUpdate.command,
-            agentName: templateContext?.context.name,
-            agentRole: templateContext?.context.role,
-            agentSummary: templateContext?.context.summary,
-            capabilities: templateContext?.context.readOnlyActions,
-            gatedActions: templateContext?.context.gatedActions,
-            modules: templateContext?.context.modules,
-            safetyNote: templateContext?.context.safetyNote,
-          });
+          const agentBrainReply = await dependencies
+            .generateTelegramAgentBrainReply({
+              command: parsedUpdate.command,
+              agentName: templateContext?.context.name,
+              agentRole: templateContext?.context.role,
+              agentSummary: templateContext?.context.summary,
+              capabilities: templateContext?.context.readOnlyActions,
+              gatedActions: templateContext?.context.gatedActions,
+              modules: templateContext?.context.modules,
+              safetyNote: templateContext?.context.safetyNote,
+              userRequest: parsedUpdate.text,
+              chatIntent: classifyTelegramReadOnlyChatIntent(parsedUpdate.text),
+            });
           response = {
             command: parsedUpdate.command,
             text: agentBrainReply.text,
@@ -949,13 +966,23 @@ export async function handleTelegramWebhookRequest(
 function shouldUseTelegramTemplateContext(
   command: TelegramWebhookParsedCommand["command"],
 ) {
-  return command === "agent" || command === "actions" || command === "modules";
+  return command === "agent" || command === "actions" ||
+    command === "modules" ||
+    command === "chat";
 }
 
 function shouldUseTelegramAgentBrain(
   command: TelegramWebhookParsedCommand["command"],
 ) {
-  return command === "agent" || command === "actions" || command === "modules";
+  return command === "agent" || command === "actions" ||
+    command === "modules" ||
+    command === "chat";
+}
+
+function getTelegramTemplateContextCommand(
+  command: TelegramWebhookParsedCommand["command"],
+): "agent" | "actions" | "modules" {
+  return command === "actions" || command === "modules" ? command : "agent";
 }
 
 if (import.meta.main) {

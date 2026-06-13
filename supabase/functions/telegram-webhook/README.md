@@ -2,8 +2,8 @@
 
 This Phase 5 webhook receiver is gate-controlled. The latest implementation can
 resolve active sessions, consume owner-link challenges, authorize read-only
-commands, claim updates, and deliver bounded read-only replies only when the
-corresponding runtime gates are enabled.
+commands and bounded natural chat, claim updates, and deliver bounded read-only
+replies only when the corresponding runtime gates are enabled.
 
 ## Safety Contract
 
@@ -17,14 +17,19 @@ corresponding runtime gates are enabled.
   hash-based RPC, then receive one generic acknowledgement.
 - Owner-link candidates bypass normal chat authorization, normal update claim,
   token resolution, and Telegram response delivery.
-- Normal read-only commands preserve the existing gated webhook pipeline.
+- Normal read-only commands and natural chat preserve the existing gated
+  webhook pipeline.
 - Supported read-only commands are `/help`, `/status`, `/agent`, `/actions`,
   `/modules`, and `/policy`.
+- Bounded plain-text messages are accepted as read-only chat and classified into
+  safe intents such as market brief, campaign plan, narrative map, launch copy,
+  and community pulse.
 - Template context enrichment is default-off and only applies to `/agent`,
-  `/actions`, and `/modules` after session lookup, chat authorization, and
-  atomic update claim.
+  `/actions`, `/modules`, and natural chat after session lookup, chat
+  authorization, and atomic update claim.
 - Agent-brain enrichment is default-off and only applies to `/agent`,
-  `/actions`, and `/modules` when a reviewed provider dependency is injected.
+  `/actions`, `/modules`, and natural chat when a reviewed provider dependency
+  is injected.
 - Does not log the request body.
 - Does not expose webhook secrets, challenge material, challenge hashes,
   Telegram identities, session IDs, token refs, BotFather tokens, or raw
@@ -64,9 +69,10 @@ Keep the webhook path staged behind runtime gates:
 3. Owner-link consume.
 4. Chat authorization.
 5. Atomic update claim.
-6. Optional template context lookup for `/agent`, `/actions`, and `/modules`.
+6. Optional template context lookup for `/agent`, `/actions`, `/modules`, and
+   natural chat.
 7. Optional agent-brain response enrichment for `/agent`, `/actions`, and
-   `/modules`.
+   `/modules` or natural chat.
 8. Token resolution.
 9. Read-only response delivery.
 
@@ -85,7 +91,7 @@ reviewed runtime gates are enabled. It validates endpoint, model, API key
 presence, response shape, timeout behavior, and sanitized failure states. The
 runtime wires it lazily only after the agent-brain and provider gates are
 enabled, and only reads provider environment values when an eligible read-only
-command reaches the provider path.
+command or natural chat reaches the provider path.
 
 The webhook can use agent-brain output only when
 `KYRA_TELEGRAM_WEBHOOK_AGENT_BRAIN_ENABLED` is exactly `true` and a reviewed
@@ -94,7 +100,8 @@ the existing static or template-context response instead of breaking delivery.
 The OpenAI-compatible adapter is additionally protected by
 `KYRA_TELEGRAM_WEBHOOK_AGENT_BRAIN_PROVIDER_ENABLED`; provider API key and model
 env values are read lazily only when both agent-brain and provider gates are
-enabled and an eligible read-only command reaches the provider path.
+enabled and an eligible read-only command or natural chat reaches the provider
+path.
 
 For OpenRouter, keep the same backend-only boundary and configure the provider
 through Supabase Edge Function secrets/env only:
@@ -126,16 +133,18 @@ approved.
 runtime wiring. It reads only agent/template profile fields and sanitizes
 malformed rows and database failures.
 
-The webhook can enrich `/agent`, `/actions`, and `/modules` replies with
-template context only when `KYRA_TELEGRAM_WEBHOOK_TEMPLATE_CONTEXT_ENABLED` is
-exactly `true`. The gate is disabled by default. The runtime lookup is lazy,
-uses read-only REST queries for `agent_instances` and `agent_templates`, and
-runs only after the webhook secret, active session, chat authorization, and
-atomic claim gates pass. `/policy` stays static so safety boundaries remain
-available even when optional context gates are disabled.
+The webhook can enrich `/agent`, `/actions`, `/modules`, and natural chat
+replies with template context only when
+`KYRA_TELEGRAM_WEBHOOK_TEMPLATE_CONTEXT_ENABLED` is exactly `true`. The gate is
+disabled by default. The runtime lookup is lazy, uses read-only REST queries for
+`agent_instances` and `agent_templates`, and runs only after the webhook secret,
+active session, chat authorization, and atomic claim gates pass. `/policy` stays
+static so safety boundaries remain available even when optional context gates
+are disabled.
 
 ## Future Work
 
-Before expanding beyond read-only commands, add a reviewed command processor
-contract, LLM provider boundary, prompt-injection protections, approval queue
-mapping, abuse limits, rollback steps, and production smoke checks.
+Before expanding beyond read-only commands and natural read-only chat, add a
+reviewed write command processor contract, stronger prompt-injection
+protections, approval queue mapping, abuse limits, rollback steps, and
+production smoke checks.

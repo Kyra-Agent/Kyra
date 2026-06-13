@@ -1,4 +1,5 @@
 import { HttpError, sanitizeErrorMessage } from "./core.ts";
+import type { TelegramReadOnlyChatIntent } from "./read-only-response.ts";
 import type { TelegramWebhookParsedCommandName } from "./update-parser.ts";
 
 export interface TelegramAgentBrainPromptInput {
@@ -10,6 +11,8 @@ export interface TelegramAgentBrainPromptInput {
   gatedActions?: unknown;
   modules?: unknown;
   safetyNote?: unknown;
+  userRequest?: unknown;
+  chatIntent?: unknown;
 }
 
 export interface TelegramAgentBrainRequest {
@@ -46,6 +49,8 @@ interface NormalizedTelegramAgentBrainPromptInput {
   gatedActions: readonly string[];
   modules: readonly TelegramAgentBrainPromptModule[];
   safetyNote: string;
+  userRequest: string;
+  chatIntent: TelegramReadOnlyChatIntent;
 }
 
 const supportedReadOnlyCommands = new Set<TelegramWebhookParsedCommandName>([
@@ -55,6 +60,7 @@ const supportedReadOnlyCommands = new Set<TelegramWebhookParsedCommandName>([
   "actions",
   "modules",
   "policy",
+  "chat",
 ]);
 const maxAgentNameLength = 48;
 const maxAgentRoleLength = 72;
@@ -68,7 +74,21 @@ const maxModuleNameLength = 32;
 const maxModuleTitleLength = 48;
 const maxModuleStatusLength = 16;
 const maxSafetyNoteLength = 180;
+const maxUserRequestLength = 1000;
 const maxAgentBrainOutputCharacters = 700;
+const supportedChatIntents = new Set<TelegramReadOnlyChatIntent>([
+  "market_brief",
+  "campaign_plan",
+  "narrative_map",
+  "launch_copy",
+  "community_pulse",
+  "module_status",
+  "agent_profile",
+  "policy",
+  "help",
+  "unsafe_execution",
+  "general",
+]);
 const secretLikePatterns = [
   /\d{5,20}:[A-Za-z0-9_-]{20,128}/,
   /sb_secret_[A-Za-z0-9_-]+/,
@@ -134,6 +154,8 @@ export function buildTelegramAgentBrainRequest(
           `Gated actions: ${formatPromptList(context.gatedActions)}`,
           `Modules: ${formatPromptModules(context.modules)}`,
           `Safety: ${context.safetyNote}`,
+          `User request: ${context.userRequest}`,
+          `Intent: ${context.chatIntent}`,
           `Response guide: ${buildCommandResponseGuide(context.command)}`,
         ].join("\n"),
       },
@@ -335,6 +357,12 @@ function normalizeTelegramAgentBrainPromptInput(
       maxSafetyNoteLength,
       "Telegram is read-only.",
     ),
+    userRequest: sanitizePromptFragment(
+      input.userRequest,
+      maxUserRequestLength,
+      "",
+    ),
+    chatIntent: sanitizeChatIntent(input.chatIntent),
   };
 }
 
@@ -355,6 +383,16 @@ function formatPromptList(values: readonly string[]) {
 }
 
 function buildCommandResponseGuide(command: TelegramWebhookParsedCommandName) {
+  if (command === "chat") {
+    return [
+      "Answer the user's read-only request directly.",
+      "If the intent is unsafe_execution, refuse clearly and offer a read-only brief, plan, checklist, or risk review instead.",
+      "For market_brief, campaign_plan, narrative_map, launch_copy, or community_pulse, produce useful content immediately with concise labels and bullets.",
+      "Use available agent, action, and module context, but do not pretend to have live market data unless it is in the request.",
+      "Keep wallet, approval, Base MCP, and onchain execution disabled.",
+    ].join(" ");
+  }
+
   if (command === "modules") {
     return "Use labels Template module stack, Active, Guard, Standby, Boundary. Report only actual template modules with exact names and statuses. Do not label wallet, approval, Base MCP, or onchain execution as modules.";
   }
@@ -513,6 +551,25 @@ function assertContextualTelegramAgentBrainReply(
   ) {
     throw invalidAgentBrainResponse();
   }
+
+  if (
+    context.command === "chat" &&
+    context.chatIntent === "unsafe_execution" &&
+    !/\b(cannot|can't|disabled|not execute|read-only)\b/i.test(text)
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+}
+
+function sanitizeChatIntent(value: unknown): TelegramReadOnlyChatIntent {
+  if (
+    typeof value === "string" &&
+    supportedChatIntents.has(value as TelegramReadOnlyChatIntent)
+  ) {
+    return value as TelegramReadOnlyChatIntent;
+  }
+
+  return "general";
 }
 
 function includesTextFolded(text: string, fragment: string) {

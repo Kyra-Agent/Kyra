@@ -21,6 +21,7 @@ export type TelegramClaimedReadOnlyResponsePlan =
 export function planTelegramClaimedReadOnlyResponse(
   claimResult: unknown,
   command: unknown,
+  text?: unknown,
 ): TelegramClaimedReadOnlyResponsePlan {
   const claim = assertTelegramUpdateClaimResult(claimResult);
 
@@ -34,7 +35,7 @@ export function planTelegramClaimedReadOnlyResponse(
   return {
     status: "claimed",
     shouldDeliver: true,
-    response: buildTelegramReadOnlyCommandResponse(command),
+    response: buildTelegramReadOnlyCommandResponse(command, text),
   };
 }
 

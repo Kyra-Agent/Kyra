@@ -273,6 +273,85 @@ Deno.test("telegram agent brain preserves empty template action buckets", () => 
   );
 });
 
+Deno.test("telegram agent brain builds natural chat prompt with intent", () => {
+  const request = buildTelegramAgentBrainRequest({
+    command: "chat",
+    agentName: "Agent 666",
+    agentRole: "Market intelligence",
+    agentSummary: "Plans launches and narratives.",
+    capabilities: ["market brief", "campaign plan", "launch copy"],
+    userRequest:
+      "make a campaign plan for token launch with token_secret_ref and <script>",
+    chatIntent: "campaign_plan",
+  });
+  const userMessage = request.messages[1]?.content ?? "";
+
+  assert(
+    userMessage.includes("Command: /chat"),
+    "Prompt must mark natural chat as a chat route.",
+  );
+  assert(
+    userMessage.includes("User request: make a campaign plan"),
+    "Prompt must include the sanitized user request.",
+  );
+  assert(
+    userMessage.includes("Intent: campaign_plan"),
+    "Prompt must include the classified intent.",
+  );
+  assert(
+    userMessage.includes("produce useful content immediately"),
+    "Prompt must ask for actual read-only output.",
+  );
+  assertNoSensitiveMaterial(request);
+});
+
+Deno.test("telegram agent brain accepts useful natural chat replies", async () => {
+  const reply = await generateTelegramAgentBrainReply(
+    {
+      command: "chat",
+      agentName: "Agent 666",
+      agentRole: "Market intelligence",
+      agentSummary: "Plans launches and narratives.",
+      capabilities: ["campaign plan", "launch copy"],
+      userRequest: "make a campaign plan for the next launch",
+      chatIntent: "campaign_plan",
+    },
+    {
+      async complete() {
+        return {
+          text:
+            "Campaign plan\n- Lead with the market pain and positioning.\n- Sequence teaser, launch day, and follow-up posts.\n- Track replies, saves, and community questions.\nBoundary: Telegram is read-only.",
+        };
+      },
+    },
+  );
+
+  assert(
+    reply.text.includes("Campaign plan"),
+    "Chat reply must preserve useful content.",
+  );
+});
+
+Deno.test("telegram agent brain rejects unsafe chat replies without refusal", async () => {
+  await assertRejectsHttpError(
+    () =>
+      generateTelegramAgentBrainReply(
+        {
+          command: "chat",
+          userRequest: "swap 10 USDC to ETH",
+          chatIntent: "unsafe_execution",
+        },
+        {
+          async complete() {
+            return { text: "I can prepare that action now." };
+          },
+        },
+      ),
+    502,
+    "agent_brain_invalid_response",
+  );
+});
+
 Deno.test("telegram agent brain rejects generic context-free provider replies", async () => {
   await assertRejectsHttpError(
     () =>

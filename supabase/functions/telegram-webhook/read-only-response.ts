@@ -7,9 +7,9 @@ export interface TelegramReadOnlyCommandResponse {
 }
 
 const helpText = [
-  "Kyra Telegram commands",
-  "/help, /status, /agent, /actions, /modules, /policy",
-  "Use /agent for profile, /actions for ready work, /modules for stack.",
+  "Kyra Telegram",
+  "/help /status /agent /actions /modules /policy",
+  "Plain text works too: campaign plan, launch copy, narrative map, market brief, community pulse.",
   "Boundary: wallet, write, approval, and onchain execution are disabled.",
 ].join("\n");
 
@@ -48,6 +48,7 @@ const policyText = [
 
 export function buildTelegramReadOnlyCommandResponse(
   command: unknown,
+  text?: unknown,
 ): TelegramReadOnlyCommandResponse {
   if (command === "help") {
     return { command, text: helpText };
@@ -73,9 +74,124 @@ export function buildTelegramReadOnlyCommandResponse(
     return { command, text: policyText };
   }
 
+  if (command === "chat") {
+    return {
+      command,
+      text: buildTelegramReadOnlyChatFallbackText(text),
+    };
+  }
+
   throw new HttpError(
     422,
     "unsupported_update",
     "Telegram update is not supported.",
   );
+}
+
+export type TelegramReadOnlyChatIntent =
+  | "market_brief"
+  | "campaign_plan"
+  | "narrative_map"
+  | "launch_copy"
+  | "community_pulse"
+  | "module_status"
+  | "agent_profile"
+  | "policy"
+  | "help"
+  | "unsafe_execution"
+  | "general";
+
+const unsafeExecutionPattern =
+  /\b(send|transfer|swap|approve|sign|execute|bridge|mint|stake|unstake|claim|withdraw|deposit|buy|sell)\b|\b(wallet|private key|seed phrase|base mcp|onchain|transaction|tx)\b/i;
+
+export function classifyTelegramReadOnlyChatIntent(
+  value: unknown,
+): TelegramReadOnlyChatIntent {
+  if (typeof value !== "string") {
+    return "general";
+  }
+
+  const text = value.toLowerCase();
+
+  if (unsafeExecutionPattern.test(text)) {
+    return "unsafe_execution";
+  }
+
+  if (/\b(help|what can you do|commands?|capabilities)\b/i.test(text)) {
+    return "help";
+  }
+
+  if (/\b(policy|permission|allowed|disabled|gated|approval)\b/i.test(text)) {
+    return "policy";
+  }
+
+  if (/\b(module|stack|nira|vexa|astra|nova|nyx)\b/i.test(text)) {
+    return "module_status";
+  }
+
+  if (
+    /\b(campaign|go[- ]?to[- ]?market|gtm|roadmap|launch plan)\b/i.test(text)
+  ) {
+    return "campaign_plan";
+  }
+
+  if (/\b(narrative|positioning|angle|thesis|story)\b/i.test(text)) {
+    return "narrative_map";
+  }
+
+  if (/\b(copy|tweet|thread|announcement|caption|cta|post)\b/i.test(text)) {
+    return "launch_copy";
+  }
+
+  if (
+    /\b(community|sentiment|pulse|engagement|discord|telegram group)\b/i.test(
+      text,
+    )
+  ) {
+    return "community_pulse";
+  }
+
+  if (/\b(market|brief|trend|liquidity|volume|price|token)\b/i.test(text)) {
+    return "market_brief";
+  }
+
+  if (/\b(agent|profile|role|who are you)\b/i.test(text)) {
+    return "agent_profile";
+  }
+
+  return "general";
+}
+
+function buildTelegramReadOnlyChatFallbackText(text: unknown) {
+  const intent = classifyTelegramReadOnlyChatIntent(text);
+
+  if (intent === "unsafe_execution") {
+    return [
+      "Kyra cannot execute that from Telegram.",
+      "Wallet, approval, Base MCP, and onchain actions are disabled.",
+      "I can help turn it into a read-only brief, plan, checklist, or risk review.",
+    ].join("\n");
+  }
+
+  if (intent === "help") {
+    return helpText;
+  }
+
+  if (intent === "module_status") {
+    return modulesText;
+  }
+
+  if (intent === "agent_profile") {
+    return agentText;
+  }
+
+  if (intent === "policy") {
+    return policyText;
+  }
+
+  return [
+    "Kyra read-only chat is online.",
+    "Ask for market brief, campaign plan, narrative map, launch copy, or community pulse.",
+    "Telegram can brief and plan only. Wallet, approval, Base MCP, and onchain execution stay disabled.",
+  ].join("\n");
 }

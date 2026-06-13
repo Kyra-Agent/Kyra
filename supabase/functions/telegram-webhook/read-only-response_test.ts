@@ -1,5 +1,8 @@
 import { HttpError } from "./core.ts";
-import { buildTelegramReadOnlyCommandResponse } from "./read-only-response.ts";
+import {
+  buildTelegramReadOnlyCommandResponse,
+  classifyTelegramReadOnlyChatIntent,
+} from "./read-only-response.ts";
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -165,6 +168,39 @@ Deno.test("telegram read-only policy response is static and bounded", () => {
   );
   assertEquals(Object.keys(response).sort().join(","), "command,text");
   assertSafeStaticResponse(response.text);
+});
+
+Deno.test("telegram read-only chat classifies product intents", () => {
+  assertEquals(
+    classifyTelegramReadOnlyChatIntent("make a campaign plan for launch"),
+    "campaign_plan",
+  );
+  assertEquals(
+    classifyTelegramReadOnlyChatIntent("draft launch copy and CTA"),
+    "launch_copy",
+  );
+  assertEquals(
+    classifyTelegramReadOnlyChatIntent("swap 10 USDC to ETH"),
+    "unsafe_execution",
+  );
+});
+
+Deno.test("telegram read-only chat fallback refuses execution safely", () => {
+  const response = buildTelegramReadOnlyCommandResponse(
+    "chat",
+    "swap 10 USDC to ETH",
+  );
+
+  assertEquals(response.command, "chat");
+  assert(
+    response.text.includes("cannot execute"),
+    "Chat fallback must refuse execution.",
+  );
+  assert(
+    response.text.includes("onchain actions are disabled"),
+    "Chat fallback must preserve onchain boundary.",
+  );
+  assertEquals(Object.keys(response).sort().join(","), "command,text");
 });
 
 Deno.test("telegram read-only response builder rejects unsupported commands safely", () => {
