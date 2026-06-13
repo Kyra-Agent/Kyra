@@ -75,7 +75,7 @@ Deno.test("telegram read-only help response is static and limited", () => {
   );
   assert(response.text.includes("/policy"), "Help response must list /policy.");
   assert(
-    response.text.includes("actions are disabled"),
+    response.text.includes("execution are disabled"),
     "Help response must state disabled actions.",
   );
   assertEquals(Object.keys(response).sort().join(","), "command,text");
@@ -96,7 +96,7 @@ Deno.test("telegram read-only status response is static and safety-scoped", () =
     "Status response must state read-only access.",
   );
   assert(
-    response.text.includes("actions: disabled"),
+    response.text.includes("Execution: wallet"),
     "Status response must state disabled actions.",
   );
   assertEquals(Object.keys(response).sort().join(","), "command,text");
@@ -108,11 +108,11 @@ Deno.test("telegram read-only agent response is static and safety-scoped", () =>
 
   assertEquals(response.command, "agent");
   assert(
-    response.text.includes("Kyra agent: active"),
+    response.text.includes("Kyra agent interface"),
     "Agent response must state active agent mode.",
   );
   assert(
-    response.text.includes("read-only Telegram interface"),
+    response.text.includes("read-only Telegram operator"),
     "Agent response must stay read-only.",
   );
   assertEquals(Object.keys(response).sort().join(","), "command,text");
@@ -124,11 +124,11 @@ Deno.test("telegram read-only actions response is static and bounded", () => {
 
   assertEquals(response.command, "actions");
   assert(
-    response.text.includes("/help"),
+    response.text.includes("Ready in Telegram"),
     "Actions response must list read-only commands.",
   );
   assert(
-    response.text.includes("actions are disabled"),
+    response.text.includes("Phase 6 gated"),
     "Actions response must state disabled actions.",
   );
   assertEquals(Object.keys(response).sort().join(","), "command,text");
@@ -140,7 +140,7 @@ Deno.test("telegram read-only modules response is static and bounded", () => {
 
   assertEquals(response.command, "modules");
   assert(
-    response.text.includes("Kyra modules"),
+    response.text.includes("Kyra modules view"),
     "Modules response must mention modules.",
   );
   assert(
@@ -160,7 +160,7 @@ Deno.test("telegram read-only policy response is static and bounded", () => {
     "Policy response must state approval policy.",
   );
   assert(
-    response.text.includes("actions stay disabled"),
+    response.text.includes("execution stay disabled"),
     "Policy response must preserve Telegram safety gates.",
   );
   assertEquals(Object.keys(response).sort().join(","), "command,text");

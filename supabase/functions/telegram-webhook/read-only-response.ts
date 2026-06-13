@@ -9,35 +9,41 @@ export interface TelegramReadOnlyCommandResponse {
 const helpText = [
   "Kyra Telegram commands",
   "/help, /status, /agent, /actions, /modules, /policy",
-  "Read-only mode.",
-  "Write, approval, wallet, and onchain actions are disabled.",
+  "Use /agent for profile, /actions for ready work, /modules for stack.",
+  "Boundary: wallet, write, approval, and onchain execution are disabled.",
 ].join("\n");
 
 const statusText = [
   "Kyra Telegram session: active",
   "Command access: read-only",
-  "Write, approval, wallet, and onchain actions: disabled",
+  "Live replies: agent, actions, modules",
+  "Execution: wallet, write, approval, and onchain disabled",
 ].join("\n");
 
 const agentText = [
-  "Kyra agent: active",
-  "Mode: read-only Telegram interface",
-  "Wallet and onchain actions require dashboard approval.",
+  "Kyra agent interface",
+  "Role: read-only Telegram operator",
+  "Focus: template profile, actions, and module stack",
+  "Next: /actions or /modules",
 ].join("\n");
 
 const actionsText = [
-  "Available read-only commands: /help, /status, /agent, /actions, /modules, /policy",
-  "Write, wallet, approval, and onchain actions are disabled.",
+  "Kyra actions",
+  "Ready in Telegram: /help, /status, /agent, /actions, /modules",
+  "Dashboard gated: write and approval",
+  "Phase 6 gated: wallet and onchain execution",
 ].join("\n");
 
 const modulesText = [
-  "Kyra modules: available through read-only Telegram context",
-  "Module execution, wallet actions, and onchain actions stay gated.",
+  "Kyra modules view",
+  "Shows the deployed template stack when context is available.",
+  "Global module activation and execution stay gated outside Telegram.",
 ].join("\n");
 
 const policyText = [
   "Kyra policy: approval required",
-  "Wallet, write, and onchain actions stay disabled from Telegram.",
+  "Telegram can brief and plan only.",
+  "Wallet, write, approval, and onchain execution stay disabled.",
 ].join("\n");
 
 export function buildTelegramReadOnlyCommandResponse(

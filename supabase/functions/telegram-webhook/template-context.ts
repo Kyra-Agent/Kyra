@@ -119,11 +119,11 @@ export function buildTelegramTemplateContext(
   source: TelegramTemplateContextSource,
 ): TelegramTemplateContext {
   const templateId = sanitizeTemplateId(source.templateId);
-  const name = sanitizeTemplateText(
+  const name = normalizeTelegramAgentName(sanitizeTemplateText(
     source.name,
     maxTemplateNameLength,
     "Kyra Agent",
-  );
+  ));
   const role = sanitizeTemplateText(
     source.role,
     maxTemplateRoleLength,
@@ -338,6 +338,10 @@ function sanitizeTemplateText(
   }
 
   return sanitized.slice(0, maxLength).trim() || fallback;
+}
+
+function normalizeTelegramAgentName(name: string) {
+  return /^\d{1,8}$/.test(name) ? `Agent ${name}` : name;
 }
 
 function formatTelegramContextList(values: readonly string[]) {

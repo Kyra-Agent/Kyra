@@ -1171,7 +1171,7 @@ Deno.test("telegram-webhook template context gate stays off by default", async (
   assertEquals(deliveries.length, 1);
   assertEquals(deliveredResponse?.command, "agent");
   assert(
-    String(deliveredResponse?.text ?? "").includes("Kyra agent: active"),
+    String(deliveredResponse?.text ?? "").includes("Kyra agent interface"),
     "Default-off gate must keep static /agent response.",
   );
 });

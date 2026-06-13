@@ -220,6 +220,19 @@ Deno.test("telegram template context returns distinct command replies", () => {
   assertNoSensitiveMaterial({ agentReply, actionsReply, modulesReply });
 });
 
+Deno.test("telegram template context presents numeric agent names as agent labels", () => {
+  const { context, text } = buildTelegramTemplateContextReply({
+    ...seedTemplates[4],
+    name: "666",
+  });
+
+  assertEquals(context.name, "Agent 666");
+  assert(
+    text.startsWith("Agent 666\n"),
+    "Numeric display names must not render as bare numbers.",
+  );
+});
+
 Deno.test("telegram template context gates executor wallet actions for phase 6", () => {
   const context = buildTelegramTemplateContext(seedTemplates[3]);
 
