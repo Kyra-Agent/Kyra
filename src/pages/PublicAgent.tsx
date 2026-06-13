@@ -290,7 +290,7 @@ export function PublicAgent({
             </button>
           </div>
           <span className="demo-action-note">
-            Telegram connection changes are owner-only and handled from deploy or explicit reconnect flows.
+            Telegram connection changes are owner-only and handled from deploy or an approved backend flow.
           </span>
         </div>
 

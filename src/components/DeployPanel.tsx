@@ -159,7 +159,7 @@ export function DeployPanel({
   const [telegramDeployConnectStatus, setTelegramDeployConnectStatus] =
     useState<TelegramDeployConnectUiStatus>("idle");
   const [telegramDeployConnectMessage, setTelegramDeployConnectMessage] = useState(
-    "Optional: connect Telegram during deploy. Token is cleared after submit.",
+    "Optional: paste a BotFather token during deploy. Kyra validates it before quota is used and clears it after submit.",
   );
   const [agentQuota, setAgentQuota] = useState<DemoAgentQuota>({
     used: 0,
@@ -182,6 +182,14 @@ export function DeployPanel({
     () => selectedTemplate.actions.slice(0, 5),
     [selectedTemplate.actions],
   );
+  const telegramConnectTokenInputEnabled = appConfig.featureFlags.telegramConnectTokenInput;
+  const telegramTokenQueuedForDeploy =
+    telegramConnectTokenInputEnabled && telegramBotToken.trim().length > 0;
+  const telegramTerminalStatus = telegramConnectTokenInputEnabled
+    ? telegramTokenQueuedForDeploy
+      ? "token_preflight_required"
+      : "optional_not_requested"
+    : "token_input_disabled";
   const terminalLines = useMemo(
     () => [
       `kyra deploy --template ${selectedTemplate.id} --agent "${agentName || "Unnamed Agent"}"`,
@@ -192,7 +200,7 @@ export function DeployPanel({
       `demo.record_groups=${backendTables.length}`,
       `modules.load=${selectedTemplate.modules.join(",")}`,
       `actions.enable=${selectedActions.join(",")}`,
-      "telegram.webhook=simulated",
+      `telegram.connect=${telegramTerminalStatus}`,
       "base.actions=simulated",
       "wallet.policy=approval_required",
       `agent.quota=${authSession ? `${agentQuota.used}/${agentQuota.limit}` : `0/${agentQuota.limit}`}`,
@@ -212,6 +220,7 @@ export function DeployPanel({
       backendTables.length,
       selectedActions,
       selectedTemplate,
+      telegramTerminalStatus,
     ],
   );
 
@@ -224,16 +233,26 @@ export function DeployPanel({
   const atDeployStep = wizardStep === wizardSteps.length - 1;
   const atAccountStep = wizardStep === 0;
   const quotaBlocksDeploy = Boolean(authSession && agentQuota.reached);
-  const telegramConnectTokenInputEnabled = appConfig.featureFlags.telegramConnectTokenInput;
-  const telegramStepTitle = telegramConnectTokenInputEnabled ? "Connect Telegram" : "Prepare Telegram";
+  const telegramStepTitle = telegramConnectTokenInputEnabled ? "Connect Telegram during deploy" : "Telegram status";
   const telegramStepDescription = telegramConnectTokenInputEnabled
-    ? "Optionally connect Telegram while deploying this agent. Token handling stays backend-only and the field clears after submit."
-    : "Telegram connect belongs in deploy or explicit reconnect after backend token storage is enabled. This step stays status-only until the gate is on.";
-  const telegramInterfaceStatus = telegramConnectTokenInputEnabled ? "deploy scoped" : "backend gated";
+    ? "Paste a BotFather token only in this deploy step. Kyra validates it before quota is used, stores token refs backend-only, and clears the field after submit."
+    : "Telegram token entry is disabled in this environment. Dashboard and public profiles stay status-only.";
+  const telegramInterfaceStatus = telegramConnectTokenInputEnabled
+    ? telegramTokenQueuedForDeploy
+      ? "validates before quota"
+      : "optional during deploy"
+    : "status only";
+  const telegramReviewPlatformLabel = telegramConnectTokenInputEnabled
+    ? telegramTokenQueuedForDeploy
+      ? "Telegram live connect"
+      : "Telegram optional"
+    : "Telegram status only";
   const activePublicPath = persistedRecord?.publicSlug
     ? `/agents/${persistedRecord.publicSlug}`
     : agentRecord.publicPath;
   const activeTelegramHandle = persistedRecord?.telegramHandle ?? agentRecord.handle;
+  const receiptTelegramLabel =
+    telegramDeployConnectStatus === "success" ? `${activeTelegramHandle} active` : "not connected";
   const hasPersistedPublicRoute = Boolean(
     persistedRecord?.publicSlug &&
       (persistedRecord.source === "edge-function" || persistedRecord.source === "supabase-rest") &&
@@ -386,7 +405,7 @@ export function DeployPanel({
       setTelegramDeployConnectMessage("Telegram bot token will be validated before agent deploy uses quota.");
     } else {
       setTelegramDeployConnectStatus("idle");
-      setTelegramDeployConnectMessage("Telegram can be connected later from the selected agent flow.");
+      setTelegramDeployConnectMessage("Deploying without a Telegram token. This agent will stay status-only until a deploy includes a valid BotFather token.");
     }
 
     deployLogs.forEach((_, index) => {
@@ -869,7 +888,7 @@ export function DeployPanel({
                           setTelegramDeployConnectMessage(
                             event.target.value.trim()
                               ? "Telegram bot token will be validated before this deploy uses quota."
-                              : "Optional: connect Telegram during deploy. Token is cleared after submit.",
+                              : "Optional: paste a BotFather token during deploy. Kyra validates it before quota is used and clears it after submit.",
                           );
                         }}
                         placeholder="123456:AA..."
@@ -893,7 +912,7 @@ export function DeployPanel({
                 ) : (
                   <label className="field">
                     <span>Telegram bot token</span>
-                    <input readOnly value="connect during deploy - coming next" />
+                    <input readOnly value="token input disabled in this environment" />
                   </label>
                 )}
 
@@ -903,18 +922,18 @@ export function DeployPanel({
                       ? authSession
                         ? "Deploy scoped"
                         : "Sign in required"
-                      : "Backend gated"}
+                      : "Status only"}
                   </span>
                   {telegramConnectTokenInputEnabled ? (
                     <ol>
                       <li>Open Telegram and message @BotFather.</li>
                       <li>Create a bot with /newbot and choose a handle.</li>
-                      <li>Paste the token only during deploy or reconnect.</li>
+                      <li>Paste the token only in this deploy step.</li>
                     </ol>
                   ) : (
                     <ol>
                       <li>Telegram bots are created through @BotFather.</li>
-                      <li>Token entry stays hidden until backend storage and webhook gates are enabled.</li>
+                      <li>Token entry stays hidden while this environment is status-only.</li>
                       <li>Dashboard and public profiles show selected-agent status only.</li>
                     </ol>
                   )}
@@ -987,7 +1006,7 @@ export function DeployPanel({
                   </span>
                   <span>
                     Platform
-                    <strong>Telegram demo</strong>
+                    <strong>{telegramReviewPlatformLabel}</strong>
                   </span>
                   <span>
                     Wallet
@@ -1073,7 +1092,7 @@ export function DeployPanel({
                   <div className="receipt-grid">
                     <span>
                       Telegram
-                      <strong>{activeTelegramHandle}</strong>
+                      <strong>{receiptTelegramLabel}</strong>
                     </span>
                     <span>
                       Public route
@@ -1108,12 +1127,23 @@ export function DeployPanel({
                     Backend persistence stores demo records only. No real transaction or wallet key is used.
                     Telegram tokens are never stored in frontend state after submit.
                   </p>
-                  {telegramDeployConnectStatus !== "idle" ? (
+                  {telegramDeployConnectStatus === "success" ? (
+                    <div className="deploy-persist-note persist-success">
+                      <ShieldCheck size={15} />
+                      Telegram connection active. Open the bot and use /help or /status; write, wallet,
+                      approval, and onchain actions stay gated.
+                    </div>
+                  ) : telegramDeployConnectStatus !== "idle" ? (
                     <div className={`deploy-persist-note persist-${telegramDeployConnectStatus}`}>
                       <ShieldCheck size={15} />
                       {telegramDeployConnectMessage}
                     </div>
-                  ) : null}
+                  ) : (
+                    <div className="deploy-persist-note persist-standby">
+                      <ShieldCheck size={15} />
+                      Telegram was not connected during this deploy.
+                    </div>
+                  )}
                   <div className="receipt-actions">
                     <button type="button" onClick={copyDemoLink} disabled={!hasPersistedPublicRoute}>
                       <Copy size={14} />

@@ -307,7 +307,7 @@ function getTelegramSessionHeadline(session: TelegramSessionDisplayStatus | null
 
 function getTelegramSessionDescription(session: TelegramSessionDisplayStatus | null) {
   if (!session) {
-    return "Use the deploy or reconnect flow to create a backend-only Telegram session for this agent.";
+    return "Use the deploy flow with a valid BotFather token to create a backend-only Telegram session for this agent.";
   }
 
   if (session.ownerChatLinked) {
@@ -323,7 +323,7 @@ function getTelegramSessionDescription(session: TelegramSessionDisplayStatus | n
   }
 
   if (session.webhookStatus === "paused") {
-    return "Telegram delivery is paused for this agent. Reconnect from the deploy or reconnect flow when ready.";
+    return "Telegram delivery is paused for this agent. Deploy again with a valid BotFather token when ready.";
   }
 
   return "This agent is still on a simulated Telegram demo session.";
@@ -1301,8 +1301,8 @@ export function Dashboard({
                   </div>
                   <p className="telegram-connect-message telegram-connect-idle">
                     Dashboard is status-only. BotFather token validation, backend token
-                    storage, webhook activation, and owner pairing happen during deploy or a
-                    dedicated reconnect flow.
+                    storage, webhook activation, and owner pairing happen during deploy or an
+                    owner-approved backend flow.
                   </p>
                   {telegramDashboardStatusEnabled && telegramDashboardStatusState !== "ready" ? (
                     <p className="telegram-connect-message telegram-connect-idle">
