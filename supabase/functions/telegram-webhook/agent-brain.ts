@@ -356,7 +356,7 @@ function buildCommandResponseGuide(command: TelegramWebhookParsedCommandName) {
   }
 
   if (command === "actions") {
-    return "Use labels Ready in Telegram, Dashboard gated, Phase 6 gated, Boundary. Separate read-only actions from gated actions. Explain Telegram can brief or plan, not execute wallet or onchain actions.";
+    return "Use labels Ready in Telegram, Dashboard gated, Phase 6 gated, Boundary. Separate read-only actions from gated actions. Explain Telegram can brief or plan, not execute wallet or onchain actions. Do not include module status sections.";
   }
 
   if (command === "agent") {
@@ -406,6 +406,13 @@ function assertContextualTelegramAgentBrainReply(
     !context.capabilities.some((capability) =>
       includesTextFolded(text, capability)
     )
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
+    context.command === "actions" &&
+    /\b(?:active|standby|guard)\s+modules?\s*:/i.test(text)
   ) {
     throw invalidAgentBrainResponse();
   }
