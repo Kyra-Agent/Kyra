@@ -87,6 +87,8 @@ Detailed sub-plans:
 - `docs/phase-6A-wallet-readiness-plan.md`
 - `docs/phase-6B-base-mcp-prep-plan.md`
 - `docs/phase-6B-review-packet.md`
+- `docs/phase-6C-wallet-signing-handoff-audit.md`
+- `docs/phase-6C-wallet-signing-handoff-plan.md`
 
 ### Milestone 6A - Wallet Readiness
 
@@ -115,6 +117,7 @@ Target result:
 - Owner explicitly approves or rejects the prepared action.
 - Wallet prompt is user-initiated.
 - User rejection and network mismatch are handled cleanly.
+- Audit and plan are documented before any provider dependency is added.
 
 Target result:
 
@@ -260,9 +263,13 @@ Definition of done:
 
 ## Step 6 - User Wallet Signing Handoff
 
+- [x] Audit current signing/wallet handoff surface.
+- [x] Define Phase 6C implementation order.
+- [x] Confirm current app has no wallet provider signing path.
+- [x] Confirm wallet prompts must be user-initiated.
+- [x] Confirm Kyra does not sign on behalf of the user.
+- [ ] Choose first wallet provider path.
 - [ ] Define unsigned transaction handoff.
-- [ ] Confirm wallet prompts are user-initiated.
-- [ ] Confirm Kyra does not sign on behalf of the user.
 - [ ] Confirm user pays gas.
 - [ ] Handle user rejection cleanly.
 - [ ] Handle wallet/network mismatch cleanly.

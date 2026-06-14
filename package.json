@@ -24,6 +24,7 @@
   "scripts": {
     "dev": "vite --host localhost",
     "check:phase-6b": "node scripts/check-phase-6b-review-packet.mjs",
+    "check:phase-6c": "node scripts/check-phase-6c-wallet-handoff.mjs",
     "check:base-mcp": "node scripts/check-base-mcp-contract.mjs",
     "check:functions": "node scripts/check-functions.mjs",
     "check:prepared-actions": "node scripts/check-prepared-action-boundary.mjs",
