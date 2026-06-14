@@ -125,9 +125,28 @@ assertIncludes(
 assertIncludes(
   "WalletApprovalModal",
   walletModal,
+  "unsignedHandoff: WalletUnsignedTransactionHandoff",
+);
+assertIncludes(
+  "WalletApprovalModal",
+  walletModal,
+  "unsignedHandoffValidation: WalletUnsignedTransactionHandoffValidation",
+);
+assertIncludes("WalletApprovalModal", walletModal, "Unsigned handoff");
+assertIncludes("WalletApprovalModal", walletModal, "connected wallet");
+assertIncludes(
+  "WalletApprovalModal",
+  walletModal,
+  "Wallet execution remains disabled until provider integration.",
+);
+assertIncludes(
+  "WalletApprovalModal",
+  walletModal,
   "Real wallet signing remains disabled.",
 );
 assertIncludes("App", app, "transitionWalletSigningState");
+assertIncludes("App", app, "validateUnsignedTransactionHandoff");
+assertIncludes("App", app, "createDemoUnsignedHandoff");
 assertIncludes("App", app, 'event: "load_preview"');
 assertIncludes("App", app, 'event: "require_review"');
 assertIncludes("App", app, 'event: "reject"');

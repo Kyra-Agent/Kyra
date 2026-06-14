@@ -46,6 +46,8 @@ Phase 6C must preserve:
 - UI-only wallet signing state model exists in `src/types/walletSigning.ts`.
 - `WalletApprovalModal` displays the signing state as read-only demo context and
   does not open a wallet provider.
+- `WalletApprovalModal` displays unsigned handoff validation context without
+  showing raw calldata as the primary UI.
 - Unsigned transaction handoff model exists in
   `src/types/unsignedTransactionHandoff.ts` and keeps gas payment on the
   connected wallet.
@@ -138,6 +140,15 @@ expired handoffs, and unknown provider failures.
 
 Decision: provider-specific errors must collapse to sanitized copy. Failed
 states before `submitted` must not carry a transaction hash.
+
+### F11 - Owner Review Surface Shows Handoff Validation
+
+`WalletApprovalModal` now displays the unsigned handoff status, chain, connected
+wallet gas payer, expiry, value summary, and sanitized block reason if the
+handoff is invalid.
+
+Decision: keep this as demo review UI only. It must not open a wallet prompt,
+display raw calldata as the primary UI, or persist a transaction hash.
 
 ## Phase 6C Entry Conditions
 

@@ -51,7 +51,9 @@ Kyra must never:
    - show action kind, route, chain, value summary, risk, expiry
    - show wallet/network readiness
    - show reject/cancel before wallet prompt
+   - show unsigned handoff validation without wallet provider calls
    - status: started in `WalletApprovalModal` as read-only demo signing state
+     and handoff validation context
 
 4. Unsigned transaction handoff contract
    - define the browser-safe handoff shape before provider installation

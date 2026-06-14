@@ -31,6 +31,12 @@ import {
 } from "./services/supabaseKyraRepository";
 import type { DataProvider } from "./types/api";
 import {
+  baseChainId,
+  validateUnsignedTransactionHandoff,
+  type WalletUnsignedTransactionHandoff,
+  walletUnsignedTransactionHandoffVersion,
+} from "./types/unsignedTransactionHandoff";
+import {
   transitionWalletSigningState,
   type WalletSigningState,
 } from "./types/walletSigning";
@@ -194,6 +200,16 @@ function App() {
       demoScenarios.find((scenario) => scenario.id === selectedScenarioId) ??
         demoScenarios[0],
     [selectedScenarioId],
+  );
+
+  const walletUnsignedHandoff = useMemo(
+    () => createDemoUnsignedHandoff(selectedScenario),
+    [selectedScenario],
+  );
+
+  const walletUnsignedHandoffValidation = useMemo(
+    () => validateUnsignedTransactionHandoff(walletUnsignedHandoff),
+    [walletUnsignedHandoff],
   );
 
   useEffect(() => {
@@ -665,11 +681,42 @@ function App() {
         approved={approvalApproved}
         closing={approvalClosing}
         signingState={walletSigningState}
+        unsignedHandoff={walletUnsignedHandoff}
+        unsignedHandoffValidation={walletUnsignedHandoffValidation}
         onApprove={approveDemoAction}
         onClose={closeApprovalModal}
       />
     </div>
   );
+}
+
+function createDemoUnsignedHandoff(
+  scenario: (typeof demoScenarios)[number],
+): WalletUnsignedTransactionHandoff {
+  const createdAt = new Date();
+  const expiresAt = new Date(createdAt.getTime() + 10 * 60 * 1000);
+
+  return {
+    version: walletUnsignedTransactionHandoffVersion,
+    preparedActionId: `demo-${scenario.id}-handoff`,
+    ownerUserId: "demo-owner",
+    workspaceId: "demo-workspace",
+    agentId: `${scenario.templateId}-demo`,
+    actionKind: "base_reviewed_transaction",
+    chainId: baseChainId,
+    chainName: "Base",
+    to: "0x1111111111111111111111111111111111111111",
+    valueWei: "0",
+    data: "0x",
+    gasPayer: "connected_wallet",
+    routeSummary: scenario.route,
+    valueSummary: scenario.approvalRequired
+      ? "Demo review only. No token spend is submitted."
+      : "Read-only scenario. No transaction handoff required.",
+    risk: scenario.risk === "review" ? "medium" : "low",
+    createdAt: createdAt.toISOString(),
+    expiresAt: expiresAt.toISOString(),
+  };
 }
 
 export default App;

@@ -1,5 +1,9 @@
 import { CheckCircle2, ShieldCheck, WalletCards, X } from "lucide-react";
 import type { DemoScenario } from "../data/demoScenarios";
+import type {
+  WalletUnsignedTransactionHandoff,
+  WalletUnsignedTransactionHandoffValidation,
+} from "../types/unsignedTransactionHandoff";
 import type { WalletSigningState } from "../types/walletSigning";
 
 interface WalletApprovalModalProps {
@@ -8,6 +12,8 @@ interface WalletApprovalModalProps {
   approved: boolean;
   closing: boolean;
   signingState: WalletSigningState;
+  unsignedHandoff: WalletUnsignedTransactionHandoff;
+  unsignedHandoffValidation: WalletUnsignedTransactionHandoffValidation;
   onApprove: () => void;
   onClose: () => void;
 }
@@ -18,6 +24,8 @@ export function WalletApprovalModal({
   approved,
   closing,
   signingState,
+  unsignedHandoff,
+  unsignedHandoffValidation,
   onApprove,
   onClose,
 }: WalletApprovalModalProps) {
@@ -84,6 +92,42 @@ export function WalletApprovalModal({
           </span>
         </div>
 
+        <div
+          className={`handoff-review ${
+            unsignedHandoffValidation.ok ? "is-ready" : "is-blocked"
+          }`}
+        >
+          <div>
+            <span>Unsigned handoff</span>
+            <strong>
+              {unsignedHandoffValidation.ok ? "review ready" : "blocked"}
+            </strong>
+          </div>
+          <div className="handoff-review-grid">
+            <span>
+              Chain
+              <strong>{unsignedHandoff.chainName}</strong>
+            </span>
+            <span>
+              Gas payer
+              <strong>connected wallet</strong>
+            </span>
+            <span>
+              Expiry
+              <strong>{formatExpiry(unsignedHandoff.expiresAt)}</strong>
+            </span>
+            <span>
+              Value
+              <strong>{unsignedHandoff.valueSummary}</strong>
+            </span>
+          </div>
+          <p>
+            {unsignedHandoffValidation.ok
+              ? "Review context is valid. Wallet execution remains disabled until provider integration."
+              : unsignedHandoffValidation.reason}
+          </p>
+        </div>
+
         <div className="approval-warning">
           <ShieldCheck size={17} />
           {approved
@@ -116,4 +160,17 @@ export function WalletApprovalModal({
 
 function formatSigningState(state: WalletSigningState) {
   return state.replace(/_/g, " ");
+}
+
+function formatExpiry(expiresAt: string) {
+  const expiry = new Date(expiresAt);
+
+  if (Number.isNaN(expiry.getTime())) {
+    return "invalid";
+  }
+
+  return expiry.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }

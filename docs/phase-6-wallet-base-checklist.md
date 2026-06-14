@@ -275,6 +275,8 @@ Definition of done:
 - [ ] Install wallet provider dependencies after approval.
 - [x] Add UI-only wallet signing state model.
 - [x] Surface wallet signing state in demo review UI without provider calls.
+- [x] Surface unsigned handoff validation in demo review UI without provider
+      calls.
 - [x] Define unsigned transaction handoff.
 - [x] Confirm user pays gas.
 - [x] Handle user rejection cleanly.
