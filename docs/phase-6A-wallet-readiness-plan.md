@@ -21,6 +21,8 @@ MCP.
 
 ## Source Audit
 
+Audit artifact: `docs/phase-6A-wallet-readiness-audit.md`
+
 Start by reading these areas:
 
 - `src/components/WalletApprovalModal.tsx`
@@ -86,13 +88,18 @@ Copy rules:
 
 ## Tests And Verification
 
+- [x] Current wallet UI and data model audited.
+- [x] Public profile data boundary audited.
+- [x] Telegram token boundary audited.
+- [x] Dashboard wallet/approval reads narrowed away from raw prepared
+  transaction payloads.
 - [ ] Dashboard renders no-wallet state.
 - [ ] Dashboard renders connected-wallet state.
 - [ ] Dashboard renders wrong-network state if modeled.
 - [ ] Public profile does not expose private wallet fields.
 - [ ] Telegram `/policy` still refuses wallet/onchain execution.
-- [ ] `npm run build`
-- [ ] `git diff --check`
+- [x] `npm run build`
+- [x] `git diff --check`
 
 ## Done Criteria
 

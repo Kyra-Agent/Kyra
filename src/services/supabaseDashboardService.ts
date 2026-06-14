@@ -327,11 +327,11 @@ export async function fetchSupabaseDashboardData(
       ),
       selectRows<WalletPolicyRow>(
         session,
-        `wallet_policies?select=*&workspace_id=eq.${workspaceFilter}&order=created_at.desc&limit=20`,
+        `wallet_policies?select=id,wallet_label,wallet_address,daily_limit_usdc,approval_required,status&workspace_id=eq.${workspaceFilter}&order=created_at.desc&limit=20`,
       ),
       selectRows<ApprovalRequestRow>(
         session,
-        `approval_requests?select=*&workspace_id=eq.${workspaceFilter}&order=created_at.desc&limit=20`,
+        `approval_requests?select=id,agent_id,scenario_id,title,command,route,risk,status,fee_payer,requires_wallet,created_at&workspace_id=eq.${workspaceFilter}&order=created_at.desc&limit=20`,
       ),
       selectRows<ActivityLogRow>(
         session,
