@@ -23,6 +23,8 @@ Adapter contract: `docs/phase-6B-base-mcp-adapter-contract.md`
 
 Default-off function skeleton: `supabase/functions/base-mcp-prepare/`
 
+Prepared action read model: `docs/phase-6B-prepared-action-read-model.md`
+
 Start by reading these areas:
 
 - `src/config/appConfig.ts`
@@ -146,10 +148,15 @@ It should not show:
 - [x] Telegram webhook cannot call or configure Base MCP preparation.
 - [x] Runtime gate enables only on exact `true`.
 - [x] Runtime timeout defaults safely and caps at 5000 ms.
+- [x] Prepared-action owner summary contract added.
+- [x] Prepared-action private storage draft keeps sensitive fields out of
+      browser-safe types.
+- [x] Prepared-action boundary check blocks public/Telegram payload exposure.
 - [x] Public profile cannot read prepared tx data.
 - [x] Dashboard preview shows safe summary.
 - [x] Telegram direct execution still refused.
 - [x] `npm run check:base-mcp`
+- [x] `npm run check:prepared-actions`
 - [x] `npm run check:privacy`
 - [x] `npm run check:functions`
 - [x] `deno test supabase/functions/base-mcp-prepare/index_test.ts supabase/functions/base-mcp-prepare/runtime-config_test.ts`

@@ -130,10 +130,31 @@ injected.
 Decision: keep live provider calls behind a separate review and explicit
 enablement approval.
 
+### F6 - Prepared Action Needs A Bounded Read Model Before Storage
+
+`approval_requests.prepared_tx` exists, but it is not the right browser read
+model for Phase 6B. The dashboard should consume a bounded owner summary while
+raw provider payloads stay backend-only or absent.
+
+Decision: define `PreparedActionOwnerSummary` in `src/types/preparedAction.ts`
+and keep public profiles plus Telegram away from prepared-action state.
+
+Current guard:
+
+- `npm run check:prepared-actions`
+- dashboard approval query must not fetch `prepared_tx`, `tx_hash`, provider
+  payloads, calldata, or Telegram token fields
+- public profile files must not reference prepared-action owner summaries
+- Telegram webhook files must not reference prepared-action owner summaries,
+  provider payload refs, `prepared_tx`, or `tx_hash`
+
 ## First Prepared Preview Contract
 
 Detailed adapter contract:
 `docs/phase-6B-base-mcp-adapter-contract.md`
+
+Prepared-action read model:
+`docs/phase-6B-prepared-action-read-model.md`
 
 Owner-facing preview fields:
 
@@ -163,6 +184,8 @@ Current first candidate:
 - no wallet signing
 - no transaction submission
 - no live Base MCP call before adapter review
+- no prepared-action public read model
+- no browser read of `approval_requests.prepared_tx`
 - no arbitrary swap preparation
 - no arbitrary send preparation
 - no contract call preparation
@@ -179,10 +202,12 @@ Current first candidate:
 - default-off backend function skeleton tested
 - no frontend `VITE_` secret path added
 - static frontend and Telegram call-path guards added
-- define expiry/replay protection
-- define owner-scoped storage and read model
+- prepared-action read model documented and checked
+- define live expiry/replay enforcement
+- define owner-scoped storage migration
 - confirm public profiles remain share-safe
 - run `npm run check:base-mcp`
+- run `npm run check:prepared-actions`
 - run `npm run check:privacy`
 - run `npm run check:functions`
 - run `npm run build`
@@ -191,6 +216,7 @@ Current first candidate:
 
 - `npm run check:privacy`
 - `npm run check:base-mcp`
+- `npm run check:prepared-actions`
 - `npm run check:functions`
 - `deno test supabase/functions/base-mcp-prepare/index_test.ts supabase/functions/base-mcp-prepare/runtime-config_test.ts`
 - targeted Deno read-only Telegram tests

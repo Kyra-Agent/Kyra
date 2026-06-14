@@ -25,6 +25,7 @@
     "dev": "vite --host localhost",
     "check:base-mcp": "node scripts/check-base-mcp-contract.mjs",
     "check:functions": "node scripts/check-functions.mjs",
+    "check:prepared-actions": "node scripts/check-prepared-action-boundary.mjs",
     "check:privacy": "node scripts/check-public-privacy.mjs",
     "build": "tsc && vite build",
     "preview": "vite preview --host localhost"
