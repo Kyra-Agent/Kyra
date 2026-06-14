@@ -11,6 +11,7 @@ export * from "./core.ts";
 export * from "./dependencies.ts";
 export * from "./runtime-config.ts";
 export * from "./storage-adapter.ts";
+export * from "./provider-adapter.ts";
 
 export interface BaseMcpPrepareRuntimeOptions {
   getEnv?: (key: string) => string;

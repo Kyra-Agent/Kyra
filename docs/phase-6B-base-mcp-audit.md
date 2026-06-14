@@ -122,9 +122,12 @@ Current behavior:
 - ownership is checked before adapter access
 - missing endpoint or missing adapter returns `base_mcp_not_configured`
 - injected adapter failures return sanitized `base_mcp_unavailable`
+- provider adapter draft maps a fake-transport status check to a fixed
+  read-only summary and ignores raw provider payload fields
 - optional prepared-action storage hook accepts only sanitized preview summaries
 - prepared-action storage adapter draft maps sanitized summaries to the reviewed
   `prepared_actions` shape
+- runtime dependencies do not wire the provider adapter yet
 - runtime dependencies do not wire prepared-action storage yet
 - static checks fail if frontend references Base MCP backend secrets or the
   prepare endpoint
@@ -227,6 +230,7 @@ Current first candidate:
 - static frontend and Telegram call-path guards added
 - prepared-action read model documented and checked
 - live expiry/replay enforcement started in the default-off function skeleton
+- provider adapter draft tested with a fake transport only
 - prepared-action storage hook contract tested without runtime DB wiring
 - prepared-action storage adapter draft tested with a fake client only
 - owner-scoped storage migration remains unapplied until explicit approval

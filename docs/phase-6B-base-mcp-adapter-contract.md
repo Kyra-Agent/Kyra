@@ -217,6 +217,7 @@ preparation is dashboard-gated.
 3. Add tests for allowed action kind, sanitizer behavior, default-off behavior,
    and owner-scope ordering. Done.
 4. Add request freshness and preview expiry guards. Done.
-5. Add a live provider adapter only after explicit review.
-6. Add live status-check call only after explicit enablement approval.
-7. Keep wallet signing deferred to Phase 6C.
+5. Add a provider adapter draft with fake-transport tests. Done.
+6. Wire a live provider adapter only after explicit review.
+7. Add live status-check call only after explicit enablement approval.
+8. Keep wallet signing deferred to Phase 6C.

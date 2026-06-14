@@ -49,6 +49,7 @@ const docsContract = read("docs/phase-6B-base-mcp-adapter-contract.md");
 const functionCore = read("supabase/functions/base-mcp-prepare/core.ts");
 const functionDependencies = read("supabase/functions/base-mcp-prepare/dependencies.ts");
 const functionReadme = read("supabase/functions/base-mcp-prepare/README.md");
+const providerAdapter = read("supabase/functions/base-mcp-prepare/provider-adapter.ts");
 const supabaseConfig = read("supabase/config.toml");
 const frontendFiles = listFiles("src").filter((path) => /\.(ts|tsx)$/u.test(path));
 const telegramWebhookFiles = listFiles("supabase/functions/telegram-webhook")
@@ -134,8 +135,35 @@ assert(
   "Base MCP runtime dependencies must not wire a live adapter yet.",
 );
 assert(
+  !functionDependencies.includes("createBaseMcpStatusCheckAdapter"),
+  "Base MCP runtime dependencies must not wire the provider adapter yet.",
+);
+assert(
   !functionDependencies.includes("storePreparedActionSummary"),
   "Base MCP runtime dependencies must not wire prepared-action storage yet.",
+);
+assert(
+  providerAdapter.includes("createBaseMcpStatusCheckAdapter"),
+  "Base MCP provider adapter draft must exist.",
+);
+assert(
+  providerAdapter.includes('"mode": input.mode') || providerAdapter.includes("mode: input.mode"),
+  "Base MCP provider adapter must send only read-only mode from the validated input.",
+);
+assert(
+  providerAdapter.includes("No token spend, no gas request, no calldata."),
+  "Base MCP provider adapter summary must stay read-only and no-calldata.",
+);
+assert(
+  !providerAdapter.includes("agentId: input.agentId") &&
+    !providerAdapter.includes("workspaceId: input.workspaceId") &&
+    !providerAdapter.includes("ownerUserId"),
+  "Base MCP provider adapter must not send owner/workspace/agent scope to the provider.",
+);
+assertFilesDoNotInclude(
+  ["supabase/functions/base-mcp-prepare/provider-adapter.ts"],
+  /rawCalldata|providerPayloadRef|walletAddress|telegramToken|privateKey|seedPhrase/u,
+  "Base MCP provider adapter must not expose unsafe payload fields",
 );
 assert(
   /\[functions\.base-mcp-prepare\]\s+verify_jwt\s*=\s*true/su.test(supabaseConfig),
