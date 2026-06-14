@@ -4,6 +4,7 @@ import type {
   DemoAgentInstance,
   DemoApprovalRequest,
   DemoBackendTable,
+  DemoPreparedActionPreview,
   DemoRecordStatus,
   DemoTelegramSessionSummary,
   DemoTelegramWebhookStatus,
@@ -44,6 +45,7 @@ export interface SupabaseDashboardData {
   approvalRequests: DemoApprovalRequest[];
   walletPolicies: DemoWalletPolicy[];
   walletReadiness: DemoWalletReadiness;
+  preparedActionPreview: DemoPreparedActionPreview;
   backendTables: DemoBackendTable[];
   activityLogs: DemoActivityLog[];
   telegramSessions: DemoTelegramSessionSummary[];
@@ -284,6 +286,45 @@ function createWalletReadiness(rows: WalletPolicyRow[]): DemoWalletReadiness {
   };
 }
 
+function createPreparedActionPreview(
+  walletReadiness: DemoWalletReadiness,
+): DemoPreparedActionPreview {
+  const basePreview = {
+    id: "base_mcp_status_check_preview",
+    actionKind: "base_mcp_status_check" as const,
+    title: "Base MCP status check",
+    chain: "Base" as const,
+    routeSummary: "Read-only capability check before any transaction preparation.",
+    valueSummary: "No token spend, no gas request, no calldata.",
+    risk: "read-only" as const,
+    expiresLabel: "Not issued",
+    ownerScope: "Signed-in dashboard owner only",
+    safetyNote: "No wallet prompt, no signing, no transaction submission.",
+  };
+
+  if (walletReadiness.state === "execution_disabled") {
+    return {
+      ...basePreview,
+      status: "draft",
+      approvalRequirement: "Wallet approval remains disabled until Phase 6C.",
+    };
+  }
+
+  if (walletReadiness.state === "connected_ready_for_approval") {
+    return {
+      ...basePreview,
+      status: "preview_ready",
+      approvalRequirement: "Preview can be reviewed before any wallet approval.",
+    };
+  }
+
+  return {
+    ...basePreview,
+    status: "blocked",
+    approvalRequirement: "Connect and review an owner wallet policy before preparation.",
+  };
+}
+
 function formatTimestamp(value: string) {
   return new Date(value).toLocaleTimeString("en-US", {
     hour: "2-digit",
@@ -414,6 +455,7 @@ export async function fetchSupabaseDashboardData(
     const mappedAgents = agents.map(mapAgent);
     const agentTemplateLookup = new Map(agents.map((agent) => [agent.id, agent.template_id]));
     const latestAgent = mappedAgents[0] ?? null;
+    const walletReadiness = createWalletReadiness(walletPolicies);
 
     return {
       ok: true,
@@ -425,7 +467,8 @@ export async function fetchSupabaseDashboardData(
           mapApprovalRequest(request, agentTemplateLookup),
         ),
         walletPolicies: walletPolicies.flatMap(mapWalletPolicy).slice(0, 6),
-        walletReadiness: createWalletReadiness(walletPolicies),
+        walletReadiness,
+        preparedActionPreview: createPreparedActionPreview(walletReadiness),
         backendTables: createBackendTables(
           workspaces,
           agents,

@@ -57,6 +57,7 @@ import type { DataProvider } from "../types/api";
 import type {
   DemoActivityLog,
   DemoApprovalRequest,
+  DemoPreparedActionPreview,
   DemoRecordStatus,
   DemoTelegramSessionSummary,
   DemoTelegramWebhookStatus,
@@ -183,6 +184,35 @@ function getWalletReadinessTone(state: DemoWalletReadinessState) {
   }
 
   return state === "execution_disabled" ? "locked" : "standby";
+}
+
+function getPreparedActionPreviewFallback(
+  signedIn: boolean,
+): DemoPreparedActionPreview {
+  return {
+    id: "base_mcp_status_check_preview",
+    status: "blocked",
+    actionKind: "base_mcp_status_check",
+    title: "Base MCP status check",
+    chain: "Base",
+    routeSummary: "Read-only capability check before any transaction preparation.",
+    valueSummary: "No token spend, no gas request, no calldata.",
+    risk: "read-only",
+    expiresLabel: "Not issued",
+    approvalRequirement: signedIn
+      ? "Deploy an agent before preparation."
+      : "Sign in before owner-scoped preparation.",
+    ownerScope: "Signed-in dashboard owner only",
+    safetyNote: "No wallet prompt, no signing, no transaction submission.",
+  };
+}
+
+function getPreparedActionTone(status: DemoPreparedActionPreview["status"]) {
+  if (status === "preview_ready") {
+    return "ready";
+  }
+
+  return status === "draft" ? "locked" : "standby";
 }
 
 function formatActivityLog(log: DemoActivityLog) {
@@ -748,6 +778,10 @@ export function Dashboard({
     dashboardData?.walletReadiness ??
     getWalletReadinessFallback(Boolean(authSession), Boolean(agentRecord));
   const walletReadinessTone = getWalletReadinessTone(walletReadiness.state);
+  const preparedActionPreview =
+    dashboardData?.preparedActionPreview ??
+    getPreparedActionPreviewFallback(Boolean(authSession));
+  const preparedActionTone = getPreparedActionTone(preparedActionPreview.status);
   const backendTables = dashboardData?.backendTables ?? [];
   const hasPublicRoute = Boolean(agentRecord?.publicPath);
   const latestDeployEvent = getLatestEvent(backendEvents, "deploy");
@@ -1651,6 +1685,45 @@ export function Dashboard({
               <span>max {demoAgentLimits.maxAgentsPerWorkspace} demo agents</span>
               <span>approval-first workflows</span>
               <span>onchain execution disabled</span>
+            </div>
+          </section>
+
+          <section className="dashboard-panel prepared-action-panel">
+            <div className="panel-title">
+              <span>Base MCP prep</span>
+              <span>{preparedActionPreview.status.replace(/_/g, " ")}</span>
+            </div>
+            <div className={`prepared-action-card readiness-${preparedActionTone}`}>
+              <div className="prepared-action-header">
+                <span className="queue-icon">
+                  <Server size={16} />
+                </span>
+                <div>
+                  <small>{preparedActionPreview.actionKind.replace(/_/g, " ")}</small>
+                  <strong>{preparedActionPreview.title}</strong>
+                </div>
+              </div>
+              <div className="prepared-action-grid">
+                <span>
+                  Chain
+                  <strong>{preparedActionPreview.chain}</strong>
+                </span>
+                <span>
+                  Risk
+                  <strong>{preparedActionPreview.risk}</strong>
+                </span>
+                <span>
+                  Value
+                  <strong>{preparedActionPreview.valueSummary}</strong>
+                </span>
+                <span>
+                  Expiry
+                  <strong>{preparedActionPreview.expiresLabel}</strong>
+                </span>
+              </div>
+              <p>{preparedActionPreview.routeSummary}</p>
+              <small>{preparedActionPreview.approvalRequirement}</small>
+              <small>{preparedActionPreview.safetyNote}</small>
             </div>
           </section>
 

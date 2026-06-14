@@ -17,6 +17,8 @@ before wallet signing.
 
 ## Source Audit
 
+Audit artifact: `docs/phase-6B-base-mcp-audit.md`
+
 Start by reading these areas:
 
 - `src/config/appConfig.ts`
@@ -128,17 +130,19 @@ It should not show:
 
 ## Tests And Verification
 
-- [ ] MCP config audit completed.
-- [ ] First action candidate selected.
-- [ ] Prepared action shape documented or typed.
+- [x] MCP config audit completed.
+- [x] First action candidate selected.
+- [x] Prepared action shape documented or typed.
 - [ ] Unsupported action kind fails closed.
-- [ ] Public profile cannot read prepared tx data.
-- [ ] Dashboard preview shows safe summary.
-- [ ] Telegram direct execution still refused.
-- [ ] `npm run check:functions` if Edge Functions change.
-- [ ] relevant Deno tests if Edge Functions change.
-- [ ] `npm run build`
-- [ ] `git diff --check`
+- [x] Public profile cannot read prepared tx data.
+- [x] Dashboard preview shows safe summary.
+- [x] Telegram direct execution still refused.
+- [x] `npm run check:privacy`
+- [x] `npm run check:functions`
+- [x] Targeted Deno read-only Telegram tests
+- [x] `npm run build`
+- [x] `git diff --check`
+- [x] Local desktop/mobile dashboard smoke
 
 ## Done Criteria
 

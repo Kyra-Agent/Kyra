@@ -1,0 +1,166 @@
+# Phase 6B Base MCP Preparation Audit
+
+Audit date: 2026-06-14
+
+Status: Phase 6B audit and first safe prepared-preview contract are in
+progress. No Base MCP call, wallet prompt, signing, or transaction submission is
+enabled.
+
+## Security Priority
+
+Primary rule: user privacy, user wallet security, and user Telegram bot token
+security are number one.
+
+6B must preserve:
+
+- no seed phrase path
+- no private key path
+- no wallet custody
+- no direct Telegram execution
+- no live Base MCP transaction call
+- no raw prepared transaction payload in public profiles
+- no raw provider/MCP errors in UI
+
+## Audited Areas
+
+- `src/config/appConfig.ts`
+- `src/components/ActionConsole.tsx`
+- `src/components/WalletApprovalModal.tsx`
+- `src/data/actions.ts`
+- `src/data/demoScenarios.ts`
+- `src/types/agent.ts`
+- `src/types/backend.ts`
+- `src/types/database.ts`
+- `src/services/supabaseDashboardService.ts`
+- `src/services/supabaseDeployService.ts`
+- `supabase/schema.sql`
+- `supabase/functions/deploy-agent/index.ts`
+- `supabase/config.toml`
+- `docs/backend-blueprint.md`
+- `docs/phase-6-wallet-base-checklist.md`
+
+## Current State
+
+Base MCP is currently represented as product/status copy and database status
+fields only.
+
+Current facts:
+
+- `appConfig.integrations.baseMcp` is `simulated`.
+- `appConfig.integrations.walletExecution` is `disabled`.
+- `agent_instances.base_mcp_status` exists as a status field.
+- `approval_requests.prepared_tx` and `approval_requests.tx_hash` exist for
+  future phases.
+- Dashboard reads do not fetch `prepared_tx` or `tx_hash`.
+- Public agent profiles do not expose wallet, approval request, prepared
+  transaction, transaction hash, or Telegram token fields.
+- Telegram live behavior refuses wallet, swap, approval, Base MCP, and onchain
+  execution requests.
+
+## Findings
+
+### F1 - No Callable Base MCP Adapter Exists Yet
+
+There is no Base MCP endpoint URL, env config, service adapter, or Edge Function
+that calls Base MCP today.
+
+Risk: low. Execution is not accidentally live.
+
+Decision: Phase 6B should start with a safe contract and preview, not a live
+adapter.
+
+### F2 - Existing `prepared_tx` Is Demo Metadata Only
+
+Deploy code writes demo metadata into `approval_requests.prepared_tx`, but the
+owner dashboard intentionally does not fetch it. This keeps raw prepared payload
+handling out of the browser.
+
+Risk: low while execution remains disabled.
+
+Decision: future live prepared payloads should be behind a dedicated
+owner-scoped summary view/RPC or opaque backend reference, not generic dashboard
+reads.
+
+### F3 - Swap/Send Are Not Safe First Candidates
+
+`swap` and `send` are product actions, but they imply token movement and wallet
+approval. They should not be first 6B candidates.
+
+Risk: high if treated as the first live preparation target.
+
+Decision: keep arbitrary swaps, transfers, contract calls, and Telegram-triggered
+execution out of 6B.
+
+### F4 - Safest First Candidate Is Read-Only Base MCP Status Check
+
+The safest initial candidate is a read-only Base MCP status/capability check.
+It can prove the boundary without calldata, token spend, gas request, wallet
+prompt, or transaction submission.
+
+Decision: first candidate is `base_mcp_status_check`.
+
+## First Prepared Preview Contract
+
+Owner-facing preview fields:
+
+- `id`
+- `status`
+- `actionKind`
+- `title`
+- `chain`
+- `routeSummary`
+- `valueSummary`
+- `risk`
+- `expiresLabel`
+- `approvalRequirement`
+- `ownerScope`
+- `safetyNote`
+
+Current first candidate:
+
+- `actionKind`: `base_mcp_status_check`
+- `chain`: `Base`
+- `risk`: `read-only`
+- `valueSummary`: `No token spend, no gas request, no calldata.`
+- `safetyNote`: `No wallet prompt, no signing, no transaction submission.`
+
+## Explicit No-Go Items For 6B
+
+- no wallet signing
+- no transaction submission
+- no live Base MCP call before adapter review
+- no arbitrary swap preparation
+- no arbitrary send preparation
+- no contract call preparation
+- no Telegram-triggered execution
+- no raw calldata as primary UI
+- no raw provider/MCP errors shown to users
+
+## Required Before Any Live Base MCP Adapter
+
+- define exact endpoint/config source
+- define timeout and retry behavior
+- define sanitized error contract
+- define allowed action allowlist
+- define expiry/replay protection
+- define owner-scoped storage and read model
+- confirm public profiles remain share-safe
+- run `npm run check:privacy`
+- run `npm run check:functions`
+- run `npm run build`
+
+## Completed Local Verification
+
+- `npm run check:privacy`
+- `npm run check:functions`
+- targeted Deno read-only Telegram tests
+- `npm run build`
+- `git diff --check`
+- local desktop/mobile dashboard smoke
+
+## Remaining Before Push/Deploy
+
+- review local diff
+- commit locally
+- push only after approval
+- live smoke dashboard and Telegram refusal after deploy

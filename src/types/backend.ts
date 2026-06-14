@@ -76,6 +76,23 @@ export interface DemoWalletReadiness {
   privacyNote: string;
 }
 
+export type DemoPreparedActionStatus = "blocked" | "draft" | "preview_ready";
+
+export interface DemoPreparedActionPreview {
+  id: string;
+  status: DemoPreparedActionStatus;
+  actionKind: "base_mcp_status_check" | "quote_preview";
+  title: string;
+  chain: "Base";
+  routeSummary: string;
+  valueSummary: string;
+  risk: "read-only" | "review";
+  expiresLabel: string;
+  approvalRequirement: string;
+  ownerScope: string;
+  safetyNote: string;
+}
+
 export interface DemoActivityLog {
   id: string;
   timestamp: string;
