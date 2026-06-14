@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const functionEntrypoints = [
+  "supabase/functions/base-mcp-prepare/index.ts",
   "supabase/functions/deploy-agent/index.ts",
   "supabase/functions/reset-demo-workspace/index.ts",
   "supabase/functions/telegram-connect/index.ts",
@@ -13,6 +14,7 @@ const functionEntrypoints = [
 ];
 
 const expectedFunctionJwtVerification = new Map([
+  ["functions.base-mcp-prepare", true],
   ["functions.telegram-connect", true],
   ["functions.telegram-dashboard-status", true],
   ["functions.telegram-disconnect", true],

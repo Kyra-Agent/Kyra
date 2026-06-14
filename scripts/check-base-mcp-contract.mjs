@@ -15,6 +15,8 @@ function assert(condition, message) {
 
 const typeContract = read("src/types/baseMcp.ts");
 const docsContract = read("docs/phase-6B-base-mcp-adapter-contract.md");
+const functionCore = read("supabase/functions/base-mcp-prepare/core.ts");
+const functionReadme = read("supabase/functions/base-mcp-prepare/README.md");
 
 const allowedListMatch = typeContract.match(
   /baseMcpAllowedActionKinds\s*=\s*\[([^\]]+)\]\s*as\s+const/u,
@@ -62,6 +64,22 @@ assert(
 assert(
   docsContract.includes("retry count: 0"),
   "Base MCP contract must keep first adapter retry count at zero.",
+);
+assert(
+  functionCore.includes("Base MCP preparation is disabled."),
+  "Base MCP function must fail closed while disabled.",
+);
+assert(
+  functionCore.includes("Base MCP preparation is not configured."),
+  "Base MCP function must keep the live adapter unwired by default.",
+);
+assert(
+  functionCore.includes("assertAgentOwnership"),
+  "Base MCP function must verify ownership before adapter calls.",
+);
+assert(
+  functionReadme.includes("Do not call this function from Telegram."),
+  "Base MCP function README must document Telegram boundary.",
 );
 
 console.log("Base MCP contract checks passed.");

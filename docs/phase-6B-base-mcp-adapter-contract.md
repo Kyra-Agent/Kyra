@@ -1,7 +1,8 @@
 # Phase 6B Base MCP Adapter Contract
 
-Status: contract only. No live Base MCP call, wallet prompt, signing, or
-transaction submission is enabled by this document.
+Status: contract plus default-off backend skeleton. No live Base MCP call,
+wallet prompt, signing, or transaction submission is enabled by this document or
+the current function skeleton.
 
 ## Security Rule
 
@@ -193,10 +194,10 @@ preparation is dashboard-gated.
 
 ## Implementation Order
 
-1. Keep the current dashboard preview contract.
-2. Add a backend-only Edge Function adapter behind disabled gates.
-3. Add pure tests for allowed action kind and sanitizer behavior.
-4. Add owner-scope checks before any provider call.
-5. Add live status-check call only after explicit review.
+1. Keep the current dashboard preview contract. Done.
+2. Add a backend-only Edge Function skeleton behind disabled gates. Done.
+3. Add tests for allowed action kind, sanitizer behavior, default-off behavior,
+   and owner-scope ordering. Done.
+4. Add a live provider adapter only after explicit review.
+5. Add live status-check call only after explicit enablement approval.
 6. Keep wallet signing deferred to Phase 6C.
-

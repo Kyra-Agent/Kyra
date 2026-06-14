@@ -2,9 +2,9 @@
 
 Audit date: 2026-06-14
 
-Status: Phase 6B audit and first safe prepared-preview contract are in
-progress. No Base MCP call, wallet prompt, signing, or transaction submission is
-enabled.
+Status: Phase 6B audit, first safe prepared-preview contract, and a
+default-off backend function skeleton are in progress. No live Base MCP call,
+wallet prompt, signing, or transaction submission is enabled.
 
 ## Security Priority
 
@@ -48,6 +48,9 @@ Current facts:
 
 - `appConfig.integrations.baseMcp` is `simulated`.
 - `appConfig.integrations.walletExecution` is `disabled`.
+- `supabase/functions/base-mcp-prepare/` exists as a default-off skeleton.
+- `base-mcp-prepare` returns `base_mcp_disabled` before body, env, session,
+  ownership, service-role, or adapter access while the runtime gate is off.
 - `agent_instances.base_mcp_status` exists as a status field.
 - `approval_requests.prepared_tx` and `approval_requests.tx_hash` exist for
   future phases.
@@ -99,6 +102,28 @@ prompt, or transaction submission.
 
 Decision: first candidate is `base_mcp_status_check`.
 
+### F5 - Base MCP Function Is Present But Not Live-Wired
+
+The `base-mcp-prepare` Edge Function skeleton is now present for backend-only
+review and local tests. It is intentionally not wired to a live Base MCP
+provider by default.
+
+Current behavior:
+
+- disabled gate returns a fixed `base_mcp_disabled` response
+- enabled path requires bearer session validation
+- enabled path accepts only `base_mcp_status_check`
+- unsupported actions fail closed before ownership lookup
+- ownership is checked before adapter access
+- missing endpoint or missing adapter returns `base_mcp_not_configured`
+- injected adapter failures return sanitized `base_mcp_unavailable`
+
+Risk: low while the runtime gate remains off and no live provider adapter is
+injected.
+
+Decision: keep live provider calls behind a separate review and explicit
+enablement approval.
+
 ## First Prepared Preview Contract
 
 Detailed adapter contract:
@@ -145,6 +170,8 @@ Current first candidate:
 - timeout and retry behavior documented
 - sanitized error contract documented
 - allowed action allowlist documented
+- default-off backend function skeleton tested
+- no frontend `VITE_` secret path added
 - define expiry/replay protection
 - define owner-scoped storage and read model
 - confirm public profiles remain share-safe
@@ -158,6 +185,7 @@ Current first candidate:
 - `npm run check:privacy`
 - `npm run check:base-mcp`
 - `npm run check:functions`
+- `deno test supabase/functions/base-mcp-prepare/index_test.ts`
 - targeted Deno read-only Telegram tests
 - `npm run build`
 - `git diff --check`

@@ -10,6 +10,12 @@ verify_jwt = true
 [functions.telegram-dashboard-status]
 verify_jwt = true
 
+# Base MCP preparation is called by a signed-in dashboard user only. Keep
+# Supabase gateway JWT verification enabled in addition to function ownership
+# validation and default-off runtime gates.
+[functions.base-mcp-prepare]
+verify_jwt = true
+
 # Telegram disconnect is called by a signed-in dashboard user. Keep Supabase
 # gateway JWT verification enabled in addition to future function ownership
 # validation and operator action checks.

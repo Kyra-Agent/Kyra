@@ -21,6 +21,8 @@ Audit artifact: `docs/phase-6B-base-mcp-audit.md`
 
 Adapter contract: `docs/phase-6B-base-mcp-adapter-contract.md`
 
+Default-off function skeleton: `supabase/functions/base-mcp-prepare/`
+
 Start by reading these areas:
 
 - `src/config/appConfig.ts`
@@ -136,13 +138,17 @@ It should not show:
 - [x] First action candidate selected.
 - [x] Prepared action shape documented or typed.
 - [x] Adapter contract documented.
+- [x] Backend-only default-off prepare function skeleton added.
 - [x] Unsupported action kind fails closed.
+- [x] Unsupported action kind never reaches ownership lookup or adapter call.
+- [x] Adapter errors are sanitized before user-facing responses.
 - [x] Public profile cannot read prepared tx data.
 - [x] Dashboard preview shows safe summary.
 - [x] Telegram direct execution still refused.
 - [x] `npm run check:base-mcp`
 - [x] `npm run check:privacy`
 - [x] `npm run check:functions`
+- [x] `deno test supabase/functions/base-mcp-prepare/index_test.ts`
 - [x] Targeted Deno read-only Telegram tests
 - [x] `npm run build`
 - [x] `git diff --check`

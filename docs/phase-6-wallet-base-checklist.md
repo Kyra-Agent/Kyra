@@ -200,7 +200,8 @@ Definition of done:
 - [x] Define request/response shape for MCP preparation.
 - [x] Define timeout and failure behavior.
 - [x] Define sanitized error messages.
-- [ ] Confirm no secrets are exposed to frontend or Telegram.
+- [x] Confirm no secrets are exposed to frontend or Telegram for the current
+      default-off skeleton.
 
 Definition of done:
 
@@ -212,17 +213,20 @@ Current contract:
 - first candidate: `base_mcp_status_check`
 - allowed action kinds: `base_mcp_status_check` only
 - runtime gates default off
+- backend-only function skeleton: `supabase/functions/base-mcp-prepare/`
+- disabled response occurs before body, env, session, ownership, service-role,
+  or adapter access
 - no wallet signing or transaction submission
 
 ## Step 4 - Prepared Action Contract
 
-- [ ] Define a prepared action payload type.
+- [x] Define a prepared action payload type.
 - [ ] Include action kind, chain, target, value, calldata/route summary, and risk.
 - [ ] Store prepared payload only in owner-scoped backend records.
 - [ ] Keep public profile free of prepared transaction data.
 - [ ] Add replay/expiry fields.
 - [ ] Add idempotency key or claim strategy if needed.
-- [ ] Add tests for malformed payloads.
+- [x] Add tests for malformed payloads.
 
 Definition of done:
 
