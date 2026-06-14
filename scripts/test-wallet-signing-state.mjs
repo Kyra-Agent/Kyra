@@ -33,6 +33,8 @@ writeFileSync(outputPath, transpiled.outputText);
 
 try {
   const {
+    createWalletSigningFailure,
+    isBaseWalletNetwork,
     isTerminalWalletSigningState,
     isTransactionHash,
     transitionWalletSigningState,
@@ -115,9 +117,27 @@ try {
     transitionWalletSigningState({
       state: "preview_ready",
       event: "fail",
-      sanitizedFailureReason: "Wallet network mismatch.",
+      failure: createWalletSigningFailure("network_mismatch"),
     }).state,
     "failed",
+  );
+  assertEquals(
+    transitionWalletSigningState({
+      state: "wallet_prompt_opened",
+      event: "fail",
+      failure: createWalletSigningFailure("user_rejected"),
+      txHash: hash,
+    }).ok,
+    false,
+    "Provider-level rejection failures must not carry a transaction hash.",
+  );
+  assertEquals(
+    transitionWalletSigningState({
+      state: "preview_ready",
+      event: "fail",
+    }).ok,
+    false,
+    "Failure state must require sanitized copy.",
   );
   assertEquals(
     transitionWalletSigningState({
@@ -127,6 +147,20 @@ try {
     }).ok,
     false,
     "Submit must only happen from wallet_prompt_opened.",
+  );
+  assert(isBaseWalletNetwork(8453), "Base numeric chain should pass.");
+  assert(isBaseWalletNetwork("8453"), "Base decimal chain should pass.");
+  assert(isBaseWalletNetwork("0x2105"), "Base hex chain should pass.");
+  assert(!isBaseWalletNetwork(1), "Ethereum mainnet should fail.");
+  assertEquals(
+    createWalletSigningFailure("network_mismatch").message,
+    "Wallet must be connected to Base.",
+    "Network mismatch copy must stay sanitized.",
+  );
+  assertEquals(
+    createWalletSigningFailure("unknown").message,
+    "Wallet signing failed safely.",
+    "Unknown provider errors must collapse to sanitized copy.",
   );
   assert(isTransactionHash(hash), "Valid transaction hash should pass.");
   assert(!isTransactionHash("0x1234"), "Short hash should fail.");

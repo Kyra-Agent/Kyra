@@ -277,8 +277,8 @@ Definition of done:
 - [x] Surface wallet signing state in demo review UI without provider calls.
 - [x] Define unsigned transaction handoff.
 - [x] Confirm user pays gas.
-- [ ] Handle user rejection cleanly.
-- [ ] Handle wallet/network mismatch cleanly.
+- [x] Handle user rejection cleanly.
+- [x] Handle wallet/network mismatch cleanly.
 - [x] Add tests around signing state transitions where practical.
 - [x] Add tests around unsigned handoff validation.
 

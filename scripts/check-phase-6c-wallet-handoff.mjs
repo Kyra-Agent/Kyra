@@ -173,6 +173,31 @@ assertIncludes(
 assertIncludes(
   "wallet signing state model",
   walletSigningTypes,
+  "Failed actions before submission must not include a transaction hash.",
+);
+assertIncludes(
+  "wallet signing state model",
+  walletSigningTypes,
+  "WalletSigningFailureCode",
+);
+assertIncludes(
+  "wallet signing state model",
+  walletSigningTypes,
+  "network_mismatch",
+);
+assertIncludes(
+  "wallet signing state model",
+  walletSigningTypes,
+  "Wallet must be connected to Base.",
+);
+assertIncludes(
+  "wallet signing state model",
+  walletSigningTypes,
+  "isBaseWalletNetwork",
+);
+assertIncludes(
+  "wallet signing state model",
+  walletSigningTypes,
   "isTransactionHash",
 );
 for (

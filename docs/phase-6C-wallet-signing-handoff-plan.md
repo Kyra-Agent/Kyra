@@ -44,6 +44,7 @@ Kyra must never:
    - add explicit states without provider dependency
    - keep `walletExecution` disabled
    - keep demo modal separate from real signing labels
+   - include sanitized rejection and network mismatch failure codes
    - status: done in `src/types/walletSigning.ts`
 
 3. Owner review surface
@@ -116,6 +117,8 @@ Rules:
 - `confirmed` requires confirmation data, not just a local optimistic update.
 - `failed` stores a sanitized reason only.
 - `user_rejected` must not carry a transaction hash.
+- Failure before `submitted` must not carry a transaction hash.
+- Network mismatch uses sanitized copy and must not expose provider errors.
 - Current UI integration is read-only and must not present `submitted` or
   `confirmed` states while wallet execution is disabled.
 

@@ -20,6 +20,19 @@ export type WalletSigningEvent =
   | "confirm"
   | "reset";
 
+export type WalletSigningFailureCode =
+  | "user_rejected"
+  | "network_mismatch"
+  | "provider_unavailable"
+  | "unsupported_action"
+  | "expired_handoff"
+  | "unknown";
+
+export interface WalletSigningFailure {
+  code: WalletSigningFailureCode;
+  message: string;
+}
+
 export interface WalletSigningTransitionInput {
   state: WalletSigningState;
   event: WalletSigningEvent;
@@ -27,6 +40,7 @@ export interface WalletSigningTransitionInput {
   txHash?: string | null;
   confirmationId?: string | null;
   sanitizedFailureReason?: string | null;
+  failure?: WalletSigningFailure | null;
 }
 
 export interface WalletSigningTransitionResult {
@@ -107,9 +121,14 @@ export function transitionWalletSigningState(
 
       return allowTransition("confirmed");
     case "fail":
-      if (
-        !input.sanitizedFailureReason || !input.sanitizedFailureReason.trim()
-      ) {
+      if (input.txHash && input.state !== "submitted") {
+        return rejectTransition(
+          input.state,
+          "Failed actions before submission must not include a transaction hash.",
+        );
+      }
+
+      if (!getSanitizedFailureMessage(input)) {
         return rejectTransition(
           input.state,
           "Failed actions require a sanitized reason.",
@@ -127,8 +146,45 @@ export function isTerminalWalletSigningState(state: WalletSigningState) {
     state === "confirmed";
 }
 
+export function createWalletSigningFailure(
+  code: WalletSigningFailureCode,
+): WalletSigningFailure {
+  return {
+    code,
+    message: walletSigningFailureMessages[code],
+  };
+}
+
+export function isBaseWalletNetwork(chainId: unknown): chainId is 8453 {
+  return chainId === 8453 || chainId === "8453" ||
+    String(chainId).toLowerCase() === "0x2105";
+}
+
 export function isTransactionHash(value: unknown): value is `0x${string}` {
   return typeof value === "string" && /^0x[a-fA-F0-9]{64}$/u.test(value);
+}
+
+const walletSigningFailureMessages: Record<WalletSigningFailureCode, string> = {
+  user_rejected: "User rejected the wallet request.",
+  network_mismatch: "Wallet must be connected to Base.",
+  provider_unavailable: "Wallet provider is unavailable.",
+  unsupported_action: "This action is not supported for wallet signing.",
+  expired_handoff: "Wallet approval window expired.",
+  unknown: "Wallet signing failed safely.",
+};
+
+function getSanitizedFailureMessage(
+  input: WalletSigningTransitionInput,
+): string | null {
+  if (input.failure?.message.trim()) {
+    return input.failure.message;
+  }
+
+  if (input.sanitizedFailureReason?.trim()) {
+    return input.sanitizedFailureReason;
+  }
+
+  return null;
 }
 
 function allowTransition(

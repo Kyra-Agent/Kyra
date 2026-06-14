@@ -49,6 +49,8 @@ Phase 6C must preserve:
 - Unsigned transaction handoff model exists in
   `src/types/unsignedTransactionHandoff.ts` and keeps gas payment on the
   connected wallet.
+- User rejection and Base network mismatch are represented with sanitized typed
+  failure codes before provider installation.
 
 ## Findings
 
@@ -127,6 +129,15 @@ calldata, and safe wei value formatting.
 Decision: keep this as a local validator until wallet provider dependencies are
 installed. The contract forbids private keys, seed phrases, Telegram tokens, raw
 provider payloads, and `txHash` before submission.
+
+### F10 - Rejection And Network Mismatch Are Sanitized
+
+`src/types/walletSigning.ts` now defines wallet signing failure codes for user
+rejection, Base network mismatch, unavailable providers, unsupported actions,
+expired handoffs, and unknown provider failures.
+
+Decision: provider-specific errors must collapse to sanitized copy. Failed
+states before `submitted` must not carry a transaction hash.
 
 ## Phase 6C Entry Conditions
 
