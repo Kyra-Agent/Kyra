@@ -45,6 +45,8 @@ function assertNoForbidden(sourceName, source, forbiddenTerms) {
 
 const preparedActionTypes = read("src/types/preparedAction.ts");
 const readModelDoc = read("docs/phase-6B-prepared-action-read-model.md");
+const storageDraft = read("supabase/prepared_action_storage_schema_draft.sql");
+const schema = read("supabase/schema.sql");
 const dashboardService = read("src/services/supabaseDashboardService.ts");
 const publicAgentService = read("src/services/supabasePublicAgentService.ts");
 const publicProfileFiles = [
@@ -86,6 +88,44 @@ assert(
   readModelDoc.includes("Telegram remains read-only."),
   "Prepared action read-model doc must keep Telegram read-only.",
 );
+assert(
+  !schema.includes("public.prepared_actions"),
+  "Prepared actions storage must remain unapplied in supabase/schema.sql.",
+);
+assert(
+  storageDraft.includes("DRAFT ONLY - DO NOT APPLY."),
+  "Prepared action storage draft must be marked do-not-apply.",
+);
+assert(
+  storageDraft.split(/\r?\n/u).every((line) => !line.trim() || line.trim().startsWith("--")),
+  "Prepared action storage draft must stay comment-only.",
+);
+assert(
+  storageDraft.includes("prepared_actions_request_unique unique (workspace_id, agent_id, request_id)"),
+  "Prepared action storage draft must define workspace/agent/request idempotency.",
+);
+assert(
+  storageDraft.includes("public.prepared_action_owner_summaries"),
+  "Prepared action storage draft must define an owner summary view boundary.",
+);
+assert(
+  storageDraft.includes("public.public_agent_profiles must not join prepared_actions"),
+  "Prepared action storage draft must keep public profiles isolated.",
+);
+assert(
+  storageDraft.includes("telegram-webhook must not read or write prepared_actions"),
+  "Prepared action storage draft must keep Telegram isolated.",
+);
+assertNoForbidden("prepared action storage draft", storageDraft, [
+  "raw_provider_payload jsonb",
+  "raw_calldata text",
+  "wallet_address text",
+  "private_key text",
+  "seed_phrase text",
+  "telegram_token_ref text",
+  "telegram_bot_token text",
+  "api_key text",
+]);
 
 const approvalRequestQuery = dashboardService.match(/approval_requests\?select=([^`"]+)/);
 assert(approvalRequestQuery, "Missing approval_requests dashboard query.");

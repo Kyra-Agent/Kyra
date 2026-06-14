@@ -39,6 +39,7 @@ const forbiddenPublicProfileTerms = [
   "wallet_address",
   "wallet_policies",
   "approval_requests",
+  "prepared_actions",
   "prepared_tx",
   "tx_hash",
   "token_secret_ref",

@@ -1,0 +1,170 @@
+-- DRAFT ONLY - DO NOT APPLY.
+-- Phase 6B comment-only design for prepared action idempotency and
+-- owner-scoped storage.
+--
+-- This file is intentionally comment-only and contains no executable SQL.
+-- It records the future storage contract only. Do not copy it into Supabase SQL
+-- Editor, do not run it through a migration runner, and do not apply it until a
+-- separate executable forward/rollback packet is reviewed and explicitly
+-- approved.
+--
+-- Security priority:
+-- - User privacy is number one.
+-- - User wallet security is number one.
+-- - User Telegram bot token security is number one.
+--
+-- Current Phase 6B boundary:
+-- - No live Base MCP provider call.
+-- - No wallet prompt.
+-- - No signing.
+-- - No transaction submission.
+-- - No Telegram-triggered execution.
+-- - No public prepared-action read model.
+--
+-- Proposed table: public.prepared_actions
+--
+-- Purpose:
+-- - Store owner-scoped prepared-action workflow state.
+-- - Support idempotency by workspace, agent, and request id.
+-- - Store bounded display summaries separately from backend-only provider refs.
+-- - Keep raw provider payloads, calldata, wallet material, and Telegram token
+--   refs out of browser-readable rows.
+--
+-- Proposed columns:
+-- - id uuid primary key default gen_random_uuid()
+-- - workspace_id uuid not null references public.workspaces(id) on delete cascade
+-- - agent_id uuid not null references public.agent_instances(id) on delete cascade
+-- - request_id text not null
+-- - action_kind text not null check (action_kind in ('base_mcp_status_check'))
+-- - chain text not null check (chain in ('base'))
+-- - status text not null check (
+--     status in (
+--       'draft',
+--       'preparing',
+--       'preview_ready',
+--       'review_required',
+--       'approved',
+--       'rejected',
+--       'expired',
+--       'failed'
+--     )
+--   )
+-- - risk text not null check (risk in ('read-only', 'review', 'blocked'))
+-- - route_summary text not null
+-- - value_summary text not null
+-- - approval_requirement text not null
+-- - safety_note text not null
+-- - provider text not null check (provider in ('base_mcp'))
+-- - provider_payload_ref text
+-- - expires_at timestamptz
+-- - created_at timestamptz not null default now()
+-- - updated_at timestamptz not null default now()
+-- - resolved_at timestamptz
+--
+-- Explicitly not proposed:
+-- - raw provider payload column
+-- - raw calldata column
+-- - wallet address column
+-- - private key column
+-- - seed phrase column
+-- - Telegram token ref column
+-- - Telegram bot token column
+-- - API key column
+-- - tx hash column
+--
+-- Proposed constraints:
+-- - prepared_actions_request_unique unique (workspace_id, agent_id, request_id)
+-- - prepared_actions_route_summary_len check (
+--     char_length(route_summary) between 1 and 160
+--   )
+-- - prepared_actions_value_summary_len check (
+--     char_length(value_summary) between 1 and 160
+--   )
+-- - prepared_actions_safety_note_len check (
+--     char_length(safety_note) between 1 and 200
+--   )
+-- - prepared_actions_expires_future check (
+--     expires_at is null or expires_at > created_at
+--   )
+--
+-- Proposed indexes:
+-- - prepared_actions_workspace_created_idx on (workspace_id, created_at desc)
+-- - prepared_actions_agent_created_idx on (agent_id, created_at desc)
+-- - prepared_actions_expiry_idx on (expires_at) where expires_at is not null
+--
+-- Proposed RLS:
+-- - alter table public.prepared_actions enable row level security
+-- - workspace owners may select rows for their workspace through
+--   public.owns_workspace(workspace_id)
+-- - authenticated browser clients must not insert, update, or delete rows
+-- - service_role may insert, update, and select rows after Edge Function
+--   ownership validation
+-- - anon gets no privileges
+--
+-- Proposed grants:
+-- - revoke all privileges on public.prepared_actions from public, anon,
+--   authenticated
+-- - grant select on public.prepared_actions to authenticated only if the row is
+--   summary-safe and RLS is verified
+-- - grant all on public.prepared_actions to service_role
+--
+-- Preferred owner summary view:
+-- - public.prepared_action_owner_summaries with security_invoker = true
+-- - includes only:
+--   - id
+--   - workspace_id
+--   - agent_id
+--   - action_kind
+--   - chain
+--   - status
+--   - risk
+--   - route_summary
+--   - value_summary
+--   - approval_requirement
+--   - expires_at
+--   - created_at
+--   - safety_note
+-- - excludes:
+--   - request_id
+--   - owner_user_id
+--   - provider_payload_ref
+--   - raw provider payload
+--   - raw calldata
+--   - wallet address
+--   - Telegram token refs
+--   - API keys
+--   - tx hash
+--
+-- Public boundary:
+-- - public.public_agent_profiles must not join prepared_actions.
+-- - anon must not have select on prepared_actions or
+--   prepared_action_owner_summaries.
+-- - public routes may show only high-level Base MCP status already present on
+--   public_agent_profiles.
+--
+-- Telegram boundary:
+-- - telegram-webhook must not read or write prepared_actions.
+-- - Telegram must not receive provider_payload_ref or owner summaries.
+-- - Telegram may only refuse execution or tell the owner to continue from the
+--   dashboard after dashboard/wallet flow review.
+--
+-- Idempotency behavior:
+-- - The Edge Function must derive request_id before provider access.
+-- - A second request with the same (workspace_id, agent_id, request_id) must
+--   return the existing summary or a fixed duplicate-safe response.
+-- - Duplicate handling must not execute a provider call twice.
+-- - request_id must not be user-visible public data.
+--
+-- Expiry behavior:
+-- - Expired rows must not be approvable.
+-- - Expired rows may be shown to the owner as expired summary only.
+-- - Future cleanup can delete expired non-approved rows after a retention
+--   window approved separately.
+--
+-- Future executable packet requirements:
+-- - include forward and rollback SQL
+-- - include verifier SQL
+-- - include RLS/grant verification for anon, authenticated, and service_role
+-- - include browser query checks
+-- - include Telegram refusal regression checks
+-- - require explicit approval before apply

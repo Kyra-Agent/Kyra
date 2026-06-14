@@ -4,6 +4,10 @@ Status: design and type contract only. No schema migration, wallet prompt,
 signing, transaction submission, or public prepared-action read is enabled by
 this document.
 
+Storage draft: `supabase/prepared_action_storage_schema_draft.sql`
+
+The storage draft is comment-only and marked `DRAFT ONLY - DO NOT APPLY`.
+
 ## Security Rule
 
 User privacy, user wallet security, and user Telegram bot token security are the
@@ -128,7 +132,8 @@ Before any schema migration:
 2. Keep public profiles on `public_agent_profiles`.
 3. Keep `base-mcp-prepare` default-off.
 4. Add local checks for forbidden frontend/public/Telegram references.
-5. Review owner-scoped storage shape separately.
+5. Keep `supabase/prepared_action_storage_schema_draft.sql` comment-only until
+   a forward/rollback packet is explicitly approved.
 
 Future storage must satisfy:
 
@@ -142,3 +147,11 @@ Future storage must satisfy:
 - unsupported `actionKind` fails closed
 - raw payloads never appear in public or Telegram responses
 - wallet signing remains Phase 6C
+
+Drafted storage boundaries:
+
+- unique `(workspace_id, agent_id, request_id)` idempotency
+- owner summary view excludes provider payload refs
+- public profiles must not join prepared actions
+- Telegram webhook must not read or write prepared actions
+- no raw calldata, wallet address, Telegram token ref, or API key columns

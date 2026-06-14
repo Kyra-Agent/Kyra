@@ -145,6 +145,9 @@ and keep public profiles plus Telegram away from prepared-action state.
 Current guard:
 
 - `npm run check:prepared-actions`
+- `supabase/prepared_action_storage_schema_draft.sql` must stay comment-only
+- `supabase/schema.sql` must not contain `public.prepared_actions` before an
+  explicit apply phase
 - dashboard approval query must not fetch `prepared_tx`, `tx_hash`, provider
   payloads, calldata, or Telegram token fields
 - public profile files must not reference prepared-action owner summaries
@@ -158,6 +161,9 @@ Detailed adapter contract:
 
 Prepared-action read model:
 `docs/phase-6B-prepared-action-read-model.md`
+
+Prepared-action storage draft:
+`supabase/prepared_action_storage_schema_draft.sql`
 
 Owner-facing preview fields:
 
@@ -190,6 +196,7 @@ Current first candidate:
 - no prepared-action public read model
 - no browser read of `approval_requests.prepared_tx`
 - no stale or future preparation request accepted
+- no prepared action storage SQL apply during 6B local design
 - no arbitrary swap preparation
 - no arbitrary send preparation
 - no contract call preparation
@@ -208,7 +215,7 @@ Current first candidate:
 - static frontend and Telegram call-path guards added
 - prepared-action read model documented and checked
 - live expiry/replay enforcement started in the default-off function skeleton
-- define owner-scoped storage migration
+- owner-scoped storage migration remains comment-only until explicit approval
 - confirm public profiles remain share-safe
 - run `npm run check:base-mcp`
 - run `npm run check:prepared-actions`

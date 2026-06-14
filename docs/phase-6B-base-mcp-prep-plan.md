@@ -25,6 +25,8 @@ Default-off function skeleton: `supabase/functions/base-mcp-prepare/`
 
 Prepared action read model: `docs/phase-6B-prepared-action-read-model.md`
 
+Prepared action storage draft: `supabase/prepared_action_storage_schema_draft.sql`
+
 Start by reading these areas:
 
 - `src/config/appConfig.ts`
@@ -154,6 +156,8 @@ It should not show:
 - [x] Prepared-action private storage draft keeps sensitive fields out of
       browser-safe types.
 - [x] Prepared-action boundary check blocks public/Telegram payload exposure.
+- [x] Prepared-action storage draft is comment-only and unapplied.
+- [x] Prepared-action idempotency boundary uses workspace, agent, and request id.
 - [x] Public profile cannot read prepared tx data.
 - [x] Dashboard preview shows safe summary.
 - [x] Telegram direct execution still refused.
