@@ -11,6 +11,10 @@ Audit artifact:
 
 - `docs/phase-6C-wallet-signing-handoff-audit.md`
 
+Provider decision:
+
+- `docs/phase-6C-wallet-provider-decision.md`
+
 Required predecessor:
 
 - `docs/phase-6B-review-packet.md`
@@ -34,6 +38,7 @@ Kyra must never:
    - choose first provider path
    - document dependency and security tradeoffs
    - confirm Base chain support
+   - status: done, decision is Wagmi + Viem with Base Account first
 
 2. UI-only signing state model
    - add explicit states without provider dependency

@@ -19,6 +19,7 @@ function assertIncludes(sourceName, source, text) {
 
 const audit = read("docs/phase-6C-wallet-signing-handoff-audit.md");
 const plan = read("docs/phase-6C-wallet-signing-handoff-plan.md");
+const providerDecision = read("docs/phase-6C-wallet-provider-decision.md");
 const checklist = read("docs/phase-6-wallet-base-checklist.md");
 const appConfig = read("src/config/appConfig.ts");
 const packageJson = read("package.json");
@@ -46,9 +47,27 @@ for (const boundary of [
   assertIncludes("Phase 6C plan", plan, boundary);
 }
 
+for (const decision of [
+  "Use `wagmi` with `viem` as the first wallet integration path",
+  "`baseAccount()` as the preferred Base-native connector.",
+  "`coinbaseWallet()` as a fallback connector.",
+  "Do not use direct raw `window.ethereum` as the primary app integration.",
+  "Do not install yet.",
+  "npm install wagmi viem @tanstack/react-query @base-org/account",
+  "no automatic wallet prompt on page load",
+  "sign `base_mcp_status_check`",
+]) {
+  assertIncludes("Phase 6C provider decision", providerDecision, decision);
+}
+
+assertIncludes("Phase 6C audit", audit, "Provider Path Is Chosen But Not Installed");
+assertIncludes("Phase 6C plan", plan, "docs/phase-6C-wallet-provider-decision.md");
+assertIncludes("Phase 6 checklist", checklist, "docs/phase-6C-wallet-provider-decision.md");
 assertIncludes("Phase 6 checklist", checklist, "docs/phase-6C-wallet-signing-handoff-audit.md");
 assertIncludes("Phase 6 checklist", checklist, "docs/phase-6C-wallet-signing-handoff-plan.md");
 assertIncludes("Phase 6 checklist", checklist, "Audit current signing/wallet handoff surface.");
+assertIncludes("Phase 6 checklist", checklist, "Choose first wallet provider path.");
+assertIncludes("Phase 6 checklist", checklist, "Install wallet provider dependencies after approval.");
 assertIncludes("package.json", packageJson, "\"check:phase-6c\"");
 assertIncludes("appConfig", appConfig, 'walletExecution: "disabled"');
 assertIncludes("WalletApprovalModal", walletModal, "Approve Demo");

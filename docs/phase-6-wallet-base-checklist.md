@@ -87,6 +87,7 @@ Detailed sub-plans:
 - `docs/phase-6A-wallet-readiness-plan.md`
 - `docs/phase-6B-base-mcp-prep-plan.md`
 - `docs/phase-6B-review-packet.md`
+- `docs/phase-6C-wallet-provider-decision.md`
 - `docs/phase-6C-wallet-signing-handoff-audit.md`
 - `docs/phase-6C-wallet-signing-handoff-plan.md`
 
@@ -268,7 +269,8 @@ Definition of done:
 - [x] Confirm current app has no wallet provider signing path.
 - [x] Confirm wallet prompts must be user-initiated.
 - [x] Confirm Kyra does not sign on behalf of the user.
-- [ ] Choose first wallet provider path.
+- [x] Choose first wallet provider path.
+- [ ] Install wallet provider dependencies after approval.
 - [ ] Define unsigned transaction handoff.
 - [ ] Confirm user pays gas.
 - [ ] Handle user rejection cleanly.

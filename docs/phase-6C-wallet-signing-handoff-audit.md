@@ -32,6 +32,7 @@ Phase 6C must preserve:
 - `src/types/database.ts`
 - `docs/phase-6-wallet-base-checklist.md`
 - `docs/phase-6B-review-packet.md`
+- `docs/phase-6C-wallet-provider-decision.md`
 
 ## Current State
 
@@ -85,6 +86,14 @@ signing is introduced.
 
 Decision: Telegram can at most point the owner to the dashboard after the
 dashboard path is safe. It must not trigger wallet prompts.
+
+### F6 - Provider Path Is Chosen But Not Installed
+
+The selected first path is Wagmi + Viem with the Base Account connector first,
+Coinbase Wallet connector second, and injected wallets later.
+
+Decision: do not install or wire wallet dependencies until the UI-only signing
+state model is added and reviewed. `walletExecution` remains disabled.
 
 ## Phase 6C Entry Conditions
 
