@@ -52,17 +52,26 @@ Kyra must never:
    - show reject/cancel before wallet prompt
    - status: started in `WalletApprovalModal` as read-only demo signing state
 
-4. Prepared action storage activation
+4. Unsigned transaction handoff contract
+   - define the browser-safe handoff shape before provider installation
+   - require Base chain id `8453`
+   - require `connected_wallet` as the gas payer
+   - reject `base_mcp_status_check` as a signable action
+   - forbid private key, seed phrase, Telegram token, raw provider payload, and
+     transaction hash fields
+   - status: done in `src/types/unsignedTransactionHandoff.ts`
+
+5. Prepared action storage activation
    - only after SQL apply approval
    - only after verifier passes
    - storage remains owner-scoped
 
-5. Provider integration behind a disabled gate
+6. Provider integration behind a disabled gate
    - no Telegram path
    - no automatic prompt on page load
    - prompt only after explicit owner click
 
-6. Submission/result tracking
+7. Submission/result tracking
    - store `tx_hash` only after wallet submission returns a hash
    - store sanitized failures
    - keep public profiles share-safe
@@ -79,6 +88,7 @@ It must have:
 - chain id
 - target/route summary
 - spend/value summary
+- connected wallet as gas payer
 - expiry
 - risk classification
 - reject path

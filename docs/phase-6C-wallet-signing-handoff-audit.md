@@ -46,13 +46,16 @@ Phase 6C must preserve:
 - UI-only wallet signing state model exists in `src/types/walletSigning.ts`.
 - `WalletApprovalModal` displays the signing state as read-only demo context and
   does not open a wallet provider.
+- Unsigned transaction handoff model exists in
+  `src/types/unsignedTransactionHandoff.ts` and keeps gas payment on the
+  connected wallet.
 
 ## Findings
 
 ### F1 - No Wallet Provider Path Exists Yet
 
-There is no wagmi, viem, ethers, Coinbase Wallet SDK, or Base Account SDK path in
-the app today.
+There is no wagmi, viem, ethers, Coinbase Wallet SDK, or Base Account SDK path
+in the app today.
 
 Decision: Phase 6C must start with an explicit provider choice and dependency
 review before implementation.
@@ -79,13 +82,13 @@ and owner-scoped storage that has passed SQL verification.
 `approval_requests.tx_hash` exists in the schema for future use, but dashboard
 reads do not fetch it.
 
-Decision: only persist `tx_hash` after user-initiated wallet submission returns a
-hash. Never persist a hash placeholder or raw provider response.
+Decision: only persist `tx_hash` after user-initiated wallet submission returns
+a hash. Never persist a hash placeholder or raw provider response.
 
 ### F5 - Telegram Must Not Bypass Dashboard/Wallet Approval
 
-Telegram currently refuses execution. This must remain true while wallet
-signing is introduced.
+Telegram currently refuses execution. This must remain true while wallet signing
+is introduced.
 
 Decision: Telegram can at most point the owner to the dashboard after the
 dashboard path is safe. It must not trigger wallet prompts.
@@ -114,6 +117,17 @@ resets without creating `submitted`, `confirmed`, or `tx_hash` state.
 Decision: this is acceptable as a UI-only bridge. Do not treat demo approval as
 real wallet approval.
 
+### F9 - Unsigned Handoff Is Typed But Not Wired
+
+`src/types/unsignedTransactionHandoff.ts` defines the first browser-safe
+unsigned transaction handoff contract. It requires Base chain id `8453`,
+`connected_wallet` as gas payer, bounded expiry, valid target address, hex
+calldata, and safe wei value formatting.
+
+Decision: keep this as a local validator until wallet provider dependencies are
+installed. The contract forbids private keys, seed phrases, Telegram tokens, raw
+provider payloads, and `txHash` before submission.
+
 ## Phase 6C Entry Conditions
 
 Do not implement live signing until:
@@ -126,6 +140,7 @@ Do not implement live signing until:
 - Chain/network mismatch behavior is defined.
 - User rejection behavior is defined.
 - Transaction state machine is defined.
+- Unsigned handoff validation passes before provider integration.
 
 ## Candidate State Machine
 
@@ -161,11 +176,12 @@ No state should imply onchain completion before a transaction hash exists.
 - `npm run check:prepared-actions`
 - `npm run check:privacy`
 - `npm run check:functions`
+- `npm run test:unsigned-handoff`
 - `npm run build`
 - targeted wallet handoff tests after provider code exists
 
 ## Current Recommendation
 
-Do not implement live signing yet. The next safe step is a Phase 6C plan plus a
-wallet-provider decision record, then a UI-only signing state model with no
-provider dependency.
+Do not implement live signing yet. The next safe step is a UI-only owner review
+flow for unsigned handoff validation, then wallet provider dependency
+installation behind a disabled gate after approval.

@@ -27,6 +27,9 @@ const walletModal = read("src/components/WalletApprovalModal.tsx");
 const app = read("src/App.tsx");
 const dashboardService = read("src/services/supabaseDashboardService.ts");
 const walletSigningTypes = read("src/types/walletSigning.ts");
+const unsignedTransactionHandoffTypes = read(
+  "src/types/unsignedTransactionHandoff.ts",
+);
 
 for (
   const boundary of [
@@ -110,6 +113,7 @@ assertIncludes(
 );
 assertIncludes("package.json", packageJson, '"check:phase-6c"');
 assertIncludes("package.json", packageJson, '"test:wallet-signing"');
+assertIncludes("package.json", packageJson, '"test:unsigned-handoff"');
 assertIncludes("appConfig", appConfig, 'walletExecution: "disabled"');
 assertIncludes("WalletApprovalModal", walletModal, "Approve Demo");
 assertIncludes("WalletApprovalModal", walletModal, "Demo only");
@@ -170,6 +174,36 @@ assertIncludes(
   "wallet signing state model",
   walletSigningTypes,
   "isTransactionHash",
+);
+for (
+  const boundary of [
+    "WalletUnsignedTransactionHandoff",
+    "baseChainId = 8453",
+    'walletSignableActionKinds = ["base_reviewed_transaction"] as const',
+    "gasPayer: WalletGasPayer",
+    "connected_wallet",
+    "privateKey?: never",
+    "seedPhrase?: never",
+    "telegramToken?: never",
+    "rawProviderPayload?: never",
+    "txHash?: never",
+    "Read-only status checks cannot be signed.",
+    "The connected wallet must pay gas.",
+    "Wallet handoff expiry window is too long.",
+    "isEvmAddress",
+    "isHexData",
+    "isSafeValueWei",
+  ]
+) {
+  assertIncludes(
+    "unsigned transaction handoff model",
+    unsignedTransactionHandoffTypes,
+    boundary,
+  );
+}
+assert(
+  !unsignedTransactionHandoffTypes.includes("walletAddress:"),
+  "Unsigned transaction handoff must not persist wallet address as a required field.",
 );
 assert(
   !dashboardService.includes("prepared_tx") &&

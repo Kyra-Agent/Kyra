@@ -5,12 +5,12 @@ Phase 6 goal: connect Kyra's execution layer safely without weakening the Phase
 
 ## Product Objective
 
-Move Kyra from read-only Telegram + LLM planning into wallet-approved Base action
-preparation.
+Move Kyra from read-only Telegram + LLM planning into wallet-approved Base
+action preparation.
 
 Kyra should be able to prepare an action, show the risk and transaction context,
-and ask the user's wallet for approval. Kyra must not custody keys, bypass wallet
-approval, or execute hidden transactions.
+and ask the user's wallet for approval. Kyra must not custody keys, bypass
+wallet approval, or execute hidden transactions.
 
 Primary rule: user privacy and security are the first priority. Every Phase 6
 decision should prefer less exposure, less persistence, and narrower access when
@@ -154,7 +154,8 @@ Target result:
 - No wallet custody.
 - No hidden transaction execution.
 - No Telegram-triggered execution until wallet approval policy is reviewed.
-- No Base MCP transaction path without simulation, review, and explicit approval.
+- No Base MCP transaction path without simulation, review, and explicit
+  approval.
 - No production gate enablement before local tests and live smoke are done.
 
 ## Phase 6 Flow
@@ -180,7 +181,8 @@ Target result:
 
 Definition of done:
 
-- The app can represent wallet connection state without storing private material.
+- The app can represent wallet connection state without storing private
+  material.
 - The dashboard can show safe wallet readiness state.
 - Public pages do not leak private wallet details.
 
@@ -273,11 +275,12 @@ Definition of done:
 - [ ] Install wallet provider dependencies after approval.
 - [x] Add UI-only wallet signing state model.
 - [x] Surface wallet signing state in demo review UI without provider calls.
-- [ ] Define unsigned transaction handoff.
-- [ ] Confirm user pays gas.
+- [x] Define unsigned transaction handoff.
+- [x] Confirm user pays gas.
 - [ ] Handle user rejection cleanly.
 - [ ] Handle wallet/network mismatch cleanly.
-- [ ] Add tests around signing state transitions where practical.
+- [x] Add tests around signing state transitions where practical.
+- [x] Add tests around unsigned handoff validation.
 
 Definition of done:
 
@@ -285,7 +288,8 @@ Definition of done:
 
 ## Step 7 - Execution Result Logging
 
-- [ ] Store pending, approved, rejected, submitted, failed, and confirmed states.
+- [ ] Store pending, approved, rejected, submitted, failed, and confirmed
+      states.
 - [ ] Store transaction hash only after submission.
 - [ ] Store sanitized failure reason.
 - [ ] Show result in dashboard activity.
