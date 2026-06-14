@@ -2,8 +2,9 @@
 
 Decision date: 2026-06-15
 
-Status: decision record only. No dependency is installed, no provider is wired,
-and `walletExecution` remains disabled.
+Status: provider dependencies installed behind a disabled runtime gate. No
+wallet prompt, signing path, transaction submission, or `tx_hash` persistence is
+enabled. `walletExecution` remains disabled.
 
 ## Decision
 
@@ -31,22 +32,30 @@ Do not use direct raw `window.ethereum` as the primary app integration.
 References:
 
 - Wagmi getting started: https://wagmi.sh/react/getting-started
-- Wagmi `baseAccount` connector: https://wagmi.sh/react/api/connectors/baseAccount
-- Wagmi `coinbaseWallet` connector: https://wagmi.sh/react/api/connectors/coinbaseWallet
+- Wagmi `baseAccount` connector:
+  https://wagmi.sh/react/api/connectors/baseAccount
+- Wagmi `coinbaseWallet` connector:
+  https://wagmi.sh/react/api/connectors/coinbaseWallet
 - Viem getting started: https://viem.sh/docs/getting-started
 - EIP-1193 provider API: https://eips.ethereum.org/EIPS/eip-1193
 - Base Account product overview: https://www.base.org/build/base-account
 
 ## Dependency Boundary
 
-Do not install yet. The future install candidate is:
+Approved install:
 
 ```powershell
 npm install wagmi viem @tanstack/react-query @base-org/account
 ```
 
-This install requires a separate approval because it changes bundle size,
-browser wallet behavior, and user-facing consent flows.
+Dependencies are installed, but no wallet execution path is enabled. The install
+changes bundle shape only; user-facing wallet consent flows remain disabled
+until a separate wiring review.
+
+Bundle note: Base Account dependencies emit additional wallet runtime chunks and
+a WASM asset during build. The runtime provider is lazy-loaded and stays unused
+while `walletExecution` is disabled, but deployment should still be reviewed
+before pushing because the hosted asset set is larger.
 
 ## Required Runtime Gates
 
@@ -98,8 +107,10 @@ The provider path must never:
 ## Implementation Sequence
 
 1. Add UI-only wallet signing state types.
-2. Add provider dependency only after approval.
+2. Add provider dependency only after approval. Done.
 3. Add `WagmiProvider` and `QueryClientProvider` behind a disabled wallet gate.
+   Done with a light boundary in `src/providers/WalletProviderBoundary.tsx` and
+   lazy runtime providers in `src/providers/WalletRuntimeProviders.tsx`.
 4. Add connection status read-only UI.
 5. Add chain validation for Base.
 6. Add explicit owner-click prompt flow.
@@ -108,7 +119,10 @@ The provider path must never:
 
 ## Test Criteria
 
-- No provider dependency exists before install approval.
+- Provider dependencies are installed only after approval.
+- Provider boundary returns children without Wagmi when wallet execution is
+  disabled.
+- Wagmi runtime code is lazy-loaded only when wallet execution is enabled.
 - Build passes with wallet execution disabled.
 - Signed-out users cannot request a wallet prompt.
 - Telegram cannot request a wallet prompt.

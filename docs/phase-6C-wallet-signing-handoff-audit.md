@@ -37,6 +37,9 @@ Phase 6C must preserve:
 ## Current State
 
 - `appConfig.integrations.walletExecution` is `disabled`.
+- Wagmi, Viem, React Query, and Base Account dependencies are installed behind
+  `src/providers/WalletProviderBoundary.tsx`; the actual runtime providers live
+  in `src/providers/WalletRuntimeProviders.tsx`.
 - `WalletApprovalModal` is a demo modal and does not call a wallet provider.
 - Dashboard wallet readiness is owner-only and derived from `wallet_policies`.
 - Dashboard approval reads do not fetch `prepared_tx` or `tx_hash`.
@@ -56,13 +59,15 @@ Phase 6C must preserve:
 
 ## Findings
 
-### F1 - No Wallet Provider Path Exists Yet
+### F1 - Wallet Provider Path Is Installed But Gated
 
-There is no wagmi, viem, ethers, Coinbase Wallet SDK, or Base Account SDK path
-in the app today.
+Wagmi, Viem, React Query, and Base Account dependencies are installed. The root
+app is wrapped in `WalletProviderBoundary`, but that boundary returns children
+without `WagmiProvider` while `walletExecution` is disabled. Runtime provider
+code is lazy-loaded only when wallet execution is enabled.
 
-Decision: Phase 6C must start with an explicit provider choice and dependency
-review before implementation.
+Decision: keep `walletExecution` disabled until owner-click prompt behavior,
+prepared-action storage, and first signable action are reviewed.
 
 ### F2 - Demo Approval Must Not Become Real Signing Accidentally
 
@@ -97,13 +102,13 @@ is introduced.
 Decision: Telegram can at most point the owner to the dashboard after the
 dashboard path is safe. It must not trigger wallet prompts.
 
-### F6 - Provider Path Is Chosen But Not Installed
+### F6 - Provider Path Is Installed But Not Enabled
 
 The selected first path is Wagmi + Viem with the Base Account connector first,
 Coinbase Wallet connector second, and injected wallets later.
 
-Decision: do not install or wire wallet dependencies until the UI-only signing
-state model is added and reviewed. `walletExecution` remains disabled.
+Decision: dependencies may stay installed, but wallet execution remains
+disabled. No wallet prompt should open on page load or from Telegram.
 
 ### F7 - Signing State Model Is UI-Only
 
@@ -158,7 +163,7 @@ Do not implement live signing until:
 - Prepared-action storage SQL is approved, applied, and verified.
 - A first signable action kind is selected separately from
   `base_mcp_status_check`.
-- Wallet provider dependency is reviewed.
+- Wallet provider dependency is reviewed and installed behind a disabled gate.
 - Chain/network mismatch behavior is defined.
 - User rejection behavior is defined.
 - Transaction state machine is defined.

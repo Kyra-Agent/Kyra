@@ -9,14 +9,18 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
+        "npm:@base-org/account@^2.5.6",
+        "npm:@tanstack/react-query@^5.101.0",
         "npm:@types/react-dom@^18.3.0",
         "npm:@types/react@^18.3.3",
         "npm:@vitejs/plugin-react@^4.3.1",
         "npm:lucide-react@0.468",
         "npm:react-dom@^18.3.1",
         "npm:react@^18.3.1",
-        "npm:typescript@^5.5.4",
-        "npm:vite@^5.4.2"
+        "npm:typescript@^5.9.3",
+        "npm:viem@^2.52.2",
+        "npm:vite@^5.4.2",
+        "npm:wagmi@^3.6.16"
       ]
     }
   }

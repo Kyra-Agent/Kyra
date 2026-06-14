@@ -272,7 +272,8 @@ Definition of done:
 - [x] Confirm wallet prompts must be user-initiated.
 - [x] Confirm Kyra does not sign on behalf of the user.
 - [x] Choose first wallet provider path.
-- [ ] Install wallet provider dependencies after approval.
+- [x] Install wallet provider dependencies after approval.
+- [x] Add disabled wallet provider boundary without wallet prompts.
 - [x] Add UI-only wallet signing state model.
 - [x] Surface wallet signing state in demo review UI without provider calls.
 - [x] Surface unsigned handoff validation in demo review UI without provider

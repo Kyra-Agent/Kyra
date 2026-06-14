@@ -35,15 +35,19 @@
     "preview": "vite preview --host localhost"
   },
   "dependencies": {
+    "@base-org/account": "^2.5.6",
+    "@tanstack/react-query": "^5.101.0",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "viem": "^2.52.2",
+    "wagmi": "^3.6.16"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
-    "typescript": "^5.5.4",
+    "typescript": "^5.9.3",
     "vite": "^5.4.2"
   }
 }

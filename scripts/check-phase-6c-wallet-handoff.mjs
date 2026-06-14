@@ -30,6 +30,9 @@ const walletSigningTypes = read("src/types/walletSigning.ts");
 const unsignedTransactionHandoffTypes = read(
   "src/types/unsignedTransactionHandoff.ts",
 );
+const walletProviderBoundary = read("src/providers/WalletProviderBoundary.tsx");
+const walletRuntimeProviders = read("src/providers/WalletRuntimeProviders.tsx");
+const main = read("src/main.tsx");
 
 for (
   const boundary of [
@@ -62,7 +65,7 @@ for (
     "`baseAccount()` as the preferred Base-native connector.",
     "`coinbaseWallet()` as a fallback connector.",
     "Do not use direct raw `window.ethereum` as the primary app integration.",
-    "Do not install yet.",
+    "Dependencies are installed, but no wallet execution path is enabled.",
     "npm install wagmi viem @tanstack/react-query @base-org/account",
     "no automatic wallet prompt on page load",
     "sign `base_mcp_status_check`",
@@ -74,7 +77,7 @@ for (
 assertIncludes(
   "Phase 6C audit",
   audit,
-  "Provider Path Is Chosen But Not Installed",
+  "Provider Path Is Installed But Not Enabled",
 );
 assertIncludes(
   "Phase 6C plan",
@@ -114,7 +117,42 @@ assertIncludes(
 assertIncludes("package.json", packageJson, '"check:phase-6c"');
 assertIncludes("package.json", packageJson, '"test:wallet-signing"');
 assertIncludes("package.json", packageJson, '"test:unsigned-handoff"');
+assertIncludes("package.json", packageJson, '"wagmi"');
+assertIncludes("package.json", packageJson, '"viem"');
+assertIncludes("package.json", packageJson, '"@tanstack/react-query"');
+assertIncludes("package.json", packageJson, '"@base-org/account"');
 assertIncludes("appConfig", appConfig, 'walletExecution: "disabled"');
+assertIncludes("main", main, "WalletProviderBoundary");
+for (
+  const boundary of [
+    "lazy",
+    "Suspense",
+    "fallback={null}",
+    "WalletRuntimeProviders",
+    'appConfig.integrations.walletExecution === "disabled"',
+  ]
+) {
+  assertIncludes("WalletProviderBoundary", walletProviderBoundary, boundary);
+}
+assert(
+  !walletProviderBoundary.includes("window.ethereum"),
+  "Wallet provider boundary must not use raw window.ethereum.",
+);
+for (
+  const boundary of [
+    "WagmiProvider",
+    "QueryClientProvider",
+    "baseAccount()",
+    "coinbaseWallet",
+    "reconnectOnMount={false}",
+  ]
+) {
+  assertIncludes("WalletRuntimeProviders", walletRuntimeProviders, boundary);
+}
+assert(
+  !walletRuntimeProviders.includes("window.ethereum"),
+  "Wallet runtime providers must not use raw window.ethereum.",
+);
 assertIncludes("WalletApprovalModal", walletModal, "Approve Demo");
 assertIncludes("WalletApprovalModal", walletModal, "Demo only");
 assertIncludes(
@@ -255,11 +293,9 @@ assert(
   "Dashboard service must keep prepared_tx and tx_hash out of owner reads before 6C implementation.",
 );
 assert(
-  !packageJson.includes("wagmi") &&
-    !packageJson.includes("viem") &&
-    !packageJson.includes("ethers") &&
+  !packageJson.includes("ethers") &&
     !packageJson.includes("@coinbase/wallet-sdk"),
-  "Wallet provider dependencies must not be added before the provider decision record.",
+  "Wallet provider dependency set must stay on the approved Wagmi/Viem path.",
 );
 
 console.log("Phase 6C wallet handoff checks passed.");

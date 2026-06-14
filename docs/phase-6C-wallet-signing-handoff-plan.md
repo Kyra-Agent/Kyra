@@ -73,6 +73,8 @@ Kyra must never:
    - no Telegram path
    - no automatic prompt on page load
    - prompt only after explicit owner click
+   - status: dependencies installed and provider boundary added while
+     `walletExecution` remains disabled
 
 7. Submission/result tracking
    - store `tx_hash` only after wallet submission returns a hash
