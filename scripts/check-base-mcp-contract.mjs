@@ -126,8 +126,16 @@ assert(
   "Base MCP function must verify ownership before adapter calls.",
 );
 assert(
+  functionCore.includes("storePreparedActionSummary"),
+  "Base MCP function must expose only an optional prepared-action storage hook.",
+);
+assert(
   !functionDependencies.includes("prepareBaseMcpAction"),
   "Base MCP runtime dependencies must not wire a live adapter yet.",
+);
+assert(
+  !functionDependencies.includes("storePreparedActionSummary"),
+  "Base MCP runtime dependencies must not wire prepared-action storage yet.",
 );
 assert(
   /\[functions\.base-mcp-prepare\]\s+verify_jwt\s*=\s*true/su.test(supabaseConfig),

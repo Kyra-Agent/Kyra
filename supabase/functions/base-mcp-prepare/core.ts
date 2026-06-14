@@ -66,6 +66,24 @@ interface BaseMcpPrepareFailure {
 
 type BaseMcpPrepareResult = BaseMcpPrepareSuccess | BaseMcpPrepareFailure;
 
+export interface BaseMcpPreparedActionStorageInput {
+  ownerUserId: string;
+  workspaceId: string;
+  agentId: string;
+  requestId: string;
+  requestedAt: string;
+  actionKind: BaseMcpActionKind;
+  chain: "Base";
+  routeSummary: string;
+  valueSummary: string;
+  risk: "read-only";
+  expiryIso: string | null;
+}
+
+interface BaseMcpPreparedActionStorageResult {
+  ok: true;
+}
+
 export interface BaseMcpPrepareDependencies {
   baseMcpPrepareRuntimeConfig?: BaseMcpPrepareRuntimeConfig;
   getEnv?: (key: string) => string;
@@ -83,6 +101,9 @@ export interface BaseMcpPrepareDependencies {
     input: BaseMcpPrepareRequest,
     runtimeConfig: Extract<BaseMcpPrepareRuntimeConfig, { enabled: true }>,
   ) => Promise<BaseMcpPrepareResult>;
+  storePreparedActionSummary?: (
+    input: BaseMcpPreparedActionStorageInput,
+  ) => Promise<BaseMcpPreparedActionStorageResult>;
 }
 
 interface ParsedBaseMcpPrepareBody
@@ -174,6 +195,18 @@ export async function handleBaseMcpPrepareRequest(
         ),
         now,
       );
+
+      if (result.ok && dependencies.storePreparedActionSummary) {
+        assertBaseMcpPreparedActionStorageResult(
+          await dependencies.storePreparedActionSummary(
+            createPreparedActionStorageInput(
+              allowedPrepareRequest,
+              result.summary,
+              ownerUserId,
+            ),
+          ),
+        );
+      }
 
       return baseMcpResultResponse(result);
     } catch (error) {
@@ -321,6 +354,38 @@ function assertBaseMcpPrepareFailure(
   }
 
   return result as unknown as BaseMcpPrepareFailure;
+}
+
+function assertBaseMcpPreparedActionStorageResult(
+  result: unknown,
+): asserts result is BaseMcpPreparedActionStorageResult {
+  if (
+    !isPlainRecord(result) ||
+    Object.keys(result).sort().join(",") !== "ok" ||
+    result.ok !== true
+  ) {
+    throw invalidBaseMcpAdapterResponse();
+  }
+}
+
+function createPreparedActionStorageInput(
+  request: BaseMcpPrepareRequest,
+  summary: BaseMcpPreparedActionSummary,
+  ownerUserId: string,
+): BaseMcpPreparedActionStorageInput {
+  return {
+    ownerUserId,
+    workspaceId: request.workspaceId,
+    agentId: request.agentId,
+    requestId: request.requestId,
+    requestedAt: request.requestedAt,
+    actionKind: summary.actionKind,
+    chain: summary.chain,
+    routeSummary: summary.routeSummary,
+    valueSummary: summary.valueSummary,
+    risk: summary.risk,
+    expiryIso: summary.expiryIso,
+  };
 }
 
 function baseMcpResultResponse(result: BaseMcpPrepareResult) {

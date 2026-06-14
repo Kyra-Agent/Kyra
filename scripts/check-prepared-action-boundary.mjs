@@ -52,6 +52,8 @@ const verifierReview = read("supabase/verify_prepared_action_storage_review.sql"
 const schema = read("supabase/schema.sql");
 const dashboardService = read("src/services/supabaseDashboardService.ts");
 const publicAgentService = read("src/services/supabasePublicAgentService.ts");
+const baseMcpPrepareCore = read("supabase/functions/base-mcp-prepare/core.ts");
+const baseMcpPrepareDependencies = read("supabase/functions/base-mcp-prepare/dependencies.ts");
 const publicProfileFiles = [
   "src/pages/PublicAgent.tsx",
   "src/services/supabasePublicAgentService.ts",
@@ -224,6 +226,22 @@ for (const path of telegramWebhookFiles) {
 assert(
   publicAgentService.includes("public_agent_profiles?select=*"),
   "Public agent service must stay on share-safe public_agent_profiles.",
+);
+assert(
+  baseMcpPrepareCore.includes("BaseMcpPreparedActionStorageInput"),
+  "Base MCP prepare function must define a bounded storage input contract.",
+);
+assert(
+  baseMcpPrepareCore.includes("createPreparedActionStorageInput"),
+  "Base MCP prepare function must create storage input from sanitized preview summaries.",
+);
+assert(
+  !baseMcpPrepareCore.includes("providerPayloadRef"),
+  "Base MCP prepare storage input must not carry provider payload refs.",
+);
+assert(
+  !baseMcpPrepareDependencies.includes("storePreparedActionSummary"),
+  "Base MCP runtime dependencies must not wire prepared-action storage yet.",
 );
 
 console.log("Prepared action boundary checks passed.");

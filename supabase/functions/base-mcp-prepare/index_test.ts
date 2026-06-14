@@ -447,6 +447,115 @@ Deno.test("base-mcp-prepare returns bounded status-check preview from injected a
   );
 });
 
+Deno.test("base-mcp-prepare stores only sanitized prepared-action summary after preview success", async () => {
+  const storedInputs: unknown[] = [];
+  const response = await handleBaseMcpPrepareRequest(
+    makeRequest({
+      authorization: "Bearer session",
+      contentType: "application/json",
+    }),
+    createEnabledDependencies({
+      storePreparedActionSummary: async (input) => {
+        storedInputs.push(input);
+        return { ok: true };
+      },
+    }),
+  );
+  const body = await readJson(response);
+  const serializedResponse = JSON.stringify(body);
+  const serializedStorageInput = JSON.stringify(storedInputs[0]);
+
+  assertEquals(response.status, 200);
+  assertEquals(storedInputs.length, 1);
+  assertEquals(body.ok, true);
+  assert(
+    serializedStorageInput.includes(ownerUserId),
+    "Storage input needs owner scope.",
+  );
+  assert(
+    serializedStorageInput.includes(workspaceId),
+    "Storage input needs workspace scope.",
+  );
+  assert(
+    !serializedStorageInput.includes("opaquePayloadRef"),
+    "Storage input must not carry opaque provider payload refs.",
+  );
+  assert(
+    !serializedStorageInput.includes("https://base-mcp.test"),
+    "Storage input must hide provider endpoint.",
+  );
+  assert(
+    !serializedStorageInput.includes("apiKey"),
+    "Storage input must hide API key fields.",
+  );
+  assert(
+    !serializedStorageInput.includes("rawCalldata"),
+    "Storage input must not carry raw calldata fields.",
+  );
+  assert(
+    !serializedResponse.includes(ownerUserId),
+    "Response must hide owner id.",
+  );
+  assert(
+    !serializedResponse.includes(workspaceId),
+    "Response must hide workspace id.",
+  );
+});
+
+Deno.test("base-mcp-prepare does not store before successful preview and sanitizes storage failure", async () => {
+  let storageCalls = 0;
+  const adapterFailureResponse = await handleBaseMcpPrepareRequest(
+    makeRequest({
+      authorization: "Bearer session",
+      contentType: "application/json",
+    }),
+    createEnabledDependencies({
+      prepareBaseMcpAction: async () => ({
+        ok: false,
+        status: "blocked",
+        code: "base_mcp_timeout",
+        message: "Base MCP preparation timed out.",
+      }),
+      storePreparedActionSummary: async () => {
+        storageCalls += 1;
+        return { ok: true };
+      },
+    }),
+  );
+  const adapterFailureBody = await readJson(adapterFailureResponse);
+
+  assertEquals(adapterFailureResponse.status, 504);
+  assertEquals(adapterFailureBody.code, "base_mcp_timeout");
+  assertEquals(storageCalls, 0);
+
+  const storageFailureResponse = await handleBaseMcpPrepareRequest(
+    makeRequest({
+      authorization: "Bearer session",
+      contentType: "application/json",
+    }),
+    createEnabledDependencies({
+      storePreparedActionSummary: async () => {
+        storageCalls += 1;
+        throw new Error("prepared_actions raw provider payload leaked");
+      },
+    }),
+  );
+  const storageFailureBody = await readJson(storageFailureResponse);
+  const serialized = JSON.stringify(storageFailureBody);
+
+  assertEquals(storageFailureResponse.status, 502);
+  assertEquals(storageFailureBody.code, "base_mcp_unavailable");
+  assertEquals(
+    storageFailureBody.message,
+    "No Base MCP action can be prepared right now.",
+  );
+  assertEquals(storageCalls, 1);
+  assert(
+    !serialized.includes("raw provider payload"),
+    "Response must hide storage errors.",
+  );
+});
+
 Deno.test("base-mcp-prepare sanitizes adapter errors and invalid adapter payloads", async () => {
   const expiredPreview = new Date(fixedNow.getTime() - 1).toISOString();
   const farFuturePreview = new Date(

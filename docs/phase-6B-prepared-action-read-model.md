@@ -17,6 +17,14 @@ Review SQL packet:
 These files are review artifacts only. They must not be applied without a
 separate target-project approval.
 
+Runtime storage hook:
+
+- `supabase/functions/base-mcp-prepare/core.ts`
+- `BaseMcpPreparedActionStorageInput`
+
+The hook is optional and contract-tested only. Runtime dependencies do not wire
+it yet, so there is still no prepared-action database write in production.
+
 ## Security Rule
 
 User privacy, user wallet security, and user Telegram bot token security are the
@@ -158,6 +166,11 @@ Future storage must satisfy:
 - unsupported `actionKind` fails closed
 - raw payloads never appear in public or Telegram responses
 - wallet signing remains Phase 6C
+
+Prepared-action storage inputs must be built from sanitized preview summaries
+only. They may carry owner/workspace/agent/request scope for backend
+authorization, but must not carry provider payload refs, endpoint URLs, API
+keys, raw calldata, wallet addresses, or Telegram token refs.
 
 Drafted storage boundaries:
 
