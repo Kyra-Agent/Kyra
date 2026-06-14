@@ -2693,6 +2693,59 @@ h2 {
   background: rgba(255, 255, 255, 0.035);
 }
 
+.wallet-readiness-card {
+  display: grid;
+  gap: 0.7rem;
+  margin-bottom: 0.75rem;
+  padding: 0.82rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.wallet-readiness-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.wallet-readiness-header small,
+.wallet-readiness-card > small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.wallet-readiness-header strong,
+.wallet-readiness-grid strong {
+  display: block;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.wallet-readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.wallet-readiness-grid span {
+  display: grid;
+  gap: 0.18rem;
+  min-height: 58px;
+  padding: 0.58rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.wallet-readiness-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .backend-table-list article {
   display: grid;
   grid-template-columns: minmax(8rem, 0.7fr) minmax(5rem, 0.32fr) 1fr;

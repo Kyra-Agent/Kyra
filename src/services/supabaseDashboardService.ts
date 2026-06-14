@@ -8,6 +8,7 @@ import type {
   DemoTelegramSessionSummary,
   DemoTelegramWebhookStatus,
   DemoWalletPolicy,
+  DemoWalletReadiness,
   DemoWorkspaceRecord,
 } from "../types/backend";
 import type { KyraDatabase } from "../types/database";
@@ -42,6 +43,7 @@ export interface SupabaseDashboardData {
   agentInstances: DemoAgentInstance[];
   approvalRequests: DemoApprovalRequest[];
   walletPolicies: DemoWalletPolicy[];
+  walletReadiness: DemoWalletReadiness;
   backendTables: DemoBackendTable[];
   activityLogs: DemoActivityLog[];
   telegramSessions: DemoTelegramSessionSummary[];
@@ -220,6 +222,68 @@ function mapWalletPolicy(row: WalletPolicyRow): DemoWalletPolicy[] {
   ];
 }
 
+function createWalletReadiness(rows: WalletPolicyRow[]): DemoWalletReadiness {
+  const policy = rows[0];
+  const privacyNote = "Owner-only dashboard data. Public profiles never show wallet details.";
+
+  if (!policy) {
+    return {
+      state: "not_connected",
+      label: "No wallet policy",
+      addressLabel: "Not connected",
+      network: "Base pending",
+      approvalGate: "Not created",
+      execution: "Disabled",
+      nextAction: "Deploy an agent before wallet readiness checks.",
+      privacyNote,
+    };
+  }
+
+  const addressLabel = policy.wallet_address
+    ? shortenAddress(policy.wallet_address)
+    : "No live wallet connected";
+  const approvalGate = policy.approval_required ? "Required" : "Optional";
+
+  if (appConfig.integrations.walletExecution === "disabled") {
+    return {
+      state: "execution_disabled",
+      label: "Execution disabled",
+      addressLabel,
+      network: "Base",
+      approvalGate,
+      execution: "Disabled",
+      nextAction: policy.wallet_address
+        ? "Review wallet readiness before Base MCP preparation."
+        : "Connect an owner wallet only after provider and permission review.",
+      privacyNote,
+    };
+  }
+
+  if (policy.status !== "active") {
+    return {
+      state: "not_connected",
+      label: "Policy simulated",
+      addressLabel,
+      network: "Base pending",
+      approvalGate,
+      execution: "Blocked",
+      nextAction: "Activate a reviewed owner wallet policy before preparing actions.",
+      privacyNote,
+    };
+  }
+
+  return {
+    state: "connected_ready_for_approval",
+    label: "Ready for approval",
+    addressLabel,
+    network: "Base",
+    approvalGate,
+    execution: "Ready for approval",
+    nextAction: "Prepare a bounded action preview before asking the wallet to sign.",
+    privacyNote,
+  };
+}
+
 function formatTimestamp(value: string) {
   return new Date(value).toLocaleTimeString("en-US", {
     hour: "2-digit",
@@ -361,6 +425,7 @@ export async function fetchSupabaseDashboardData(
           mapApprovalRequest(request, agentTemplateLookup),
         ),
         walletPolicies: walletPolicies.flatMap(mapWalletPolicy).slice(0, 6),
+        walletReadiness: createWalletReadiness(walletPolicies),
         backendTables: createBackendTables(
           workspaces,
           agents,

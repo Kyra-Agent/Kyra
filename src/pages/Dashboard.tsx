@@ -60,6 +60,8 @@ import type {
   DemoRecordStatus,
   DemoTelegramSessionSummary,
   DemoTelegramWebhookStatus,
+  DemoWalletReadiness,
+  DemoWalletReadinessState,
 } from "../types/backend";
 
 interface DashboardProps {
@@ -151,6 +153,36 @@ function getDashboardReadinessLabel(status: SupabaseDashboardStatus) {
   }
 
   return status === "not-configured" ? "not configured" : "no records";
+}
+
+function getWalletReadinessFallback(
+  signedIn: boolean,
+  hasAgentRecord: boolean,
+): DemoWalletReadiness {
+  return {
+    state: "not_connected",
+    label: hasAgentRecord ? "Execution disabled" : "No wallet record",
+    addressLabel: "Not connected",
+    network: "Base pending",
+    approvalGate: "Not created",
+    execution: "Disabled",
+    nextAction: signedIn
+      ? "Deploy an agent before wallet readiness checks."
+      : "Sign in to load owner-only wallet readiness.",
+    privacyNote: "Wallet data stays owner-only and never appears on public profiles.",
+  };
+}
+
+function getWalletReadinessTone(state: DemoWalletReadinessState) {
+  if (state === "connected_ready_for_approval") {
+    return "ready";
+  }
+
+  if (state === "connected_wrong_network") {
+    return "error";
+  }
+
+  return state === "execution_disabled" ? "locked" : "standby";
 }
 
 function formatActivityLog(log: DemoActivityLog) {
@@ -712,6 +744,10 @@ export function Dashboard({
     return [];
   }, [agentRecord, dashboardData]);
   const walletPolicies = dashboardData?.walletPolicies ?? [];
+  const walletReadiness =
+    dashboardData?.walletReadiness ??
+    getWalletReadinessFallback(Boolean(authSession), Boolean(agentRecord));
+  const walletReadinessTone = getWalletReadinessTone(walletReadiness.state);
   const backendTables = dashboardData?.backendTables ?? [];
   const hasPublicRoute = Boolean(agentRecord?.publicPath);
   const latestDeployEvent = getLatestEvent(backendEvents, "deploy");
@@ -1212,13 +1248,13 @@ export function Dashboard({
           </article>
           <article>
             <span>Wallet</span>
-            <strong>{agentRecord ? "Demo connected" : "No demo policy"}</strong>
-            <small>{agentRecord ? "no real funds touched" : "no keys, no funds, no transactions"}</small>
+            <strong>{walletReadiness.label}</strong>
+            <small>{walletReadiness.addressLabel}</small>
           </article>
           <article>
             <span>Approval policy</span>
-            <strong>{agentRecord ? "Required" : "Not created"}</strong>
-            <small>{agentRecord ? "Kyra prepares, wallet decides" : "created after deploy"}</small>
+            <strong>{walletReadiness.approvalGate}</strong>
+            <small>{walletReadiness.execution.toLowerCase()}</small>
           </article>
         </section>
 
@@ -1369,7 +1405,38 @@ export function Dashboard({
           <section className="dashboard-panel">
             <div className="panel-title">
               <span>Wallet policy</span>
-              <span>safe mode</span>
+              <span>{walletReadiness.state.replace(/_/g, " ")}</span>
+            </div>
+            <div className={`wallet-readiness-card readiness-${walletReadinessTone}`}>
+              <div className="wallet-readiness-header">
+                <span className="queue-icon">
+                  <WalletCards size={16} />
+                </span>
+                <div>
+                  <small>Owner wallet readiness</small>
+                  <strong>{walletReadiness.label}</strong>
+                </div>
+              </div>
+              <div className="wallet-readiness-grid">
+                <span>
+                  Address
+                  <strong>{walletReadiness.addressLabel}</strong>
+                </span>
+                <span>
+                  Network
+                  <strong>{walletReadiness.network}</strong>
+                </span>
+                <span>
+                  Approval
+                  <strong>{walletReadiness.approvalGate}</strong>
+                </span>
+                <span>
+                  Execution
+                  <strong>{walletReadiness.execution}</strong>
+                </span>
+              </div>
+              <p>{walletReadiness.nextAction}</p>
+              <small>{walletReadiness.privacyNote}</small>
             </div>
             <div className="wallet-policy-list">
               {walletPolicies.length ? (

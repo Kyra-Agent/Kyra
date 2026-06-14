@@ -93,13 +93,15 @@ Copy rules:
 - [x] Telegram token boundary audited.
 - [x] Dashboard wallet/approval reads narrowed away from raw prepared
   transaction payloads.
-- [ ] Dashboard renders no-wallet state.
-- [ ] Dashboard renders connected-wallet state.
+- [x] Dashboard wallet readiness model added.
+- [x] Dashboard renders no-wallet state.
+- [x] Dashboard renders execution-disabled state.
 - [ ] Dashboard renders wrong-network state if modeled.
 - [ ] Public profile does not expose private wallet fields.
 - [ ] Telegram `/policy` still refuses wallet/onchain execution.
 - [x] `npm run build`
 - [x] `git diff --check`
+- [x] Local desktop/mobile dashboard smoke
 
 ## Done Criteria
 

@@ -168,24 +168,29 @@ execution gated.
 
 ## Safe Phase 6A Implementation Slice
 
-Recommended next local implementation:
+Implemented local slice:
 
-1. Add a wallet readiness model for dashboard display only:
+1. Added a wallet readiness model for dashboard display only:
    - `not_connected`
    - `connected_wrong_network`
    - `connected_ready_for_approval`
    - `execution_disabled`
-2. Narrow Supabase dashboard selects for wallet policies and approval requests.
-3. Keep `prepared_tx` and `tx_hash` out of browser dashboard reads until a
+2. Narrowed Supabase dashboard selects for wallet policies and approval
+   requests.
+3. Kept `prepared_tx` and `tx_hash` out of browser dashboard reads until a
    dedicated owner-safe preview contract exists.
-4. Improve dashboard wallet panel copy so it distinguishes:
+4. Improved dashboard wallet panel copy so it distinguishes:
    - connected policy record
    - safe shortened owner-only address
    - network readiness
    - approval gate
    - execution disabled
-5. Add or update verification around public profile safety if the existing test
-   setup supports it.
+
+Recommended next verification:
+
+- add or update automated checks around public profile safety if the existing
+  test setup supports it
+- smoke test Telegram `/policy` after the next deploy
 
 ## Explicit No-Go Items For 6A
 

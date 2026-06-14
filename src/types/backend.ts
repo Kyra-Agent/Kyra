@@ -59,6 +59,23 @@ export interface DemoWalletPolicy {
   description: string;
 }
 
+export type DemoWalletReadinessState =
+  | "not_connected"
+  | "connected_wrong_network"
+  | "connected_ready_for_approval"
+  | "execution_disabled";
+
+export interface DemoWalletReadiness {
+  state: DemoWalletReadinessState;
+  label: string;
+  addressLabel: string;
+  network: "Base" | "Base pending";
+  approvalGate: "Required" | "Optional" | "Not created";
+  execution: "Disabled" | "Ready for approval" | "Blocked";
+  nextAction: string;
+  privacyNote: string;
+}
+
 export interface DemoActivityLog {
   id: string;
   timestamp: string;
