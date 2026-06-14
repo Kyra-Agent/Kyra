@@ -50,6 +50,7 @@ Kyra must never:
    - show action kind, route, chain, value summary, risk, expiry
    - show wallet/network readiness
    - show reject/cancel before wallet prompt
+   - status: started in `WalletApprovalModal` as read-only demo signing state
 
 4. Prepared action storage activation
    - only after SQL apply approval
@@ -105,6 +106,8 @@ Rules:
 - `confirmed` requires confirmation data, not just a local optimistic update.
 - `failed` stores a sanitized reason only.
 - `user_rejected` must not carry a transaction hash.
+- Current UI integration is read-only and must not present `submitted` or
+  `confirmed` states while wallet execution is disabled.
 
 ## Test Targets
 

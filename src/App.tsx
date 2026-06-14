@@ -20,9 +20,9 @@ import {
   consumeAuthCallbackSession,
   ensureFreshAuthSession,
   getCurrentAuthUser,
-  loadStoredAuthSession,
   type KyraAuthSession,
   type KyraAuthStatus,
+  loadStoredAuthSession,
 } from "./services/supabaseAuthService";
 import { fetchSupabaseDashboardData } from "./services/supabaseDashboardService";
 import {
@@ -30,10 +30,20 @@ import {
   type SupabaseConnectionStatus,
 } from "./services/supabaseKyraRepository";
 import type { DataProvider } from "./types/api";
+import {
+  transitionWalletSigningState,
+  type WalletSigningState,
+} from "./types/walletSigning";
 
 const fallbackAgentTemplates = kyraDataService.listTemplates();
 const demoScenarios = kyraDataService.listScenarios();
-const homeSectionIds = ["templates", "deploy", "actions", "security", "faq"] as const;
+const homeSectionIds = [
+  "templates",
+  "deploy",
+  "actions",
+  "security",
+  "faq",
+] as const;
 
 type HomeSectionId = (typeof homeSectionIds)[number];
 
@@ -58,9 +68,14 @@ function getTemplateIdFromAgentSlug(agentSlug: string | null) {
 
   const templateId = agentSlug.endsWith("-demo")
     ? agentSlug.replace(/-demo$/, "")
-    : fallbackAgentTemplates.find((template) => agentSlug.startsWith(`${template.id}-`))?.id;
+    : fallbackAgentTemplates.find((template) =>
+      agentSlug.startsWith(`${template.id}-`)
+    )?.id;
 
-  if (templateId && fallbackAgentTemplates.some((template) => template.id === templateId)) {
+  if (
+    templateId &&
+    fallbackAgentTemplates.some((template) => template.id === templateId)
+  ) {
     return templateId;
   }
 
@@ -91,41 +106,62 @@ function App() {
       return "dark";
     }
 
-    return window.localStorage.getItem("kyra-theme") === "light" ? "light" : "dark";
+    return window.localStorage.getItem("kyra-theme") === "light"
+      ? "light"
+      : "dark";
   });
   const [selectedId, setSelectedId] = useState(getInitialTemplateId);
   const [agentSlug, setAgentSlug] = useState(getInitialAgentSlug);
   const [agentTemplates, setAgentTemplates] = useState(fallbackAgentTemplates);
-  const [templateCatalogSource, setTemplateCatalogSource] = useState<DataProvider>("mock");
-  const [templateCatalogStatus, setTemplateCatalogStatus] = useState<SupabaseConnectionStatus>(
+  const [templateCatalogSource, setTemplateCatalogSource] = useState<
+    DataProvider
+  >("mock");
+  const [templateCatalogStatus, setTemplateCatalogStatus] = useState<
+    SupabaseConnectionStatus
+  >(
     appConfig.supabase.configured ? "checking" : "not-configured",
   );
-  const [templateCatalogError, setTemplateCatalogError] = useState<string | null>(null);
-  const [authSession, setAuthSession] = useState<KyraAuthSession | null>(() => loadStoredAuthSession());
+  const [templateCatalogError, setTemplateCatalogError] = useState<
+    string | null
+  >(null);
+  const [authSession, setAuthSession] = useState<KyraAuthSession | null>(() =>
+    loadStoredAuthSession()
+  );
   const hasInitialAuthSession = Boolean(authSession);
   const [authStatus, setAuthStatus] = useState<KyraAuthStatus>(() =>
-    hasInitialAuthSession ? "signed-in" : appConfig.supabase.configured ? "signed-out" : "not-configured",
+    hasInitialAuthSession
+      ? "signed-in"
+      : appConfig.supabase.configured
+      ? "signed-out"
+      : "not-configured"
   );
   const [authMessage, setAuthMessage] = useState(() =>
     hasInitialAuthSession
       ? "Stored account session loaded."
       : appConfig.supabase.configured
-        ? "Sign in to load account-scoped demo records."
-        : "Account session is not configured.",
+      ? "Sign in to load account-scoped demo records."
+      : "Account session is not configured."
   );
   const [selectedScenarioId, setSelectedScenarioId] = useState("swap");
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [approvalApproved, setApprovalApproved] = useState(false);
   const [approvalClosing, setApprovalClosing] = useState(false);
   const [approvalDismissed, setApprovalDismissed] = useState(false);
-  const [homeSectionId, setHomeSectionId] = useState<HomeSectionId | null>(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
+  const [walletSigningState, setWalletSigningState] = useState<
+    WalletSigningState
+  >("not_ready");
+  const [homeSectionId, setHomeSectionId] = useState<HomeSectionId | null>(
+    () => {
+      if (typeof window === "undefined") {
+        return null;
+      }
 
-    return getHomeSectionIdFromPath(window.location.pathname);
-  });
-  const [deployInitialStepId, setDeployInitialStepId] = useState<DeployWizardStepId>("account");
+      return getHomeSectionIdFromPath(window.location.pathname);
+    },
+  );
+  const [deployInitialStepId, setDeployInitialStepId] = useState<
+    DeployWizardStepId
+  >("account");
   const [route, setRoute] = useState<"home" | "dashboard" | "agent">(() => {
     if (typeof window === "undefined") {
       return "home";
@@ -148,14 +184,15 @@ function App() {
   const selectedTemplate = useMemo(
     () =>
       agentTemplates.find((template) => template.id === selectedId) ??
-      agentTemplates[0] ??
-      fallbackAgentTemplates[0],
+        agentTemplates[0] ??
+        fallbackAgentTemplates[0],
     [agentTemplates, selectedId],
   );
 
   const selectedScenario = useMemo(
     () =>
-      demoScenarios.find((scenario) => scenario.id === selectedScenarioId) ?? demoScenarios[0],
+      demoScenarios.find((scenario) => scenario.id === selectedScenarioId) ??
+        demoScenarios[0],
     [selectedScenarioId],
   );
 
@@ -165,7 +202,9 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
-    if (appConfig.dataProvider !== "supabase" || !appConfig.supabase.configured) {
+    if (
+      appConfig.dataProvider !== "supabase" || !appConfig.supabase.configured
+    ) {
       setTemplateCatalogStatus("not-configured");
       return;
     }
@@ -189,15 +228,19 @@ function App() {
         setSelectedId((currentId) =>
           result.templates.some((template) => template.id === currentId)
             ? currentId
-            : result.templates[0].id,
+            : result.templates[0].id
         );
         return;
       }
 
       setAgentTemplates(fallbackAgentTemplates);
       setTemplateCatalogSource("mock");
-      setTemplateCatalogStatus(result.status === "not-configured" ? "not-configured" : "error");
-      setTemplateCatalogError(result.error ?? "Connected catalog returned no templates.");
+      setTemplateCatalogStatus(
+        result.status === "not-configured" ? "not-configured" : "error",
+      );
+      setTemplateCatalogError(
+        result.error ?? "Connected catalog returned no templates.",
+      );
     }
 
     void loadTemplateCatalog();
@@ -217,7 +260,8 @@ function App() {
         return;
       }
 
-      const sessionToValidate = callbackResult?.session ?? loadStoredAuthSession();
+      const sessionToValidate = callbackResult?.session ??
+        loadStoredAuthSession();
 
       if (!sessionToValidate) {
         if (callbackResult) {
@@ -302,9 +346,9 @@ function App() {
       "agent",
       latestAgent
         ? {
-            templateId: latestAgent.templateId,
-            publicPath: latestAgent.publicPath,
-          }
+          templateId: latestAgent.templateId,
+          publicPath: latestAgent.publicPath,
+        }
         : undefined,
     );
   }
@@ -320,7 +364,10 @@ function App() {
     }
 
     window.setTimeout(() => {
-      document.getElementById(homeSectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById(homeSectionId)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
     }, 40);
   }, [homeSectionId, route]);
 
@@ -366,12 +413,11 @@ function App() {
 
     setHomeSectionId(null);
     setRoute(nextRoute);
-    const path =
-      nextRoute === "dashboard"
-        ? "/dashboard"
-        : nextRoute === "agent"
-          ? `/agents/${targetSlug ?? `${nextTemplateId}-demo`}`
-          : "/";
+    const path = nextRoute === "dashboard"
+      ? "/dashboard"
+      : nextRoute === "agent"
+      ? `/agents/${targetSlug ?? `${nextTemplateId}-demo`}`
+      : "/";
     window.history.pushState({}, "", path);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -391,7 +437,9 @@ function App() {
       return;
     }
 
-    setDeployInitialStepId(sectionId === "deploy" ? options?.deployStepId ?? "account" : "account");
+    setDeployInitialStepId(
+      sectionId === "deploy" ? options?.deployStepId ?? "account" : "account",
+    );
     setRoute("home");
     setHomeSectionId(sectionId);
     window.history.pushState({}, "", `/${sectionId}`);
@@ -410,11 +458,30 @@ function App() {
     setApprovalApproved(false);
     setApprovalClosing(false);
     setApprovalDismissed(false);
+    setWalletSigningState("not_ready");
   }
 
   function requestApproval() {
-    if (!selectedScenario.approvalRequired || approvalApproved || approvalDismissed) {
+    if (
+      !selectedScenario.approvalRequired || approvalApproved ||
+      approvalDismissed
+    ) {
       return;
+    }
+
+    const preview = transitionWalletSigningState({
+      state: walletSigningState,
+      event: "load_preview",
+    });
+    const review = preview.ok
+      ? transitionWalletSigningState({
+        state: preview.state,
+        event: "require_review",
+      })
+      : preview;
+
+    if (review.ok) {
+      setWalletSigningState(review.state);
     }
 
     setApprovalOpen(true);
@@ -426,11 +493,21 @@ function App() {
     window.setTimeout(() => {
       setApprovalOpen(false);
       setApprovalClosing(false);
+      setWalletSigningState("not_ready");
     }, 1050);
   }
 
   function closeApprovalModal() {
     setApprovalDismissed(true);
+    const rejection = transitionWalletSigningState({
+      state: walletSigningState,
+      event: "reject",
+    });
+
+    if (rejection.ok) {
+      setWalletSigningState(rejection.state);
+    }
+
     setApprovalClosing(true);
     window.setTimeout(() => {
       setApprovalOpen(false);
@@ -452,129 +529,142 @@ function App() {
         onOpenAccount={openAccountSession}
         onOpenSection={openHomeSection}
       />
-      <div className="demo-disclaimer" role="note" aria-label="Kyra demo disclaimer">
+      <div
+        className="demo-disclaimer"
+        role="note"
+        aria-label="Kyra demo disclaimer"
+      >
         <span>
           <ShieldCheck size={15} />
           BACKEND-CONNECTED DEMO
         </span>
         <p>
-          No real transactions, wallet keys, or Telegram bot tokens. Demo records can persist
-          after sign-in, while onchain execution stays simulated.
+          No real transactions, wallet keys, or Telegram bot tokens. Demo
+          records can persist after sign-in, while onchain execution stays
+          simulated.
         </p>
       </div>
 
-      {route === "dashboard" ? (
-        <Dashboard
-          selectedTemplate={selectedTemplate}
-          templates={agentTemplates}
-          templateCatalogSource={templateCatalogSource}
-          templateCatalogStatus={templateCatalogStatus}
-          templateCatalogError={templateCatalogError}
-          authSession={authSession}
-          authStatus={authStatus}
-          authMessage={authMessage}
-          onAuthSessionChange={updateAuthSession}
-          onBackHome={() => navigate("home")}
-          onOpenAgent={(target) => navigate("agent", target)}
-          onSelectTemplate={setSelectedId}
-        />
-      ) : route === "agent" ? (
-        <PublicAgent
-          selectedTemplate={selectedTemplate}
-          agentSlug={agentSlug}
-          onBackDashboard={() => navigate("dashboard")}
-          onBackHome={() => navigate("home")}
-        />
-      ) : (
-        <>
-          <main>
-            <section className="hero-section">
-              <div className="hero-copy">
-                <span className="demo-badge hero-badge">
-                  <Terminal size={15} />
-                  Backend-connected demo
-                </span>
-                <h1>Deploy Base agents with approval-first onchain workflows.</h1>
-                <p className="hero-subtitle">
-                  Launch Telegram-native AI agents that read wallet context, prepare Base
-                  actions, and keep every transaction behind wallet approval.
-                </p>
+      {route === "dashboard"
+        ? (
+          <Dashboard
+            selectedTemplate={selectedTemplate}
+            templates={agentTemplates}
+            templateCatalogSource={templateCatalogSource}
+            templateCatalogStatus={templateCatalogStatus}
+            templateCatalogError={templateCatalogError}
+            authSession={authSession}
+            authStatus={authStatus}
+            authMessage={authMessage}
+            onAuthSessionChange={updateAuthSession}
+            onBackHome={() => navigate("home")}
+            onOpenAgent={(target) => navigate("agent", target)}
+            onSelectTemplate={setSelectedId}
+          />
+        )
+        : route === "agent"
+        ? (
+          <PublicAgent
+            selectedTemplate={selectedTemplate}
+            agentSlug={agentSlug}
+            onBackDashboard={() => navigate("dashboard")}
+            onBackHome={() => navigate("home")}
+          />
+        )
+        : (
+          <>
+            <main>
+              <section className="hero-section">
+                <div className="hero-copy">
+                  <span className="demo-badge hero-badge">
+                    <Terminal size={15} />
+                    Backend-connected demo
+                  </span>
+                  <h1>
+                    Deploy Base agents with approval-first onchain workflows.
+                  </h1>
+                  <p className="hero-subtitle">
+                    Launch Telegram-native AI agents that read wallet context,
+                    prepare Base actions, and keep every transaction behind
+                    wallet approval.
+                  </p>
 
-                <div className="hero-actions">
-                  <button
-                    className="button button-primary"
-                    type="button"
-                    onClick={() => openHomeSection("deploy")}
-                  >
-                    Deploy Agent
-                    <ArrowRight size={17} />
-                  </button>
-                  <button
-                    className="button button-ghost"
-                    type="button"
-                    onClick={() => navigate("dashboard")}
-                  >
-                    Open Dashboard
-                    <ArrowRight size={17} />
-                  </button>
-                  <button
-                    className="button button-ghost"
-                    type="button"
-                    onClick={() => openHomeSection("security")}
-                  >
-                    <ShieldCheck size={17} />
-                    View Safety Model
-                  </button>
+                  <div className="hero-actions">
+                    <button
+                      className="button button-primary"
+                      type="button"
+                      onClick={() => openHomeSection("deploy")}
+                    >
+                      Deploy Agent
+                      <ArrowRight size={17} />
+                    </button>
+                    <button
+                      className="button button-ghost"
+                      type="button"
+                      onClick={() => navigate("dashboard")}
+                    >
+                      Open Dashboard
+                      <ArrowRight size={17} />
+                    </button>
+                    <button
+                      className="button button-ghost"
+                      type="button"
+                      onClick={() => openHomeSection("security")}
+                    >
+                      <ShieldCheck size={17} />
+                      View Safety Model
+                    </button>
+                  </div>
+
+                  <div className="trust-row" aria-label="Kyra trust model">
+                    <span>No seed phrases</span>
+                    <span>No custody</span>
+                    <span>Wallet approval required</span>
+                  </div>
                 </div>
 
-                <div className="trust-row" aria-label="Kyra trust model">
-                  <span>No seed phrases</span>
-                  <span>No custody</span>
-                  <span>Wallet approval required</span>
-                </div>
-              </div>
+                <HeroConsole
+                  selectedTemplate={selectedTemplate}
+                  scenarios={demoScenarios}
+                  selectedScenario={selectedScenario}
+                  onSelectScenario={selectScenario}
+                  onRequestApproval={requestApproval}
+                />
+              </section>
 
-              <HeroConsole
-                selectedTemplate={selectedTemplate}
-                scenarios={demoScenarios}
-                selectedScenario={selectedScenario}
-                onSelectScenario={selectScenario}
-                onRequestApproval={requestApproval}
+              <TemplatePicker
+                templates={agentTemplates}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+                catalogStatus={templateCatalogStatus}
+                catalogError={templateCatalogError}
               />
-            </section>
+              <DeployPanel
+                templates={agentTemplates}
+                selectedTemplate={selectedTemplate}
+                authSession={authSession}
+                initialStepId={deployInitialStepId}
+                onOpenAccount={openAccountSession}
+                onSelectTemplate={setSelectedId}
+                onOpenAgent={(target) => navigate("agent", target)}
+                onAuthSessionChange={updateAuthSession}
+              />
+              <DashboardPreview selectedTemplate={selectedTemplate} />
+              <ActionConsole />
+              <CoreModules />
+              <SecuritySection />
+              <FAQSection />
+            </main>
 
-            <TemplatePicker
-              templates={agentTemplates}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-              catalogStatus={templateCatalogStatus}
-              catalogError={templateCatalogError}
-            />
-            <DeployPanel
-              templates={agentTemplates}
-              selectedTemplate={selectedTemplate}
-              authSession={authSession}
-              initialStepId={deployInitialStepId}
-              onOpenAccount={openAccountSession}
-              onSelectTemplate={setSelectedId}
-              onOpenAgent={(target) => navigate("agent", target)}
-              onAuthSessionChange={updateAuthSession}
-            />
-            <DashboardPreview selectedTemplate={selectedTemplate} />
-            <ActionConsole />
-            <CoreModules />
-            <SecuritySection />
-            <FAQSection />
-          </main>
-
-          <Footer />
-        </>
-      )}
+            <Footer />
+          </>
+        )}
       <WalletApprovalModal
         scenario={selectedScenario}
         open={approvalOpen}
         approved={approvalApproved}
         closing={approvalClosing}
+        signingState={walletSigningState}
         onApprove={approveDemoAction}
         onClose={closeApprovalModal}
       />

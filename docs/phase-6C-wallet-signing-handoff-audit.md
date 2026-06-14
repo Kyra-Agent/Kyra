@@ -44,6 +44,8 @@ Phase 6C must preserve:
 - Base MCP provider and storage adapters are draft-only and not runtime-wired.
 - Telegram remains read-only and must keep refusing wallet/onchain execution.
 - UI-only wallet signing state model exists in `src/types/walletSigning.ts`.
+- `WalletApprovalModal` displays the signing state as read-only demo context and
+  does not open a wallet provider.
 
 ## Findings
 
@@ -103,6 +105,14 @@ provider dependencies or calling browser wallet APIs.
 
 Decision: keep this state model as the boundary for future UI work. Provider
 code must adapt to it, not bypass it.
+
+### F8 - Review Surface Is Still Demo-Only
+
+The home approval modal now shows signing-state context, but demo approval still
+resets without creating `submitted`, `confirmed`, or `tx_hash` state.
+
+Decision: this is acceptable as a UI-only bridge. Do not treat demo approval as
+real wallet approval.
 
 ## Phase 6C Entry Conditions
 

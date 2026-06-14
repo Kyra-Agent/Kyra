@@ -24,76 +24,156 @@ const checklist = read("docs/phase-6-wallet-base-checklist.md");
 const appConfig = read("src/config/appConfig.ts");
 const packageJson = read("package.json");
 const walletModal = read("src/components/WalletApprovalModal.tsx");
+const app = read("src/App.tsx");
 const dashboardService = read("src/services/supabaseDashboardService.ts");
 const walletSigningTypes = read("src/types/walletSigning.ts");
 
-for (const boundary of [
-  "No wallet provider, wallet prompt, signature,",
-  "no seed phrase path",
-  "no private key path",
-  "no hidden signing",
-  "no Telegram-triggered signing or submission",
-  "Do not implement live signing yet.",
-]) {
+for (
+  const boundary of [
+    "No wallet provider, wallet prompt, signature,",
+    "no seed phrase path",
+    "no private key path",
+    "no hidden signing",
+    "no Telegram-triggered signing or submission",
+    "Do not implement live signing yet.",
+  ]
+) {
   assertIncludes("Phase 6C audit", audit, boundary);
 }
 
-for (const boundary of [
-  "Status: plan only. No live signing is enabled.",
-  "The first signable action must not be `base_mcp_status_check`.",
-  "wallet_prompt_requested` requires an owner click.",
-  "User rejection does not create `tx_hash`.",
-  "Telegram execution request remains refused.",
-]) {
+for (
+  const boundary of [
+    "Status: plan only. No live signing is enabled.",
+    "The first signable action must not be `base_mcp_status_check`.",
+    "wallet_prompt_requested` requires an owner click.",
+    "User rejection does not create `tx_hash`.",
+    "Telegram execution request remains refused.",
+  ]
+) {
   assertIncludes("Phase 6C plan", plan, boundary);
 }
 
-for (const decision of [
-  "Use `wagmi` with `viem` as the first wallet integration path",
-  "`baseAccount()` as the preferred Base-native connector.",
-  "`coinbaseWallet()` as a fallback connector.",
-  "Do not use direct raw `window.ethereum` as the primary app integration.",
-  "Do not install yet.",
-  "npm install wagmi viem @tanstack/react-query @base-org/account",
-  "no automatic wallet prompt on page load",
-  "sign `base_mcp_status_check`",
-]) {
+for (
+  const decision of [
+    "Use `wagmi` with `viem` as the first wallet integration path",
+    "`baseAccount()` as the preferred Base-native connector.",
+    "`coinbaseWallet()` as a fallback connector.",
+    "Do not use direct raw `window.ethereum` as the primary app integration.",
+    "Do not install yet.",
+    "npm install wagmi viem @tanstack/react-query @base-org/account",
+    "no automatic wallet prompt on page load",
+    "sign `base_mcp_status_check`",
+  ]
+) {
   assertIncludes("Phase 6C provider decision", providerDecision, decision);
 }
 
-assertIncludes("Phase 6C audit", audit, "Provider Path Is Chosen But Not Installed");
-assertIncludes("Phase 6C plan", plan, "docs/phase-6C-wallet-provider-decision.md");
-assertIncludes("Phase 6 checklist", checklist, "docs/phase-6C-wallet-provider-decision.md");
-assertIncludes("Phase 6 checklist", checklist, "docs/phase-6C-wallet-signing-handoff-audit.md");
-assertIncludes("Phase 6 checklist", checklist, "docs/phase-6C-wallet-signing-handoff-plan.md");
-assertIncludes("Phase 6 checklist", checklist, "Audit current signing/wallet handoff surface.");
-assertIncludes("Phase 6 checklist", checklist, "Choose first wallet provider path.");
-assertIncludes("Phase 6 checklist", checklist, "Install wallet provider dependencies after approval.");
-assertIncludes("package.json", packageJson, "\"check:phase-6c\"");
-assertIncludes("package.json", packageJson, "\"test:wallet-signing\"");
+assertIncludes(
+  "Phase 6C audit",
+  audit,
+  "Provider Path Is Chosen But Not Installed",
+);
+assertIncludes(
+  "Phase 6C plan",
+  plan,
+  "docs/phase-6C-wallet-provider-decision.md",
+);
+assertIncludes(
+  "Phase 6 checklist",
+  checklist,
+  "docs/phase-6C-wallet-provider-decision.md",
+);
+assertIncludes(
+  "Phase 6 checklist",
+  checklist,
+  "docs/phase-6C-wallet-signing-handoff-audit.md",
+);
+assertIncludes(
+  "Phase 6 checklist",
+  checklist,
+  "docs/phase-6C-wallet-signing-handoff-plan.md",
+);
+assertIncludes(
+  "Phase 6 checklist",
+  checklist,
+  "Audit current signing/wallet handoff surface.",
+);
+assertIncludes(
+  "Phase 6 checklist",
+  checklist,
+  "Choose first wallet provider path.",
+);
+assertIncludes(
+  "Phase 6 checklist",
+  checklist,
+  "Install wallet provider dependencies after approval.",
+);
+assertIncludes("package.json", packageJson, '"check:phase-6c"');
+assertIncludes("package.json", packageJson, '"test:wallet-signing"');
 assertIncludes("appConfig", appConfig, 'walletExecution: "disabled"');
 assertIncludes("WalletApprovalModal", walletModal, "Approve Demo");
 assertIncludes("WalletApprovalModal", walletModal, "Demo only");
-for (const state of [
-  "not_ready",
-  "preview_ready",
-  "review_required",
-  "wallet_prompt_requested",
-  "wallet_prompt_opened",
-  "user_rejected",
-  "submitted",
-  "failed",
-  "confirmed",
-]) {
+assertIncludes(
+  "WalletApprovalModal",
+  walletModal,
+  "signingState: WalletSigningState",
+);
+assertIncludes(
+  "WalletApprovalModal",
+  walletModal,
+  "Real wallet signing remains disabled.",
+);
+assertIncludes("App", app, "transitionWalletSigningState");
+assertIncludes("App", app, 'event: "load_preview"');
+assertIncludes("App", app, 'event: "require_review"');
+assertIncludes("App", app, 'event: "reject"');
+assert(
+  !walletModal.includes('"submitted"') && !walletModal.includes('"confirmed"'),
+  "Demo wallet modal must not present submitted or confirmed wallet states.",
+);
+for (
+  const state of [
+    "not_ready",
+    "preview_ready",
+    "review_required",
+    "wallet_prompt_requested",
+    "wallet_prompt_opened",
+    "user_rejected",
+    "submitted",
+    "failed",
+    "confirmed",
+  ]
+) {
   assertIncludes("wallet signing state model", walletSigningTypes, state);
 }
-assertIncludes("wallet signing state model", walletSigningTypes, "Wallet prompt requires explicit owner action.");
-assertIncludes("wallet signing state model", walletSigningTypes, "Submitted actions require a transaction hash.");
-assertIncludes("wallet signing state model", walletSigningTypes, "Confirmed actions require confirmation data.");
-assertIncludes("wallet signing state model", walletSigningTypes, "Rejected actions must not include a transaction hash.");
-assertIncludes("wallet signing state model", walletSigningTypes, "isTransactionHash");
+assertIncludes(
+  "wallet signing state model",
+  walletSigningTypes,
+  "Wallet prompt requires explicit owner action.",
+);
+assertIncludes(
+  "wallet signing state model",
+  walletSigningTypes,
+  "Submitted actions require a transaction hash.",
+);
+assertIncludes(
+  "wallet signing state model",
+  walletSigningTypes,
+  "Confirmed actions require confirmation data.",
+);
+assertIncludes(
+  "wallet signing state model",
+  walletSigningTypes,
+  "Rejected actions must not include a transaction hash.",
+);
+assertIncludes(
+  "wallet signing state model",
+  walletSigningTypes,
+  "isTransactionHash",
+);
 assert(
-  !dashboardService.includes("prepared_tx") && !dashboardService.includes("tx_hash"),
+  !dashboardService.includes("prepared_tx") &&
+    !dashboardService.includes("tx_hash"),
   "Dashboard service must keep prepared_tx and tx_hash out of owner reads before 6C implementation.",
 );
 assert(

@@ -1,11 +1,13 @@
 import { CheckCircle2, ShieldCheck, WalletCards, X } from "lucide-react";
 import type { DemoScenario } from "../data/demoScenarios";
+import type { WalletSigningState } from "../types/walletSigning";
 
 interface WalletApprovalModalProps {
   scenario: DemoScenario;
   open: boolean;
   approved: boolean;
   closing: boolean;
+  signingState: WalletSigningState;
   onApprove: () => void;
   onClose: () => void;
 }
@@ -15,6 +17,7 @@ export function WalletApprovalModal({
   open,
   approved,
   closing,
+  signingState,
   onApprove,
   onClose,
 }: WalletApprovalModalProps) {
@@ -23,9 +26,14 @@ export function WalletApprovalModal({
   }
 
   return (
-    <div className={`modal-backdrop ${closing ? "is-closing" : ""}`} role="presentation">
+    <div
+      className={`modal-backdrop ${closing ? "is-closing" : ""}`}
+      role="presentation"
+    >
       <section
-        className={`approval-modal ${approved ? "is-approved" : ""} ${closing ? "is-closing" : ""}`}
+        className={`approval-modal ${approved ? "is-approved" : ""} ${
+          closing ? "is-closing" : ""
+        }`}
         role="dialog"
         aria-modal="true"
         aria-label="Wallet approval demo"
@@ -38,7 +46,12 @@ export function WalletApprovalModal({
             </span>
             <h3>{approved ? "Demo approval confirmed" : "Review action"}</h3>
           </div>
-          <button className="icon-button" type="button" onClick={onClose} aria-label="Close modal">
+          <button
+            className="icon-button"
+            type="button"
+            onClick={onClose}
+            aria-label="Close modal"
+          >
             <X size={18} />
           </button>
         </div>
@@ -65,15 +78,25 @@ export function WalletApprovalModal({
             Execution
             <strong>Demo only</strong>
           </span>
+          <span>
+            Signing state
+            <strong>{formatSigningState(signingState)}</strong>
+          </span>
         </div>
 
         <div className="approval-warning">
           <ShieldCheck size={17} />
-          Kyra prepares the transaction. Your wallet makes the final decision.
+          {approved
+            ? "Demo approval is recorded locally. Real wallet signing remains disabled."
+            : "Kyra prepares the review context. Real wallet signing stays disabled."}
         </div>
 
         <div className="modal-actions">
-          <button className="button button-ghost" type="button" onClick={onClose}>
+          <button
+            className="button button-ghost"
+            type="button"
+            onClick={onClose}
+          >
             Reject
           </button>
           <button
@@ -89,4 +112,8 @@ export function WalletApprovalModal({
       </section>
     </div>
   );
+}
+
+function formatSigningState(state: WalletSigningState) {
+  return state.replace(/_/g, " ");
 }
