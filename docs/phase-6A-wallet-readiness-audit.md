@@ -186,11 +186,18 @@ Implemented local slice:
    - approval gate
    - execution disabled
 
-Recommended next verification:
+Completed local verification:
 
-- add or update automated checks around public profile safety if the existing
-  test setup supports it
-- smoke test Telegram `/policy` after the next deploy
+- `npm run check:privacy`
+- `npm run check:functions`
+- targeted Deno read-only Telegram tests
+- `npm run build`
+- `git diff --check`
+- local desktop/mobile dashboard smoke
+
+Remaining live verification after deploy:
+
+- smoke test Telegram `/policy` against the live bot
 
 ## Explicit No-Go Items For 6A
 
@@ -210,5 +217,7 @@ Phase 6A can be considered complete when:
 - public profiles remain share-safe
 - dashboard reads only minimum wallet/approval columns
 - Telegram still refuses wallet/onchain execution
+- `npm run check:privacy` passes
+- `npm run check:functions` passes
 - `npm run build` passes
 - `git diff --check` passes

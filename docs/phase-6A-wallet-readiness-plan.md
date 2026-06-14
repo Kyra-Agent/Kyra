@@ -97,8 +97,11 @@ Copy rules:
 - [x] Dashboard renders no-wallet state.
 - [x] Dashboard renders execution-disabled state.
 - [ ] Dashboard renders wrong-network state if modeled.
-- [ ] Public profile does not expose private wallet fields.
-- [ ] Telegram `/policy` still refuses wallet/onchain execution.
+- [x] Public profile does not expose private wallet fields.
+- [x] Telegram `/policy` still refuses wallet/onchain execution.
+- [x] `npm run check:privacy`
+- [x] `npm run check:functions`
+- [x] Targeted Deno read-only Telegram tests
 - [x] `npm run build`
 - [x] `git diff --check`
 - [x] Local desktop/mobile dashboard smoke
