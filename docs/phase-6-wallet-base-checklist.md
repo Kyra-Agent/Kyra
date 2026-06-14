@@ -216,6 +216,9 @@ Current contract:
 - backend-only function skeleton: `supabase/functions/base-mcp-prepare/`
 - disabled response occurs before body, env, session, ownership, service-role,
   or adapter access
+- static guards block frontend and Telegram references to the prepare endpoint
+  or backend secrets
+- runtime enablement requires exact `KYRA_BASE_MCP_PREP_ENABLED=true`
 - no wallet signing or transaction submission
 
 ## Step 4 - Prepared Action Contract

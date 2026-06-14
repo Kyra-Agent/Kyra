@@ -112,11 +112,17 @@ Current behavior:
 
 - disabled gate returns a fixed `base_mcp_disabled` response
 - enabled path requires bearer session validation
+- runtime gate enables only on exact `true`
+- timeout defaults safely and caps at 5000 ms
 - enabled path accepts only `base_mcp_status_check`
 - unsupported actions fail closed before ownership lookup
 - ownership is checked before adapter access
 - missing endpoint or missing adapter returns `base_mcp_not_configured`
 - injected adapter failures return sanitized `base_mcp_unavailable`
+- static checks fail if frontend references Base MCP backend secrets or the
+  prepare endpoint
+- static checks fail if Telegram webhook calls or configures Base MCP
+  preparation
 
 Risk: low while the runtime gate remains off and no live provider adapter is
 injected.
@@ -172,6 +178,7 @@ Current first candidate:
 - allowed action allowlist documented
 - default-off backend function skeleton tested
 - no frontend `VITE_` secret path added
+- static frontend and Telegram call-path guards added
 - define expiry/replay protection
 - define owner-scoped storage and read model
 - confirm public profiles remain share-safe
@@ -185,7 +192,7 @@ Current first candidate:
 - `npm run check:privacy`
 - `npm run check:base-mcp`
 - `npm run check:functions`
-- `deno test supabase/functions/base-mcp-prepare/index_test.ts`
+- `deno test supabase/functions/base-mcp-prepare/index_test.ts supabase/functions/base-mcp-prepare/runtime-config_test.ts`
 - targeted Deno read-only Telegram tests
 - `npm run build`
 - `git diff --check`

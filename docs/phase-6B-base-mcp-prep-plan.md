@@ -142,13 +142,17 @@ It should not show:
 - [x] Unsupported action kind fails closed.
 - [x] Unsupported action kind never reaches ownership lookup or adapter call.
 - [x] Adapter errors are sanitized before user-facing responses.
+- [x] Frontend cannot reference Base MCP backend secrets or function endpoint.
+- [x] Telegram webhook cannot call or configure Base MCP preparation.
+- [x] Runtime gate enables only on exact `true`.
+- [x] Runtime timeout defaults safely and caps at 5000 ms.
 - [x] Public profile cannot read prepared tx data.
 - [x] Dashboard preview shows safe summary.
 - [x] Telegram direct execution still refused.
 - [x] `npm run check:base-mcp`
 - [x] `npm run check:privacy`
 - [x] `npm run check:functions`
-- [x] `deno test supabase/functions/base-mcp-prepare/index_test.ts`
+- [x] `deno test supabase/functions/base-mcp-prepare/index_test.ts supabase/functions/base-mcp-prepare/runtime-config_test.ts`
 - [x] Targeted Deno read-only Telegram tests
 - [x] `npm run build`
 - [x] `git diff --check`

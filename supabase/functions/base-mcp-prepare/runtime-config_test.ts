@@ -1,0 +1,62 @@
+import {
+  createBaseMcpPrepareRuntimeConfig,
+  isBaseMcpPrepareEnabled,
+  parseBaseMcpTimeoutMs,
+} from "./runtime-config.ts";
+
+function assertEquals<T>(actual: T, expected: T, message?: string) {
+  if (actual !== expected) {
+    throw new Error(
+      message ?? `Expected ${String(expected)}, received ${String(actual)}.`,
+    );
+  }
+}
+
+Deno.test("base-mcp runtime gate enables only on exact true", () => {
+  for (const value of ["", "false", "TRUE", " true", "true "]) {
+    assertEquals(isBaseMcpPrepareEnabled(value), false);
+  }
+
+  assertEquals(isBaseMcpPrepareEnabled("true"), true);
+});
+
+Deno.test("base-mcp runtime config stays disabled without reading provider config", () => {
+  const reads: string[] = [];
+  const config = createBaseMcpPrepareRuntimeConfig((key) => {
+    reads.push(key);
+    return "";
+  });
+
+  assertEquals(config.enabled, false);
+  assertEquals(reads.join(","), "KYRA_BASE_MCP_PREP_ENABLED");
+});
+
+Deno.test("base-mcp runtime config trims optional provider fields when enabled", () => {
+  const values = new Map([
+    ["KYRA_BASE_MCP_PREP_ENABLED", "true"],
+    ["KYRA_BASE_MCP_ENDPOINT", "  https://base-mcp.test  "],
+    ["KYRA_BASE_MCP_API_KEY", "  secret-value  "],
+    ["KYRA_BASE_MCP_TIMEOUT_MS", "4500"],
+  ]);
+  const config = createBaseMcpPrepareRuntimeConfig((key) =>
+    values.get(key) ?? ""
+  );
+
+  assertEquals(config.enabled, true);
+
+  if (config.enabled) {
+    assertEquals(config.endpoint, "https://base-mcp.test");
+    assertEquals(config.apiKey, "secret-value");
+    assertEquals(config.timeoutMs, 4500);
+  }
+});
+
+Deno.test("base-mcp runtime timeout defaults and caps safely", () => {
+  assertEquals(parseBaseMcpTimeoutMs(""), 2500);
+  assertEquals(parseBaseMcpTimeoutMs("not-a-number"), 2500);
+  assertEquals(parseBaseMcpTimeoutMs("0"), 2500);
+  assertEquals(parseBaseMcpTimeoutMs("-1"), 2500);
+  assertEquals(parseBaseMcpTimeoutMs("2500.5"), 2500);
+  assertEquals(parseBaseMcpTimeoutMs("6000"), 5000);
+  assertEquals(parseBaseMcpTimeoutMs("1"), 1);
+});

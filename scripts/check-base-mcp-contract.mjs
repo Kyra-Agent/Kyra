@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = process.cwd();
@@ -13,10 +13,46 @@ function assert(condition, message) {
   }
 }
 
+function listFiles(path) {
+  const absolutePath = resolve(root, path);
+  const entries = readdirSync(absolutePath);
+  const files = [];
+
+  for (const entry of entries) {
+    const child = `${path}/${entry}`;
+    const absoluteChild = resolve(root, child);
+    const stats = statSync(absoluteChild);
+
+    if (stats.isDirectory()) {
+      files.push(...listFiles(child));
+      continue;
+    }
+
+    if (stats.isFile()) {
+      files.push(child);
+    }
+  }
+
+  return files;
+}
+
+function assertFilesDoNotInclude(paths, forbiddenPattern, message) {
+  for (const path of paths) {
+    const content = read(path);
+
+    assert(!forbiddenPattern.test(content), `${message}: ${path}`);
+  }
+}
+
 const typeContract = read("src/types/baseMcp.ts");
 const docsContract = read("docs/phase-6B-base-mcp-adapter-contract.md");
 const functionCore = read("supabase/functions/base-mcp-prepare/core.ts");
+const functionDependencies = read("supabase/functions/base-mcp-prepare/dependencies.ts");
 const functionReadme = read("supabase/functions/base-mcp-prepare/README.md");
+const supabaseConfig = read("supabase/config.toml");
+const frontendFiles = listFiles("src").filter((path) => /\.(ts|tsx)$/u.test(path));
+const telegramWebhookFiles = listFiles("supabase/functions/telegram-webhook")
+  .filter((path) => /\.(ts|tsx)$/u.test(path));
 
 const allowedListMatch = typeContract.match(
   /baseMcpAllowedActionKinds\s*=\s*\[([^\]]+)\]\s*as\s+const/u,
@@ -78,8 +114,26 @@ assert(
   "Base MCP function must verify ownership before adapter calls.",
 );
 assert(
+  !functionDependencies.includes("prepareBaseMcpAction"),
+  "Base MCP runtime dependencies must not wire a live adapter yet.",
+);
+assert(
+  /\[functions\.base-mcp-prepare\]\s+verify_jwt\s*=\s*true/su.test(supabaseConfig),
+  "Base MCP prepare function must keep Supabase gateway JWT verification enabled.",
+);
+assert(
   functionReadme.includes("Do not call this function from Telegram."),
   "Base MCP function README must document Telegram boundary.",
+);
+assertFilesDoNotInclude(
+  frontendFiles,
+  /base-mcp-prepare|KYRA_BASE_MCP/u,
+  "Frontend must not reference Base MCP function endpoints or backend secrets",
+);
+assertFilesDoNotInclude(
+  telegramWebhookFiles,
+  /base-mcp-prepare|prepareBaseMcpAction|KYRA_BASE_MCP/u,
+  "Telegram webhook must not call or configure Base MCP preparation",
 );
 
 console.log("Base MCP contract checks passed.");
