@@ -165,6 +165,12 @@ Prepared-action read model:
 Prepared-action storage draft:
 `supabase/prepared_action_storage_schema_draft.sql`
 
+Prepared-action SQL review packet:
+
+- `supabase/prepared_action_storage_forward_review.sql`
+- `supabase/prepared_action_storage_rollback_review.sql`
+- `supabase/verify_prepared_action_storage_review.sql`
+
 Owner-facing preview fields:
 
 - `id`
@@ -197,6 +203,8 @@ Current first candidate:
 - no browser read of `approval_requests.prepared_tx`
 - no stale or future preparation request accepted
 - no prepared action storage SQL apply during 6B local design
+- no prepared action forward/rollback review packet apply without separate
+  Supabase approval
 - no arbitrary swap preparation
 - no arbitrary send preparation
 - no contract call preparation
@@ -215,7 +223,7 @@ Current first candidate:
 - static frontend and Telegram call-path guards added
 - prepared-action read model documented and checked
 - live expiry/replay enforcement started in the default-off function skeleton
-- owner-scoped storage migration remains comment-only until explicit approval
+- owner-scoped storage migration remains unapplied until explicit approval
 - confirm public profiles remain share-safe
 - run `npm run check:base-mcp`
 - run `npm run check:prepared-actions`

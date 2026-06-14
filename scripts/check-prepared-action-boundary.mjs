@@ -46,6 +46,9 @@ function assertNoForbidden(sourceName, source, forbiddenTerms) {
 const preparedActionTypes = read("src/types/preparedAction.ts");
 const readModelDoc = read("docs/phase-6B-prepared-action-read-model.md");
 const storageDraft = read("supabase/prepared_action_storage_schema_draft.sql");
+const forwardReview = read("supabase/prepared_action_storage_forward_review.sql");
+const rollbackReview = read("supabase/prepared_action_storage_rollback_review.sql");
+const verifierReview = read("supabase/verify_prepared_action_storage_review.sql");
 const schema = read("supabase/schema.sql");
 const dashboardService = read("src/services/supabaseDashboardService.ts");
 const publicAgentService = read("src/services/supabasePublicAgentService.ts");
@@ -125,6 +128,69 @@ assertNoForbidden("prepared action storage draft", storageDraft, [
   "telegram_token_ref text",
   "telegram_bot_token text",
   "api_key text",
+]);
+assert(
+  forwardReview.includes("REVIEW DRAFT - DO NOT APPLY WITHOUT EXPLICIT APPROVAL."),
+  "Prepared action forward review must be marked do-not-apply.",
+);
+assert(
+  rollbackReview.includes("REVIEW DRAFT - DO NOT APPLY WITHOUT EXPLICIT APPROVAL."),
+  "Prepared action rollback review must be marked do-not-apply.",
+);
+assert(
+  verifierReview.includes("REVIEW VERIFIER - DO NOT APPLY AS A MIGRATION."),
+  "Prepared action verifier must be marked as a verifier, not migration.",
+);
+assert(
+  forwardReview.includes("create table public.prepared_actions"),
+  "Prepared action forward review must create prepared_actions.",
+);
+assert(
+  forwardReview.includes("create or replace view public.prepared_action_owner_summaries"),
+  "Prepared action forward review must create owner summaries view.",
+);
+assert(
+  forwardReview.includes("prepared_actions_request_unique"),
+  "Prepared action forward review must define idempotency constraint.",
+);
+assert(
+  forwardReview.includes("enable row level security"),
+  "Prepared action forward review must enable RLS.",
+);
+assert(
+  forwardReview.includes("grant select, insert, update on public.prepared_actions to service_role"),
+  "Prepared action forward review must limit service_role prepared_actions grants.",
+);
+assert(
+  !/\bgrant\s+.*\bdelete\b.*prepared_actions/iu.test(forwardReview),
+  "Prepared action forward review must not grant delete on prepared_actions.",
+);
+assert(
+  !/\bdrop\s+(?:table|view)\b[\s\S]*\bcascade\b/iu.test(rollbackReview),
+  "Prepared action rollback review must not use DROP ... CASCADE.",
+);
+assert(
+  rollbackReview.includes("public.prepared_actions contains rows"),
+  "Prepared action rollback review must stop when rows exist.",
+);
+assert(
+  verifierReview.includes("prepared_action_storage_excludes_forbidden_columns"),
+  "Prepared action verifier must check forbidden column absence.",
+);
+assert(
+  verifierReview.includes("anon_has_no_prepared_actions_privileges"),
+  "Prepared action verifier must check anon privileges.",
+);
+assertNoForbidden("prepared action forward review", forwardReview, [
+  "raw_provider_payload",
+  "raw_calldata",
+  "wallet_address",
+  "private_key",
+  "seed_phrase",
+  "telegram_token_ref",
+  "telegram_bot_token",
+  "api_key",
+  "tx_hash text",
 ]);
 
 const approvalRequestQuery = dashboardService.match(/approval_requests\?select=([^`"]+)/);

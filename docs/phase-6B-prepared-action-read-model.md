@@ -8,6 +8,15 @@ Storage draft: `supabase/prepared_action_storage_schema_draft.sql`
 
 The storage draft is comment-only and marked `DRAFT ONLY - DO NOT APPLY`.
 
+Review SQL packet:
+
+- `supabase/prepared_action_storage_forward_review.sql`
+- `supabase/prepared_action_storage_rollback_review.sql`
+- `supabase/verify_prepared_action_storage_review.sql`
+
+These files are review artifacts only. They must not be applied without a
+separate target-project approval.
+
 ## Security Rule
 
 User privacy, user wallet security, and user Telegram bot token security are the
@@ -134,6 +143,8 @@ Before any schema migration:
 4. Add local checks for forbidden frontend/public/Telegram references.
 5. Keep `supabase/prepared_action_storage_schema_draft.sql` comment-only until
    a forward/rollback packet is explicitly approved.
+6. Keep the prepared-action forward/rollback/verifier review packet unapplied
+   until a separate Supabase apply approval.
 
 Future storage must satisfy:
 
@@ -155,3 +166,6 @@ Drafted storage boundaries:
 - public profiles must not join prepared actions
 - Telegram webhook must not read or write prepared actions
 - no raw calldata, wallet address, Telegram token ref, or API key columns
+- forward review enables RLS and creates an owner-only summary view
+- rollback review stops if rows exist and does not use `DROP ... CASCADE`
+- verifier checks forbidden column absence and role privileges

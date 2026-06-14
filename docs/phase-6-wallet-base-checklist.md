@@ -234,6 +234,7 @@ Current contract:
 - [x] Add local boundary checks for dashboard/public/Telegram prepared-action
       exposure.
 - [x] Draft comment-only owner-scoped storage and idempotency design.
+- [x] Draft forward/rollback/verifier SQL review packet without applying it.
 
 Definition of done:
 
