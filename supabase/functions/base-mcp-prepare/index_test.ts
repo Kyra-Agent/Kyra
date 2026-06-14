@@ -2,6 +2,9 @@ import {
   type BaseMcpPrepareDependencies,
   handleBaseMcpPrepareRequest,
   maxBaseMcpPrepareBodyBytes,
+  maxBaseMcpPrepareFutureSkewMs,
+  maxBaseMcpPreparePreviewTtlMs,
+  maxBaseMcpPrepareRequestAgeMs,
 } from "./core.ts";
 import { createBaseMcpPrepareDependenciesFromOptions } from "./dependencies.ts";
 import type { OwnershipLookupClient } from "../telegram-connect/core.ts";
@@ -27,6 +30,7 @@ async function readJson(response: Response) {
 const agentId = "11111111-1111-4111-8111-111111111111";
 const workspaceId = "22222222-2222-4222-8222-222222222222";
 const ownerUserId = "33333333-3333-4333-8333-333333333333";
+const fixedNow = new Date("2026-06-14T01:02:03.000Z");
 
 function validPayload(overrides: Record<string, unknown> = {}) {
   return {
@@ -36,7 +40,7 @@ function validPayload(overrides: Record<string, unknown> = {}) {
     requestId: "base-mcp-request-01",
     chain: "base",
     mode: "read_only",
-    requestedAt: "2026-06-14T01:02:03.000Z",
+    requestedAt: fixedNow.toISOString(),
     ...overrides,
   };
 }
@@ -80,6 +84,7 @@ function createEnabledDependencies(
     },
     getEnv: (key) => `test-${key}`,
     getUser: async () => ({ id: ownerUserId }),
+    getNow: () => fixedNow,
     lookupAgentOwnership: async () => ({
       agentId,
       ownerUserId,
@@ -299,6 +304,46 @@ Deno.test("base-mcp-prepare rejects malformed payloads and token fields before o
   }
 });
 
+Deno.test("base-mcp-prepare rejects stale and future requests before ownership or adapter", async () => {
+  const staleRequestedAt = new Date(
+    fixedNow.getTime() - maxBaseMcpPrepareRequestAgeMs - 1,
+  ).toISOString();
+  const futureRequestedAt = new Date(
+    fixedNow.getTime() + maxBaseMcpPrepareFutureSkewMs + 1,
+  ).toISOString();
+
+  for (const requestedAt of [staleRequestedAt, futureRequestedAt]) {
+    let ownershipCalled = false;
+    let adapterCalled = false;
+    const response = await handleBaseMcpPrepareRequest(
+      makeRequest({
+        authorization: "Bearer session",
+        contentType: "application/json",
+        body: JSON.stringify(validPayload({ requestedAt })),
+      }),
+      createEnabledDependencies({
+        lookupAgentOwnership: async () => {
+          ownershipCalled = true;
+          return null;
+        },
+        prepareBaseMcpAction: async () => {
+          adapterCalled = true;
+          throw new Error("Stale request must reject before adapter.");
+        },
+      }),
+    );
+    const body = await readJson(response);
+
+    assertEquals(response.status, 400);
+    assertEquals(body.status, "invalid_request");
+    assert(
+      !ownershipCalled,
+      "Stale or future body must reject before ownership.",
+    );
+    assert(!adapterCalled, "Stale or future body must reject before adapter.");
+  }
+});
+
 Deno.test("base-mcp-prepare unsupported action fails closed without ownership or adapter", async () => {
   let ownershipCalled = false;
   let adapterCalled = false;
@@ -403,6 +448,10 @@ Deno.test("base-mcp-prepare returns bounded status-check preview from injected a
 });
 
 Deno.test("base-mcp-prepare sanitizes adapter errors and invalid adapter payloads", async () => {
+  const expiredPreview = new Date(fixedNow.getTime() - 1).toISOString();
+  const farFuturePreview = new Date(
+    fixedNow.getTime() + maxBaseMcpPreparePreviewTtlMs + 1,
+  ).toISOString();
   const adapterCases: BaseMcpPrepareDependencies["prepareBaseMcpAction"][] = [
     async () => {
       throw new Error(
@@ -429,6 +478,34 @@ Deno.test("base-mcp-prepare sanitizes adapter errors and invalid adapter payload
         status: "failed",
         code: "base_mcp_unavailable",
         message: "raw provider error should not pass",
+      }) as never,
+    async () =>
+      ({
+        ok: true,
+        status: "preview_ready",
+        summary: {
+          actionKind: "base_mcp_status_check",
+          chain: "Base",
+          routeSummary: "Base MCP status check only.",
+          valueSummary: "No token spend.",
+          risk: "read-only",
+          expiryIso: expiredPreview,
+          opaquePayloadRef: null,
+        },
+      }) as never,
+    async () =>
+      ({
+        ok: true,
+        status: "preview_ready",
+        summary: {
+          actionKind: "base_mcp_status_check",
+          chain: "Base",
+          routeSummary: "Base MCP status check only.",
+          valueSummary: "No token spend.",
+          risk: "read-only",
+          expiryIso: farFuturePreview,
+          opaquePayloadRef: null,
+        },
       }) as never,
   ];
 

@@ -114,6 +114,9 @@ Current behavior:
 - enabled path requires bearer session validation
 - runtime gate enables only on exact `true`
 - timeout defaults safely and caps at 5000 ms
+- request freshness rejects stale requests older than 5 minutes
+- request freshness rejects future timestamps beyond 60 seconds of clock skew
+- preview expiry rejects expired previews or previews more than 10 minutes out
 - enabled path accepts only `base_mcp_status_check`
 - unsupported actions fail closed before ownership lookup
 - ownership is checked before adapter access
@@ -186,6 +189,7 @@ Current first candidate:
 - no live Base MCP call before adapter review
 - no prepared-action public read model
 - no browser read of `approval_requests.prepared_tx`
+- no stale or future preparation request accepted
 - no arbitrary swap preparation
 - no arbitrary send preparation
 - no contract call preparation
@@ -203,7 +207,7 @@ Current first candidate:
 - no frontend `VITE_` secret path added
 - static frontend and Telegram call-path guards added
 - prepared-action read model documented and checked
-- define live expiry/replay enforcement
+- live expiry/replay enforcement started in the default-off function skeleton
 - define owner-scoped storage migration
 - confirm public profiles remain share-safe
 - run `npm run check:base-mcp`

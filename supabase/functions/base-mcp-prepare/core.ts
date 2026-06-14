@@ -15,6 +15,9 @@ import {
 import type { BaseMcpPrepareRuntimeConfig } from "./runtime-config.ts";
 
 export const maxBaseMcpPrepareBodyBytes = 4096;
+export const maxBaseMcpPrepareRequestAgeMs = 5 * 60 * 1000;
+export const maxBaseMcpPrepareFutureSkewMs = 60 * 1000;
+export const maxBaseMcpPreparePreviewTtlMs = 10 * 60 * 1000;
 const baseMcpAllowedActionKinds = ["base_mcp_status_check"] as const;
 
 type BaseMcpActionKind = (typeof baseMcpAllowedActionKinds)[number];
@@ -75,6 +78,7 @@ export interface BaseMcpPrepareDependencies {
     agentId: string,
     ownerUserId: string,
   ) => Promise<AgentOwnershipRecord | null>;
+  getNow?: () => Date;
   prepareBaseMcpAction?: (
     input: BaseMcpPrepareRequest,
     runtimeConfig: Extract<BaseMcpPrepareRuntimeConfig, { enabled: true }>,
@@ -124,6 +128,9 @@ export async function handleBaseMcpPrepareRequest(
     const ownerUserId = assertAuthenticatedUserId(user);
     const body = await readJsonObjectBody(request, maxBaseMcpPrepareBodyBytes);
     const prepareRequest = assertBaseMcpPrepareBody(body);
+    const now = getSafeNow(dependencies.getNow);
+
+    assertFreshRequestedAt(prepareRequest.requestedAt, now);
 
     if (!isAllowedBaseMcpActionKind(prepareRequest.actionKind)) {
       return baseMcpFailureResponse(createUnknownBaseMcpActionFailure(), 400);
@@ -165,6 +172,7 @@ export async function handleBaseMcpPrepareRequest(
           allowedPrepareRequest,
           runtimeConfig,
         ),
+        now,
       );
 
       return baseMcpResultResponse(result);
@@ -227,6 +235,7 @@ export function assertBaseMcpPrepareBody(
 
 export function assertBaseMcpPrepareResult(
   result: unknown,
+  now = new Date(),
 ): BaseMcpPrepareResult {
   if (!isPlainRecord(result)) {
     throw invalidBaseMcpAdapterResponse();
@@ -278,7 +287,7 @@ export function assertBaseMcpPrepareResult(
   }
 
   if (summary.expiryIso !== null) {
-    assertIsoTimestamp(summary.expiryIso);
+    assertPreviewExpiry(summary.expiryIso, now);
   }
 
   if (summary.opaquePayloadRef !== null) {
@@ -376,6 +385,24 @@ function requireDependency<T>(dependency: T | undefined): T {
   return dependency;
 }
 
+function getSafeNow(getNow: BaseMcpPrepareDependencies["getNow"]) {
+  if (!getNow) {
+    return new Date();
+  }
+
+  const now = getNow();
+
+  if (!(now instanceof Date) || !Number.isFinite(now.getTime())) {
+    throw new HttpError(
+      500,
+      "server_error",
+      "Base MCP preparation is not configured safely.",
+    );
+  }
+
+  return now;
+}
+
 function isAllowedBaseMcpActionKind(
   value: unknown,
 ): value is BaseMcpActionKind {
@@ -460,6 +487,34 @@ function assertIsoTimestamp(value: unknown) {
   }
 
   return new Date(timestamp).toISOString();
+}
+
+function assertFreshRequestedAt(value: string, now: Date) {
+  const timestamp = Date.parse(value);
+  const nowMs = now.getTime();
+
+  if (
+    !Number.isFinite(timestamp) ||
+    timestamp < nowMs - maxBaseMcpPrepareRequestAgeMs ||
+    timestamp > nowMs + maxBaseMcpPrepareFutureSkewMs
+  ) {
+    throw invalidBaseMcpPrepareRequest();
+  }
+}
+
+function assertPreviewExpiry(value: unknown, now: Date) {
+  const expiryIso = assertIsoTimestamp(value);
+  const expiryMs = Date.parse(expiryIso);
+  const nowMs = now.getTime();
+
+  if (
+    expiryMs <= nowMs ||
+    expiryMs > nowMs + maxBaseMcpPreparePreviewTtlMs
+  ) {
+    throw invalidBaseMcpAdapterResponse();
+  }
+
+  return expiryIso;
 }
 
 function isAllowedBaseMcpFailureMessage(value: unknown) {

@@ -148,6 +148,8 @@ It should not show:
 - [x] Telegram webhook cannot call or configure Base MCP preparation.
 - [x] Runtime gate enables only on exact `true`.
 - [x] Runtime timeout defaults safely and caps at 5000 ms.
+- [x] Request freshness rejects stale/future preparation attempts.
+- [x] Preview expiry rejects expired or excessive adapter previews.
 - [x] Prepared-action owner summary contract added.
 - [x] Prepared-action private storage draft keeps sensitive fields out of
       browser-safe types.

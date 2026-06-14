@@ -150,6 +150,24 @@ Timeouts return:
 - `code: "base_mcp_timeout"`
 - `message: "Base MCP preparation timed out."`
 
+## Replay And Expiry
+
+Preparation requests must be fresh before ownership lookup or adapter access.
+
+Current request freshness contract:
+
+- maximum request age: 5 minutes
+- maximum future clock skew: 60 seconds
+- stale or future `requestedAt` values return `invalid_request`
+
+Preview expiry contract:
+
+- `expiryIso` may be `null` for the first status-check candidate
+- non-null preview expiry must be in the future
+- non-null preview expiry must be no more than 10 minutes from request handling
+- expired or excessive preview expiry is treated as an invalid adapter response
+  and returned as a sanitized unavailable response
+
 ## Dashboard Preview
 
 The owner dashboard may show only a summary:
@@ -198,6 +216,7 @@ preparation is dashboard-gated.
 2. Add a backend-only Edge Function skeleton behind disabled gates. Done.
 3. Add tests for allowed action kind, sanitizer behavior, default-off behavior,
    and owner-scope ordering. Done.
-4. Add a live provider adapter only after explicit review.
-5. Add live status-check call only after explicit enablement approval.
-6. Keep wallet signing deferred to Phase 6C.
+4. Add request freshness and preview expiry guards. Done.
+5. Add a live provider adapter only after explicit review.
+6. Add live status-check call only after explicit enablement approval.
+7. Keep wallet signing deferred to Phase 6C.

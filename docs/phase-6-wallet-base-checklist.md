@@ -228,7 +228,7 @@ Current contract:
 - [x] Include action kind, chain, route summary, value summary, and risk.
 - [ ] Store prepared payload only in owner-scoped backend records.
 - [x] Keep public profile free of prepared transaction data.
-- [ ] Add replay/expiry fields.
+- [x] Add replay/expiry fields.
 - [ ] Add idempotency key or claim strategy if needed.
 - [x] Add tests for malformed payloads.
 - [x] Add local boundary checks for dashboard/public/Telegram prepared-action

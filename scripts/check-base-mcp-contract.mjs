@@ -110,6 +110,18 @@ assert(
   "Base MCP function must keep the live adapter unwired by default.",
 );
 assert(
+  functionCore.includes("maxBaseMcpPrepareRequestAgeMs = 5 * 60 * 1000"),
+  "Base MCP function must cap request age for replay protection.",
+);
+assert(
+  functionCore.includes("maxBaseMcpPrepareFutureSkewMs = 60 * 1000"),
+  "Base MCP function must cap future timestamp skew.",
+);
+assert(
+  functionCore.includes("maxBaseMcpPreparePreviewTtlMs = 10 * 60 * 1000"),
+  "Base MCP function must cap preview expiry TTL.",
+);
+assert(
   functionCore.includes("assertAgentOwnership"),
   "Base MCP function must verify ownership before adapter calls.",
 );

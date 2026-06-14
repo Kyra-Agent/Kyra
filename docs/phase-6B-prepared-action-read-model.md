@@ -135,6 +135,10 @@ Future storage must satisfy:
 - owner-scoped by `workspaceId` and `agentId`
 - expiring by `expiresAt`
 - idempotent by `requestId`
+- fresh by `requestedAt`
+- maximum request age: 5 minutes
+- maximum future clock skew: 60 seconds
+- maximum preview TTL: 10 minutes
 - unsupported `actionKind` fails closed
 - raw payloads never appear in public or Telegram responses
 - wallet signing remains Phase 6C
