@@ -271,6 +271,7 @@ Definition of done:
 - [x] Confirm Kyra does not sign on behalf of the user.
 - [x] Choose first wallet provider path.
 - [ ] Install wallet provider dependencies after approval.
+- [x] Add UI-only wallet signing state model.
 - [ ] Define unsigned transaction handoff.
 - [ ] Confirm user pays gas.
 - [ ] Handle user rejection cleanly.

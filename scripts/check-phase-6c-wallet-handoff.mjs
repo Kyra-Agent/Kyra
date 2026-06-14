@@ -25,6 +25,7 @@ const appConfig = read("src/config/appConfig.ts");
 const packageJson = read("package.json");
 const walletModal = read("src/components/WalletApprovalModal.tsx");
 const dashboardService = read("src/services/supabaseDashboardService.ts");
+const walletSigningTypes = read("src/types/walletSigning.ts");
 
 for (const boundary of [
   "No wallet provider, wallet prompt, signature,",
@@ -69,9 +70,28 @@ assertIncludes("Phase 6 checklist", checklist, "Audit current signing/wallet han
 assertIncludes("Phase 6 checklist", checklist, "Choose first wallet provider path.");
 assertIncludes("Phase 6 checklist", checklist, "Install wallet provider dependencies after approval.");
 assertIncludes("package.json", packageJson, "\"check:phase-6c\"");
+assertIncludes("package.json", packageJson, "\"test:wallet-signing\"");
 assertIncludes("appConfig", appConfig, 'walletExecution: "disabled"');
 assertIncludes("WalletApprovalModal", walletModal, "Approve Demo");
 assertIncludes("WalletApprovalModal", walletModal, "Demo only");
+for (const state of [
+  "not_ready",
+  "preview_ready",
+  "review_required",
+  "wallet_prompt_requested",
+  "wallet_prompt_opened",
+  "user_rejected",
+  "submitted",
+  "failed",
+  "confirmed",
+]) {
+  assertIncludes("wallet signing state model", walletSigningTypes, state);
+}
+assertIncludes("wallet signing state model", walletSigningTypes, "Wallet prompt requires explicit owner action.");
+assertIncludes("wallet signing state model", walletSigningTypes, "Submitted actions require a transaction hash.");
+assertIncludes("wallet signing state model", walletSigningTypes, "Confirmed actions require confirmation data.");
+assertIncludes("wallet signing state model", walletSigningTypes, "Rejected actions must not include a transaction hash.");
+assertIncludes("wallet signing state model", walletSigningTypes, "isTransactionHash");
 assert(
   !dashboardService.includes("prepared_tx") && !dashboardService.includes("tx_hash"),
   "Dashboard service must keep prepared_tx and tx_hash out of owner reads before 6C implementation.",

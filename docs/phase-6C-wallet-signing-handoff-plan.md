@@ -44,6 +44,7 @@ Kyra must never:
    - add explicit states without provider dependency
    - keep `walletExecution` disabled
    - keep demo modal separate from real signing labels
+   - status: done in `src/types/walletSigning.ts`
 
 3. Owner review surface
    - show action kind, route, chain, value summary, risk, expiry
@@ -103,6 +104,7 @@ Rules:
 - `submitted` requires a wallet submission hash.
 - `confirmed` requires confirmation data, not just a local optimistic update.
 - `failed` stores a sanitized reason only.
+- `user_rejected` must not carry a transaction hash.
 
 ## Test Targets
 

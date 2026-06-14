@@ -43,6 +43,7 @@ Phase 6C must preserve:
 - Prepared action preview is read-only and currently `base_mcp_status_check`.
 - Base MCP provider and storage adapters are draft-only and not runtime-wired.
 - Telegram remains read-only and must keep refusing wallet/onchain execution.
+- UI-only wallet signing state model exists in `src/types/walletSigning.ts`.
 
 ## Findings
 
@@ -94,6 +95,14 @@ Coinbase Wallet connector second, and injected wallets later.
 
 Decision: do not install or wire wallet dependencies until the UI-only signing
 state model is added and reviewed. `walletExecution` remains disabled.
+
+### F7 - Signing State Model Is UI-Only
+
+`src/types/walletSigning.ts` defines state transitions without importing wallet
+provider dependencies or calling browser wallet APIs.
+
+Decision: keep this state model as the boundary for future UI work. Provider
+code must adapt to it, not bypass it.
 
 ## Phase 6C Entry Conditions
 
