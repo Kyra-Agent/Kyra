@@ -54,6 +54,7 @@ const dashboardService = read("src/services/supabaseDashboardService.ts");
 const publicAgentService = read("src/services/supabasePublicAgentService.ts");
 const baseMcpPrepareCore = read("supabase/functions/base-mcp-prepare/core.ts");
 const baseMcpPrepareDependencies = read("supabase/functions/base-mcp-prepare/dependencies.ts");
+const baseMcpPrepareStorageAdapter = read("supabase/functions/base-mcp-prepare/storage-adapter.ts");
 const publicProfileFiles = [
   "src/pages/PublicAgent.tsx",
   "src/services/supabasePublicAgentService.ts",
@@ -243,5 +244,28 @@ assert(
   !baseMcpPrepareDependencies.includes("storePreparedActionSummary"),
   "Base MCP runtime dependencies must not wire prepared-action storage yet.",
 );
+assert(
+  baseMcpPrepareStorageAdapter.includes('from("prepared_actions")'),
+  "Base MCP storage adapter draft must target prepared_actions only.",
+);
+assert(
+  baseMcpPrepareStorageAdapter.includes('onConflict: "workspace_id,agent_id,request_id"'),
+  "Base MCP storage adapter draft must use the idempotency key.",
+);
+assert(
+  baseMcpPrepareStorageAdapter.includes("provider_payload_ref: null"),
+  "Base MCP storage adapter draft must not store provider payload refs.",
+);
+assertNoForbidden("Base MCP storage adapter draft", baseMcpPrepareStorageAdapter, [
+  "raw_provider_payload",
+  "raw_calldata",
+  "wallet_address",
+  "private_key",
+  "seed_phrase",
+  "telegram_token_ref",
+  "telegram_bot_token",
+  "api_key",
+  "tx_hash",
+]);
 
 console.log("Prepared action boundary checks passed.");

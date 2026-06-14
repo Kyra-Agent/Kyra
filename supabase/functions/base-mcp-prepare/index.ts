@@ -10,6 +10,7 @@ import type { OwnershipLookupClient } from "../telegram-connect/core.ts";
 export * from "./core.ts";
 export * from "./dependencies.ts";
 export * from "./runtime-config.ts";
+export * from "./storage-adapter.ts";
 
 export interface BaseMcpPrepareRuntimeOptions {
   getEnv?: (key: string) => string;

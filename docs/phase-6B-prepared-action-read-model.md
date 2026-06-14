@@ -21,9 +21,13 @@ Runtime storage hook:
 
 - `supabase/functions/base-mcp-prepare/core.ts`
 - `BaseMcpPreparedActionStorageInput`
+- `supabase/functions/base-mcp-prepare/storage-adapter.ts`
 
 The hook is optional and contract-tested only. Runtime dependencies do not wire
 it yet, so there is still no prepared-action database write in production.
+The storage adapter file is a draft mapper for the reviewed SQL shape and uses
+the `(workspace_id, agent_id, request_id)` idempotency key when explicitly
+injected by tests.
 
 ## Security Rule
 
@@ -175,6 +179,8 @@ keys, raw calldata, wallet addresses, or Telegram token refs.
 Drafted storage boundaries:
 
 - unique `(workspace_id, agent_id, request_id)` idempotency
+- draft storage adapter maps only bounded summary fields into
+  `prepared_actions`
 - owner summary view excludes provider payload refs
 - public profiles must not join prepared actions
 - Telegram webhook must not read or write prepared actions

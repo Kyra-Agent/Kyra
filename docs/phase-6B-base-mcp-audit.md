@@ -123,6 +123,8 @@ Current behavior:
 - missing endpoint or missing adapter returns `base_mcp_not_configured`
 - injected adapter failures return sanitized `base_mcp_unavailable`
 - optional prepared-action storage hook accepts only sanitized preview summaries
+- prepared-action storage adapter draft maps sanitized summaries to the reviewed
+  `prepared_actions` shape
 - runtime dependencies do not wire prepared-action storage yet
 - static checks fail if frontend references Base MCP backend secrets or the
   prepare endpoint
@@ -226,6 +228,7 @@ Current first candidate:
 - prepared-action read model documented and checked
 - live expiry/replay enforcement started in the default-off function skeleton
 - prepared-action storage hook contract tested without runtime DB wiring
+- prepared-action storage adapter draft tested with a fake client only
 - owner-scoped storage migration remains unapplied until explicit approval
 - confirm public profiles remain share-safe
 - run `npm run check:base-mcp`
