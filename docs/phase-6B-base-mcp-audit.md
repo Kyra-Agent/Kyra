@@ -235,6 +235,7 @@ Current first candidate:
 - prepared-action storage adapter draft tested with a fake client only
 - owner-scoped storage migration remains unapplied until explicit approval
 - confirm public profiles remain share-safe
+- run `npm run check:phase-6b`
 - run `npm run check:base-mcp`
 - run `npm run check:prepared-actions`
 - run `npm run check:privacy`
@@ -243,11 +244,13 @@ Current first candidate:
 
 ## Completed Local Verification
 
+- `npm run check:phase-6b`
 - `npm run check:privacy`
 - `npm run check:base-mcp`
 - `npm run check:prepared-actions`
 - `npm run check:functions`
-- `deno test supabase/functions/base-mcp-prepare/index_test.ts supabase/functions/base-mcp-prepare/runtime-config_test.ts`
+- `deno test supabase/functions/base-mcp-prepare/index_test.ts supabase/functions/base-mcp-prepare/runtime-config_test.ts supabase/functions/base-mcp-prepare/storage-adapter_test.ts supabase/functions/base-mcp-prepare/provider-adapter_test.ts`
+  - expected current count: 28 passed
 - targeted Deno read-only Telegram tests
 - `npm run build`
 - `git diff --check`

@@ -86,6 +86,7 @@ Detailed sub-plans:
 
 - `docs/phase-6A-wallet-readiness-plan.md`
 - `docs/phase-6B-base-mcp-prep-plan.md`
+- `docs/phase-6B-review-packet.md`
 
 ### Milestone 6A - Wallet Readiness
 
@@ -106,6 +107,8 @@ Target result:
 Target result:
 
 - Kyra can prepare and display an action safely before asking the wallet.
+- Local review packet confirms provider/storage drafts stay unwired until
+  explicit approval.
 
 ### Milestone 6C - Approval And Signing Handoff
 

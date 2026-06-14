@@ -33,6 +33,8 @@ Prepared action SQL review packet:
 - `supabase/prepared_action_storage_rollback_review.sql`
 - `supabase/verify_prepared_action_storage_review.sql`
 
+Review packet: `docs/phase-6B-review-packet.md`
+
 Start by reading these areas:
 
 - `src/config/appConfig.ts`
@@ -166,9 +168,14 @@ It should not show:
 - [x] Prepared-action idempotency boundary uses workspace, agent, and request id.
 - [x] Prepared-action forward/rollback/verifier review packet drafted.
 - [x] Prepared-action SQL review packet remains unapplied.
+- [x] Provider adapter draft is fake-transport only and not runtime-wired.
+- [x] Storage adapter draft is fake-client only and not runtime-wired.
+- [x] Phase 6B review packet consolidates docs, guard scripts, and live
+      enablement order.
 - [x] Public profile cannot read prepared tx data.
 - [x] Dashboard preview shows safe summary.
 - [x] Telegram direct execution still refused.
+- [x] `npm run check:phase-6b`
 - [x] `npm run check:base-mcp`
 - [x] `npm run check:prepared-actions`
 - [x] `npm run check:privacy`
