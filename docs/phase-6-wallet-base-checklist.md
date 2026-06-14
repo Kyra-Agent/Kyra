@@ -194,17 +194,25 @@ Definition of done:
 
 ## Step 3 - Base MCP Capability Audit
 
-- [ ] Inspect current Base MCP config and references.
-- [ ] Confirm the target Base MCP endpoint and supported actions.
-- [ ] Identify which action should be first live candidate.
-- [ ] Define request/response shape for MCP preparation.
-- [ ] Define timeout and failure behavior.
-- [ ] Define sanitized error messages.
+- [x] Inspect current Base MCP config and references.
+- [x] Confirm the target Base MCP endpoint and supported actions.
+- [x] Identify which action should be first live candidate.
+- [x] Define request/response shape for MCP preparation.
+- [x] Define timeout and failure behavior.
+- [x] Define sanitized error messages.
 - [ ] Confirm no secrets are exposed to frontend or Telegram.
 
 Definition of done:
 
 - We know exactly what Base MCP can prepare first and what remains out of scope.
+
+Current contract:
+
+- `docs/phase-6B-base-mcp-adapter-contract.md`
+- first candidate: `base_mcp_status_check`
+- allowed action kinds: `base_mcp_status_check` only
+- runtime gates default off
+- no wallet signing or transaction submission
 
 ## Step 4 - Prepared Action Contract
 

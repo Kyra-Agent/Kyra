@@ -101,6 +101,9 @@ Decision: first candidate is `base_mcp_status_check`.
 
 ## First Prepared Preview Contract
 
+Detailed adapter contract:
+`docs/phase-6B-base-mcp-adapter-contract.md`
+
 Owner-facing preview fields:
 
 - `id`
@@ -138,13 +141,14 @@ Current first candidate:
 
 ## Required Before Any Live Base MCP Adapter
 
-- define exact endpoint/config source
-- define timeout and retry behavior
-- define sanitized error contract
-- define allowed action allowlist
+- exact endpoint/config source documented
+- timeout and retry behavior documented
+- sanitized error contract documented
+- allowed action allowlist documented
 - define expiry/replay protection
 - define owner-scoped storage and read model
 - confirm public profiles remain share-safe
+- run `npm run check:base-mcp`
 - run `npm run check:privacy`
 - run `npm run check:functions`
 - run `npm run build`
@@ -152,6 +156,7 @@ Current first candidate:
 ## Completed Local Verification
 
 - `npm run check:privacy`
+- `npm run check:base-mcp`
 - `npm run check:functions`
 - targeted Deno read-only Telegram tests
 - `npm run build`

@@ -19,6 +19,8 @@ before wallet signing.
 
 Audit artifact: `docs/phase-6B-base-mcp-audit.md`
 
+Adapter contract: `docs/phase-6B-base-mcp-adapter-contract.md`
+
 Start by reading these areas:
 
 - `src/config/appConfig.ts`
@@ -133,10 +135,12 @@ It should not show:
 - [x] MCP config audit completed.
 - [x] First action candidate selected.
 - [x] Prepared action shape documented or typed.
-- [ ] Unsupported action kind fails closed.
+- [x] Adapter contract documented.
+- [x] Unsupported action kind fails closed.
 - [x] Public profile cannot read prepared tx data.
 - [x] Dashboard preview shows safe summary.
 - [x] Telegram direct execution still refused.
+- [x] `npm run check:base-mcp`
 - [x] `npm run check:privacy`
 - [x] `npm run check:functions`
 - [x] Targeted Deno read-only Telegram tests
