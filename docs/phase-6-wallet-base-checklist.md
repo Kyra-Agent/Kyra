@@ -365,6 +365,7 @@ Before enabling production gates:
 - [x] Confirm Telegram bot tokens remain backend-only and are never exposed.
 - [x] Confirm no secret values appear in logs or UI.
 - [x] Add raw secret pattern scanning to `npm run check:privacy`.
+- [x] Block unreviewed `console.*` logging from runtime Edge Function code.
 - [x] Keep prepared-action browser reads column-scoped to owner-summary fields.
 - [ ] Confirm unsupported execution requests fail closed.
 - [ ] Confirm wallet approval is required.

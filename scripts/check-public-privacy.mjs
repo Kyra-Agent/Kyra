@@ -107,9 +107,22 @@ const publicSourceFiles = [
   ...walkFiles("public"),
   ...walkFiles("src"),
 ].filter((path) => /\.(?:css|html|js|json|md|svg|ts|tsx)$/.test(path));
+const edgeFunctionRuntimeFiles = walkFiles("supabase/functions").filter(
+  (path) => /\.ts$/.test(path) && !path.endsWith("_test.ts"),
+);
 
 for (const path of publicSourceFiles) {
   assertNoRawSecretPatterns(path, read(path));
+}
+
+for (const path of edgeFunctionRuntimeFiles) {
+  const source = read(path);
+
+  assertNoRawSecretPatterns(path, source);
+  assert(
+    !/\bconsole\.(?:debug|error|info|log|trace|warn)\s*\(/.test(source),
+    `${path} must not log from runtime Edge Function code without a reviewed sanitizer.`,
+  );
 }
 
 const envExample = read(".env.example");
