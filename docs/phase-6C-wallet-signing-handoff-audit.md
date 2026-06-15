@@ -69,6 +69,8 @@ code is lazy-loaded only when wallet execution is enabled.
 
 Decision: keep `walletExecution` disabled until owner-click prompt behavior,
 prepared-action storage, and first signable action are reviewed.
+`walletExecution` must not be controlled by a public `VITE_` env flag during
+Phase 6C.
 
 ### F2 - Demo Approval Must Not Become Real Signing Accidentally
 

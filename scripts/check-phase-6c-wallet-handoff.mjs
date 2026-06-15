@@ -123,6 +123,15 @@ assertIncludes("package.json", packageJson, '"viem"');
 assertIncludes("package.json", packageJson, '"@tanstack/react-query"');
 assertIncludes("package.json", packageJson, '"@base-org/account"');
 assertIncludes("appConfig", appConfig, 'walletExecution: "disabled"');
+assert(
+  !appConfig.includes("VITE_KYRA_ENABLE_WALLET") &&
+    !appConfig.includes("VITE_KYRA_WALLET_EXECUTION"),
+  "Wallet execution must not be controlled by a public VITE env flag during Phase 6C.",
+);
+assert(
+  !appConfig.includes("walletExecution: readEnv"),
+  "Wallet execution must remain hard-disabled during Phase 6C.",
+);
 assertIncludes("main", main, "WalletProviderBoundary");
 assertIncludes("dashboard", dashboard, "walletProviderStatus");
 assertIncludes("dashboard", dashboard, "Provider stack");
