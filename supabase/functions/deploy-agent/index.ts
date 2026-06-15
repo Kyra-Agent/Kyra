@@ -59,7 +59,12 @@ class HttpError extends Error {
   readonly code: string;
   readonly details: Record<string, unknown>;
 
-  constructor(statusCode: number, code: string, message: string, details: Record<string, unknown> = {}) {
+  constructor(
+    statusCode: number,
+    code: string,
+    message: string,
+    details: Record<string, unknown> = {},
+  ) {
     super(message);
     this.statusCode = statusCode;
     this.code = code;
@@ -69,18 +74,19 @@ class HttpError extends Error {
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
 const scenarios: Record<string, DemoScenario> = {
   operator: {
     id: "swap",
-    title: "Swap prepared",
-    command: "swap 10 USDC to ETH",
-    route: "USDC -> WETH via Base liquidity route",
-    risk: "normal",
-    approvalRequired: true,
+    title: "Swap review draft",
+    command: "review 10 USDC to ETH swap",
+    route: "USDC -> WETH review route on Base",
+    risk: "review",
+    approvalRequired: false,
   },
   scout: {
     id: "scan",
@@ -122,7 +128,11 @@ function getEnv(key: string) {
   const value = Deno.env.get(key);
 
   if (!value) {
-    throw new HttpError(500, "missing_env", `Missing required Edge Function secret: ${key}.`);
+    throw new HttpError(
+      500,
+      "missing_env",
+      `Missing required Edge Function secret: ${key}.`,
+    );
   }
 
   return value;
@@ -139,7 +149,8 @@ function getHealthPayload() {
     anonKey: Boolean(Deno.env.get("SUPABASE_ANON_KEY")),
     serviceRoleKey: Boolean(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")),
   };
-  const ready = requirements.supabaseUrl && requirements.anonKey && requirements.serviceRoleKey;
+  const ready = requirements.supabaseUrl && requirements.anonKey &&
+    requirements.serviceRoleKey;
 
   return {
     ok: ready,
@@ -168,7 +179,9 @@ function assertTemplateId(value: unknown) {
   return templateId;
 }
 
-async function readDeployRequestBody(request: Request): Promise<DeployAgentRequest> {
+async function readDeployRequestBody(
+  request: Request,
+): Promise<DeployAgentRequest> {
   try {
     const payload = await request.json();
 
@@ -178,7 +191,11 @@ async function readDeployRequestBody(request: Request): Promise<DeployAgentReque
 
     return payload as DeployAgentRequest;
   } catch {
-    throw new HttpError(400, "invalid_request", "Request body must be valid JSON.");
+    throw new HttpError(
+      400,
+      "invalid_request",
+      "Request body must be valid JSON.",
+    );
   }
 }
 
@@ -218,7 +235,10 @@ function createTelegramHandle(templateId: string, publicSlug: string) {
   return `@kyra_${templateId}_${publicSlug.slice(-5)}`;
 }
 
-function getScenario(templateId: string, template: AgentTemplateRow): DemoScenario {
+function getScenario(
+  templateId: string,
+  template: AgentTemplateRow,
+): DemoScenario {
   return (
     scenarios[templateId] ?? {
       id: "custom",
@@ -243,7 +263,10 @@ function sanitizeErrorMessage(message: string) {
   return message
     .replace(/sb_secret_[A-Za-z0-9_-]+/g, "sb_secret_[hidden]")
     .replace(/sb_publishable_[A-Za-z0-9_-]+/g, "sb_publishable_[hidden]")
-    .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "jwt_[hidden]")
+    .replace(
+      /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g,
+      "jwt_[hidden]",
+    )
     .slice(0, 240);
 }
 
@@ -255,7 +278,9 @@ function getUnknownErrorMessage(error: unknown) {
   if (typeof error === "object" && error) {
     const payload = error as Record<string, unknown>;
     const parts = [payload.message, payload.details, payload.hint, payload.code]
-      .filter((part): part is string => typeof part === "string" && Boolean(part.trim()))
+      .filter((part): part is string =>
+        typeof part === "string" && Boolean(part.trim())
+      )
       .map((part) => part.trim());
 
     if (parts.length) {
@@ -266,7 +291,11 @@ function getUnknownErrorMessage(error: unknown) {
   return "Deploy agent function failed.";
 }
 
-async function getUserClient(supabaseUrl: string, anonKey: string, authorization: string) {
+async function getUserClient(
+  supabaseUrl: string,
+  anonKey: string,
+  authorization: string,
+) {
   const userClient = createClient(supabaseUrl, anonKey, {
     auth: {
       persistSession: false,
@@ -282,13 +311,20 @@ async function getUserClient(supabaseUrl: string, anonKey: string, authorization
   const { data, error } = await userClient.auth.getUser();
 
   if (error || !data.user) {
-    throw new HttpError(401, "unauthorized", "A valid Supabase session is required.");
+    throw new HttpError(
+      401,
+      "unauthorized",
+      "A valid Supabase session is required.",
+    );
   }
 
   return data.user;
 }
 
-async function readExistingWorkspace(serviceClient: KyraSupabaseClient, userId: string) {
+async function readExistingWorkspace(
+  serviceClient: KyraSupabaseClient,
+  userId: string,
+) {
   const { data: existing, error: readError } = await serviceClient
     .from("workspaces")
     .select("id,owner_user_id,name,mode,created_at")
@@ -305,7 +341,10 @@ async function readExistingWorkspace(serviceClient: KyraSupabaseClient, userId: 
   return existing ?? null;
 }
 
-async function ensureWorkspace(serviceClient: KyraSupabaseClient, userId: string) {
+async function ensureWorkspace(
+  serviceClient: KyraSupabaseClient,
+  userId: string,
+) {
   const existing = await readExistingWorkspace(serviceClient, userId);
 
   if (existing) {
@@ -337,7 +376,10 @@ async function ensureWorkspace(serviceClient: KyraSupabaseClient, userId: string
   return created;
 }
 
-async function getTemplate(serviceClient: KyraSupabaseClient, templateId: string) {
+async function getTemplate(
+  serviceClient: KyraSupabaseClient,
+  templateId: string,
+) {
   const { data, error } = await serviceClient
     .from("agent_templates")
     .select("id,name,role,status,summary,actions,modules,terminal_seed")
@@ -349,13 +391,20 @@ async function getTemplate(serviceClient: KyraSupabaseClient, templateId: string
   }
 
   if (!data) {
-    throw new HttpError(404, "template_not_found", "Agent template was not found.");
+    throw new HttpError(
+      404,
+      "template_not_found",
+      "Agent template was not found.",
+    );
   }
 
   return data;
 }
 
-async function getAgentCount(serviceClient: KyraSupabaseClient, workspaceId: string) {
+async function getAgentCount(
+  serviceClient: KyraSupabaseClient,
+  workspaceId: string,
+) {
   const { count, error } = await serviceClient
     .from("agent_instances")
     .select("id", { count: "exact", head: true })
@@ -378,7 +427,9 @@ async function insertAgent(
 ) {
   const publicSlug = createPublicSlug(template.id, userId);
   const handle = createTelegramHandle(template.id, publicSlug);
-  const status: AgentStatus = template.status === "coming-soon" ? "draft" : "online";
+  const status: AgentStatus = template.status === "coming-soon"
+    ? "draft"
+    : "online";
   const { data, error } = await serviceClient
     .from("agent_instances")
     .insert({
@@ -393,7 +444,9 @@ async function insertAgent(
       telegram_status: "mocked",
       base_mcp_status: "mocked",
     })
-    .select("id,workspace_id,template_id,display_name,handle,public_slug,status")
+    .select(
+      "id,workspace_id,template_id,display_name,handle,public_slug,status",
+    )
     .single<AgentInstanceRow>();
 
   if (error || !data) {
@@ -453,70 +506,79 @@ async function insertRelatedRecords(
     throw updateError;
   }
 
-  const { error: approvalError } = await serviceClient.from("approval_requests").insert({
-    workspace_id: workspace.id,
-    agent_id: agent.id,
-    scenario_id: scenario.id,
-    title: scenario.title,
-    command: template.terminal_seed || scenario.command,
-    route: scenario.route,
-    risk: scenario.risk,
-    status: getApprovalStatus(scenario),
-    fee_payer: "connected_wallet",
-    requires_wallet: scenario.approvalRequired,
-    prepared_tx: {
-      demo: true,
-      template_id: template.id,
-      onchain_execution: "disabled",
-      source: "deploy-agent-edge-function",
-    },
-  });
+  const { error: approvalError } = await serviceClient.from("approval_requests")
+    .insert({
+      workspace_id: workspace.id,
+      agent_id: agent.id,
+      scenario_id: scenario.id,
+      title: scenario.title,
+      command: template.terminal_seed || scenario.command,
+      route: scenario.route,
+      risk: scenario.risk,
+      status: getApprovalStatus(scenario),
+      fee_payer: "connected_wallet",
+      requires_wallet: scenario.approvalRequired,
+      prepared_tx: {
+        demo: true,
+        template_id: template.id,
+        review_draft: true,
+        onchain_execution: "disabled",
+        source: "deploy-agent-edge-function",
+      },
+    });
 
   if (approvalError) {
     throw approvalError;
   }
 
-  const { error: telegramError } = await serviceClient.from("telegram_sessions").insert({
-    agent_id: agent.id,
-    bot_handle: agent.handle,
-    webhook_status: "mocked",
-    token_secret_ref: null,
-  });
+  const { error: telegramError } = await serviceClient.from("telegram_sessions")
+    .insert({
+      agent_id: agent.id,
+      bot_handle: agent.handle,
+      webhook_status: "mocked",
+      token_secret_ref: null,
+    });
 
   if (telegramError) {
     throw telegramError;
   }
 
-  const { error: logsError } = await serviceClient.from("activity_logs").insert([
-    {
-      workspace_id: workspace.id,
-      agent_id: agent.id,
-      source: "agent_instances",
-      level: "info",
-      message: `created ${template.name} demo agent from deploy-agent function`,
-    },
-    {
-      workspace_id: workspace.id,
-      agent_id: agent.id,
-      source: "telegram_sessions",
-      level: "notice",
-      message: "Telegram interface stored as simulated session",
-    },
-    {
-      workspace_id: workspace.id,
-      agent_id: agent.id,
-      source: "approval_requests",
-      level: "notice",
-      message: "demo approval request persisted with wallet approval required",
-    },
-  ]);
+  const { error: logsError } = await serviceClient.from("activity_logs").insert(
+    [
+      {
+        workspace_id: workspace.id,
+        agent_id: agent.id,
+        source: "agent_instances",
+        level: "info",
+        message:
+          `created ${template.name} demo agent from deploy-agent function`,
+      },
+      {
+        workspace_id: workspace.id,
+        agent_id: agent.id,
+        source: "telegram_sessions",
+        level: "notice",
+        message: "Telegram interface stored as simulated session",
+      },
+      {
+        workspace_id: workspace.id,
+        agent_id: agent.id,
+        source: "approval_requests",
+        level: "notice",
+        message: "demo review draft persisted with wallet execution disabled",
+      },
+    ],
+  );
 
   if (logsError) {
     throw logsError;
   }
 }
 
-async function cleanupPartialAgent(serviceClient: KyraSupabaseClient, agentId: string | null) {
+async function cleanupPartialAgent(
+  serviceClient: KyraSupabaseClient,
+  agentId: string | null,
+) {
   if (!agentId) {
     return;
   }
@@ -541,13 +603,21 @@ Deno.serve(async (request) => {
     }
 
     if (request.method !== "POST") {
-      throw new HttpError(405, "method_not_allowed", "Use POST for deploy-agent.");
+      throw new HttpError(
+        405,
+        "method_not_allowed",
+        "Use POST for deploy-agent.",
+      );
     }
 
     const authorization = request.headers.get("Authorization") ?? "";
 
     if (!authorization.toLowerCase().startsWith("bearer ")) {
-      throw new HttpError(401, "unauthorized", "A valid Supabase session is required.");
+      throw new HttpError(
+        401,
+        "unauthorized",
+        "A valid Supabase session is required.",
+      );
     }
 
     const supabaseUrl = getEnv("SUPABASE_URL");
@@ -569,13 +639,18 @@ Deno.serve(async (request) => {
     const used = await getAgentCount(serviceClient, workspace.id);
 
     if (used >= limit) {
-      throw new HttpError(409, "quota_exceeded", `Demo agent limit reached (${used}/${limit}).`, {
-        quota: {
-          used,
-          limit,
-          remaining: 0,
+      throw new HttpError(
+        409,
+        "quota_exceeded",
+        `Demo agent limit reached (${used}/${limit}).`,
+        {
+          quota: {
+            used,
+            limit,
+            remaining: 0,
+          },
         },
-      });
+      );
     }
 
     const template = await getTemplate(serviceClient, templateId);
@@ -584,15 +659,34 @@ Deno.serve(async (request) => {
     const filteredActions = requestedActions.length
       ? requestedActions.filter((action) => allowedActions.includes(action))
       : allowedActions;
-    const selectedActions = filteredActions.length ? filteredActions : allowedActions;
+    const selectedActions = filteredActions.length
+      ? filteredActions
+      : allowedActions;
     const agentName = normalizeAgentName(body.agentName, template);
-    const agent = await insertAgent(serviceClient, workspace.id, template, user.id, agentName);
+    const agent = await insertAgent(
+      serviceClient,
+      workspace.id,
+      template,
+      user.id,
+      agentName,
+    );
     let nextUsed = used + 1;
 
     try {
-      const policy = await insertWalletPolicy(serviceClient, workspace.id, agent.id, selectedActions);
+      const policy = await insertWalletPolicy(
+        serviceClient,
+        workspace.id,
+        agent.id,
+        selectedActions,
+      );
 
-      await insertRelatedRecords(serviceClient, workspace, agent, template, policy);
+      await insertRelatedRecords(
+        serviceClient,
+        workspace,
+        agent,
+        template,
+        policy,
+      );
 
       try {
         nextUsed = await getAgentCount(serviceClient, workspace.id);

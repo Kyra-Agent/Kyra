@@ -71,15 +71,22 @@ const secretLikePatterns = [
 const walletOrExecutionActions = new Set([
   "approve",
   "balance",
+  "conditional review",
   "conditional swap",
   "dca",
+  "dca plan",
   "holder verify",
   "lend",
+  "lend review",
+  "lp review",
   "lp manage",
   "portfolio",
   "send",
   "stop loss",
+  "stop loss check",
   "swap",
+  "swap review",
+  "transfer review",
   "tx history",
 ]);
 

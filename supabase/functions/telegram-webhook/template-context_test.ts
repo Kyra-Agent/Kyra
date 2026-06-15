@@ -67,13 +67,13 @@ const seedTemplates = [
   {
     templateId: "operator",
     name: "Operator",
-    role: "Personal wallet action agent",
+    role: "Personal wallet readiness agent",
     summary:
-      "A private Telegram-native agent for wallet checks, swaps, sends, action logs, and approval-driven execution on Base.",
+      "A private Telegram-native agent for wallet checks, swap reviews, transfer reviews, action logs, and approval-gated Base readiness.",
     actions: [
       "balance",
-      "swap",
-      "send",
+      "swap review",
+      "transfer review",
       "portfolio",
       "tx history",
       "price alert",
@@ -113,10 +113,16 @@ const seedTemplates = [
   {
     templateId: "executor",
     name: "Executor",
-    role: "Rule-based action agent",
+    role: "Rule-based action readiness agent",
     summary:
-      "An advanced agent for conditional swaps, DCA rules, stop loss flows, and controlled automation with hard approval limits.",
-    actions: ["conditional swap", "dca", "stop loss", "lp manage", "lend"],
+      "An advanced agent for conditional swap reviews, DCA plans, stop loss checks, and controlled automation drafts with hard approval limits.",
+    actions: [
+      "conditional review",
+      "dca plan",
+      "stop loss check",
+      "lp review",
+      "lend review",
+    ],
     modules: ["NIRA-01", "NOVA-04", "NYX-05"],
   },
   {
@@ -240,7 +246,7 @@ Deno.test("telegram template context gates executor wallet actions for phase 6",
   assertEquals(context.readOnlyActions.length, 0);
   assertEquals(
     context.gatedActions.join(","),
-    "conditional swap,dca,stop loss,lp manage,lend",
+    "conditional review,dca plan,stop loss check,lp review,lend review",
   );
 
   for (const action of context.actions) {
@@ -262,8 +268,8 @@ Deno.test("telegram template context keeps strategist actions read-only ready", 
 Deno.test("telegram template action classifier separates read-only dashboard and phase6 actions", () => {
   assertEquals(classifyTemplateAction("market brief"), "read_only_ready");
   assertEquals(classifyTemplateAction("announcement"), "dashboard_gated");
-  assertEquals(classifyTemplateAction("swap"), "phase6_wallet_gated");
-  assertEquals(classifyTemplateAction("dca"), "phase6_wallet_gated");
+  assertEquals(classifyTemplateAction("swap review"), "phase6_wallet_gated");
+  assertEquals(classifyTemplateAction("dca plan"), "phase6_wallet_gated");
 });
 
 Deno.test("telegram template context exposes module statuses without execution claims", () => {

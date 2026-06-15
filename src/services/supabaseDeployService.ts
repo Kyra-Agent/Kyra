@@ -24,7 +24,10 @@ type WalletPolicyRow = TableRow<"wallet_policies">;
 type AgentCountRow = Pick<AgentInstanceRow, "id">;
 
 export type DeployPersistenceStatus = "skipped" | "saved" | "error";
-export type DeployPersistenceSource = "local" | "supabase-rest" | "edge-function";
+export type DeployPersistenceSource =
+  | "local"
+  | "supabase-rest"
+  | "edge-function";
 export type DeployFailureKind =
   | "session"
   | "quota"
@@ -63,7 +66,10 @@ export interface DemoAgentQuota {
   message: string;
 }
 
-function createQuota(used: number, source: DemoAgentQuota["source"]): DemoAgentQuota {
+function createQuota(
+  used: number,
+  source: DemoAgentQuota["source"],
+): DemoAgentQuota {
   const limit = demoAgentLimits.maxAgentsPerWorkspace;
   const normalizedUsed = Math.max(0, used);
   const remaining = Math.max(0, limit - normalizedUsed);
@@ -74,10 +80,9 @@ function createQuota(used: number, source: DemoAgentQuota["source"]): DemoAgentQ
     remaining,
     reached: normalizedUsed >= limit,
     source,
-    message:
-      normalizedUsed >= limit
-        ? `Demo agent limit reached (${normalizedUsed}/${limit}).`
-        : `${remaining} demo agent slot${remaining === 1 ? "" : "s"} available.`,
+    message: normalizedUsed >= limit
+      ? `Demo agent limit reached (${normalizedUsed}/${limit}).`
+      : `${remaining} demo agent slot${remaining === 1 ? "" : "s"} available.`,
   };
 }
 
@@ -103,7 +108,12 @@ class DeployFunctionError extends Error {
   readonly code: string;
   readonly fallbackAllowed: boolean;
 
-  constructor(statusCode: number, code: string, message: string, fallbackAllowed: boolean) {
+  constructor(
+    statusCode: number,
+    code: string,
+    message: string,
+    fallbackAllowed: boolean,
+  ) {
     super(message);
     this.statusCode = statusCode;
     this.code = code;
@@ -111,7 +121,9 @@ class DeployFunctionError extends Error {
   }
 }
 
-async function getExistingWorkspace(session: KyraAuthSession): Promise<WorkspaceRow | null> {
+async function getExistingWorkspace(
+  session: KyraAuthSession,
+): Promise<WorkspaceRow | null> {
   const existing = await selectRows<WorkspaceRow>(
     session,
     "workspaces?select=id,owner_user_id,name,mode,created_at&mode=eq.demo&order=created_at.asc&limit=1",
@@ -120,7 +132,9 @@ async function getExistingWorkspace(session: KyraAuthSession): Promise<Workspace
   return existing[0] ?? null;
 }
 
-async function ensureWorkspace(session: KyraAuthSession): Promise<WorkspaceRow> {
+async function ensureWorkspace(
+  session: KyraAuthSession,
+): Promise<WorkspaceRow> {
   const existing = await getExistingWorkspace(session);
 
   if (existing) {
@@ -140,9 +154,9 @@ async function getQuotaForWorkspace(
 ): Promise<DemoAgentQuota> {
   const rows = await selectRows<AgentCountRow>(
     session,
-    `agent_instances?select=id&workspace_id=eq.${encodeURIComponent(workspaceId)}&limit=${
-      demoAgentLimits.maxAgentsPerWorkspace + 1
-    }`,
+    `agent_instances?select=id&workspace_id=eq.${
+      encodeURIComponent(workspaceId)
+    }&limit=${demoAgentLimits.maxAgentsPerWorkspace + 1}`,
   );
 
   return createQuota(rows.length, "supabase");
@@ -174,7 +188,8 @@ function createTelegramHandle(templateId: string, publicSlug: string) {
 }
 
 function getScenarioForTemplate(templateId: string) {
-  return demoScenarios.find((scenario) => scenario.templateId === templateId) ?? demoScenarios[0];
+  return demoScenarios.find((scenario) => scenario.templateId === templateId) ??
+    demoScenarios[0];
 }
 
 function createActivityLogs(
@@ -202,7 +217,7 @@ function createActivityLogs(
       agent_id: agentId,
       source: "approval_requests",
       level: "notice",
-      message: "demo approval request persisted with wallet approval required",
+      message: "demo review draft persisted with wallet execution disabled",
     },
   ];
 }
@@ -262,14 +277,15 @@ async function createApprovalRequest(
     agent_id: agentId,
     scenario_id: scenario?.id ?? null,
     title: `${template.name} demo action`,
-    command: template.terminalSeed || scenario?.command || "prepare demo action",
+    command: template.terminalSeed || scenario?.command ||
+      "prepare demo action",
     route: scenario?.route ?? "Demo route prepared by Kyra",
     risk,
     status: scenario?.approvalRequired
       ? "waiting_wallet"
       : risk === "read-only"
-        ? "read_only_ready"
-        : "review_required",
+      ? "read_only_ready"
+      : "review_required",
     fee_payer: "connected_wallet",
     requires_wallet: scenario?.approvalRequired ?? true,
     prepared_tx: {
@@ -280,7 +296,11 @@ async function createApprovalRequest(
   });
 }
 
-async function createTelegramSession(session: KyraAuthSession, agentId: string, handle: string) {
+async function createTelegramSession(
+  session: KyraAuthSession,
+  agentId: string,
+  handle: string,
+) {
   return insertRow(session, "telegram_sessions", {
     agent_id: agentId,
     bot_handle: handle,
@@ -347,22 +367,27 @@ function getDeployFailureMessage(code: string, fallback: string) {
     case "session":
       return "Account session expired or is invalid. Sign in again before deploying a demo agent.";
     case "quota":
-      return safeFallback || "Demo agent limit reached. No new demo records were written.";
+      return safeFallback ||
+        "Demo agent limit reached. No new demo records were written.";
     case "template":
       return "This agent template is unavailable. Refresh the catalog and choose an active template.";
     case "request":
-      return safeFallback || "Deploy request is incomplete. Review the template, agent name, and selected actions.";
+      return safeFallback ||
+        "Deploy request is incomplete. Review the template, agent name, and selected actions.";
     case "configuration":
       return "Backend persistence is not fully configured. No demo records were written.";
     case "backend":
       return "Kyra backend is unavailable. No demo records were written. Try again after backend persistence is ready.";
     case "unknown":
     default:
-      return safeFallback || "Demo persistence failed. No public route was confirmed.";
+      return safeFallback ||
+        "Demo persistence failed. No public route was confirmed.";
   }
 }
 
-async function parseDeployFunctionResponse(response: Response): Promise<DeployFunctionResponse> {
+async function parseDeployFunctionResponse(
+  response: Response,
+): Promise<DeployFunctionResponse> {
   const text = await response.text();
 
   if (!text) {
@@ -390,7 +415,12 @@ async function saveViaDeployFunction({
   selectedActions: string[];
 }) {
   if (!appConfig.functions.deployAgentConfigured) {
-    throw new DeployFunctionError(404, "function_not_configured", "Deploy function is not configured.", true);
+    throw new DeployFunctionError(
+      404,
+      "function_not_configured",
+      "Deploy function is not configured.",
+      true,
+    );
   }
 
   const response = await fetch(appConfig.functions.deployAgentUrl, {
@@ -408,13 +438,16 @@ async function saveViaDeployFunction({
     }),
   });
   const payload = await parseDeployFunctionResponse(response);
-  const code = payload.status ?? (response.status === 404 ? "function_not_found" : "function_error");
+  const code = payload.status ??
+    (response.status === 404 ? "function_not_found" : "function_error");
 
   if (!response.ok || payload.ok === false) {
     throw new DeployFunctionError(
       response.status,
       code,
-      sanitizeSupabaseMessage(payload.message ?? "Deploy function request failed."),
+      sanitizeSupabaseMessage(
+        payload.message ?? "Deploy function request failed.",
+      ),
       shouldFallbackFromFunction(response.status, code),
     );
   }
@@ -427,16 +460,15 @@ async function saveViaDeployFunction({
     publicSlug: payload.publicSlug ?? null,
     telegramHandle: payload.receipt?.telegram ?? null,
     source: "edge-function",
-    quota:
-      typeof payload.quota?.used === "number" &&
-      typeof payload.quota?.limit === "number" &&
-      typeof payload.quota?.remaining === "number"
-        ? {
-            used: payload.quota.used,
-            limit: payload.quota.limit,
-            remaining: payload.quota.remaining,
-          }
-        : undefined,
+    quota: typeof payload.quota?.used === "number" &&
+        typeof payload.quota?.limit === "number" &&
+        typeof payload.quota?.remaining === "number"
+      ? {
+        used: payload.quota.used,
+        limit: payload.quota.limit,
+        remaining: payload.quota.remaining,
+      }
+      : undefined,
   } satisfies DeployPersistenceResult;
 }
 
@@ -474,13 +506,22 @@ async function saveViaSupabaseRestFallback({
   }
 
   const agent = await createAgent(session, workspace, template, agentName);
-  const policy = await createWalletPolicy(session, workspace.id, agent.id, selectedActions);
+  const policy = await createWalletPolicy(
+    session,
+    workspace.id,
+    agent.id,
+    selectedActions,
+  );
   await patchRow(session, "agent_instances", agent.id, {
     approval_policy_id: policy.id,
   });
   await createApprovalRequest(session, workspace.id, agent.id, template);
   await createTelegramSession(session, agent.id, agent.handle);
-  await insertRows(session, "activity_logs", createActivityLogs(workspace.id, agent.id, template));
+  await insertRows(
+    session,
+    "activity_logs",
+    createActivityLogs(workspace.id, agent.id, template),
+  );
 
   return {
     status: "saved",
@@ -507,7 +548,8 @@ export async function saveSupabaseDemoDeployment({
   if (!session) {
     return {
       status: "skipped",
-      message: "Demo ran locally. Sign in from the dashboard to persist deployments.",
+      message:
+        "Demo ran locally. Sign in from the dashboard to persist deployments.",
       workspaceId: null,
       agentId: null,
       publicSlug: null,
@@ -521,7 +563,8 @@ export async function saveSupabaseDemoDeployment({
   if (!appConfig.supabase.configured) {
     return {
       status: "skipped",
-      message: "Backend persistence is not configured, so this deploy stayed local.",
+      message:
+        "Backend persistence is not configured, so this deploy stayed local.",
       workspaceId: null,
       agentId: null,
       publicSlug: null,
@@ -541,8 +584,7 @@ export async function saveSupabaseDemoDeployment({
         selectedActions,
       });
     } catch (error) {
-      const fallbackAllowed =
-        canUseRestDeployFallback() &&
+      const fallbackAllowed = canUseRestDeployFallback() &&
         (!(error instanceof DeployFunctionError) || error.fallbackAllowed);
 
       if (!fallbackAllowed) {
@@ -554,11 +596,12 @@ export async function saveSupabaseDemoDeployment({
           publicSlug: null,
           telegramHandle: null,
           source: "edge-function",
-          code: error instanceof DeployFunctionError ? error.code : "function_error",
-          failureKind:
-            error instanceof DeployFunctionError
-              ? getDeployFailureKind(error.code)
-              : "backend",
+          code: error instanceof DeployFunctionError
+            ? error.code
+            : "function_error",
+          failureKind: error instanceof DeployFunctionError
+            ? getDeployFailureKind(error.code)
+            : "backend",
         };
       }
 
@@ -572,10 +615,9 @@ export async function saveSupabaseDemoDeployment({
   } catch (error) {
     return {
       status: "error",
-      message:
-        error instanceof Error
-          ? getDeployFailureMessage("unknown", error.message)
-          : "Demo persistence failed. No public route was confirmed.",
+      message: error instanceof Error
+        ? getDeployFailureMessage("unknown", error.message)
+        : "Demo persistence failed. No public route was confirmed.",
       workspaceId: null,
       agentId: null,
       publicSlug: null,

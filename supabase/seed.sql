@@ -12,13 +12,13 @@ insert into public.agent_templates (
 (
   'operator',
   'Operator',
-  'Personal wallet action agent',
+  'Personal wallet readiness agent',
   'mvp',
-  'A private Telegram-native agent for wallet checks, swaps, sends, action logs, and approval-driven execution on Base.',
-  'Traders, founders, and Base users who want a command layer for their own wallet.',
-  '["balance", "swap", "send", "portfolio", "tx history", "price alert"]'::jsonb,
+  'A private Telegram-native agent for wallet checks, swap reviews, transfer reviews, action logs, and approval-gated Base readiness.',
+  'Traders, founders, and Base users who want a safe command layer for wallet review workflows.',
+  '["balance", "swap review", "transfer review", "portfolio", "tx history", "price alert"]'::jsonb,
   '["NIRA-01", "NOVA-04", "NYX-05"]'::jsonb,
-  'swap 10 USDC to ETH'
+  'review 10 USDC to ETH swap'
 ),
 (
   'scout',
@@ -45,11 +45,11 @@ insert into public.agent_templates (
 (
   'executor',
   'Executor',
-  'Rule-based action agent',
+  'Rule-based action readiness agent',
   'advanced',
-  'An advanced agent for conditional swaps, DCA rules, stop loss flows, and controlled automation with hard approval limits.',
-  'Power users who want rule-driven execution with strict safety controls.',
-  '["conditional swap", "dca", "stop loss", "lp manage", "lend"]'::jsonb,
+  'An advanced agent for conditional swap reviews, DCA plans, stop loss checks, and controlled automation drafts with hard approval limits.',
+  'Power users who want rule-driven planning with strict safety controls before any future execution path.',
+  '["conditional review", "dca plan", "stop loss check", "lp review", "lend review"]'::jsonb,
   '["NIRA-01", "NOVA-04", "NYX-05"]'::jsonb,
   'set dca 25 USDC into ETH daily'
 ),
@@ -59,7 +59,7 @@ insert into public.agent_templates (
   'Market and campaign intelligence agent',
   'mvp',
   'A planning agent that turns token, market, and community context into launch narratives, campaign plans, and decision-ready briefs.',
-  'Projects and operators who need sharper positioning, launch messaging, and market-aware plans before pushing announcements or onchain actions.',
+  'Projects and operators who need sharper positioning, launch messaging, and market-aware plans before pushing announcements or owner-approved actions.',
   '["market brief", "campaign plan", "narrative map", "launch copy", "community pulse"]'::jsonb,
   '["ASTRA-03", "NOVA-04", "VEXA-02"]'::jsonb,
   'draft market-aware campaign plan'

@@ -156,7 +156,10 @@ Deno.test("telegram template context lookup calls exact tables with bounded args
   assertEquals(calls[1].limit, 2);
   assertEquals(result.context.name, "KEE-RAHH Strategist");
   assertEquals(result.context.readOnlyActions.length, 5);
-  assert(result.text.includes("KEE-RAHH Strategist"), "Reply must use agent display name.");
+  assert(
+    result.text.includes("KEE-RAHH Strategist"),
+    "Reply must use agent display name.",
+  );
   assertNoSensitiveMaterial(result);
 });
 
@@ -247,9 +250,15 @@ Deno.test("telegram template context lookup keeps executor gated", async () => {
     templateRows: [{
       id: "executor",
       name: "Executor",
-      role: "Rule-based action agent",
+      role: "Rule-based action readiness agent",
       summary: "Controlled automation with hard approval limits.",
-      actions: ["conditional swap", "dca", "stop loss", "lp manage", "lend"],
+      actions: [
+        "conditional review",
+        "dca plan",
+        "stop loss check",
+        "lp review",
+        "lend review",
+      ],
       modules: ["NIRA-01", "NOVA-04", "NYX-05"],
     }],
   });

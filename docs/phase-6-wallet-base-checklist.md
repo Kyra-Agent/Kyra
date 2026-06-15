@@ -372,6 +372,9 @@ Before enabling production gates:
       provider.
 - [x] Keep the wallet dependency set on the reviewed Wagmi/Viem path.
 - [x] Keep demo UI copy from implying live wallet or onchain execution.
+- [x] Audit Supabase template catalog copy against the safety-reviewed local
+      catalog.
+- [x] Prepare reviewed SQL to clean stale production template catalog rows.
 - [ ] Confirm unsupported execution requests fail closed.
 - [ ] Confirm wallet approval is required.
 - [ ] Confirm transaction details are visible before signing.

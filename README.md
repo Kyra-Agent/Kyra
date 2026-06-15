@@ -31,16 +31,16 @@ Kyra Agent is a backend-connected product demo for creating AI agents that
 operate through Telegram and prepare Base-native workflows behind explicit user
 approval.
 
-| Area | Current Status |
-| --- | --- |
-| Agent deployment | Demo agents can be created from templates |
-| Dashboard | Private workspace view for deployed agents |
-| Public profiles | Shareable agent identity and capability pages |
-| Telegram | Live read-only commands and natural planning chat |
-| LLM layer | Backend-only enrichment for eligible read-only replies |
-| Wallet execution | Gated for Phase 6 |
-| Base MCP | Gated for Phase 6 |
-| Onchain transactions | Not live in the current demo |
+| Area                 | Current Status                                         |
+| -------------------- | ------------------------------------------------------ |
+| Agent deployment     | Demo agents can be created from templates              |
+| Dashboard            | Private workspace view for deployed agents             |
+| Public profiles      | Shareable agent identity and capability pages          |
+| Telegram             | Live read-only commands and natural planning chat      |
+| LLM layer            | Backend-only enrichment for eligible read-only replies |
+| Wallet execution     | Gated for Phase 6                                      |
+| Base MCP             | Gated for Phase 6                                      |
+| Onchain transactions | Not live in the current demo                           |
 
 ## What Is Live
 
@@ -62,25 +62,25 @@ Kyra can currently:
 
 Connected Telegram agents support read-only commands:
 
-| Command | Purpose |
-| --- | --- |
-| `/help` | Show available commands and plain-text examples |
-| `/status` | Report Telegram session and execution boundary |
-| `/agent` | Summarize the deployed agent role and focus |
+| Command    | Purpose                                            |
+| ---------- | -------------------------------------------------- |
+| `/help`    | Show available commands and plain-text examples    |
+| `/status`  | Report Telegram session and execution boundary     |
+| `/agent`   | Summarize the deployed agent role and focus        |
 | `/actions` | Show read-only actions and gated execution actions |
-| `/modules` | Show the deployed template module stack |
-| `/policy` | Explain the wallet/onchain safety boundary |
+| `/modules` | Show the deployed template module stack            |
+| `/policy`  | Explain the wallet/onchain safety boundary         |
 
 Natural read-only prompts are supported for:
 
-| Prompt Type | Output |
-| --- | --- |
-| Campaign plan | Launch roadmap, phases, audience, and positioning |
-| Market brief | Read-only market/context summary |
-| Narrative map | Story angles and message structure |
-| Launch copy | Announcement, thread, and CTA drafts |
-| Community pulse | Sentiment and engagement summary |
-| Risk review | Checklist-style risk framing |
+| Prompt Type     | Output                                            |
+| --------------- | ------------------------------------------------- |
+| Campaign plan   | Launch roadmap, phases, audience, and positioning |
+| Market brief    | Read-only market/context summary                  |
+| Narrative map   | Story angles and message structure                |
+| Launch copy     | Announcement, thread, and CTA drafts              |
+| Community pulse | Sentiment and engagement summary                  |
+| Risk review     | Checklist-style risk framing                      |
 
 Execution requests are refused from Telegram. Kyra can turn them into a
 read-only plan, checklist, or risk review, but it cannot sign, approve, swap,
@@ -88,27 +88,27 @@ transfer, or call contracts from Telegram.
 
 ## Agent Templates
 
-| Template | Role |
-| --- | --- |
-| Operator | Personal wallet action agent |
-| Scout | Recon and launch monitor |
-| Steward | Project and community agent |
-| Executor | Rule-based action agent |
+| Template   | Role                                   |
+| ---------- | -------------------------------------- |
+| Operator   | Personal wallet readiness agent        |
+| Scout      | Recon and launch monitor               |
+| Steward    | Project and community agent            |
+| Executor   | Rule-based action readiness agent      |
 | Strategist | Market and campaign intelligence agent |
-| Custom | User-defined modules and safety limits |
+| Custom     | User-defined modules and safety limits |
 
 ## Module Stack
 
 Templates are the user-facing package. Modules are the internal capability
 layer.
 
-| Module | Capability |
-| --- | --- |
-| NIRA-01 | Lead orchestration |
-| VEXA-02 | Recon and monitoring |
-| ASTRA-03 | Research and reasoning |
-| NOVA-04 | Data and context |
-| NYX-05 | Security and risk guard |
+| Module   | Capability              |
+| -------- | ----------------------- |
+| NIRA-01  | Lead orchestration      |
+| VEXA-02  | Recon and monitoring    |
+| ASTRA-03 | Research and reasoning  |
+| NOVA-04  | Data and context        |
+| NYX-05   | Security and risk guard |
 
 Different templates can use different module stacks depending on their role.
 
@@ -116,13 +116,13 @@ Different templates can use different module stacks depending on their role.
 
 Kyra is built around approval-first execution.
 
-| Allowed Now | Gated For Phase 6 |
-| --- | --- |
-| Read-only Telegram commands | Wallet connection |
-| Natural planning chat | Token approvals |
-| LLM-assisted planning replies | Base MCP execution |
-| Dashboard and public profiles | Contract calls |
-| Demo persistence | Live onchain transaction submission |
+| Allowed Now                   | Gated For Phase 6                   |
+| ----------------------------- | ----------------------------------- |
+| Read-only Telegram commands   | Wallet connection                   |
+| Natural planning chat         | Token approvals                     |
+| LLM-assisted planning replies | Base MCP execution                  |
+| Dashboard and public profiles | Contract calls                      |
+| Demo persistence              | Live onchain transaction submission |
 
 Current boundaries:
 
@@ -161,8 +161,8 @@ The next product phase focuses on the execution layer:
 
 ## Links
 
-| Destination | URL |
-| --- | --- |
-| Website | https://kyraagent.xyz |
-| X | https://x.com/Kyra_Agent |
-| Repository | https://github.com/Kyra-Agent/Kyra |
+| Destination | URL                                |
+| ----------- | ---------------------------------- |
+| Website     | https://kyraagent.xyz              |
+| X           | https://x.com/Kyra_Agent           |
+| Repository  | https://github.com/Kyra-Agent/Kyra |
