@@ -175,6 +175,15 @@ for raw BotFather token patterns, OpenRouter keys, PEM private keys, and raw
 Decision: keep this scanner in the local gate before push. Public docs may
 describe security boundaries, but must not contain real secret values.
 
+### F14 - Wallet Provider Imports Stay Isolated
+
+`npm run check:phase-6c` now rejects direct `wagmi`, `viem`,
+`@base-org/account`, or `@tanstack/react-query` imports outside
+`src/providers/WalletRuntimeProviders.tsx`.
+
+Decision: wallet dependencies may stay installed, but app surfaces must not pull
+provider code or wallet hooks outside the disabled runtime provider gate.
+
 ## Phase 6C Entry Conditions
 
 Do not implement live signing until:

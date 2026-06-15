@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = process.cwd();
@@ -15,6 +15,25 @@ function assert(condition, message) {
 
 function assertIncludes(sourceName, source, text) {
   assert(source.includes(text), `${sourceName} must include: ${text}`);
+}
+
+function walkFiles(path) {
+  const absolutePath = resolve(root, path);
+  const stat = statSync(absolutePath);
+
+  if (stat.isFile()) {
+    return [path];
+  }
+
+  return readdirSync(absolutePath, { withFileTypes: true }).flatMap((entry) => {
+    const childPath = `${path}/${entry.name}`;
+
+    if (entry.isDirectory()) {
+      return walkFiles(childPath);
+    }
+
+    return entry.isFile() ? [childPath] : [];
+  });
 }
 
 const audit = read("docs/phase-6C-wallet-signing-handoff-audit.md");
@@ -34,6 +53,14 @@ const unsignedTransactionHandoffTypes = read(
 const walletProviderBoundary = read("src/providers/WalletProviderBoundary.tsx");
 const walletRuntimeProviders = read("src/providers/WalletRuntimeProviders.tsx");
 const main = read("src/main.tsx");
+const sourceFiles = walkFiles("src").filter((path) =>
+  /\.(?:ts|tsx|mjs)$/.test(path)
+);
+const walletProviderPackageImportPattern =
+  /(?:import\s+(?:type\s+)?[\s\S]*?\s+from\s+["'](?:wagmi|viem|@base-org\/account|@tanstack\/react-query)["']|await\s+import\(["'](?:wagmi|viem|@base-org\/account|@tanstack\/react-query)["']\))/;
+const walletProviderImportAllowlist = new Set([
+  "src/providers/WalletRuntimeProviders.tsx",
+]);
 
 for (
   const boundary of [
@@ -133,6 +160,16 @@ assert(
   "Wallet execution must remain hard-disabled during Phase 6C.",
 );
 assertIncludes("main", main, "WalletProviderBoundary");
+for (const path of sourceFiles) {
+  if (walletProviderImportAllowlist.has(path)) {
+    continue;
+  }
+
+  assert(
+    !walletProviderPackageImportPattern.test(read(path)),
+    `${path} must not import wallet provider packages outside the gated runtime provider.`,
+  );
+}
 assertIncludes("dashboard", dashboard, "walletProviderStatus");
 assertIncludes("dashboard", dashboard, "Provider stack");
 assertIncludes("dashboard", dashboard, "Prompt access");

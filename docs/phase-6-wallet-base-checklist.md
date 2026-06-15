@@ -368,6 +368,8 @@ Before enabling production gates:
 - [x] Block unreviewed `console.*` logging from runtime Edge Function code.
 - [x] Broaden Telegram unsafe intent classification for wallet/onchain verbs.
 - [x] Keep prepared-action browser reads column-scoped to owner-summary fields.
+- [x] Keep wallet provider package imports isolated to the gated runtime
+      provider.
 - [ ] Confirm unsupported execution requests fail closed.
 - [ ] Confirm wallet approval is required.
 - [ ] Confirm transaction details are visible before signing.
