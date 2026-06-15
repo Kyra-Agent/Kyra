@@ -38,23 +38,38 @@ function listFiles(path) {
 
 function assertNoForbidden(sourceName, source, forbiddenTerms) {
   const lower = source.toLowerCase();
-  const hits = forbiddenTerms.filter((term) => lower.includes(term.toLowerCase()));
+  const hits = forbiddenTerms.filter((term) =>
+    lower.includes(term.toLowerCase())
+  );
 
-  assert(hits.length === 0, `${sourceName} exposes forbidden terms: ${hits.join(", ")}`);
+  assert(
+    hits.length === 0,
+    `${sourceName} exposes forbidden terms: ${hits.join(", ")}`,
+  );
 }
 
 const preparedActionTypes = read("src/types/preparedAction.ts");
 const readModelDoc = read("docs/phase-6B-prepared-action-read-model.md");
 const storageDraft = read("supabase/prepared_action_storage_schema_draft.sql");
-const forwardReview = read("supabase/prepared_action_storage_forward_review.sql");
-const rollbackReview = read("supabase/prepared_action_storage_rollback_review.sql");
-const verifierReview = read("supabase/verify_prepared_action_storage_review.sql");
+const forwardReview = read(
+  "supabase/prepared_action_storage_forward_review.sql",
+);
+const rollbackReview = read(
+  "supabase/prepared_action_storage_rollback_review.sql",
+);
+const verifierReview = read(
+  "supabase/verify_prepared_action_storage_review.sql",
+);
 const schema = read("supabase/schema.sql");
 const dashboardService = read("src/services/supabaseDashboardService.ts");
 const publicAgentService = read("src/services/supabasePublicAgentService.ts");
 const baseMcpPrepareCore = read("supabase/functions/base-mcp-prepare/core.ts");
-const baseMcpPrepareDependencies = read("supabase/functions/base-mcp-prepare/dependencies.ts");
-const baseMcpPrepareStorageAdapter = read("supabase/functions/base-mcp-prepare/storage-adapter.ts");
+const baseMcpPrepareDependencies = read(
+  "supabase/functions/base-mcp-prepare/dependencies.ts",
+);
+const baseMcpPrepareStorageAdapter = read(
+  "supabase/functions/base-mcp-prepare/storage-adapter.ts",
+);
 const publicProfileFiles = [
   "src/pages/PublicAgent.tsx",
   "src/services/supabasePublicAgentService.ts",
@@ -63,7 +78,9 @@ const telegramWebhookFiles = listFiles("supabase/functions/telegram-webhook")
   .filter((path) => /\.(ts|tsx)$/u.test(path));
 
 assert(
-  preparedActionTypes.includes('preparedActionAllowedKinds = ["base_mcp_status_check"] as const'),
+  preparedActionTypes.includes(
+    'preparedActionAllowedKinds = ["base_mcp_status_check"] as const',
+  ),
   "Prepared action allowlist must start with base_mcp_status_check only.",
 );
 assert(
@@ -87,7 +104,9 @@ assert(
   "Prepared action type must forbid Telegram token refs in prepared-action storage draft.",
 );
 assert(
-  readModelDoc.includes("Phase 6B does not use `approval_requests.prepared_tx` as a browser read model."),
+  readModelDoc.includes(
+    "Phase 6B does not use `approval_requests.prepared_tx` as a browser read model.",
+  ),
   "Prepared action read-model doc must keep prepared_tx out of browser reads.",
 );
 assert(
@@ -103,11 +122,15 @@ assert(
   "Prepared action storage draft must be marked do-not-apply.",
 );
 assert(
-  storageDraft.split(/\r?\n/u).every((line) => !line.trim() || line.trim().startsWith("--")),
+  storageDraft.split(/\r?\n/u).every((line) =>
+    !line.trim() || line.trim().startsWith("--")
+  ),
   "Prepared action storage draft must stay comment-only.",
 );
 assert(
-  storageDraft.includes("prepared_actions_request_unique unique (workspace_id, agent_id, request_id)"),
+  storageDraft.includes(
+    "prepared_actions_request_unique unique (workspace_id, agent_id, request_id)",
+  ),
   "Prepared action storage draft must define workspace/agent/request idempotency.",
 );
 assert(
@@ -115,11 +138,15 @@ assert(
   "Prepared action storage draft must define an owner summary view boundary.",
 );
 assert(
-  storageDraft.includes("public.public_agent_profiles must not join prepared_actions"),
+  storageDraft.includes(
+    "public.public_agent_profiles must not join prepared_actions",
+  ),
   "Prepared action storage draft must keep public profiles isolated.",
 );
 assert(
-  storageDraft.includes("telegram-webhook must not read or write prepared_actions"),
+  storageDraft.includes(
+    "telegram-webhook must not read or write prepared_actions",
+  ),
   "Prepared action storage draft must keep Telegram isolated.",
 );
 assertNoForbidden("prepared action storage draft", storageDraft, [
@@ -133,11 +160,15 @@ assertNoForbidden("prepared action storage draft", storageDraft, [
   "api_key text",
 ]);
 assert(
-  forwardReview.includes("REVIEW DRAFT - DO NOT APPLY WITHOUT EXPLICIT APPROVAL."),
+  forwardReview.includes(
+    "REVIEW DRAFT - DO NOT APPLY WITHOUT EXPLICIT APPROVAL.",
+  ),
   "Prepared action forward review must be marked do-not-apply.",
 );
 assert(
-  rollbackReview.includes("REVIEW DRAFT - DO NOT APPLY WITHOUT EXPLICIT APPROVAL."),
+  rollbackReview.includes(
+    "REVIEW DRAFT - DO NOT APPLY WITHOUT EXPLICIT APPROVAL.",
+  ),
   "Prepared action rollback review must be marked do-not-apply.",
 );
 assert(
@@ -149,7 +180,9 @@ assert(
   "Prepared action forward review must create prepared_actions.",
 );
 assert(
-  forwardReview.includes("create or replace view public.prepared_action_owner_summaries"),
+  forwardReview.includes(
+    "create or replace view public.prepared_action_owner_summaries",
+  ),
   "Prepared action forward review must create owner summaries view.",
 );
 assert(
@@ -161,7 +194,23 @@ assert(
   "Prepared action forward review must enable RLS.",
 );
 assert(
-  forwardReview.includes("grant select, insert, update on public.prepared_actions to service_role"),
+  forwardReview.includes("grant select (\n  id,"),
+  "Prepared action forward review must use column-level authenticated select grants.",
+);
+assert(
+  forwardReview.includes(") on public.prepared_actions to authenticated"),
+  "Prepared action forward review must grant only summary-safe columns to authenticated.",
+);
+assert(
+  !forwardReview.includes(
+    "grant select on public.prepared_actions to authenticated",
+  ),
+  "Prepared action forward review must not grant full prepared_actions table select to authenticated.",
+);
+assert(
+  forwardReview.includes(
+    "grant select, insert, update on public.prepared_actions to service_role",
+  ),
   "Prepared action forward review must limit service_role prepared_actions grants.",
 );
 assert(
@@ -184,6 +233,12 @@ assert(
   verifierReview.includes("anon_has_no_prepared_actions_privileges"),
   "Prepared action verifier must check anon privileges.",
 );
+assert(
+  verifierReview.includes("has_column_privilege(") &&
+    verifierReview.includes("'request_id'") &&
+    verifierReview.includes("'provider_payload_ref'"),
+  "Prepared action verifier must check authenticated column-level privileges.",
+);
 assertNoForbidden("prepared action forward review", forwardReview, [
   "raw_provider_payload",
   "raw_calldata",
@@ -196,7 +251,9 @@ assertNoForbidden("prepared action forward review", forwardReview, [
   "tx_hash text",
 ]);
 
-const approvalRequestQuery = dashboardService.match(/approval_requests\?select=([^`"]+)/);
+const approvalRequestQuery = dashboardService.match(
+  /approval_requests\?select=([^`"]+)/,
+);
 assert(approvalRequestQuery, "Missing approval_requests dashboard query.");
 assertNoForbidden("dashboard approval request query", approvalRequestQuery[1], [
   "prepared_tx",
@@ -249,23 +306,29 @@ assert(
   "Base MCP storage adapter draft must target prepared_actions only.",
 );
 assert(
-  baseMcpPrepareStorageAdapter.includes('onConflict: "workspace_id,agent_id,request_id"'),
+  baseMcpPrepareStorageAdapter.includes(
+    'onConflict: "workspace_id,agent_id,request_id"',
+  ),
   "Base MCP storage adapter draft must use the idempotency key.",
 );
 assert(
   baseMcpPrepareStorageAdapter.includes("provider_payload_ref: null"),
   "Base MCP storage adapter draft must not store provider payload refs.",
 );
-assertNoForbidden("Base MCP storage adapter draft", baseMcpPrepareStorageAdapter, [
-  "raw_provider_payload",
-  "raw_calldata",
-  "wallet_address",
-  "private_key",
-  "seed_phrase",
-  "telegram_token_ref",
-  "telegram_bot_token",
-  "api_key",
-  "tx_hash",
-]);
+assertNoForbidden(
+  "Base MCP storage adapter draft",
+  baseMcpPrepareStorageAdapter,
+  [
+    "raw_provider_payload",
+    "raw_calldata",
+    "wallet_address",
+    "private_key",
+    "seed_phrase",
+    "telegram_token_ref",
+    "telegram_bot_token",
+    "api_key",
+    "tx_hash",
+  ],
+);
 
 console.log("Prepared action boundary checks passed.");

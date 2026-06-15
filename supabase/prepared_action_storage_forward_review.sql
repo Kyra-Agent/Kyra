@@ -158,7 +158,21 @@ revoke all privileges on public.prepared_action_owner_summaries from anon;
 revoke all privileges on public.prepared_action_owner_summaries from authenticated;
 revoke all privileges on public.prepared_action_owner_summaries from service_role;
 
-grant select on public.prepared_actions to authenticated;
+grant select (
+  id,
+  workspace_id,
+  agent_id,
+  action_kind,
+  chain,
+  status,
+  risk,
+  route_summary,
+  value_summary,
+  approval_requirement,
+  expires_at,
+  created_at,
+  safety_note
+) on public.prepared_actions to authenticated;
 grant select on public.prepared_action_owner_summaries to authenticated;
 grant select, insert, update on public.prepared_actions to service_role;
 grant select on public.prepared_action_owner_summaries to service_role;

@@ -170,9 +170,99 @@ select
   end as anon_cannot_select_owner_summary_view,
   case
     when prepared_action_objects.prepared_actions_table is null then false
-    else coalesce(has_table_privilege(
+    else not coalesce(has_table_privilege(
       'authenticated',
       prepared_action_objects.prepared_actions_table::oid,
+      'select'
+    ), false)
+    and coalesce(has_column_privilege(
+      'authenticated',
+      prepared_action_objects.prepared_actions_table::oid,
+      'id',
+      'select'
+    ), false)
+    and coalesce(has_column_privilege(
+      'authenticated',
+      prepared_action_objects.prepared_actions_table::oid,
+      'workspace_id',
+      'select'
+    ), false)
+    and coalesce(has_column_privilege(
+      'authenticated',
+      prepared_action_objects.prepared_actions_table::oid,
+      'agent_id',
+      'select'
+    ), false)
+    and coalesce(has_column_privilege(
+      'authenticated',
+      prepared_action_objects.prepared_actions_table::oid,
+      'action_kind',
+      'select'
+    ), false)
+    and coalesce(has_column_privilege(
+      'authenticated',
+      prepared_action_objects.prepared_actions_table::oid,
+      'chain',
+      'select'
+    ), false)
+    and coalesce(has_column_privilege(
+      'authenticated',
+      prepared_action_objects.prepared_actions_table::oid,
+      'status',
+      'select'
+    ), false)
+    and coalesce(has_column_privilege(
+      'authenticated',
+      prepared_action_objects.prepared_actions_table::oid,
+      'risk',
+      'select'
+    ), false)
+    and coalesce(has_column_privilege(
+      'authenticated',
+      prepared_action_objects.prepared_actions_table::oid,
+      'route_summary',
+      'select'
+    ), false)
+    and coalesce(has_column_privilege(
+      'authenticated',
+      prepared_action_objects.prepared_actions_table::oid,
+      'value_summary',
+      'select'
+    ), false)
+    and coalesce(has_column_privilege(
+      'authenticated',
+      prepared_action_objects.prepared_actions_table::oid,
+      'approval_requirement',
+      'select'
+    ), false)
+    and coalesce(has_column_privilege(
+      'authenticated',
+      prepared_action_objects.prepared_actions_table::oid,
+      'expires_at',
+      'select'
+    ), false)
+    and coalesce(has_column_privilege(
+      'authenticated',
+      prepared_action_objects.prepared_actions_table::oid,
+      'created_at',
+      'select'
+    ), false)
+    and coalesce(has_column_privilege(
+      'authenticated',
+      prepared_action_objects.prepared_actions_table::oid,
+      'safety_note',
+      'select'
+    ), false)
+    and not coalesce(has_column_privilege(
+      'authenticated',
+      prepared_action_objects.prepared_actions_table::oid,
+      'request_id',
+      'select'
+    ), false)
+    and not coalesce(has_column_privilege(
+      'authenticated',
+      prepared_action_objects.prepared_actions_table::oid,
+      'provider_payload_ref',
       'select'
     ), false)
     and not coalesce(has_table_privilege(

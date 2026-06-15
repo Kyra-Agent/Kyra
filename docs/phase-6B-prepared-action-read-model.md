@@ -24,10 +24,10 @@ Runtime storage hook:
 - `supabase/functions/base-mcp-prepare/storage-adapter.ts`
 
 The hook is optional and contract-tested only. Runtime dependencies do not wire
-it yet, so there is still no prepared-action database write in production.
-The storage adapter file is a draft mapper for the reviewed SQL shape and uses
-the `(workspace_id, agent_id, request_id)` idempotency key when explicitly
-injected by tests.
+it yet, so there is still no prepared-action database write in production. The
+storage adapter file is a draft mapper for the reviewed SQL shape and uses the
+`(workspace_id, agent_id, request_id)` idempotency key when explicitly injected
+by tests.
 
 ## Security Rule
 
@@ -116,8 +116,8 @@ Private backend storage must not include browser-readable:
 - API keys
 
 If a future provider requires a payload reference, it must be opaque,
-owner-scoped, expiring, and only resolvable from backend code after the signed-in
-owner passes authorization.
+owner-scoped, expiring, and only resolvable from backend code after the
+signed-in owner passes authorization.
 
 ## Public Boundary
 
@@ -153,8 +153,8 @@ Before any schema migration:
 2. Keep public profiles on `public_agent_profiles`.
 3. Keep `base-mcp-prepare` default-off.
 4. Add local checks for forbidden frontend/public/Telegram references.
-5. Keep `supabase/prepared_action_storage_schema_draft.sql` comment-only until
-   a forward/rollback packet is explicitly approved.
+5. Keep `supabase/prepared_action_storage_schema_draft.sql` comment-only until a
+   forward/rollback packet is explicitly approved.
 6. Keep the prepared-action forward/rollback/verifier review packet unapplied
    until a separate Supabase apply approval.
 
@@ -179,9 +179,10 @@ keys, raw calldata, wallet addresses, or Telegram token refs.
 Drafted storage boundaries:
 
 - unique `(workspace_id, agent_id, request_id)` idempotency
-- draft storage adapter maps only bounded summary fields into
-  `prepared_actions`
+- draft storage adapter maps only bounded summary fields into `prepared_actions`
 - owner summary view excludes provider payload refs
+- authenticated browser access uses column-level grants for owner-summary fields
+  only; it must not receive full-table select on `prepared_actions`
 - public profiles must not join prepared actions
 - Telegram webhook must not read or write prepared actions
 - no raw calldata, wallet address, Telegram token ref, or API key columns
