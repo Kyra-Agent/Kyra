@@ -103,7 +103,7 @@ export type TelegramReadOnlyChatIntent =
   | "general";
 
 const unsafeExecutionPattern =
-  /\b(send|transfer|swap|approve|sign|execute|bridge|mint|stake|unstake|claim|withdraw|deposit|buy|sell)\b|\b(wallet|private key|seed phrase|base mcp|onchain|transaction|tx)\b/i;
+  /\b(send|transfer|swap|approve|approval|allowance|permit|revoke|sign|execute|bridge|mint|burn|stake|unstake|claim|withdraw|deposit|buy|sell|delegate|wrap|unwrap|borrow|lend|liquidate|repay)\b|\b(wallet|private key|seed phrase|base mcp|onchain|contract call|calldata|transaction|tx)\b/i;
 
 export function classifyTelegramReadOnlyChatIntent(
   value: unknown,

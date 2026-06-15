@@ -197,6 +197,27 @@ Deno.test("telegram read-only chat classifies product intents", () => {
   );
 });
 
+Deno.test("telegram read-only chat classifies wallet and onchain verbs as unsafe", () => {
+  for (
+    const text of [
+      "sign this tx",
+      "permit token allowance",
+      "revoke approval",
+      "delegate votes",
+      "wrap ETH",
+      "borrow from lending market",
+      "liquidate this position",
+      "execute contract call with calldata",
+    ]
+  ) {
+    assertEquals(
+      classifyTelegramReadOnlyChatIntent(text),
+      "unsafe_execution",
+      `${text} must remain unsafe from Telegram.`,
+    );
+  }
+});
+
 Deno.test("telegram read-only chat fallback refuses execution safely", () => {
   const response = buildTelegramReadOnlyCommandResponse(
     "chat",
