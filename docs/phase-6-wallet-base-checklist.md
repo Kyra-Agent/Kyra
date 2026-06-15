@@ -172,7 +172,7 @@ Target result:
 ## Step 1 - Wallet Connection Model
 
 - [ ] Audit current wallet UI and data model.
-- [ ] Confirm which wallet provider path will be used first.
+- [x] Confirm which wallet provider path will be used first.
 - [ ] Define connected wallet display fields.
 - [ ] Keep wallet address out of public profiles unless explicitly share-safe.
 - [ ] Confirm disconnect behavior.
@@ -274,6 +274,7 @@ Definition of done:
 - [x] Choose first wallet provider path.
 - [x] Install wallet provider dependencies after approval.
 - [x] Add disabled wallet provider boundary without wallet prompts.
+- [x] Add read-only wallet provider status UI.
 - [x] Add UI-only wallet signing state model.
 - [x] Surface wallet signing state in demo review UI without provider calls.
 - [x] Surface unsigned handoff validation in demo review UI without provider

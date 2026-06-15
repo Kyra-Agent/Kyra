@@ -9,9 +9,9 @@ import {
   ExternalLink,
   KeyRound,
   LockKeyhole,
+  Radio,
   RotateCcw,
   Server,
-  Radio,
   ShieldCheck,
   Terminal,
   Trash2,
@@ -25,10 +25,10 @@ import { demoAgentLimits } from "../config/demoLimits";
 import { coreModules } from "../data/modules";
 import { kyraRepositoryRuntime } from "../services/repositoryFactory";
 import {
+  type DeployFunctionHealthStatus,
   fetchDeployFunctionHealth,
   getDeployFunctionHealthLabel,
   getDeployFunctionHealthTone,
-  type DeployFunctionHealthStatus,
 } from "../services/deployFunctionHealthService";
 import {
   fetchSupabaseDashboardData,
@@ -36,14 +36,17 @@ import {
   type SupabaseDashboardData,
   type SupabaseDashboardStatus,
 } from "../services/supabaseDashboardService";
-import type { KyraAuthSession, KyraAuthStatus } from "../services/supabaseAuthService";
+import type {
+  KyraAuthSession,
+  KyraAuthStatus,
+} from "../services/supabaseAuthService";
 import { ensureFreshAuthSession } from "../services/supabaseAuthService";
 import {
+  type BackendEvent,
+  type BackendEventStatus,
   getBackendEvents,
   recordBackendEvent,
   subscribeBackendEvents,
-  type BackendEvent,
-  type BackendEventStatus,
 } from "../services/backendObservabilityService";
 import {
   getSupabaseAdapterStatus,
@@ -61,6 +64,7 @@ import type {
   DemoRecordStatus,
   DemoTelegramSessionSummary,
   DemoTelegramWebhookStatus,
+  DemoWalletProviderStatus,
   DemoWalletReadiness,
   DemoWalletReadinessState,
 } from "../types/backend";
@@ -109,7 +113,9 @@ function getQueueTone(request: DemoApprovalRequest) {
     return "pending";
   }
 
-  return request.status === "read_only_ready" || request.status === "approved" ? "ok" : "review";
+  return request.status === "read_only_ready" || request.status === "approved"
+    ? "ok"
+    : "review";
 }
 
 function formatQueueStatus(status: DemoApprovalRequest["status"]) {
@@ -170,7 +176,8 @@ function getWalletReadinessFallback(
     nextAction: signedIn
       ? "Deploy an agent before wallet readiness checks."
       : "Sign in to load owner-only wallet readiness.",
-    privacyNote: "Wallet data stays owner-only and never appears on public profiles.",
+    privacyNote:
+      "Wallet data stays owner-only and never appears on public profiles.",
   };
 }
 
@@ -186,6 +193,22 @@ function getWalletReadinessTone(state: DemoWalletReadinessState) {
   return state === "execution_disabled" ? "locked" : "standby";
 }
 
+function getWalletProviderStatusFallback(): DemoWalletProviderStatus {
+  const executionDisabled =
+    appConfig.integrations.walletExecution === "disabled";
+
+  return {
+    providerStack: "Wagmi + Viem",
+    dependencyStatus: "installed",
+    runtimeGate: executionDisabled ? "disabled" : "enabled",
+    promptAccess: executionDisabled ? "disabled" : "owner_click_only",
+    connectorPriority: ["Base Account", "Coinbase Wallet"],
+    safetyNote: executionDisabled
+      ? "Wallet provider dependencies are installed, but prompts stay disabled."
+      : "Wallet prompts must remain owner-initiated.",
+  };
+}
+
 function getPreparedActionPreviewFallback(
   signedIn: boolean,
 ): DemoPreparedActionPreview {
@@ -195,7 +218,8 @@ function getPreparedActionPreviewFallback(
     actionKind: "base_mcp_status_check",
     title: "Base MCP status check",
     chain: "Base",
-    routeSummary: "Read-only capability check before any transaction preparation.",
+    routeSummary:
+      "Read-only capability check before any transaction preparation.",
     valueSummary: "No token spend, no gas request, no calldata.",
     risk: "read-only",
     expiresLabel: "Not issued",
@@ -216,20 +240,22 @@ function getPreparedActionTone(status: DemoPreparedActionPreview["status"]) {
 }
 
 function formatActivityLog(log: DemoActivityLog) {
-  const sourceLabel =
-    {
-      agent_instances: "agent",
-      telegram_sessions: "telegram",
-      base_mcp_routes: "base action",
-      approval_requests: "approval",
-      wallet_policies: "wallet policy",
-      activity_logs: "activity",
-    }[log.source] ?? "backend";
+  const sourceLabel = {
+    agent_instances: "agent",
+    telegram_sessions: "telegram",
+    base_mcp_routes: "base action",
+    approval_requests: "approval",
+    wallet_policies: "wallet policy",
+    activity_logs: "activity",
+  }[log.source] ?? "backend";
 
   return `[${log.timestamp}] ${sourceLabel}: ${log.message}`;
 }
 
-function getCatalogValue(status: SupabaseConnectionStatus, templateCount: number) {
+function getCatalogValue(
+  status: SupabaseConnectionStatus,
+  templateCount: number,
+) {
   if (status === "connected") {
     return `${templateCount} connected templates`;
   }
@@ -242,7 +268,11 @@ function getCatalogValue(status: SupabaseConnectionStatus, templateCount: number
 }
 
 type DeployChecklistState = "complete" | "active" | "blocked" | "todo";
-type TelegramDashboardStatusLoadState = "idle" | "loading" | "ready" | "unavailable";
+type TelegramDashboardStatusLoadState =
+  | "idle"
+  | "loading"
+  | "ready"
+  | "unavailable";
 
 interface TelegramSessionDisplayStatus {
   agentId: string;
@@ -259,7 +289,9 @@ interface DeployChecklistItem {
   state: DeployChecklistState;
 }
 
-function getDeployChecklistState(status: DeployFunctionHealthStatus): DeployChecklistState {
+function getDeployChecklistState(
+  status: DeployFunctionHealthStatus,
+): DeployChecklistState {
   if (status === "ready") {
     return "complete";
   }
@@ -275,7 +307,9 @@ function getDeployChecklistState(status: DeployFunctionHealthStatus): DeployChec
   return "todo";
 }
 
-function getDashboardChecklistState(status: SupabaseDashboardStatus): DeployChecklistState {
+function getDashboardChecklistState(
+  status: SupabaseDashboardStatus,
+): DeployChecklistState {
   if (status === "connected") {
     return "complete";
   }
@@ -291,7 +325,9 @@ function getDashboardChecklistState(status: SupabaseDashboardStatus): DeployChec
   return "todo";
 }
 
-function getDiagnosticTone(status: BackendEventStatus | "ready" | "standby" | "locked") {
+function getDiagnosticTone(
+  status: BackendEventStatus | "ready" | "standby" | "locked",
+) {
   if (status === "success" || status === "ready") {
     return "ready";
   }
@@ -329,7 +365,9 @@ function getTelegramSessionLabel(
   fallbackStatus?: DemoRecordStatus,
 ) {
   if (!session) {
-    return fallbackStatus ? formatRuntimeValue(fallbackStatus) : "not connected";
+    return fallbackStatus
+      ? formatRuntimeValue(fallbackStatus)
+      : "not connected";
   }
 
   if (session.webhookStatus === "active") {
@@ -347,7 +385,9 @@ function getTelegramSessionLabel(
   return "demo session";
 }
 
-function getTelegramSessionHeadline(session: TelegramSessionDisplayStatus | null) {
+function getTelegramSessionHeadline(
+  session: TelegramSessionDisplayStatus | null,
+) {
   if (!session) {
     return "Telegram not connected";
   }
@@ -367,7 +407,9 @@ function getTelegramSessionHeadline(session: TelegramSessionDisplayStatus | null
   return "Telegram demo session";
 }
 
-function getTelegramSessionDescription(session: TelegramSessionDisplayStatus | null) {
+function getTelegramSessionDescription(
+  session: TelegramSessionDisplayStatus | null,
+) {
   if (!session) {
     return "Use the deploy flow with a valid BotFather token to create a backend-only Telegram session for this agent.";
   }
@@ -391,7 +433,10 @@ function getTelegramSessionDescription(session: TelegramSessionDisplayStatus | n
   return "This agent is still on a simulated Telegram demo session.";
 }
 
-function getTelegramOwnerPairingLabel(active: boolean, ownerChatLinked = false) {
+function getTelegramOwnerPairingLabel(
+  active: boolean,
+  ownerChatLinked = false,
+) {
   if (ownerChatLinked) {
     return "Owner chat linked";
   }
@@ -399,7 +444,10 @@ function getTelegramOwnerPairingLabel(active: boolean, ownerChatLinked = false) 
   return active ? "Owner chat pending" : "Waiting for bot";
 }
 
-function getTelegramCommandAccessLabel(active: boolean, ownerChatLinked = false) {
+function getTelegramCommandAccessLabel(
+  active: boolean,
+  ownerChatLinked = false,
+) {
   if (ownerChatLinked) {
     return "Read-only enabled";
   }
@@ -435,7 +483,8 @@ function selectTelegramSessionForAgent(
     sessions
       .filter((session) => session.agentId === agentId)
       .sort((left, right) => {
-        const rankDifference = getTelegramSessionRank(left) - getTelegramSessionRank(right);
+        const rankDifference = getTelegramSessionRank(left) -
+          getTelegramSessionRank(right);
 
         if (rankDifference !== 0) {
           return rankDifference;
@@ -472,10 +521,14 @@ export function Dashboard({
   onSelectTemplate,
 }: DashboardProps) {
   const agentTemplates = templates;
-  const [dashboardStatus, setDashboardStatus] = useState<SupabaseDashboardStatus>(
+  const [dashboardStatus, setDashboardStatus] = useState<
+    SupabaseDashboardStatus
+  >(
     authSession ? "loading" : "empty",
   );
-  const [dashboardData, setDashboardData] = useState<SupabaseDashboardData | null>(null);
+  const [dashboardData, setDashboardData] = useState<
+    SupabaseDashboardData | null
+  >(null);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [dashboardReloadKey, setDashboardReloadKey] = useState(0);
   const [adminActionStatus, setAdminActionStatus] = useState<
@@ -485,23 +538,36 @@ export function Dashboard({
     "Admin actions are scoped to this signed-in demo workspace.",
   );
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
-  const [activeDashboardSectionId, setActiveDashboardSectionId] = useState<DashboardSectionId>(() =>
-    typeof window === "undefined" ? "overview" : getDashboardSectionIdFromPath(window.location.pathname),
+  const [activeDashboardSectionId, setActiveDashboardSectionId] = useState<
+    DashboardSectionId
+  >(() =>
+    typeof window === "undefined"
+      ? "overview"
+      : getDashboardSectionIdFromPath(window.location.pathname)
   );
   const isAdmin = authSession?.user.app_metadata?.role === "admin";
   const postResetRefreshPendingRef = useRef(false);
-  const [backendEvents, setBackendEvents] = useState<BackendEvent[]>(() => getBackendEvents());
-  const [lastDashboardRefreshAt, setLastDashboardRefreshAt] = useState<string | null>(null);
-  const [deployFunctionStatus, setDeployFunctionStatus] = useState<DeployFunctionHealthStatus>(
+  const [backendEvents, setBackendEvents] = useState<BackendEvent[]>(() =>
+    getBackendEvents()
+  );
+  const [lastDashboardRefreshAt, setLastDashboardRefreshAt] = useState<
+    string | null
+  >(null);
+  const [deployFunctionStatus, setDeployFunctionStatus] = useState<
+    DeployFunctionHealthStatus
+  >(
     appConfig.functions.deployAgentConfigured ? "checking" : "not-configured",
   );
   const [deployFunctionMessage, setDeployFunctionMessage] = useState("");
-  const [selectedDashboardAgentId, setSelectedDashboardAgentId] = useState<string | null>(null);
+  const [selectedDashboardAgentId, setSelectedDashboardAgentId] = useState<
+    string | null
+  >(null);
   const [telegramDashboardStatusState, setTelegramDashboardStatusState] =
     useState<TelegramDashboardStatusLoadState>("idle");
-  const [telegramDashboardStatusMessage, setTelegramDashboardStatusMessage] = useState(
-    "Dashboard Telegram status read model is gated.",
-  );
+  const [telegramDashboardStatusMessage, setTelegramDashboardStatusMessage] =
+    useState(
+      "Dashboard Telegram status read model is gated.",
+    );
   const [telegramDashboardStatuses, setTelegramDashboardStatuses] = useState<
     TelegramDashboardStatusRecord[]
   >([]);
@@ -513,11 +579,14 @@ export function Dashboard({
 
   useEffect(() => {
     function syncDashboardSectionFromLocation() {
-      setActiveDashboardSectionId(getDashboardSectionIdFromPath(window.location.pathname));
+      setActiveDashboardSectionId(
+        getDashboardSectionIdFromPath(window.location.pathname),
+      );
     }
 
     window.addEventListener("popstate", syncDashboardSectionFromLocation);
-    return () => window.removeEventListener("popstate", syncDashboardSectionFromLocation);
+    return () =>
+      window.removeEventListener("popstate", syncDashboardSectionFromLocation);
   }, []);
 
   useEffect(() => {
@@ -535,7 +604,9 @@ export function Dashboard({
 
   useEffect(() => {
     if (!authSession) {
-      setDashboardStatus(appConfig.supabase.configured ? "empty" : "not-configured");
+      setDashboardStatus(
+        appConfig.supabase.configured ? "empty" : "not-configured",
+      );
       setDashboardData(null);
       setDashboardError(null);
       setLastDashboardRefreshAt(null);
@@ -578,7 +649,11 @@ export function Dashboard({
       if (isAdmin) {
         recordBackendEvent({
           kind: "dashboard-refresh",
-          status: result.ok || result.status === "empty" ? "success" : result.status === "error" ? "error" : "info",
+          status: result.ok || result.status === "empty"
+            ? "success"
+            : result.status === "error"
+            ? "error"
+            : "info",
           message: result.ok
             ? "Dashboard records loaded."
             : result.error ?? "Dashboard has no persisted demo records.",
@@ -593,7 +668,9 @@ export function Dashboard({
         if (result.status === "error") {
           setAdminActionStatus("error");
           setAdminActionMessage(
-            `Reset succeeded, but dashboard refresh failed: ${result.error ?? "records unavailable"}`,
+            `Reset succeeded, but dashboard refresh failed: ${
+              result.error ?? "records unavailable"
+            }`,
           );
         } else {
           setAdminActionStatus("success");
@@ -634,12 +711,11 @@ export function Dashboard({
       setDeployFunctionMessage(result.message);
       recordBackendEvent({
         kind: "function-health",
-        status:
-          result.status === "ready"
-            ? "success"
-            : result.status === "missing-secret" || result.status === "error"
-              ? "error"
-              : "info",
+        status: result.status === "ready"
+          ? "success"
+          : result.status === "missing-secret" || result.status === "error"
+          ? "error"
+          : "info",
         message: result.message,
         source: "deploy-agent",
         code: result.status,
@@ -669,7 +745,9 @@ export function Dashboard({
       !appConfig.featureFlags.telegramDashboardStatusReadModel
     ) {
       setTelegramDashboardStatusState("idle");
-      setTelegramDashboardStatusMessage("Dashboard Telegram status read model is gated.");
+      setTelegramDashboardStatusMessage(
+        "Dashboard Telegram status read model is gated.",
+      );
       setTelegramDashboardStatuses([]);
       return;
     }
@@ -680,7 +758,9 @@ export function Dashboard({
 
     async function loadTelegramDashboardStatuses() {
       setTelegramDashboardStatusState("loading");
-      setTelegramDashboardStatusMessage("Loading dashboard-safe Telegram status...");
+      setTelegramDashboardStatusMessage(
+        "Loading dashboard-safe Telegram status...",
+      );
 
       const freshAuth = await ensureFreshAuthSession(sessionToLoad);
 
@@ -736,23 +816,35 @@ export function Dashboard({
 
   const agentRecord =
     agentRecords.find((agent) => agent.id === selectedDashboardAgentId) ??
-    dashboardData?.latestAgent ??
-    null;
+      dashboardData?.latestAgent ??
+      null;
   const selectedTelegramSession = useMemo(() => {
-    return selectTelegramSessionForAgent(dashboardData?.telegramSessions, agentRecord?.id);
+    return selectTelegramSessionForAgent(
+      dashboardData?.telegramSessions,
+      agentRecord?.id,
+    );
   }, [agentRecord, dashboardData?.telegramSessions]);
   const selectedTelegramDashboardStatus = useMemo(() => {
-    return selectTelegramDashboardStatusForAgent(telegramDashboardStatuses, agentRecord?.id);
+    return selectTelegramDashboardStatusForAgent(
+      telegramDashboardStatuses,
+      agentRecord?.id,
+    );
   }, [agentRecord?.id, telegramDashboardStatuses]);
-  const selectedTelegramStatus = selectedTelegramDashboardStatus ?? selectedTelegramSession;
-  const selectedTelegramActive = selectedTelegramStatus?.webhookStatus === "active";
-  const selectedTelegramOwnerChatLinked = selectedTelegramDashboardStatus?.ownerChatLinked ?? false;
-  const telegramDashboardStatusEnabled = appConfig.featureFlags.telegramDashboardStatusReadModel;
+  const selectedTelegramStatus = selectedTelegramDashboardStatus ??
+    selectedTelegramSession;
+  const selectedTelegramActive =
+    selectedTelegramStatus?.webhookStatus === "active";
+  const selectedTelegramOwnerChatLinked =
+    selectedTelegramDashboardStatus?.ownerChatLinked ?? false;
+  const telegramDashboardStatusEnabled =
+    appConfig.featureFlags.telegramDashboardStatusReadModel;
   const dashboardAgentCount = agentRecords.length;
   const activeTemplate = useMemo(
     () =>
-      agentTemplates.find((template) => template.id === agentRecord?.templateId) ??
-      selectedTemplate,
+      agentTemplates.find((template) =>
+        template.id === agentRecord?.templateId
+      ) ??
+        selectedTemplate,
     [agentTemplates, agentRecord?.templateId, selectedTemplate],
   );
   const visibleRequests = useMemo(() => {
@@ -774,48 +866,51 @@ export function Dashboard({
     return [];
   }, [agentRecord, dashboardData]);
   const walletPolicies = dashboardData?.walletPolicies ?? [];
-  const walletReadiness =
-    dashboardData?.walletReadiness ??
+  const walletReadiness = dashboardData?.walletReadiness ??
     getWalletReadinessFallback(Boolean(authSession), Boolean(agentRecord));
+  const walletProviderStatus = dashboardData?.walletProviderStatus ??
+    getWalletProviderStatusFallback();
   const walletReadinessTone = getWalletReadinessTone(walletReadiness.state);
-  const preparedActionPreview =
-    dashboardData?.preparedActionPreview ??
+  const preparedActionPreview = dashboardData?.preparedActionPreview ??
     getPreparedActionPreviewFallback(Boolean(authSession));
-  const preparedActionTone = getPreparedActionTone(preparedActionPreview.status);
+  const preparedActionTone = getPreparedActionTone(
+    preparedActionPreview.status,
+  );
   const backendTables = dashboardData?.backendTables ?? [];
   const hasPublicRoute = Boolean(agentRecord?.publicPath);
   const latestDeployEvent = getLatestEvent(backendEvents, "deploy");
   const latestResetEvent = getLatestEvent(backendEvents, "reset");
   const latestRefreshEvent = getLatestEvent(backendEvents, "dashboard-refresh");
   const lastBackendIssue =
-    backendEvents.find((event) => event.status === "error" || event.status === "blocked") ?? null;
-  const workspace =
-    dashboardData?.workspace ??
+    backendEvents.find((event) =>
+      event.status === "error" || event.status === "blocked"
+    ) ?? null;
+  const workspace = dashboardData?.workspace ??
     (authSession
       ? {
-          id: "no-demo-workspace",
-          name: "No demo workspace",
-          owner: "Signed-in account",
-          mode: "backend-demo" as const,
-          authProvider: "supabase" as const,
-        }
+        id: "no-demo-workspace",
+        name: "No demo workspace",
+        owner: "Signed-in account",
+        mode: "backend-demo" as const,
+        authProvider: "supabase" as const,
+      }
       : {
-          id: "signed-out-preview",
-          name: "Signed-out preview",
-          owner: "No account session",
-          mode: "backend-demo" as const,
-          authProvider: "supabase" as const,
-        });
+        id: "signed-out-preview",
+        name: "Signed-out preview",
+        owner: "No account session",
+        mode: "backend-demo" as const,
+        authProvider: "supabase" as const,
+      });
   const activityLines = dashboardData?.activityLogs.length
     ? dashboardData.activityLogs.map(formatActivityLog)
     : dashboardStatus === "loading"
-        ? ["[--:--:--] dashboard: loading demo workspace records"]
-        : authSession
-          ? ["[--:--:--] dashboard: no deployed demo agent records"]
-          : [
-              "[--:--:--] account: sign in to load demo workspace records",
-              "[--:--:--] dashboard: no sample agent or public route shown while signed out",
-            ];
+    ? ["[--:--:--] dashboard: loading demo workspace records"]
+    : authSession
+    ? ["[--:--:--] dashboard: no deployed demo agent records"]
+    : [
+      "[--:--:--] account: sign in to load demo workspace records",
+      "[--:--:--] dashboard: no sample agent or public route shown while signed out",
+    ];
   const readinessRows = [
     {
       label: "Demo records",
@@ -831,14 +926,12 @@ export function Dashboard({
     },
     {
       label: "Agent limit",
-      value:
-        authSession || dashboardStatus === "connected"
-          ? `${dashboardAgentCount}/${demoAgentLimits.maxAgentsPerWorkspace}`
-          : `max ${demoAgentLimits.maxAgentsPerWorkspace}`,
-      tone:
-        dashboardAgentCount >= demoAgentLimits.maxAgentsPerWorkspace
-          ? "error"
-          : "ready",
+      value: authSession || dashboardStatus === "connected"
+        ? `${dashboardAgentCount}/${demoAgentLimits.maxAgentsPerWorkspace}`
+        : `max ${demoAgentLimits.maxAgentsPerWorkspace}`,
+      tone: dashboardAgentCount >= demoAgentLimits.maxAgentsPerWorkspace
+        ? "error"
+        : "ready",
       icon: ShieldCheck,
     },
     {
@@ -861,7 +954,9 @@ export function Dashboard({
     },
     {
       label: "Execution",
-      value: appConfig.integrations.walletExecution === "disabled" ? "simulated" : appConfig.integrations.walletExecution,
+      value: appConfig.integrations.walletExecution === "disabled"
+        ? "simulated"
+        : appConfig.integrations.walletExecution,
       tone: "locked",
       icon: LockKeyhole,
     },
@@ -880,14 +975,13 @@ export function Dashboard({
     {
       label: "Server secrets",
       detail: "Service role key stays inside Supabase Function secrets only.",
-      state:
-        deployFunctionStatus === "ready"
-          ? "complete"
-          : deployFunctionStatus === "missing-secret"
-            ? "blocked"
-            : deployFunctionStatus === "checking"
-              ? "active"
-              : "todo",
+      state: deployFunctionStatus === "ready"
+        ? "complete"
+        : deployFunctionStatus === "missing-secret"
+        ? "blocked"
+        : deployFunctionStatus === "checking"
+        ? "active"
+        : "todo",
     },
     {
       label: "Demo database",
@@ -896,12 +990,14 @@ export function Dashboard({
     },
     {
       label: "Agent quota",
-      detail: `Demo workspace is capped at ${demoAgentLimits.maxAgentsPerWorkspace} agents.`,
+      detail:
+        `Demo workspace is capped at ${demoAgentLimits.maxAgentsPerWorkspace} agents.`,
       state: "complete",
     },
     {
       label: "Receipt source",
-      detail: "Successful deploy receipts should show Backend when persistence is ready.",
+      detail:
+        "Successful deploy receipts should show Backend when persistence is ready.",
       state: getDeployChecklistState(deployFunctionStatus),
     },
   ];
@@ -916,11 +1012,15 @@ export function Dashboard({
     },
     {
       label: "Reset function",
-      value: appConfig.functions.resetDemoWorkspaceConfigured ? "configured" : "not configured",
+      value: appConfig.functions.resetDemoWorkspaceConfigured
+        ? "configured"
+        : "not configured",
       detail: appConfig.functions.resetDemoWorkspaceConfigured
         ? "Admin reset requests use the backend endpoint."
         : "Reset endpoint URL is missing.",
-      tone: appConfig.functions.resetDemoWorkspaceConfigured ? "ready" : "standby",
+      tone: appConfig.functions.resetDemoWorkspaceConfigured
+        ? "ready"
+        : "standby",
     },
     {
       label: "Catalog",
@@ -931,25 +1031,29 @@ export function Dashboard({
     {
       label: "Dashboard records",
       value: getDashboardReadinessLabel(dashboardStatus),
-      detail: dashboardError ?? `${dashboardAgentCount} persisted demo agent records loaded.`,
+      detail: dashboardError ??
+        `${dashboardAgentCount} persisted demo agent records loaded.`,
       tone: getDashboardReadinessTone(dashboardStatus),
     },
     {
       label: "Last refresh",
       value: formatDiagnosticTimestamp(lastDashboardRefreshAt),
-      detail: latestRefreshEvent?.message ?? "No dashboard refresh event recorded yet.",
+      detail: latestRefreshEvent?.message ??
+        "No dashboard refresh event recorded yet.",
       tone: getDiagnosticTone(latestRefreshEvent?.status ?? "standby"),
     },
     {
       label: "Last deploy",
       value: latestDeployEvent ? latestDeployEvent.status : "not recorded",
-      detail: latestDeployEvent?.message ?? "No deploy attempt recorded in this browser yet.",
+      detail: latestDeployEvent?.message ??
+        "No deploy attempt recorded in this browser yet.",
       tone: getDiagnosticTone(latestDeployEvent?.status ?? "standby"),
     },
     {
       label: "Last reset",
       value: latestResetEvent ? latestResetEvent.status : "not recorded",
-      detail: latestResetEvent?.message ?? "No reset attempt recorded in this browser yet.",
+      detail: latestResetEvent?.message ??
+        "No reset attempt recorded in this browser yet.",
       tone: getDiagnosticTone(latestResetEvent?.status ?? "standby"),
     },
   ];
@@ -1024,7 +1128,11 @@ export function Dashboard({
     const result = await resetSupabaseDemoWorkspace(freshAuth.session);
 
     setAdminActionStatus(result.ok ? "success" : "error");
-    setAdminActionMessage(result.ok ? "Reset succeeded. Refreshing dashboard records..." : result.message);
+    setAdminActionMessage(
+      result.ok
+        ? "Reset succeeded. Refreshing dashboard records..."
+        : result.message,
+    );
     recordBackendEvent({
       kind: "reset",
       status: result.ok ? "success" : "error",
@@ -1081,7 +1189,9 @@ export function Dashboard({
 
         <nav className="dashboard-nav" aria-label="Dashboard navigation">
           <a
-            className={activeDashboardSectionId === "overview" ? "is-active" : undefined}
+            className={activeDashboardSectionId === "overview"
+              ? "is-active"
+              : undefined}
             href="/dashboard/overview"
             onClick={(event) => {
               event.preventDefault();
@@ -1092,7 +1202,9 @@ export function Dashboard({
             Overview
           </a>
           <a
-            className={activeDashboardSectionId === "auth" ? "is-active" : undefined}
+            className={activeDashboardSectionId === "auth"
+              ? "is-active"
+              : undefined}
             href="/dashboard/auth"
             onClick={(event) => {
               event.preventDefault();
@@ -1103,7 +1215,9 @@ export function Dashboard({
             Account
           </a>
           <a
-            className={activeDashboardSectionId === "approvals" ? "is-active" : undefined}
+            className={activeDashboardSectionId === "approvals"
+              ? "is-active"
+              : undefined}
             href="/dashboard/approvals"
             onClick={(event) => {
               event.preventDefault();
@@ -1114,7 +1228,9 @@ export function Dashboard({
             Approvals
           </a>
           <a
-            className={activeDashboardSectionId === "logs" ? "is-active" : undefined}
+            className={activeDashboardSectionId === "logs"
+              ? "is-active"
+              : undefined}
             href="/dashboard/logs"
             onClick={(event) => {
               event.preventDefault();
@@ -1125,7 +1241,9 @@ export function Dashboard({
             Logs
           </a>
           <a
-            className={activeDashboardSectionId === "modules" ? "is-active" : undefined}
+            className={activeDashboardSectionId === "modules"
+              ? "is-active"
+              : undefined}
             href="/dashboard/modules"
             onClick={(event) => {
               event.preventDefault();
@@ -1136,7 +1254,9 @@ export function Dashboard({
             Modules
           </a>
           <a
-            className={activeDashboardSectionId === "backend" ? "is-active" : undefined}
+            className={activeDashboardSectionId === "backend"
+              ? "is-active"
+              : undefined}
             href="/dashboard/backend"
             onClick={(event) => {
               event.preventDefault();
@@ -1146,22 +1266,30 @@ export function Dashboard({
             <Server size={16} />
             Readiness
           </a>
-          {isAdmin ? (
-            <a
-              className={activeDashboardSectionId === "admin-actions" ? "is-active" : undefined}
-              href="/dashboard/admin-actions"
-              onClick={(event) => {
-                event.preventDefault();
-                openDashboardSection("admin-actions");
-              }}
-            >
-              <Trash2 size={16} />
-              Admin
-            </a>
-          ) : null}
+          {isAdmin
+            ? (
+              <a
+                className={activeDashboardSectionId === "admin-actions"
+                  ? "is-active"
+                  : undefined}
+                href="/dashboard/admin-actions"
+                onClick={(event) => {
+                  event.preventDefault();
+                  openDashboardSection("admin-actions");
+                }}
+              >
+                <Trash2 size={16} />
+                Admin
+              </a>
+            )
+            : null}
         </nav>
 
-        <button className="button button-ghost dashboard-back" type="button" onClick={onBackHome}>
+        <button
+          className="button button-ghost dashboard-back"
+          type="button"
+          onClick={onBackHome}
+        >
           <ArrowLeft size={16} />
           Home
         </button>
@@ -1179,15 +1307,15 @@ export function Dashboard({
                   ? "Persisted demo agent"
                   : "Demo agent ready"
                 : dashboardStatus === "loading"
-                  ? "Syncing workspace"
-                  : "No demo agent"}
+                ? "Syncing workspace"
+                : "No demo agent"}
             </span>
             <h1>
               {!authSession
                 ? "Sign in to view demo workspace"
                 : agentRecord
-                  ? agentRecord.displayName
-                  : "No demo agent deployed"}
+                ? agentRecord.displayName
+                : "No demo agent deployed"}
             </h1>
             <p>
               {!authSession
@@ -1197,88 +1325,114 @@ export function Dashboard({
                 : "Deploy a demo agent to create persisted dashboard records."}
             </p>
           </div>
-          {agentRecord ? (
-            <button
-              className="button button-primary"
-              type="button"
-              onClick={() =>
-                onOpenAgent({
-                  templateId: agentRecord.templateId,
-                  publicPath: agentRecord.publicPath,
-                })
-              }
-            >
-              Open Public Agent
-              <ExternalLink size={16} />
-            </button>
-          ) : (
-            <button className="button button-primary" type="button" disabled>
-              Public Agent Unavailable
-              <ExternalLink size={16} />
-            </button>
-          )}
+          {agentRecord
+            ? (
+              <button
+                className="button button-primary"
+                type="button"
+                onClick={() =>
+                  onOpenAgent({
+                    templateId: agentRecord.templateId,
+                    publicPath: agentRecord.publicPath,
+                  })}
+              >
+                Open Public Agent
+                <ExternalLink size={16} />
+              </button>
+            )
+            : (
+              <button className="button button-primary" type="button" disabled>
+                Public Agent Unavailable
+                <ExternalLink size={16} />
+              </button>
+            )}
         </div>
 
-        {agentRecords.length ? (
-          <section className="dashboard-agent-selector" aria-label="Dashboard agent selector">
-            <div className="panel-title">
-              <span>Selected agent</span>
-              <span>{agentRecords.length}/{demoAgentLimits.maxAgentsPerWorkspace} deployed</span>
-            </div>
-            <p>
-              Choose which deployed agent powers the dashboard panels below. Telegram status,
-              approvals, public route, and owner pairing follow the selected agent.
-            </p>
-            <div className="dashboard-agent-strip" role="list">
-              {agentRecords.map((agent) => {
-                const template =
-                  agentTemplates.find((item) => item.id === agent.templateId) ??
-                  selectedTemplate;
-                const selected = agent.id === agentRecord?.id;
-                const telegramSession = selectTelegramSessionForAgent(
-                  dashboardData?.telegramSessions,
-                  agent.id,
-                );
-                const telegramDashboardStatus = selectTelegramDashboardStatusForAgent(
-                  telegramDashboardStatuses,
-                  agent.id,
-                );
-                const telegramStatus = telegramDashboardStatus ?? telegramSession;
+        {agentRecords.length
+          ? (
+            <section
+              className="dashboard-agent-selector"
+              aria-label="Dashboard agent selector"
+            >
+              <div className="panel-title">
+                <span>Selected agent</span>
+                <span>
+                  {agentRecords.length}/{demoAgentLimits.maxAgentsPerWorkspace}
+                  {" "}
+                  deployed
+                </span>
+              </div>
+              <p>
+                Choose which deployed agent powers the dashboard panels below.
+                Telegram status, approvals, public route, and owner pairing
+                follow the selected agent.
+              </p>
+              <div className="dashboard-agent-strip" role="list">
+                {agentRecords.map((agent) => {
+                  const template = agentTemplates.find((item) =>
+                    item.id === agent.templateId
+                  ) ??
+                    selectedTemplate;
+                  const selected = agent.id === agentRecord?.id;
+                  const telegramSession = selectTelegramSessionForAgent(
+                    dashboardData?.telegramSessions,
+                    agent.id,
+                  );
+                  const telegramDashboardStatus =
+                    selectTelegramDashboardStatusForAgent(
+                      telegramDashboardStatuses,
+                      agent.id,
+                    );
+                  const telegramStatus = telegramDashboardStatus ??
+                    telegramSession;
 
-                return (
-                  <button
-                    className={`dashboard-agent-pill ${selected ? "is-active" : ""}`}
-                    type="button"
-                    key={agent.id}
-                    onClick={() => handleSelectDashboardAgent(agent.id)}
-                    aria-pressed={selected}
-                    aria-label={`View ${agent.displayName} dashboard`}
-                  >
-                    <span>
-                      <strong>{agent.displayName}</strong>
-                      <small>{template.name}</small>
-                    </span>
-                    <span>
-                      <small>{agent.handle}</small>
-                      <em>{getTelegramSessionLabel(telegramStatus, agent.telegramStatus)}</em>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        ) : null}
+                  return (
+                    <button
+                      className={`dashboard-agent-pill ${
+                        selected ? "is-active" : ""
+                      }`}
+                      type="button"
+                      key={agent.id}
+                      onClick={() =>
+                        handleSelectDashboardAgent(agent.id)}
+                      aria-pressed={selected}
+                      aria-label={`View ${agent.displayName} dashboard`}
+                    >
+                      <span>
+                        <strong>{agent.displayName}</strong>
+                        <small>{template.name}</small>
+                      </span>
+                      <span>
+                        <small>{agent.handle}</small>
+                        <em>
+                          {getTelegramSessionLabel(
+                            telegramStatus,
+                            agent.telegramStatus,
+                          )}
+                        </em>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )
+          : null}
 
         <section className="dashboard-kpi-grid" id="overview">
           <article>
             <span>Template</span>
             <strong>{agentRecord ? activeTemplate.name : "None yet"}</strong>
-            <small>{agentRecord ? activeTemplate.status : "deploy required"}</small>
+            <small>
+              {agentRecord ? activeTemplate.status : "deploy required"}
+            </small>
           </article>
           <article>
             <span>Platform</span>
             <strong>{agentRecord ? "Telegram" : "Not connected"}</strong>
-            <small>{agentRecord ? agentRecord.handle : "deploy creates handle"}</small>
+            <small>
+              {agentRecord ? agentRecord.handle : "deploy creates handle"}
+            </small>
           </article>
           <article>
             <span>Wallet</span>
@@ -1298,98 +1452,120 @@ export function Dashboard({
               <span>Agent overview</span>
               <span>{agentRecord ? agentRecord.id : "empty"}</span>
             </div>
-            {agentRecord ? (
-              <>
-                <p>{activeTemplate.summary}</p>
-                <div className="dashboard-action-chips">
-                  {activeTemplate.actions.map((action) => (
-                    <span className="chip chip-active" key={action}>
-                      <CheckCircle2 size={13} />
-                      {action}
-                    </span>
-                  ))}
+            {agentRecord
+              ? (
+                <>
+                  <p>{activeTemplate.summary}</p>
+                  <div className="dashboard-action-chips">
+                    {activeTemplate.actions.map((action) => (
+                      <span className="chip chip-active" key={action}>
+                        <CheckCircle2 size={13} />
+                        {action}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )
+              : (
+                <div className="dashboard-empty-state">
+                  <Database size={20} />
+                  <strong>
+                    {authSession
+                      ? "No persisted demo agent records."
+                      : "Dashboard records locked until sign-in."}
+                  </strong>
+                  <p>
+                    {authSession
+                      ? "This signed-in workspace is clean. Deploy a demo agent from the home flow to create the dashboard, approval queue, wallet policy, logs, and public agent route."
+                      : "Sign in to load account-scoped demo workspace records. No sample agent, wallet queue, or public route is shown while signed out."}
+                  </p>
                 </div>
-              </>
-            ) : (
-              <div className="dashboard-empty-state">
-                <Database size={20} />
-                <strong>
-                  {authSession
-                    ? "No persisted demo agent records."
-                    : "Dashboard records locked until sign-in."}
-                </strong>
-                <p>
-                  {authSession
-                    ? "This signed-in workspace is clean. Deploy a demo agent from the home flow to create the dashboard, approval queue, wallet policy, logs, and public agent route."
-                    : "Sign in to load account-scoped demo workspace records. No sample agent, wallet queue, or public route is shown while signed out."}
-                </p>
-              </div>
-            )}
+              )}
           </section>
 
           <section className="dashboard-panel telegram-status-panel">
             <div className="panel-title">
               <span>Telegram connection</span>
-              <span>{agentRecord ? getTelegramSessionLabel(selectedTelegramStatus) : "locked"}</span>
+              <span>
+                {agentRecord
+                  ? getTelegramSessionLabel(selectedTelegramStatus)
+                  : "locked"}
+              </span>
             </div>
             <div className="telegram-status-card">
               <span className="telegram-status-icon">
                 <Bot size={18} />
               </span>
               <div>
-                <small>{selectedTelegramStatus?.botHandle ?? "Telegram status"}</small>
-                <strong>{getTelegramSessionHeadline(selectedTelegramStatus)}</strong>
+                <small>
+                  {selectedTelegramStatus?.botHandle ?? "Telegram status"}
+                </small>
+                <strong>
+                  {getTelegramSessionHeadline(selectedTelegramStatus)}
+                </strong>
                 <p>{getTelegramSessionDescription(selectedTelegramStatus)}</p>
               </div>
             </div>
-            {authSession && agentRecord ? (
-              <>
-                <div className="telegram-connect-gate">
-                  <div className="telegram-status-readout">
-                    <span>
-                      <small>Bot session</small>
-                      <strong>{getTelegramSessionLabel(selectedTelegramStatus)}</strong>
-                    </span>
-                    <span>
-                      <small>Owner chat</small>
-                      <strong>
-                        {getTelegramOwnerPairingLabel(
-                          selectedTelegramActive,
-                          selectedTelegramOwnerChatLinked,
-                        )}
-                      </strong>
-                    </span>
-                    <span>
-                      <small>Command access</small>
-                      <strong>
-                        {getTelegramCommandAccessLabel(
-                          selectedTelegramActive,
-                          selectedTelegramOwnerChatLinked,
-                        )}
-                      </strong>
-                    </span>
-                  </div>
-                  <p className="telegram-connect-message telegram-connect-idle">
-                    Dashboard is status-only. BotFather token validation, backend token
-                    storage, webhook activation, and owner pairing happen during deploy or an
-                    owner-approved backend flow.
-                  </p>
-                  {telegramDashboardStatusEnabled && telegramDashboardStatusState !== "ready" ? (
+            {authSession && agentRecord
+              ? (
+                <>
+                  <div className="telegram-connect-gate">
+                    <div className="telegram-status-readout">
+                      <span>
+                        <small>Bot session</small>
+                        <strong>
+                          {getTelegramSessionLabel(selectedTelegramStatus)}
+                        </strong>
+                      </span>
+                      <span>
+                        <small>Owner chat</small>
+                        <strong>
+                          {getTelegramOwnerPairingLabel(
+                            selectedTelegramActive,
+                            selectedTelegramOwnerChatLinked,
+                          )}
+                        </strong>
+                      </span>
+                      <span>
+                        <small>Command access</small>
+                        <strong>
+                          {getTelegramCommandAccessLabel(
+                            selectedTelegramActive,
+                            selectedTelegramOwnerChatLinked,
+                          )}
+                        </strong>
+                      </span>
+                    </div>
                     <p className="telegram-connect-message telegram-connect-idle">
-                      {telegramDashboardStatusMessage}
+                      Dashboard is status-only. BotFather token validation,
+                      backend token storage, webhook activation, and owner
+                      pairing happen during deploy or an owner-approved backend
+                      flow.
                     </p>
-                  ) : null}
+                    {telegramDashboardStatusEnabled &&
+                        telegramDashboardStatusState !== "ready"
+                      ? (
+                        <p className="telegram-connect-message telegram-connect-idle">
+                          {telegramDashboardStatusMessage}
+                        </p>
+                      )
+                      : null}
+                  </div>
+                </>
+              )
+              : (
+                <div className="telegram-status-actions">
+                  <button
+                    className="button button-ghost"
+                    type="button"
+                    disabled
+                  >
+                    <LockKeyhole size={16} />
+                    Select an agent
+                  </button>
+                  <span>Status only</span>
                 </div>
-              </>
-            ) : (
-              <div className="telegram-status-actions">
-                <button className="button button-ghost" type="button" disabled>
-                  <LockKeyhole size={16} />
-                  Select an agent
-                </button>
-                <span>Status only</span>
-              </div>
-            )}
+              )}
           </section>
 
           <section className="dashboard-panel" id="approvals">
@@ -1398,34 +1574,37 @@ export function Dashboard({
               <span>{visibleRequests.length} items</span>
             </div>
             <div className="queue-list">
-              {visibleRequests.length ? (
-                visibleRequests.map((item) => (
-                  <article className={`queue-item queue-${getQueueTone(item)}`} key={item.id}>
-                    <span className="queue-icon">
-                      {getQueueTone(item) === "pending" ? (
-                        <Clock3 size={16} />
-                      ) : (
-                        <ShieldCheck size={16} />
-                      )}
-                    </span>
-                    <div>
-                      <strong>{item.title}</strong>
-                      <small>{item.command}</small>
-                    </div>
-                    <em>{formatQueueStatus(item.status)}</em>
-                  </article>
-                ))
-              ) : (
-                <div className="dashboard-empty-state compact">
-                  <WalletCards size={18} />
-                  <strong>No approval requests.</strong>
-                  <p>
-                    {authSession
-                      ? "Deploy a demo agent before Kyra creates wallet approval records."
-                      : "Sign in to load account-scoped approval records. Nothing is mocked while signed out."}
-                  </p>
-                </div>
-              )}
+              {visibleRequests.length
+                ? (
+                  visibleRequests.map((item) => (
+                    <article
+                      className={`queue-item queue-${getQueueTone(item)}`}
+                      key={item.id}
+                    >
+                      <span className="queue-icon">
+                        {getQueueTone(item) === "pending"
+                          ? <Clock3 size={16} />
+                          : <ShieldCheck size={16} />}
+                      </span>
+                      <div>
+                        <strong>{item.title}</strong>
+                        <small>{item.command}</small>
+                      </div>
+                      <em>{formatQueueStatus(item.status)}</em>
+                    </article>
+                  ))
+                )
+                : (
+                  <div className="dashboard-empty-state compact">
+                    <WalletCards size={18} />
+                    <strong>No approval requests.</strong>
+                    <p>
+                      {authSession
+                        ? "Deploy a demo agent before Kyra creates wallet approval records."
+                        : "Sign in to load account-scoped approval records. Nothing is mocked while signed out."}
+                    </p>
+                  </div>
+                )}
             </div>
           </section>
 
@@ -1441,7 +1620,9 @@ export function Dashboard({
               <span>Wallet policy</span>
               <span>{walletReadiness.state.replace(/_/g, " ")}</span>
             </div>
-            <div className={`wallet-readiness-card readiness-${walletReadinessTone}`}>
+            <div
+              className={`wallet-readiness-card readiness-${walletReadinessTone}`}
+            >
               <div className="wallet-readiness-header">
                 <span className="queue-icon">
                   <WalletCards size={16} />
@@ -1473,190 +1654,281 @@ export function Dashboard({
               <small>{walletReadiness.privacyNote}</small>
             </div>
             <div className="wallet-policy-list">
-              {walletPolicies.length ? (
-                walletPolicies.map((policy) => (
-                  <article key={policy.id}>
-                    <span>{policy.label}</span>
-                    <strong>{policy.value}</strong>
-                    <small>{policy.status}: {policy.description}</small>
-                  </article>
-                ))
-              ) : (
-                <div className="dashboard-empty-state compact">
-                  <ShieldCheck size={18} />
-                  <strong>No wallet policy record.</strong>
-                  <p>
-                    {authSession
-                      ? "No keys, funds, or approval settings exist until a demo agent is deployed."
-                      : "Sign in and deploy a demo agent before Kyra shows wallet policy records."}
-                  </p>
-                </div>
-              )}
+              <article>
+                <span>Provider stack</span>
+                <strong>{walletProviderStatus.providerStack}</strong>
+                <small>
+                  {walletProviderStatus.dependencyStatus}: runtime gate{" "}
+                  {walletProviderStatus.runtimeGate}
+                </small>
+              </article>
+              <article>
+                <span>Prompt access</span>
+                <strong>
+                  {walletProviderStatus.promptAccess.replace(/_/g, " ")}
+                </strong>
+                <small>{walletProviderStatus.safetyNote}</small>
+              </article>
+              <article>
+                <span>Connector priority</span>
+                <strong>
+                  {walletProviderStatus.connectorPriority.join(" -> ")}
+                </strong>
+                <small>
+                  No automatic wallet prompt or Telegram-triggered signing.
+                </small>
+              </article>
+            </div>
+            <div className="wallet-policy-list">
+              {walletPolicies.length
+                ? (
+                  walletPolicies.map((policy) => (
+                    <article key={policy.id}>
+                      <span>{policy.label}</span>
+                      <strong>{policy.value}</strong>
+                      <small>{policy.status}: {policy.description}</small>
+                    </article>
+                  ))
+                )
+                : (
+                  <div className="dashboard-empty-state compact">
+                    <ShieldCheck size={18} />
+                    <strong>No wallet policy record.</strong>
+                    <p>
+                      {authSession
+                        ? "No keys, funds, or approval settings exist until a demo agent is deployed."
+                        : "Sign in and deploy a demo agent before Kyra shows wallet policy records."}
+                    </p>
+                  </div>
+                )}
             </div>
           </section>
 
-          {isAdmin ? (
-            <section className="dashboard-panel admin-actions-panel" id="admin-actions">
-            <div className="panel-title">
-              <span>Admin actions</span>
-              <span>{authSession ? "workspace owner" : "locked"}</span>
-            </div>
-            <p className="admin-actions-copy">
-              Reset the signed-in demo workspace when quota testing needs a clean slate.
-            </p>
-            <div className="admin-action-metrics">
-              <article>
-                <span>Agent quota</span>
-                <strong>
-                  {authSession || dashboardStatus === "connected"
-                    ? `${dashboardAgentCount}/${demoAgentLimits.maxAgentsPerWorkspace}`
-                    : `max ${demoAgentLimits.maxAgentsPerWorkspace}`}
-                </strong>
-              </article>
-              <article>
-                <span>Scope</span>
-                <strong>{authSession ? "Signed-in demo workspace" : "Account session required"}</strong>
-              </article>
-            </div>
-            <div className="admin-action-grid">
-              <button
-                className="button button-ghost admin-action-button admin-action-danger"
-                type="button"
-                onClick={handleOpenResetConfirmation}
-                disabled={!authSession || isAdminActionRunning}
+          {isAdmin
+            ? (
+              <section
+                className="dashboard-panel admin-actions-panel"
+                id="admin-actions"
               >
-                <Trash2 size={16} />
-                {isAdminActionRunning ? "Resetting" : "Reset demo agents"}
-              </button>
-              <button
-                className="button button-ghost admin-action-button"
-                type="button"
-                onClick={handleRefreshDashboardRecords}
-                disabled={!authSession || isAdminActionRunning || dashboardStatus === "loading"}
-              >
-                <RotateCcw size={16} />
-                Refresh records
-              </button>
-            </div>
-            <div className={`admin-action-note admin-action-${adminActionStatus}`}>
-              <ShieldCheck size={15} />
-              <span>{adminActionMessage}</span>
-            </div>
-            {authSession ? (
-              <details className="backend-diagnostics">
-                <summary>
-                  <span>
-                    <Server size={16} />
-                    Backend Diagnostics
-                  </span>
-                  <small>Technical details</small>
-                </summary>
-                <div className="backend-diagnostics-content">
-                  <div className="diagnostic-note-grid">
-                    <p>
-                      Provider: <strong>{templateCatalogSource}</strong>
-                    </p>
-                    <p>
-                      Runtime: <strong>{formatRuntimeValue(appConfig.mode)}</strong>
-                    </p>
-                    <p>
-                      Function health: <strong>{deployFunctionMessage || "checking"}</strong>
-                    </p>
-                  </div>
-                  <div className="diagnostic-status-grid">
-                    {diagnosticRows.map((row) => (
-                      <article className={`diagnostic-status-card diagnostic-${row.tone}`} key={row.label}>
-                        <span>{row.label}</span>
-                        <strong>{formatRuntimeValue(row.value)}</strong>
-                        <small>{row.detail}</small>
-                      </article>
-                    ))}
-                  </div>
-                  {lastBackendIssue ? (
-                    <p className="readiness-error-note">
-                      Last backend issue: {lastBackendIssue.message}
-                    </p>
-                  ) : null}
-                  {templateCatalogError ? (
-                    <p className="readiness-error-note">
-                      Supabase catalog query failed: {templateCatalogError}
-                    </p>
-                  ) : null}
-                  {dashboardError ? (
-                    <p className="readiness-error-note">
-                      Supabase dashboard query: {dashboardError}
-                    </p>
-                  ) : null}
-                  <div className="deploy-readiness-checklist" aria-label="Deploy agent diagnostics checklist">
-                    <div className="deploy-checklist-title">
-                      <span>deploy-agent checklist</span>
-                      <strong>{getDeployFunctionHealthLabel(deployFunctionStatus)}</strong>
-                    </div>
-                    <div className="deploy-checklist-grid">
-                      {deployChecklist.map((item) => {
-                        const StatusIcon =
-                          item.state === "complete"
-                            ? CheckCircle2
-                            : item.state === "blocked"
-                              ? LockKeyhole
-                              : Clock3;
-
-                        return (
-                          <article className={`deploy-check-item deploy-check-${item.state}`} key={item.label}>
-                            <StatusIcon size={15} />
-                            <span>
-                              <strong>{item.label}</strong>
-                              <small>{item.detail}</small>
-                            </span>
-                          </article>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <div className="backend-table-list">
-                    {backendTables.length ? (
-                      backendTables.map((table) => (
-                        <article key={table.name}>
-                          <span>{table.name}</span>
-                          <strong>{table.records} records</strong>
-                          <small>{table.purpose}</small>
-                        </article>
-                      ))
-                    ) : (
-                      <div className="dashboard-empty-state compact">
-                        <Database size={18} />
-                        <strong>No backend records yet.</strong>
-                        <p>A fresh account session stays clean until the next demo deploy.</p>
-                      </div>
-                    )}
-                  </div>
-                  <div className="backend-contract-line">
-                    <span>{supabaseStatus.tables.length} Supabase tables mapped</span>
-                    <span>{agentTemplates.length} templates loaded</span>
-                    <span>
-                      {dashboardAgentCount
-                        ? `${dashboardAgentCount} persisted demo agents`
-                        : "no persisted demo agents"}
-                    </span>
-                    <span>max {demoAgentLimits.maxAgentsPerWorkspace} demo agents</span>
-                    <span>deploy-agent {getDeployFunctionHealthLabel(deployFunctionStatus)}</span>
-                    <span>onchain execution disabled</span>
-                  </div>
+                <div className="panel-title">
+                  <span>Admin actions</span>
+                  <span>{authSession ? "workspace owner" : "locked"}</span>
                 </div>
-              </details>
-            ) : null}
-            </section>
-          ) : null}
+                <p className="admin-actions-copy">
+                  Reset the signed-in demo workspace when quota testing needs a
+                  clean slate.
+                </p>
+                <div className="admin-action-metrics">
+                  <article>
+                    <span>Agent quota</span>
+                    <strong>
+                      {authSession || dashboardStatus === "connected"
+                        ? `${dashboardAgentCount}/${demoAgentLimits.maxAgentsPerWorkspace}`
+                        : `max ${demoAgentLimits.maxAgentsPerWorkspace}`}
+                    </strong>
+                  </article>
+                  <article>
+                    <span>Scope</span>
+                    <strong>
+                      {authSession
+                        ? "Signed-in demo workspace"
+                        : "Account session required"}
+                    </strong>
+                  </article>
+                </div>
+                <div className="admin-action-grid">
+                  <button
+                    className="button button-ghost admin-action-button admin-action-danger"
+                    type="button"
+                    onClick={handleOpenResetConfirmation}
+                    disabled={!authSession || isAdminActionRunning}
+                  >
+                    <Trash2 size={16} />
+                    {isAdminActionRunning ? "Resetting" : "Reset demo agents"}
+                  </button>
+                  <button
+                    className="button button-ghost admin-action-button"
+                    type="button"
+                    onClick={handleRefreshDashboardRecords}
+                    disabled={!authSession || isAdminActionRunning ||
+                      dashboardStatus === "loading"}
+                  >
+                    <RotateCcw size={16} />
+                    Refresh records
+                  </button>
+                </div>
+                <div
+                  className={`admin-action-note admin-action-${adminActionStatus}`}
+                >
+                  <ShieldCheck size={15} />
+                  <span>{adminActionMessage}</span>
+                </div>
+                {authSession
+                  ? (
+                    <details className="backend-diagnostics">
+                      <summary>
+                        <span>
+                          <Server size={16} />
+                          Backend Diagnostics
+                        </span>
+                        <small>Technical details</small>
+                      </summary>
+                      <div className="backend-diagnostics-content">
+                        <div className="diagnostic-note-grid">
+                          <p>
+                            Provider: <strong>{templateCatalogSource}</strong>
+                          </p>
+                          <p>
+                            Runtime:{" "}
+                            <strong>
+                              {formatRuntimeValue(appConfig.mode)}
+                            </strong>
+                          </p>
+                          <p>
+                            Function health:{" "}
+                            <strong>
+                              {deployFunctionMessage || "checking"}
+                            </strong>
+                          </p>
+                        </div>
+                        <div className="diagnostic-status-grid">
+                          {diagnosticRows.map((row) => (
+                            <article
+                              className={`diagnostic-status-card diagnostic-${row.tone}`}
+                              key={row.label}
+                            >
+                              <span>{row.label}</span>
+                              <strong>{formatRuntimeValue(row.value)}</strong>
+                              <small>{row.detail}</small>
+                            </article>
+                          ))}
+                        </div>
+                        {lastBackendIssue
+                          ? (
+                            <p className="readiness-error-note">
+                              Last backend issue: {lastBackendIssue.message}
+                            </p>
+                          )
+                          : null}
+                        {templateCatalogError
+                          ? (
+                            <p className="readiness-error-note">
+                              Supabase catalog query failed:{" "}
+                              {templateCatalogError}
+                            </p>
+                          )
+                          : null}
+                        {dashboardError
+                          ? (
+                            <p className="readiness-error-note">
+                              Supabase dashboard query: {dashboardError}
+                            </p>
+                          )
+                          : null}
+                        <div
+                          className="deploy-readiness-checklist"
+                          aria-label="Deploy agent diagnostics checklist"
+                        >
+                          <div className="deploy-checklist-title">
+                            <span>deploy-agent checklist</span>
+                            <strong>
+                              {getDeployFunctionHealthLabel(
+                                deployFunctionStatus,
+                              )}
+                            </strong>
+                          </div>
+                          <div className="deploy-checklist-grid">
+                            {deployChecklist.map((item) => {
+                              const StatusIcon = item.state === "complete"
+                                ? CheckCircle2
+                                : item.state === "blocked"
+                                ? LockKeyhole
+                                : Clock3;
 
-          <section className="dashboard-panel backend-readiness-panel" id="backend">
+                              return (
+                                <article
+                                  className={`deploy-check-item deploy-check-${item.state}`}
+                                  key={item.label}
+                                >
+                                  <StatusIcon size={15} />
+                                  <span>
+                                    <strong>{item.label}</strong>
+                                    <small>{item.detail}</small>
+                                  </span>
+                                </article>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div className="backend-table-list">
+                          {backendTables.length
+                            ? (
+                              backendTables.map((table) => (
+                                <article key={table.name}>
+                                  <span>{table.name}</span>
+                                  <strong>{table.records} records</strong>
+                                  <small>{table.purpose}</small>
+                                </article>
+                              ))
+                            )
+                            : (
+                              <div className="dashboard-empty-state compact">
+                                <Database size={18} />
+                                <strong>No backend records yet.</strong>
+                                <p>
+                                  A fresh account session stays clean until the
+                                  next demo deploy.
+                                </p>
+                              </div>
+                            )}
+                        </div>
+                        <div className="backend-contract-line">
+                          <span>
+                            {supabaseStatus.tables.length}{" "}
+                            Supabase tables mapped
+                          </span>
+                          <span>{agentTemplates.length} templates loaded</span>
+                          <span>
+                            {dashboardAgentCount
+                              ? `${dashboardAgentCount} persisted demo agents`
+                              : "no persisted demo agents"}
+                          </span>
+                          <span>
+                            max {demoAgentLimits.maxAgentsPerWorkspace}{" "}
+                            demo agents
+                          </span>
+                          <span>
+                            deploy-agent{" "}
+                            {getDeployFunctionHealthLabel(deployFunctionStatus)}
+                          </span>
+                          <span>onchain execution disabled</span>
+                        </div>
+                      </div>
+                    </details>
+                  )
+                  : null}
+              </section>
+            )
+            : null}
+
+          <section
+            className="dashboard-panel backend-readiness-panel"
+            id="backend"
+          >
             <div className="panel-title">
               <span>Demo readiness</span>
               <span>{authSession ? "account connected" : "preview mode"}</span>
             </div>
             <div className="readiness-summary">
-              <span className={`readiness-chip readiness-${getDashboardReadinessTone(dashboardStatus)}`}>
+              <span
+                className={`readiness-chip readiness-${
+                  getDashboardReadinessTone(dashboardStatus)
+                }`}
+              >
                 <ShieldCheck size={14} />
-                {dashboardStatus === "connected" ? "Demo persistence active" : "demo safe"}
+                {dashboardStatus === "connected"
+                  ? "Demo persistence active"
+                  : "demo safe"}
               </span>
               <p>{kyraRepositoryRuntime.note}</p>
             </div>
@@ -1665,7 +1937,10 @@ export function Dashboard({
                 const Icon = item.icon;
 
                 return (
-                  <article className={`readiness-item readiness-${item.tone}`} key={item.label}>
+                  <article
+                    className={`readiness-item readiness-${item.tone}`}
+                    key={item.label}
+                  >
                     <Icon size={16} />
                     <span>
                       <small>{item.label}</small>
@@ -1682,7 +1957,9 @@ export function Dashboard({
                   ? `${dashboardAgentCount} persisted demo agents`
                   : "no persisted demo agents"}
               </span>
-              <span>max {demoAgentLimits.maxAgentsPerWorkspace} demo agents</span>
+              <span>
+                max {demoAgentLimits.maxAgentsPerWorkspace} demo agents
+              </span>
               <span>approval-first workflows</span>
               <span>onchain execution disabled</span>
             </div>
@@ -1693,13 +1970,17 @@ export function Dashboard({
               <span>Base MCP prep</span>
               <span>{preparedActionPreview.status.replace(/_/g, " ")}</span>
             </div>
-            <div className={`prepared-action-card readiness-${preparedActionTone}`}>
+            <div
+              className={`prepared-action-card readiness-${preparedActionTone}`}
+            >
               <div className="prepared-action-header">
                 <span className="queue-icon">
                   <Server size={16} />
                 </span>
                 <div>
-                  <small>{preparedActionPreview.actionKind.replace(/_/g, " ")}</small>
+                  <small>
+                    {preparedActionPreview.actionKind.replace(/_/g, " ")}
+                  </small>
                   <strong>{preparedActionPreview.title}</strong>
                 </div>
               </div>
@@ -1733,9 +2014,7 @@ export function Dashboard({
               <span>demo replay</span>
             </div>
             <div className="dashboard-log-box">
-              {activityLines.map((log) => (
-                <p key={log}>{log}</p>
-              ))}
+              {activityLines.map((log) => <p key={log}>{log}</p>)}
             </div>
           </section>
 
@@ -1763,7 +2042,9 @@ export function Dashboard({
             <div className="mini-template-list">
               {agentTemplates.map((template) => (
                 <article
-                  className={template.id === activeTemplate.id ? "is-active" : ""}
+                  className={template.id === activeTemplate.id
+                    ? "is-active"
+                    : ""}
                   key={template.id}
                 >
                   <strong>{template.name}</strong>
@@ -1775,82 +2056,88 @@ export function Dashboard({
         </div>
       </section>
 
-      {resetConfirmOpen && isAdmin ? (
-        <div className="modal-backdrop" role="presentation">
-          <section
-            aria-labelledby="reset-demo-workspace-title"
-            aria-modal="true"
-            className="approval-modal reset-confirm-modal"
-            role="dialog"
-          >
-            <div className="modal-header">
-              <div>
-                <span className="demo-badge compact">
-                  <Trash2 size={14} />
-                  Reset demo workspace
-                </span>
-                <h3 id="reset-demo-workspace-title">Confirm demo reset</h3>
+      {resetConfirmOpen && isAdmin
+        ? (
+          <div className="modal-backdrop" role="presentation">
+            <section
+              aria-labelledby="reset-demo-workspace-title"
+              aria-modal="true"
+              className="approval-modal reset-confirm-modal"
+              role="dialog"
+            >
+              <div className="modal-header">
+                <div>
+                  <span className="demo-badge compact">
+                    <Trash2 size={14} />
+                    Reset demo workspace
+                  </span>
+                  <h3 id="reset-demo-workspace-title">Confirm demo reset</h3>
+                </div>
+                <button
+                  aria-label="Close reset confirmation"
+                  className="icon-button"
+                  disabled={isAdminActionRunning}
+                  onClick={handleCloseResetConfirmation}
+                  type="button"
+                >
+                  <X size={18} />
+                </button>
               </div>
-              <button
-                aria-label="Close reset confirmation"
-                className="icon-button"
-                disabled={isAdminActionRunning}
-                onClick={handleCloseResetConfirmation}
-                type="button"
-              >
-                <X size={18} />
-              </button>
-            </div>
 
-            <p className="reset-confirm-copy">
-              This deletes only the signed-in demo workspace records for this account. It does
-              not touch global data, real funds, wallet keys, private keys, Telegram tokens, or
-              any onchain transactions.
-            </p>
-            <div className="reset-scope-grid">
-              <span>
-                Scope
-                <strong>Signed-in demo workspace</strong>
-              </span>
-              <span>
-                Agent quota
-                <strong>{dashboardAgentCount}/{demoAgentLimits.maxAgentsPerWorkspace}</strong>
-              </span>
-              <span>
-                Funds
-                <strong>Not touched</strong>
-              </span>
-              <span>
-                Execution
-                <strong>Disabled</strong>
-              </span>
-            </div>
-            <div className="approval-warning reset-confirm-warning">
-              <ShieldCheck size={17} />
-              After reset, the dashboard should show a clean empty state until a new demo agent is deployed.
-            </div>
-            <div className="modal-actions">
-              <button
-                className="button button-ghost"
-                disabled={isAdminActionRunning}
-                onClick={handleCloseResetConfirmation}
-                type="button"
-              >
-                Cancel
-              </button>
-              <button
-                className="button button-primary admin-action-danger"
-                disabled={isAdminActionRunning}
-                onClick={handleConfirmResetDemoWorkspace}
-                type="button"
-              >
-                <Trash2 size={16} />
-                {isAdminActionRunning ? "Resetting..." : "Confirm reset"}
-              </button>
-            </div>
-          </section>
-        </div>
-      ) : null}
+              <p className="reset-confirm-copy">
+                This deletes only the signed-in demo workspace records for this
+                account. It does not touch global data, real funds, wallet keys,
+                private keys, Telegram tokens, or any onchain transactions.
+              </p>
+              <div className="reset-scope-grid">
+                <span>
+                  Scope
+                  <strong>Signed-in demo workspace</strong>
+                </span>
+                <span>
+                  Agent quota
+                  <strong>
+                    {dashboardAgentCount}/{demoAgentLimits
+                      .maxAgentsPerWorkspace}
+                  </strong>
+                </span>
+                <span>
+                  Funds
+                  <strong>Not touched</strong>
+                </span>
+                <span>
+                  Execution
+                  <strong>Disabled</strong>
+                </span>
+              </div>
+              <div className="approval-warning reset-confirm-warning">
+                <ShieldCheck size={17} />
+                After reset, the dashboard should show a clean empty state until
+                a new demo agent is deployed.
+              </div>
+              <div className="modal-actions">
+                <button
+                  className="button button-ghost"
+                  disabled={isAdminActionRunning}
+                  onClick={handleCloseResetConfirmation}
+                  type="button"
+                >
+                  Cancel
+                </button>
+                <button
+                  className="button button-primary admin-action-danger"
+                  disabled={isAdminActionRunning}
+                  onClick={handleConfirmResetDemoWorkspace}
+                  type="button"
+                >
+                  <Trash2 size={16} />
+                  {isAdminActionRunning ? "Resetting..." : "Confirm reset"}
+                </button>
+              </div>
+            </section>
+          </div>
+        )
+        : null}
     </main>
   );
 }

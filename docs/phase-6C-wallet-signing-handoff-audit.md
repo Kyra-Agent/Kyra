@@ -155,6 +155,14 @@ handoff is invalid.
 Decision: keep this as demo review UI only. It must not open a wallet prompt,
 display raw calldata as the primary UI, or persist a transaction hash.
 
+### F12 - Provider Status Is Read-Only
+
+The dashboard wallet policy panel now shows the installed provider stack,
+runtime gate, prompt access, and connector priority.
+
+Decision: this is status-only UI. It must not expose a connect button, wallet
+address, provider object, or wallet prompt while `walletExecution` is disabled.
+
 ## Phase 6C Entry Conditions
 
 Do not implement live signing until:

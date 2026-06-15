@@ -1,6 +1,15 @@
 export type DemoBackendMode = "frontend-demo" | "backend-demo";
-export type DemoRecordStatus = "mocked" | "active" | "queued" | "read-only" | "review";
-export type DemoTelegramWebhookStatus = "mocked" | "queued" | "active" | "paused";
+export type DemoRecordStatus =
+  | "mocked"
+  | "active"
+  | "queued"
+  | "read-only"
+  | "review";
+export type DemoTelegramWebhookStatus =
+  | "mocked"
+  | "queued"
+  | "active"
+  | "paused";
 
 export interface DemoWorkspaceRecord {
   id: string;
@@ -45,7 +54,12 @@ export interface DemoApprovalRequest {
   command: string;
   route: string;
   risk: "normal" | "review" | "read-only";
-  status: "waiting_wallet" | "read_only_ready" | "review_required" | "approved" | "rejected";
+  status:
+    | "waiting_wallet"
+    | "read_only_ready"
+    | "review_required"
+    | "approved"
+    | "rejected";
   feePayer: "connected_wallet";
   requiresWallet: boolean;
   createdAt: string;
@@ -76,6 +90,15 @@ export interface DemoWalletReadiness {
   privacyNote: string;
 }
 
+export interface DemoWalletProviderStatus {
+  providerStack: "Wagmi + Viem";
+  dependencyStatus: "installed" | "not_installed";
+  runtimeGate: "disabled" | "enabled";
+  promptAccess: "disabled" | "owner_click_only";
+  connectorPriority: string[];
+  safetyNote: string;
+}
+
 export type DemoPreparedActionStatus = "blocked" | "draft" | "preview_ready";
 
 export interface DemoPreparedActionPreview {
@@ -96,7 +119,11 @@ export interface DemoPreparedActionPreview {
 export interface DemoActivityLog {
   id: string;
   timestamp: string;
-  source: "agent_instances" | "telegram_sessions" | "base_mcp_routes" | "approval_requests";
+  source:
+    | "agent_instances"
+    | "telegram_sessions"
+    | "base_mcp_routes"
+    | "approval_requests";
   level: "info" | "notice" | "warning";
   message: string;
 }

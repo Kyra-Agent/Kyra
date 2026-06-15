@@ -9,6 +9,7 @@ import type {
   DemoTelegramSessionSummary,
   DemoTelegramWebhookStatus,
   DemoWalletPolicy,
+  DemoWalletProviderStatus,
   DemoWalletReadiness,
   DemoWorkspaceRecord,
 } from "../types/backend";
@@ -26,7 +27,8 @@ type AgentInstanceRow = SupabaseTableRow<"agent_instances">;
 type ApprovalRequestRow = SupabaseTableRow<"approval_requests">;
 type WalletPolicyRow = SupabaseTableRow<"wallet_policies">;
 type ActivityLogRow = SupabaseTableRow<"activity_logs">;
-type ApprovalStatus = KyraDatabase["public"]["Tables"]["approval_requests"]["Row"]["status"];
+type ApprovalStatus =
+  KyraDatabase["public"]["Tables"]["approval_requests"]["Row"]["status"];
 
 interface TelegramSessionSummaryRow {
   id: string;
@@ -37,7 +39,12 @@ interface TelegramSessionSummaryRow {
   last_event_at: string | null;
 }
 
-export type SupabaseDashboardStatus = "not-configured" | "loading" | "connected" | "empty" | "error";
+export type SupabaseDashboardStatus =
+  | "not-configured"
+  | "loading"
+  | "connected"
+  | "empty"
+  | "error";
 
 export interface SupabaseDashboardData {
   workspace: DemoWorkspaceRecord;
@@ -45,6 +52,7 @@ export interface SupabaseDashboardData {
   approvalRequests: DemoApprovalRequest[];
   walletPolicies: DemoWalletPolicy[];
   walletReadiness: DemoWalletReadiness;
+  walletProviderStatus: DemoWalletProviderStatus;
   preparedActionPreview: DemoPreparedActionPreview;
   backendTables: DemoBackendTable[];
   activityLogs: DemoActivityLog[];
@@ -77,7 +85,9 @@ interface ResetDemoWorkspaceFunctionResponse {
   };
 }
 
-function parseResetDemoWorkspaceFunctionResponse(text: string): ResetDemoWorkspaceFunctionResponse {
+function parseResetDemoWorkspaceFunctionResponse(
+  text: string,
+): ResetDemoWorkspaceFunctionResponse {
   if (!text) {
     return {};
   }
@@ -111,7 +121,11 @@ function getResetFailureKind(statusCode: number, code: string) {
   return "unknown" as const;
 }
 
-function getResetFailureMessage(statusCode: number, code: string, fallback: string) {
+function getResetFailureMessage(
+  statusCode: number,
+  code: string,
+  fallback: string,
+) {
   const safeFallback = sanitizeSupabaseMessage(fallback);
 
   switch (getResetFailureKind(statusCode, code)) {
@@ -133,11 +147,16 @@ function encodeFilter(value: string) {
   return encodeURIComponent(value);
 }
 
-function mapRecordStatus(status: AgentInstanceRow["telegram_status"]): DemoRecordStatus {
+function mapRecordStatus(
+  status: AgentInstanceRow["telegram_status"],
+): DemoRecordStatus {
   return status === "review" ? "review" : status;
 }
 
-function mapWorkspace(row: WorkspaceRow, session: KyraAuthSession): DemoWorkspaceRecord {
+function mapWorkspace(
+  row: WorkspaceRow,
+  session: KyraAuthSession,
+): DemoWorkspaceRecord {
   return {
     id: row.id,
     name: row.name,
@@ -166,7 +185,9 @@ function mapAgent(row: AgentInstanceRow): DemoAgentInstance {
   };
 }
 
-function normalizeApprovalStatus(status: ApprovalStatus): DemoApprovalRequest["status"] {
+function normalizeApprovalStatus(
+  status: ApprovalStatus,
+): DemoApprovalRequest["status"] {
   if (status === "approved" || status === "rejected") {
     return status;
   }
@@ -203,14 +224,18 @@ function mapWalletPolicy(row: WalletPolicyRow): DemoWalletPolicy[] {
     {
       id: `${row.id}_account`,
       label: row.wallet_label,
-      value: row.wallet_address ? shortenAddress(row.wallet_address) : "Demo connected",
+      value: row.wallet_address
+        ? shortenAddress(row.wallet_address)
+        : "Demo connected",
       status: row.status === "active" ? "active" : "simulated",
       description: "Persisted demo policy record, no real funds touched.",
     },
     {
       id: `${row.id}_limit`,
       label: "Daily limit",
-      value: row.daily_limit_usdc ? `${row.daily_limit_usdc} USDC` : "No cap set",
+      value: row.daily_limit_usdc
+        ? `${row.daily_limit_usdc} USDC`
+        : "No cap set",
       status: "simulated",
       description: "Stored spending cap for future wallet policy enforcement.",
     },
@@ -226,7 +251,8 @@ function mapWalletPolicy(row: WalletPolicyRow): DemoWalletPolicy[] {
 
 function createWalletReadiness(rows: WalletPolicyRow[]): DemoWalletReadiness {
   const policy = rows[0];
-  const privacyNote = "Owner-only dashboard data. Public profiles never show wallet details.";
+  const privacyNote =
+    "Owner-only dashboard data. Public profiles never show wallet details.";
 
   if (!policy) {
     return {
@@ -269,7 +295,8 @@ function createWalletReadiness(rows: WalletPolicyRow[]): DemoWalletReadiness {
       network: "Base pending",
       approvalGate,
       execution: "Blocked",
-      nextAction: "Activate a reviewed owner wallet policy before preparing actions.",
+      nextAction:
+        "Activate a reviewed owner wallet policy before preparing actions.",
       privacyNote,
     };
   }
@@ -281,8 +308,25 @@ function createWalletReadiness(rows: WalletPolicyRow[]): DemoWalletReadiness {
     network: "Base",
     approvalGate,
     execution: "Ready for approval",
-    nextAction: "Prepare a bounded action preview before asking the wallet to sign.",
+    nextAction:
+      "Prepare a bounded action preview before asking the wallet to sign.",
     privacyNote,
+  };
+}
+
+function createWalletProviderStatus(): DemoWalletProviderStatus {
+  const executionDisabled =
+    appConfig.integrations.walletExecution === "disabled";
+
+  return {
+    providerStack: "Wagmi + Viem",
+    dependencyStatus: "installed",
+    runtimeGate: executionDisabled ? "disabled" : "enabled",
+    promptAccess: executionDisabled ? "disabled" : "owner_click_only",
+    connectorPriority: ["Base Account", "Coinbase Wallet"],
+    safetyNote: executionDisabled
+      ? "Provider dependencies are installed, but wallet prompts stay disabled until owner-click review."
+      : "Wallet prompts must remain owner-initiated and never Telegram-triggered.",
   };
 }
 
@@ -294,7 +338,8 @@ function createPreparedActionPreview(
     actionKind: "base_mcp_status_check" as const,
     title: "Base MCP status check",
     chain: "Base" as const,
-    routeSummary: "Read-only capability check before any transaction preparation.",
+    routeSummary:
+      "Read-only capability check before any transaction preparation.",
     valueSummary: "No token spend, no gas request, no calldata.",
     risk: "read-only" as const,
     expiresLabel: "Not issued",
@@ -314,14 +359,16 @@ function createPreparedActionPreview(
     return {
       ...basePreview,
       status: "preview_ready",
-      approvalRequirement: "Preview can be reviewed before any wallet approval.",
+      approvalRequirement:
+        "Preview can be reviewed before any wallet approval.",
     };
   }
 
   return {
     ...basePreview,
     status: "blocked",
-    approvalRequirement: "Connect and review an owner wallet policy before preparation.",
+    approvalRequirement:
+      "Connect and review an owner wallet policy before preparation.",
   };
 }
 
@@ -344,7 +391,9 @@ function mapActivityLog(row: ActivityLogRow): DemoActivityLog {
   };
 }
 
-function mapTelegramSessionSummary(row: TelegramSessionSummaryRow): DemoTelegramSessionSummary {
+function mapTelegramSessionSummary(
+  row: TelegramSessionSummaryRow,
+): DemoTelegramSessionSummary {
   return {
     id: row.id,
     agentId: row.agent_id,
@@ -355,7 +404,12 @@ function mapTelegramSessionSummary(row: TelegramSessionSummaryRow): DemoTelegram
   };
 }
 
-function countTable<T>(rows: T[], status: DemoRecordStatus, purpose: string, name: string): DemoBackendTable {
+function countTable<T>(
+  rows: T[],
+  status: DemoRecordStatus,
+  purpose: string,
+  name: string,
+): DemoBackendTable {
   return {
     name,
     records: rows.length,
@@ -373,17 +427,42 @@ function createBackendTables(
   telegramSessions: TelegramSessionSummaryRow[],
 ): DemoBackendTable[] {
   return [
-    countTable(workspaces, "active", "Account owner, auth mode, and workspace scope.", "workspaces"),
-    countTable(agents, "active", "Template, handle, public route, status, and Base network.", "agent_instances"),
+    countTable(
+      workspaces,
+      "active",
+      "Account owner, auth mode, and workspace scope.",
+      "workspaces",
+    ),
+    countTable(
+      agents,
+      "active",
+      "Template, handle, public route, status, and Base network.",
+      "agent_instances",
+    ),
     countTable(
       approvals,
       "active",
       "Command, route, risk, fee payer, and wallet approval state.",
       "approval_requests",
     ),
-    countTable(policies, "active", "Connected wallet label, spending limit, and approval gate.", "wallet_policies"),
-    countTable(logs, "active", "Replayable server-style logs for the dashboard stream.", "activity_logs"),
-    countTable(telegramSessions, "active", "Telegram handle, webhook state, and bot session metadata.", "telegram_sessions"),
+    countTable(
+      policies,
+      "active",
+      "Connected wallet label, spending limit, and approval gate.",
+      "wallet_policies",
+    ),
+    countTable(
+      logs,
+      "active",
+      "Replayable server-style logs for the dashboard stream.",
+      "activity_logs",
+    ),
+    countTable(
+      telegramSessions,
+      "active",
+      "Telegram handle, webhook state, and bot session metadata.",
+      "telegram_sessions",
+    ),
   ];
 }
 
@@ -425,37 +504,42 @@ export async function fetchSupabaseDashboardData(
     }
 
     const workspaceFilter = encodeFilter(workspace.id);
-    const [agents, walletPolicies, approvalRequests, activityLogs] = await Promise.all([
-      selectRows<AgentInstanceRow>(
-        session,
-        `agent_instances?select=*&workspace_id=eq.${workspaceFilter}&order=created_at.desc&limit=20`,
-      ),
-      selectRows<WalletPolicyRow>(
-        session,
-        `wallet_policies?select=id,wallet_label,wallet_address,daily_limit_usdc,approval_required,status&workspace_id=eq.${workspaceFilter}&order=created_at.desc&limit=20`,
-      ),
-      selectRows<ApprovalRequestRow>(
-        session,
-        `approval_requests?select=id,agent_id,scenario_id,title,command,route,risk,status,fee_payer,requires_wallet,created_at&workspace_id=eq.${workspaceFilter}&order=created_at.desc&limit=20`,
-      ),
-      selectRows<ActivityLogRow>(
-        session,
-        `activity_logs?select=*&workspace_id=eq.${workspaceFilter}&order=created_at.desc&limit=30`,
-      ),
-    ]);
+    const [agents, walletPolicies, approvalRequests, activityLogs] =
+      await Promise.all([
+        selectRows<AgentInstanceRow>(
+          session,
+          `agent_instances?select=*&workspace_id=eq.${workspaceFilter}&order=created_at.desc&limit=20`,
+        ),
+        selectRows<WalletPolicyRow>(
+          session,
+          `wallet_policies?select=id,wallet_label,wallet_address,daily_limit_usdc,approval_required,status&workspace_id=eq.${workspaceFilter}&order=created_at.desc&limit=20`,
+        ),
+        selectRows<ApprovalRequestRow>(
+          session,
+          `approval_requests?select=id,agent_id,scenario_id,title,command,route,risk,status,fee_payer,requires_wallet,created_at&workspace_id=eq.${workspaceFilter}&order=created_at.desc&limit=20`,
+        ),
+        selectRows<ActivityLogRow>(
+          session,
+          `activity_logs?select=*&workspace_id=eq.${workspaceFilter}&order=created_at.desc&limit=30`,
+        ),
+      ]);
 
     const agentIds = agents.map((agent) => agent.id);
-    const telegramSessions =
-      agentIds.length > 0
-        ? await selectRows<TelegramSessionSummaryRow>(
-            session,
-            `telegram_session_summaries?select=id,agent_id,bot_handle,webhook_status,created_at,last_event_at&agent_id=in.(${agentIds.map(encodeFilter).join(",")})&order=created_at.desc&limit=20`,
-          )
-        : [];
+    const telegramSessions = agentIds.length > 0
+      ? await selectRows<TelegramSessionSummaryRow>(
+        session,
+        `telegram_session_summaries?select=id,agent_id,bot_handle,webhook_status,created_at,last_event_at&agent_id=in.(${
+          agentIds.map(encodeFilter).join(",")
+        })&order=created_at.desc&limit=20`,
+      )
+      : [];
     const mappedAgents = agents.map(mapAgent);
-    const agentTemplateLookup = new Map(agents.map((agent) => [agent.id, agent.template_id]));
+    const agentTemplateLookup = new Map(
+      agents.map((agent) => [agent.id, agent.template_id]),
+    );
     const latestAgent = mappedAgents[0] ?? null;
     const walletReadiness = createWalletReadiness(walletPolicies);
+    const walletProviderStatus = createWalletProviderStatus();
 
     return {
       ok: true,
@@ -464,10 +548,11 @@ export async function fetchSupabaseDashboardData(
         workspace: mapWorkspace(workspace, session),
         agentInstances: mappedAgents,
         approvalRequests: approvalRequests.map((request) =>
-          mapApprovalRequest(request, agentTemplateLookup),
+          mapApprovalRequest(request, agentTemplateLookup)
         ),
         walletPolicies: walletPolicies.flatMap(mapWalletPolicy).slice(0, 6),
         walletReadiness,
+        walletProviderStatus,
         preparedActionPreview: createPreparedActionPreview(walletReadiness),
         backendTables: createBackendTables(
           workspaces,
@@ -489,10 +574,9 @@ export async function fetchSupabaseDashboardData(
       ok: false,
       status: "error",
       data: null,
-      error:
-        error instanceof Error
-          ? sanitizeSupabaseMessage(error.message)
-          : "Demo workspace query failed.",
+      error: error instanceof Error
+        ? sanitizeSupabaseMessage(error.message)
+        : "Demo workspace query failed.",
     };
   }
 }
@@ -535,7 +619,8 @@ export async function resetSupabaseDemoWorkspace(
     const payload = parseResetDemoWorkspaceFunctionResponse(text);
 
     if (!response.ok || payload.ok === false) {
-      const code = payload.status ?? (response.status === 404 ? "function_not_found" : "function_error");
+      const code = payload.status ??
+        (response.status === 404 ? "function_not_found" : "function_error");
 
       return {
         ok: false,
@@ -559,10 +644,9 @@ export async function resetSupabaseDemoWorkspace(
   } catch (error) {
     return {
       ok: false,
-      message:
-        error instanceof Error
-          ? getResetFailureMessage(503, "function_error", error.message)
-          : "Kyra reset backend is unavailable. No demo workspace records were deleted.",
+      message: error instanceof Error
+        ? getResetFailureMessage(503, "function_error", error.message)
+        : "Kyra reset backend is unavailable. No demo workspace records were deleted.",
       recordsRemoved: false,
       code: "function_error",
       failureKind: "backend",

@@ -26,6 +26,7 @@ const packageJson = read("package.json");
 const walletModal = read("src/components/WalletApprovalModal.tsx");
 const app = read("src/App.tsx");
 const dashboardService = read("src/services/supabaseDashboardService.ts");
+const dashboard = read("src/pages/Dashboard.tsx");
 const walletSigningTypes = read("src/types/walletSigning.ts");
 const unsignedTransactionHandoffTypes = read(
   "src/types/unsignedTransactionHandoff.ts",
@@ -123,6 +124,20 @@ assertIncludes("package.json", packageJson, '"@tanstack/react-query"');
 assertIncludes("package.json", packageJson, '"@base-org/account"');
 assertIncludes("appConfig", appConfig, 'walletExecution: "disabled"');
 assertIncludes("main", main, "WalletProviderBoundary");
+assertIncludes("dashboard", dashboard, "walletProviderStatus");
+assertIncludes("dashboard", dashboard, "Provider stack");
+assertIncludes("dashboard", dashboard, "Prompt access");
+assertIncludes("dashboard", dashboard, "No automatic wallet prompt");
+assertIncludes(
+  "dashboard service",
+  dashboardService,
+  "createWalletProviderStatus",
+);
+assertIncludes(
+  "dashboard service",
+  dashboardService,
+  "Provider dependencies are installed",
+);
 for (
   const boundary of [
     "lazy",

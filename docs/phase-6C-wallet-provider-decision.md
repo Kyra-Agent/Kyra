@@ -111,7 +111,8 @@ The provider path must never:
 3. Add `WagmiProvider` and `QueryClientProvider` behind a disabled wallet gate.
    Done with a light boundary in `src/providers/WalletProviderBoundary.tsx` and
    lazy runtime providers in `src/providers/WalletRuntimeProviders.tsx`.
-4. Add connection status read-only UI.
+4. Add connection status read-only UI. Done in the dashboard wallet policy
+   panel.
 5. Add chain validation for Base.
 6. Add explicit owner-click prompt flow.
 7. Add sanitized rejection/error states.
