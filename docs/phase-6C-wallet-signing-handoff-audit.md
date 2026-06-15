@@ -184,6 +184,15 @@ describe security boundaries, but must not contain real secret values.
 Decision: wallet dependencies may stay installed, but app surfaces must not pull
 provider code or wallet hooks outside the disabled runtime provider gate.
 
+### F15 - Wallet Dependency Set Is Reviewed
+
+`npm run check:phase-6c` now rejects unexpected wallet-sensitive package names,
+including extra wallet SDKs, WalletConnect stacks, `ethers`, `web3`, RainbowKit,
+Privy, Dynamic, Thirdweb, Alchemy, or Moralis dependencies.
+
+Decision: the installed wallet dependency set stays on the approved Wagmi/Viem
+path until a separate provider review expands it.
+
 ## Phase 6C Entry Conditions
 
 Do not implement live signing until:

@@ -42,6 +42,7 @@ const providerDecision = read("docs/phase-6C-wallet-provider-decision.md");
 const checklist = read("docs/phase-6-wallet-base-checklist.md");
 const appConfig = read("src/config/appConfig.ts");
 const packageJson = read("package.json");
+const parsedPackageJson = JSON.parse(packageJson);
 const walletModal = read("src/components/WalletApprovalModal.tsx");
 const app = read("src/App.tsx");
 const dashboardService = read("src/services/supabaseDashboardService.ts");
@@ -61,6 +62,21 @@ const walletProviderPackageImportPattern =
 const walletProviderImportAllowlist = new Set([
   "src/providers/WalletRuntimeProviders.tsx",
 ]);
+const approvedWalletDependencyNames = new Set([
+  "@base-org/account",
+  "@tanstack/react-query",
+  "viem",
+  "wagmi",
+]);
+const installedDependencyNames = [
+  ...Object.keys(parsedPackageJson.dependencies ?? {}),
+  ...Object.keys(parsedPackageJson.devDependencies ?? {}),
+];
+const unexpectedWalletDependencies = installedDependencyNames.filter((name) =>
+  !approvedWalletDependencyNames.has(name) &&
+  /(wallet|walletconnect|ethers|web3|rainbow|reown|metamask|privy|dynamic|thirdweb|alchemy|moralis)/i
+    .test(name)
+);
 
 for (
   const boundary of [
@@ -357,6 +373,12 @@ assert(
   !packageJson.includes("ethers") &&
     !packageJson.includes("@coinbase/wallet-sdk"),
   "Wallet provider dependency set must stay on the approved Wagmi/Viem path.",
+);
+assert(
+  unexpectedWalletDependencies.length === 0,
+  `Unexpected wallet-sensitive dependencies require review: ${
+    unexpectedWalletDependencies.join(", ")
+  }`,
 );
 
 console.log("Phase 6C wallet handoff checks passed.");
