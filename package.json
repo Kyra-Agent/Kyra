@@ -31,6 +31,7 @@
     "check:functions": "node scripts/check-functions.mjs",
     "check:prepared-actions": "node scripts/check-prepared-action-boundary.mjs",
     "check:privacy": "node scripts/check-public-privacy.mjs",
+    "check:phase-6": "npm run check:privacy && npm run check:base-mcp && npm run check:prepared-actions && npm run check:phase-6b && npm run check:phase-6c && npm run test:unsigned-handoff && npm run test:wallet-signing && npm run check:functions",
     "build": "tsc && vite build",
     "preview": "vite preview --host localhost"
   },

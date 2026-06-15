@@ -351,6 +351,7 @@ Phase 6 is not done until these user-facing checks pass:
 Before any push/deploy:
 
 - [ ] `git status --short`
+- [ ] `npm run check:phase-6`
 - [ ] `npm run check:functions`
 - [ ] relevant Deno tests
 - [ ] `npm run build`
