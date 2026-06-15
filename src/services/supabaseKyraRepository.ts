@@ -21,7 +21,11 @@ export interface SupabaseAdapterStatus {
   executionEnabled: false;
 }
 
-export type SupabaseConnectionStatus = "not-configured" | "checking" | "connected" | "error";
+export type SupabaseConnectionStatus =
+  | "not-configured"
+  | "checking"
+  | "connected"
+  | "error";
 
 export interface SupabaseTemplateCatalogResult {
   ok: boolean;
@@ -41,12 +45,23 @@ export function getSupabaseAdapterStatus(): SupabaseAdapterStatus {
   };
 }
 
-export type SupabaseTableRow<TName extends KyraTableName> = KyraDatabase["public"]["Tables"][TName]["Row"];
+export type SupabaseTableRow<TName extends KyraTableName> =
+  KyraDatabase["public"]["Tables"][TName]["Row"];
 
 type SupabaseTemplateRow = SupabaseTableRow<"agent_templates">;
 
-const templateOrder = ["operator", "scout", "steward", "executor", "strategist", "custom"];
+const templateOrder = [
+  "operator",
+  "scout",
+  "steward",
+  "executor",
+  "strategist",
+  "custom",
+];
 const obsoleteTemplateIds = new Set(["launcher"]);
+const safetyReviewedTemplateById = new Map(
+  fallbackAgentTemplates.map((template) => [template.id, template]),
+);
 
 function getSupabaseApiKey() {
   return import.meta.env.VITE_SUPABASE_ANON_KEY || "";
@@ -114,21 +129,49 @@ function sortTemplates(templates: AgentTemplate[]) {
 }
 
 function normalizeTemplateCatalog(templates: AgentTemplate[]) {
-  const activeTemplates = templates.filter((template) => !obsoleteTemplateIds.has(template.id));
+  const activeTemplates = templates
+    .filter((template) => !obsoleteTemplateIds.has(template.id))
+    .map((template) => {
+      const safetyReviewedTemplate = safetyReviewedTemplateById.get(
+        template.id,
+      );
+
+      if (!safetyReviewedTemplate) {
+        return template;
+      }
+
+      return {
+        ...template,
+        name: safetyReviewedTemplate.name,
+        role: safetyReviewedTemplate.role,
+        summary: safetyReviewedTemplate.summary,
+        bestFor: safetyReviewedTemplate.bestFor,
+        actions: safetyReviewedTemplate.actions,
+        modules: safetyReviewedTemplate.modules,
+        terminalSeed: safetyReviewedTemplate.terminalSeed,
+      };
+    });
 
   if (activeTemplates.some((template) => template.id === "strategist")) {
     return activeTemplates;
   }
 
-  const strategistFallback = fallbackAgentTemplates.find((template) => template.id === "strategist");
+  const strategistFallback = fallbackAgentTemplates.find((template) =>
+    template.id === "strategist"
+  );
 
-  return strategistFallback ? [...activeTemplates, strategistFallback] : activeTemplates;
+  return strategistFallback
+    ? [...activeTemplates, strategistFallback]
+    : activeTemplates;
 }
 
 function sanitizeSupabaseError(message: string) {
   return message
     .replace(/sb_publishable_[A-Za-z0-9_-]+/g, "sb_publishable_[hidden]")
-    .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "jwt_[hidden]")
+    .replace(
+      /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g,
+      "jwt_[hidden]",
+    )
     .slice(0, 220);
 }
 
@@ -143,13 +186,17 @@ async function fetchSupabaseJson<T>(query: string): Promise<T> {
 
   if (!response.ok) {
     const message = await response.text();
-    throw new Error(message || `Supabase request failed with ${response.status}.`);
+    throw new Error(
+      message || `Supabase request failed with ${response.status}.`,
+    );
   }
 
   return response.json() as Promise<T>;
 }
 
-export async function fetchSupabaseTemplates(): Promise<SupabaseTemplateCatalogResult> {
+export async function fetchSupabaseTemplates(): Promise<
+  SupabaseTemplateCatalogResult
+> {
   const checkedAt = new Date().toISOString();
 
   if (!appConfig.supabase.configured) {
@@ -170,7 +217,9 @@ export async function fetchSupabaseTemplates(): Promise<SupabaseTemplateCatalogR
     return {
       ok: true,
       status: "connected",
-      templates: sortTemplates(normalizeTemplateCatalog(rows.map(mapTemplateRow))),
+      templates: sortTemplates(
+        normalizeTemplateCatalog(rows.map(mapTemplateRow)),
+      ),
       error: null,
       checkedAt,
     };
@@ -179,10 +228,9 @@ export async function fetchSupabaseTemplates(): Promise<SupabaseTemplateCatalogR
       ok: false,
       status: "error",
       templates: [],
-      error:
-        error instanceof Error
-          ? sanitizeSupabaseError(error.message)
-          : "Supabase request failed.",
+      error: error instanceof Error
+        ? sanitizeSupabaseError(error.message)
+        : "Supabase request failed.",
       checkedAt,
     };
   }

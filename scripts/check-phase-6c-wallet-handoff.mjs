@@ -55,6 +55,7 @@ const heroConsole = read("src/components/HeroConsole.tsx");
 const securitySection = read("src/components/SecuritySection.tsx");
 const app = read("src/App.tsx");
 const dashboardService = read("src/services/supabaseDashboardService.ts");
+const supabaseKyraRepository = read("src/services/supabaseKyraRepository.ts");
 const dashboard = read("src/pages/Dashboard.tsx");
 const walletSigningTypes = read("src/types/walletSigning.ts");
 const unsignedTransactionHandoffTypes = read(
@@ -225,6 +226,26 @@ assertIncludes("template data", templateData, "swap reviews");
 assertIncludes("template data", templateData, "transfer reviews");
 assertIncludes("template data", templateData, "approval-gated Base readiness");
 assertIncludes("template data", templateData, "review 10 USDC to ETH swap");
+assertIncludes(
+  "Supabase Kyra repository",
+  supabaseKyraRepository,
+  "safetyReviewedTemplateById",
+);
+assertIncludes(
+  "Supabase Kyra repository",
+  supabaseKyraRepository,
+  "summary: safetyReviewedTemplate.summary",
+);
+assertIncludes(
+  "Supabase Kyra repository",
+  supabaseKyraRepository,
+  "actions: safetyReviewedTemplate.actions",
+);
+assertIncludes(
+  "Supabase Kyra repository",
+  supabaseKyraRepository,
+  "terminalSeed: safetyReviewedTemplate.terminalSeed",
+);
 assertIncludes("demo scenarios", demoScenarioData, "Swap Review");
 assertIncludes("demo scenarios", demoScenarioData, "token_swap_review");
 assertIncludes(
@@ -329,6 +350,14 @@ assert(
 );
 assertIncludes("WalletApprovalModal", walletModal, "Record Demo Review");
 assertIncludes("WalletApprovalModal", walletModal, "Demo review");
+assertIncludes("WalletApprovalModal", walletModal, "Demo rejection recorded");
+assertIncludes(
+  "WalletApprovalModal",
+  walletModal,
+  "No wallet prompt was opened.",
+);
+assertIncludes("WalletApprovalModal", walletModal, "onReject");
+assertIncludes("WalletApprovalModal", walletModal, "Cancel");
 assertIncludes("WalletApprovalModal", walletModal, "Disabled");
 assertIncludes(
   "WalletApprovalModal",

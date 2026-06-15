@@ -151,6 +151,7 @@ function App() {
   const [selectedScenarioId, setSelectedScenarioId] = useState("swap");
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [approvalApproved, setApprovalApproved] = useState(false);
+  const [approvalRejected, setApprovalRejected] = useState(false);
   const [approvalClosing, setApprovalClosing] = useState(false);
   const [approvalDismissed, setApprovalDismissed] = useState(false);
   const [walletSigningState, setWalletSigningState] = useState<
@@ -472,6 +473,7 @@ function App() {
     setSelectedId(scenario.templateId);
     setApprovalOpen(false);
     setApprovalApproved(false);
+    setApprovalRejected(false);
     setApprovalClosing(false);
     setApprovalDismissed(false);
     setWalletSigningState("not_ready");
@@ -505,6 +507,7 @@ function App() {
 
   function approveDemoAction() {
     setApprovalApproved(true);
+    setApprovalRejected(false);
     window.setTimeout(() => setApprovalClosing(true), 650);
     window.setTimeout(() => {
       setApprovalOpen(false);
@@ -513,8 +516,10 @@ function App() {
     }, 1050);
   }
 
-  function closeApprovalModal() {
+  function rejectDemoAction() {
     setApprovalDismissed(true);
+    setApprovalApproved(false);
+    setApprovalRejected(true);
     const rejection = transitionWalletSigningState({
       state: walletSigningState,
       event: "reject",
@@ -524,10 +529,21 @@ function App() {
       setWalletSigningState(rejection.state);
     }
 
+    window.setTimeout(() => setApprovalClosing(true), 650);
+    window.setTimeout(() => {
+      setApprovalOpen(false);
+      setApprovalRejected(false);
+      setApprovalClosing(false);
+    }, 1050);
+  }
+
+  function closeApprovalModal() {
+    setApprovalDismissed(true);
     setApprovalClosing(true);
     window.setTimeout(() => {
       setApprovalOpen(false);
       setApprovalApproved(false);
+      setApprovalRejected(false);
       setApprovalClosing(false);
     }, 240);
   }
@@ -679,11 +695,13 @@ function App() {
         scenario={selectedScenario}
         open={approvalOpen}
         approved={approvalApproved}
+        rejected={approvalRejected}
         closing={approvalClosing}
         signingState={walletSigningState}
         unsignedHandoff={walletUnsignedHandoff}
         unsignedHandoffValidation={walletUnsignedHandoffValidation}
         onApprove={approveDemoAction}
+        onReject={rejectDemoAction}
         onClose={closeApprovalModal}
       />
     </div>
@@ -711,7 +729,7 @@ function createDemoUnsignedHandoff(
     gasPayer: "connected_wallet",
     routeSummary: scenario.route,
     valueSummary: scenario.approvalRequired
-      ? "Demo review only. No token spend is submitted."
+      ? "Demo review only. No token spend is sent."
       : "Read-only scenario. No transaction handoff required.",
     risk: scenario.risk === "review" ? "medium" : "low",
     createdAt: createdAt.toISOString(),

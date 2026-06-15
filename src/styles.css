@@ -2170,6 +2170,8 @@ h2 {
 
 .approval-modal {
   width: min(520px, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
   background:
@@ -2182,6 +2184,11 @@ h2 {
 
 .approval-modal.is-approved {
   border-color: rgba(138, 230, 177, 0.42);
+  animation: approvalPulse 640ms ease both;
+}
+
+.approval-modal.is-rejected {
+  border-color: rgba(255, 127, 138, 0.42);
   animation: approvalPulse 640ms ease both;
 }
 
@@ -2351,6 +2358,16 @@ h2 {
 
 .modal-actions .button {
   flex: 1 1 0;
+}
+
+.button-danger {
+  border-color: rgba(255, 127, 138, 0.34);
+  color: #ffd9dd;
+}
+
+.button-danger:hover {
+  border-color: rgba(255, 127, 138, 0.62);
+  background: rgba(255, 127, 138, 0.1);
 }
 
 .button:disabled {

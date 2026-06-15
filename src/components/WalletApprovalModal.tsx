@@ -10,11 +10,13 @@ interface WalletApprovalModalProps {
   scenario: DemoScenario;
   open: boolean;
   approved: boolean;
+  rejected: boolean;
   closing: boolean;
   signingState: WalletSigningState;
   unsignedHandoff: WalletUnsignedTransactionHandoff;
   unsignedHandoffValidation: WalletUnsignedTransactionHandoffValidation;
   onApprove: () => void;
+  onReject: () => void;
   onClose: () => void;
 }
 
@@ -22,11 +24,13 @@ export function WalletApprovalModal({
   scenario,
   open,
   approved,
+  rejected,
   closing,
   signingState,
   unsignedHandoff,
   unsignedHandoffValidation,
   onApprove,
+  onReject,
   onClose,
 }: WalletApprovalModalProps) {
   if (!open) {
@@ -40,8 +44,8 @@ export function WalletApprovalModal({
     >
       <section
         className={`approval-modal ${approved ? "is-approved" : ""} ${
-          closing ? "is-closing" : ""
-        }`}
+          rejected ? "is-rejected" : ""
+        } ${closing ? "is-closing" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-label="Wallet approval demo"
@@ -52,7 +56,13 @@ export function WalletApprovalModal({
               <WalletCards size={14} />
               Demo review
             </span>
-            <h3>{approved ? "Demo review recorded" : "Review draft"}</h3>
+            <h3>
+              {approved
+                ? "Demo review recorded"
+                : rejected
+                ? "Demo rejection recorded"
+                : "Review draft"}
+            </h3>
           </div>
           <button
             className="icon-button"
@@ -132,6 +142,8 @@ export function WalletApprovalModal({
           <ShieldCheck size={17} />
           {approved
             ? "Demo review is recorded locally. Real wallet signing remains disabled."
+            : rejected
+            ? "Demo rejection is recorded locally. No wallet prompt was opened."
             : "Kyra prepares review context only. Real wallet signing stays disabled."}
         </div>
 
@@ -140,6 +152,15 @@ export function WalletApprovalModal({
             className="button button-ghost"
             type="button"
             onClick={onClose}
+            disabled={approved || rejected}
+          >
+            Cancel
+          </button>
+          <button
+            className="button button-ghost button-danger"
+            type="button"
+            onClick={onReject}
+            disabled={approved || rejected}
           >
             Reject
           </button>
@@ -147,7 +168,7 @@ export function WalletApprovalModal({
             className="button button-primary"
             type="button"
             onClick={onApprove}
-            disabled={approved}
+            disabled={approved || rejected}
           >
             <CheckCircle2 size={17} />
             {approved ? "Recorded" : "Record Demo Review"}
