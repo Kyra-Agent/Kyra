@@ -50,15 +50,15 @@ Dashboard state:
 - wallet policy is visible in the owner dashboard
 - approval queue shows safe summaries: title, command, route, risk, status, fee
   payer, and wallet requirement
-- readiness panel marks execution as `simulated` because
-  `walletExecution` is currently `disabled`
+- readiness panel marks execution as `simulated` because `walletExecution` is
+  currently `disabled`
 - reset copy explicitly says it does not touch real funds, wallet keys, private
   keys, Telegram tokens, or onchain transactions
 
 Wallet modal state:
 
 - `WalletApprovalModal` is a demo-only UI
-- it displays command, route, network, risk, and `Execution: Demo only`
+- it displays command, route, network, risk, and `Execution: Disabled`
 - it does not connect to a provider
 - it does not sign messages
 - it does not submit transactions
@@ -158,8 +158,8 @@ Required before live wallet execution:
 ### F6 - Product Copy Contains Future Execution Language
 
 Some product copy says Kyra can prepare swaps/transfers for wallet approval.
-That is acceptable as roadmap/product positioning only while Phase 5/6A
-surfaces clearly state execution is disabled or gated.
+That is acceptable as roadmap/product positioning only while Phase 5/6A surfaces
+clearly state execution is disabled or gated.
 
 Risk: low to medium UX risk.
 

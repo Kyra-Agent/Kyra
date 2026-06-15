@@ -1,4 +1,12 @@
-import { ArrowRightLeft, Coins, FileText, History, Radio, Send, Users } from "lucide-react";
+import {
+  ArrowRightLeft,
+  Coins,
+  FileText,
+  History,
+  Radio,
+  Send,
+  Users,
+} from "lucide-react";
 import { actions } from "../data/actions";
 
 const actionIcons = {
@@ -17,20 +25,24 @@ export function ActionConsole() {
   return (
     <section className="section" id="actions">
       <div className="section-heading">
-        <p className="eyebrow">Onchain Actions</p>
-        <h2>Chat intent becomes a wallet-approved action.</h2>
+        <p className="eyebrow">Action Readiness</p>
+        <h2>Chat intent becomes a review draft.</h2>
         <p>
-          MVP actions stay controlled: read wallet context, prepare Base transactions,
-          and wait for explicit approval before anything can move onchain.
+          Current actions stay demo-safe: read context, prepare bounded review
+          summaries, and keep wallet prompts and onchain execution disabled.
         </p>
       </div>
 
       <div className="actions-grid">
         {actions.map((action) => {
-          const Icon = actionIcons[action.id as keyof typeof actionIcons] ?? Radio;
+          const Icon = actionIcons[action.id as keyof typeof actionIcons] ??
+            Radio;
 
           return (
-            <article className={`action-card tier-${action.tier}`} key={action.id}>
+            <article
+              className={`action-card tier-${action.tier}`}
+              key={action.id}
+            >
               <div className="action-icon">
                 <Icon size={18} />
               </div>

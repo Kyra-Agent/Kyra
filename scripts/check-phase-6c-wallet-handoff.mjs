@@ -44,6 +44,10 @@ const appConfig = read("src/config/appConfig.ts");
 const packageJson = read("package.json");
 const parsedPackageJson = JSON.parse(packageJson);
 const walletModal = read("src/components/WalletApprovalModal.tsx");
+const actionConsole = read("src/components/ActionConsole.tsx");
+const actionData = read("src/data/actions.ts");
+const heroConsole = read("src/components/HeroConsole.tsx");
+const securitySection = read("src/components/SecuritySection.tsx");
 const app = read("src/App.tsx");
 const dashboardService = read("src/services/supabaseDashboardService.ts");
 const dashboard = read("src/pages/Dashboard.tsx");
@@ -187,6 +191,35 @@ for (const path of sourceFiles) {
   );
 }
 assertIncludes("dashboard", dashboard, "walletProviderStatus");
+assertIncludes("ActionConsole", actionConsole, "Action Readiness");
+assertIncludes("ActionConsole", actionConsole, "review draft");
+assertIncludes(
+  "ActionConsole",
+  actionConsole,
+  "wallet prompts and onchain execution disabled",
+);
+assert(
+  !actionConsole.includes("Onchain Actions") &&
+    !actionConsole.includes("wallet-approved action") &&
+    !actionConsole.includes("prepare Base transactions"),
+  "Action console copy must not imply live wallet or onchain execution.",
+);
+assertIncludes("action data", actionData, "Swap Review");
+assertIncludes("action data", actionData, "Transfer Review");
+assertIncludes(
+  "action data",
+  actionData,
+  "No Telegram-triggered swap execution",
+);
+assertIncludes("HeroConsole", heroConsole, "BASE ACTION review layer gated");
+assertIncludes("HeroConsole", heroConsole, "Wallet review");
+assertIncludes("HeroConsole", heroConsole, "Base gated");
+assertIncludes(
+  "SecuritySection",
+  securitySection,
+  "Wallet approval gate required",
+);
+assertIncludes("App", app, "Wallet approval gate required");
 assertIncludes("dashboard", dashboard, "Provider stack");
 assertIncludes("dashboard", dashboard, "Prompt access");
 assertIncludes("dashboard", dashboard, "No automatic wallet prompt");
@@ -230,8 +263,9 @@ assert(
   !walletRuntimeProviders.includes("window.ethereum"),
   "Wallet runtime providers must not use raw window.ethereum.",
 );
-assertIncludes("WalletApprovalModal", walletModal, "Approve Demo");
-assertIncludes("WalletApprovalModal", walletModal, "Demo only");
+assertIncludes("WalletApprovalModal", walletModal, "Record Demo Review");
+assertIncludes("WalletApprovalModal", walletModal, "Demo review");
+assertIncludes("WalletApprovalModal", walletModal, "Disabled");
 assertIncludes(
   "WalletApprovalModal",
   walletModal,

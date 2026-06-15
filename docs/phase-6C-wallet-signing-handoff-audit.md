@@ -74,8 +74,8 @@ Phase 6C.
 
 ### F2 - Demo Approval Must Not Become Real Signing Accidentally
 
-`WalletApprovalModal` currently says "Approve Demo" and only changes local demo
-state.
+`WalletApprovalModal` now records a local demo review and does not present the
+button as a live wallet approval.
 
 Decision: keep demo approval separate from real wallet signing. A future real
 wallet handoff must have separate state labels and fail-closed checks.

@@ -37,7 +37,7 @@ export function HeroConsole({
       "NIRA-01  routing intent",
       "NOVA-04  wallet data module synced",
       "NYX-05   risk guard active",
-      "BASE ACTION approval layer connected",
+      "BASE ACTION review layer gated",
       `telegram> ${selectedScenario.command}`,
       ...selectedScenario.lines,
     ],
@@ -66,7 +66,12 @@ export function HeroConsole({
 
     const timer = window.setTimeout(onRequestApproval, 520);
     return () => window.clearTimeout(timer);
-  }, [lines.length, onRequestApproval, selectedScenario.approvalRequired, visibleCount]);
+  }, [
+    lines.length,
+    onRequestApproval,
+    selectedScenario.approvalRequired,
+    visibleCount,
+  ]);
 
   return (
     <section className="hero-shell" aria-label="Kyra demo console">
@@ -115,7 +120,7 @@ export function HeroConsole({
           </span>
           <span>
             <WalletCards size={15} />
-            Wallet approval
+            Wallet review
           </span>
           <span>
             <ShieldCheck size={15} />
@@ -123,7 +128,7 @@ export function HeroConsole({
           </span>
           <span>
             <Radio size={15} />
-            Base actions
+            Base gated
           </span>
         </div>
       </div>

@@ -635,7 +635,7 @@ function App() {
                   <div className="trust-row" aria-label="Kyra trust model">
                     <span>No seed phrases</span>
                     <span>No custody</span>
-                    <span>Wallet approval required</span>
+                    <span>Wallet approval gate required</span>
                   </div>
                 </div>
 

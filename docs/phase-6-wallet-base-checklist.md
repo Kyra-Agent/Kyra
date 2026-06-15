@@ -371,6 +371,7 @@ Before enabling production gates:
 - [x] Keep wallet provider package imports isolated to the gated runtime
       provider.
 - [x] Keep the wallet dependency set on the reviewed Wagmi/Viem path.
+- [x] Keep demo UI copy from implying live wallet or onchain execution.
 - [ ] Confirm unsupported execution requests fail closed.
 - [ ] Confirm wallet approval is required.
 - [ ] Confirm transaction details are visible before signing.

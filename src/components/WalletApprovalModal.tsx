@@ -50,9 +50,9 @@ export function WalletApprovalModal({
           <div>
             <span className="demo-badge compact">
               <WalletCards size={14} />
-              Wallet approval
+              Demo review
             </span>
-            <h3>{approved ? "Demo approval confirmed" : "Review action"}</h3>
+            <h3>{approved ? "Demo review recorded" : "Review draft"}</h3>
           </div>
           <button
             className="icon-button"
@@ -84,7 +84,7 @@ export function WalletApprovalModal({
           </span>
           <span>
             Execution
-            <strong>Demo only</strong>
+            <strong>Disabled</strong>
           </span>
           <span>
             Signing state
@@ -131,8 +131,8 @@ export function WalletApprovalModal({
         <div className="approval-warning">
           <ShieldCheck size={17} />
           {approved
-            ? "Demo approval is recorded locally. Real wallet signing remains disabled."
-            : "Kyra prepares the review context. Real wallet signing stays disabled."}
+            ? "Demo review is recorded locally. Real wallet signing remains disabled."
+            : "Kyra prepares review context only. Real wallet signing stays disabled."}
         </div>
 
         <div className="modal-actions">
@@ -150,7 +150,7 @@ export function WalletApprovalModal({
             disabled={approved}
           >
             <CheckCircle2 size={17} />
-            {approved ? "Approved" : "Approve Demo"}
+            {approved ? "Recorded" : "Record Demo Review"}
           </button>
         </div>
       </section>
