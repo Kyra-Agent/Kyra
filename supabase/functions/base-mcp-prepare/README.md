@@ -18,6 +18,7 @@ Future enabled contract:
 - Verify agent ownership before any adapter call.
 - Return only a bounded read-only preparation summary.
 - Keep `opaquePayloadRef` null for the first status-check candidate.
+- Treat missing, invalid, or non-HTTPS Base MCP endpoints as not configured.
 
 Hard boundaries:
 

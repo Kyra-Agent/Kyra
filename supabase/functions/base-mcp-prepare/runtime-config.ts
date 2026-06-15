@@ -32,6 +32,24 @@ export function parseBaseMcpTimeoutMs(value: unknown) {
   return Math.min(parsed, 5000);
 }
 
+export function normalizeBaseMcpEndpoint(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) {
+    return null;
+  }
+
+  try {
+    const url = new URL(value.trim());
+
+    if (url.protocol !== "https:") {
+      return null;
+    }
+
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 export function createBaseMcpPrepareRuntimeConfig(
   readOptionalEnv: OptionalEnvReader,
 ): BaseMcpPrepareRuntimeConfig {
@@ -43,7 +61,9 @@ export function createBaseMcpPrepareRuntimeConfig(
     return { enabled: false };
   }
 
-  const endpoint = readOptionalEnv(baseMcpEndpointEnvKey).trim() || null;
+  const endpoint = normalizeBaseMcpEndpoint(
+    readOptionalEnv(baseMcpEndpointEnvKey),
+  );
   const apiKey = readOptionalEnv(baseMcpApiKeyEnvKey).trim() || null;
   const timeoutMs = parseBaseMcpTimeoutMs(
     readOptionalEnv(baseMcpTimeoutMsEnvKey),

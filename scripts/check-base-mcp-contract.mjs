@@ -47,11 +47,20 @@ function assertFilesDoNotInclude(paths, forbiddenPattern, message) {
 const typeContract = read("src/types/baseMcp.ts");
 const docsContract = read("docs/phase-6B-base-mcp-adapter-contract.md");
 const functionCore = read("supabase/functions/base-mcp-prepare/core.ts");
-const functionDependencies = read("supabase/functions/base-mcp-prepare/dependencies.ts");
+const functionDependencies = read(
+  "supabase/functions/base-mcp-prepare/dependencies.ts",
+);
 const functionReadme = read("supabase/functions/base-mcp-prepare/README.md");
-const providerAdapter = read("supabase/functions/base-mcp-prepare/provider-adapter.ts");
+const functionRuntimeConfig = read(
+  "supabase/functions/base-mcp-prepare/runtime-config.ts",
+);
+const providerAdapter = read(
+  "supabase/functions/base-mcp-prepare/provider-adapter.ts",
+);
 const supabaseConfig = read("supabase/config.toml");
-const frontendFiles = listFiles("src").filter((path) => /\.(ts|tsx)$/u.test(path));
+const frontendFiles = listFiles("src").filter((path) =>
+  /\.(ts|tsx)$/u.test(path)
+);
 const telegramWebhookFiles = listFiles("supabase/functions/telegram-webhook")
   .filter((path) => /\.(ts|tsx)$/u.test(path));
 
@@ -71,15 +80,20 @@ assert(
   `Unexpected Base MCP allowed action kinds: ${allowedKinds.join(", ")}`,
 );
 
-for (const forbidden of [
-  "swap",
-  "send",
-  "transfer",
-  "approval",
-  "contract_call",
-  "arbitrary_calldata",
-]) {
-  assert(!allowedKinds.includes(forbidden), `Forbidden Base MCP action is allowed: ${forbidden}`);
+for (
+  const forbidden of [
+    "swap",
+    "send",
+    "transfer",
+    "approval",
+    "contract_call",
+    "arbitrary_calldata",
+  ]
+) {
+  assert(
+    !allowedKinds.includes(forbidden),
+    `Forbidden Base MCP action is allowed: ${forbidden}`,
+  );
 }
 
 assert(
@@ -93,6 +107,10 @@ assert(
 assert(
   docsContract.includes("Do not add browser-exposed `VITE_` variables"),
   "Base MCP contract must forbid browser-exposed secret variables.",
+);
+assert(
+  docsContract.includes("must be a valid `https://` URL"),
+  "Base MCP contract must require HTTPS provider endpoints.",
 );
 assert(
   docsContract.includes("Telegram may not:"),
@@ -109,6 +127,11 @@ assert(
 assert(
   functionCore.includes("Base MCP preparation is not configured."),
   "Base MCP function must keep the live adapter unwired by default.",
+);
+assert(
+  functionRuntimeConfig.includes("normalizeBaseMcpEndpoint") &&
+    functionRuntimeConfig.includes('url.protocol !== "https:"'),
+  "Base MCP runtime config must reject invalid or non-HTTPS endpoints.",
 );
 assert(
   functionCore.includes("maxBaseMcpPrepareRequestAgeMs = 5 * 60 * 1000"),
@@ -147,7 +170,8 @@ assert(
   "Base MCP provider adapter draft must exist.",
 );
 assert(
-  providerAdapter.includes('"mode": input.mode') || providerAdapter.includes("mode: input.mode"),
+  providerAdapter.includes('"mode": input.mode') ||
+    providerAdapter.includes("mode: input.mode"),
   "Base MCP provider adapter must send only read-only mode from the validated input.",
 );
 assert(
@@ -166,12 +190,18 @@ assertFilesDoNotInclude(
   "Base MCP provider adapter must not expose unsafe payload fields",
 );
 assert(
-  /\[functions\.base-mcp-prepare\]\s+verify_jwt\s*=\s*true/su.test(supabaseConfig),
+  /\[functions\.base-mcp-prepare\]\s+verify_jwt\s*=\s*true/su.test(
+    supabaseConfig,
+  ),
   "Base MCP prepare function must keep Supabase gateway JWT verification enabled.",
 );
 assert(
   functionReadme.includes("Do not call this function from Telegram."),
   "Base MCP function README must document Telegram boundary.",
+);
+assert(
+  functionReadme.includes("non-HTTPS Base MCP endpoints as not configured"),
+  "Base MCP function README must document HTTPS endpoint enforcement.",
 );
 assertFilesDoNotInclude(
   frontendFiles,

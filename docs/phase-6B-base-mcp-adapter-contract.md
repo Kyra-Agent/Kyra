@@ -24,6 +24,7 @@ Future Edge Function secrets:
 - `KYRA_BASE_MCP_ENDPOINT`
   - backend-only endpoint URL
   - required only when preparation is enabled
+  - must be a valid `https://` URL
 - `KYRA_BASE_MCP_API_KEY`
   - backend-only secret if the selected provider requires it
   - never returned to the browser

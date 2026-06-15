@@ -1,6 +1,7 @@
 import {
   createBaseMcpPrepareRuntimeConfig,
   isBaseMcpPrepareEnabled,
+  normalizeBaseMcpEndpoint,
   parseBaseMcpTimeoutMs,
 } from "./runtime-config.ts";
 
@@ -45,7 +46,7 @@ Deno.test("base-mcp runtime config trims optional provider fields when enabled",
   assertEquals(config.enabled, true);
 
   if (config.enabled) {
-    assertEquals(config.endpoint, "https://base-mcp.test");
+    assertEquals(config.endpoint, "https://base-mcp.test/");
     assertEquals(config.apiKey, "secret-value");
     assertEquals(config.timeoutMs, 4500);
   }
@@ -59,4 +60,15 @@ Deno.test("base-mcp runtime timeout defaults and caps safely", () => {
   assertEquals(parseBaseMcpTimeoutMs("2500.5"), 2500);
   assertEquals(parseBaseMcpTimeoutMs("6000"), 5000);
   assertEquals(parseBaseMcpTimeoutMs("1"), 1);
+});
+
+Deno.test("base-mcp runtime endpoint accepts only valid HTTPS URLs", () => {
+  assertEquals(normalizeBaseMcpEndpoint(""), null);
+  assertEquals(normalizeBaseMcpEndpoint("not-a-url"), null);
+  assertEquals(normalizeBaseMcpEndpoint("http://base-mcp.test"), null);
+  assertEquals(normalizeBaseMcpEndpoint("ftp://base-mcp.test"), null);
+  assertEquals(
+    normalizeBaseMcpEndpoint("  https://base-mcp.test/v1  "),
+    "https://base-mcp.test/v1",
+  );
 });
