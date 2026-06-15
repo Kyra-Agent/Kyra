@@ -33,6 +33,7 @@ Phase 6C must preserve:
 - `docs/phase-6-wallet-base-checklist.md`
 - `docs/phase-6B-review-packet.md`
 - `docs/phase-6C-wallet-provider-decision.md`
+- `scripts/check-public-privacy.mjs`
 
 ## Current State
 
@@ -162,6 +163,15 @@ runtime gate, prompt access, and connector priority.
 
 Decision: this is status-only UI. It must not expose a connect button, wallet
 address, provider object, or wallet prompt while `walletExecution` is disabled.
+
+### F13 - Public Secret Pattern Scan Is Enforced
+
+`npm run check:privacy` now scans public source, docs, README, and text assets
+for raw BotFather token patterns, OpenRouter keys, PEM private keys, and raw
+32-byte private-key-shaped values.
+
+Decision: keep this scanner in the local gate before push. Public docs may
+describe security boundaries, but must not contain real secret values.
 
 ## Phase 6C Entry Conditions
 

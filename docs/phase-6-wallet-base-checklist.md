@@ -61,6 +61,8 @@ Security targets:
 - Unsupported action requests fail closed.
 - BotFather tokens remain backend-only and never appear in browser storage,
   logs, public profiles, screenshots, or API responses.
+- Local privacy checks scan public source/docs for raw BotFather tokens,
+  OpenRouter keys, PEM private keys, and raw 32-byte private-key-shaped values.
 
 Launch target:
 
@@ -359,8 +361,9 @@ Before any push/deploy:
 Before enabling production gates:
 
 - [ ] Confirm no private keys or seed phrases are accepted.
-- [ ] Confirm Telegram bot tokens remain backend-only and are never exposed.
-- [ ] Confirm no secret values appear in logs or UI.
+- [x] Confirm Telegram bot tokens remain backend-only and are never exposed.
+- [x] Confirm no secret values appear in logs or UI.
+- [x] Add raw secret pattern scanning to `npm run check:privacy`.
 - [ ] Confirm unsupported execution requests fail closed.
 - [ ] Confirm wallet approval is required.
 - [ ] Confirm transaction details are visible before signing.
