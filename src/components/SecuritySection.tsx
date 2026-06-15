@@ -35,8 +35,8 @@ export function SecuritySection() {
           <WalletCards size={22} />
           <strong>Approval first</strong>
           <p>
-            Swaps, sends, and admin actions stay gated until wallet or Base
-            Account approval is safe.
+            Swaps, sends, and admin actions stay gated until the wallet or Base
+            Account handoff is explicitly approved and audited.
           </p>
         </article>
         <article>

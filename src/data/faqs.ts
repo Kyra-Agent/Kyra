@@ -4,7 +4,7 @@ export const faqs: FAQItem[] = [
   {
     question: "What is Kyra?",
     answer:
-      "Kyra is a Base-native onchain agent console. It lets users deploy Telegram-native agents that read wallet context, understand commands, and prepare onchain actions for wallet approval.",
+      "Kyra is a Base-native agent console. It lets users deploy Telegram-native agents that read context, understand commands, and prepare approval-gated action reviews.",
   },
   {
     question: "Is this demo executing real transactions?",
@@ -14,17 +14,17 @@ export const faqs: FAQItem[] = [
   {
     question: "Does Kyra control my wallet?",
     answer:
-      "No. Kyra should never ask for seed phrases or private keys. The agent prepares transactions, but the connected wallet or Base Account must approve before anything can happen onchain.",
+      "No. Kyra should never ask for seed phrases or private keys. The agent can prepare review context, but wallet prompts, signing, and onchain execution stay disabled until the owner-controlled handoff is audited.",
   },
   {
     question: "Who pays for onchain actions?",
     answer:
-      "The wallet that approves the action pays the network and protocol fees. Kyra should not sponsor gas by default in the MVP.",
+      "No live onchain action is submitted in the current demo. Future network and protocol fees must be shown to the owner wallet before any approval path is enabled.",
   },
   {
     question: "Why Telegram first?",
     answer:
-      "Telegram gives Kyra a fast command interface for personal and community agents. The product output is still an agent instance: Telegram interface, Kyra dashboard, and wallet approval workflow.",
+      "Telegram gives Kyra a fast command interface for personal and community agents. The product output is still an agent instance: Telegram interface, Kyra dashboard, and an approval-gated review workflow.",
   },
   {
     question: "Do I need a Telegram bot token to try the demo?",
@@ -34,7 +34,7 @@ export const faqs: FAQItem[] = [
   {
     question: "What is the Base action layer?",
     answer:
-      "It is the approval-first workflow Kyra uses to prepare Base ecosystem actions while keeping the final decision in the user's wallet.",
+      "It is the approval-first workflow Kyra uses to prepare Base ecosystem action reviews while keeping wallet prompts and execution behind explicit owner control.",
   },
   {
     question: "Can project teams use Kyra?",

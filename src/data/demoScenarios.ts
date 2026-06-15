@@ -13,19 +13,19 @@ export interface DemoScenario {
 export const demoScenarios: DemoScenario[] = [
   {
     id: "swap",
-    label: "Swap",
-    command: "swap 10 USDC to ETH",
+    label: "Swap Review",
+    command: "review 10 USDC to ETH swap",
     templateId: "operator",
-    route: "USDC -> WETH via Base liquidity route",
-    risk: "normal",
+    route: "USDC -> WETH review route on Base",
+    risk: "review",
     network: "Base",
     approvalRequired: true,
     lines: [
-      "NIRA-01 parsed intent: token_swap",
+      "NIRA-01 parsed intent: token_swap_review",
       "NOVA-04 balance check: USDC available",
-      "NYX-05 risk check: normal",
-      "BASE ACTION approval request created",
-      "status: waiting_for_wallet_approval",
+      "NYX-05 risk check: review required",
+      "BASE ACTION review draft created",
+      "status: wallet_execution_disabled",
     ],
   },
   {
@@ -40,7 +40,7 @@ export const demoScenarios: DemoScenario[] = [
     lines: [
       "NIRA-01 parsed intent: holder_verify",
       "NOVA-04 reading token holder context",
-      "NYX-05 signature scope check: read-only",
+      "NYX-05 wallet scope check: read-only",
       "BASE ACTION proof request simulated",
       "status: holder verification ready",
     ],

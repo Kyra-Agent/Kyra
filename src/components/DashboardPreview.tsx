@@ -1,4 +1,10 @@
-import { Activity, ArrowRight, CircleDot, Clock, ExternalLink } from "lucide-react";
+import {
+  Activity,
+  ArrowRight,
+  CircleDot,
+  Clock,
+  ExternalLink,
+} from "lucide-react";
 import type { AgentTemplate } from "../types/agent";
 import { kyraDataService } from "../services/kyraDataService";
 
@@ -68,16 +74,17 @@ export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
             <ArrowRight size={16} />
             <span>
               <Clock size={16} />
-              approval requested
+              review drafted
             </span>
             <ArrowRight size={16} />
             <span>
               <ExternalLink size={16} />
-              wallet decides
+              wallet gated
             </span>
           </div>
           <p className="muted">
-            Kyra prepares the action. The connected wallet approves and pays network fees.
+            Kyra prepares review context. Wallet prompts, signing, and network
+            fees stay disabled until the owner-controlled handoff is audited.
           </p>
         </div>
 
@@ -87,9 +94,7 @@ export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
             <span>demo replay</span>
           </div>
           <div className="log-stream">
-            {dashboardLogs.map((log) => (
-              <p key={log}>{log}</p>
-            ))}
+            {dashboardLogs.map((log) => <p key={log}>{log}</p>)}
           </div>
         </div>
       </div>

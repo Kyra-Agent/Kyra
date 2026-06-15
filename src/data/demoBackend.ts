@@ -37,11 +37,15 @@ export const demoWalletPolicies: DemoWalletPolicy[] = [
     label: "Approval gate",
     value: "Required",
     status: "active",
-    description: "Every write action waits for wallet approval.",
+    description:
+      "Every wallet or onchain action stays blocked until an explicit owner approval path exists.",
   },
 ];
 
-export const demoAgentInstances: DemoAgentInstance[] = agentTemplates.map((template, index) => ({
+export const demoAgentInstances: DemoAgentInstance[] = agentTemplates.map((
+  template,
+  index,
+) => ({
   id: `agent_${template.id}_demo`,
   workspaceId: demoWorkspace.id,
   templateId: template.id,
@@ -60,39 +64,41 @@ export const demoAgentInstances: DemoAgentInstance[] = agentTemplates.map((templ
 
 export function getDemoAgentInstance(templateId: string) {
   return (
-    demoAgentInstances.find((agent) => agent.templateId === templateId) ?? demoAgentInstances[0]
+    demoAgentInstances.find((agent) => agent.templateId === templateId) ??
+      demoAgentInstances[0]
   );
 }
 
-export const demoApprovalRequests: DemoApprovalRequest[] = demoScenarios.map((scenario, index) => {
-  const agent = getDemoAgentInstance(scenario.templateId);
+export const demoApprovalRequests: DemoApprovalRequest[] = demoScenarios.map(
+  (scenario, index) => {
+    const agent = getDemoAgentInstance(scenario.templateId);
 
-  return {
-    id: `approval_${scenario.id}_demo`,
-    agentId: agent.id,
-    templateId: scenario.templateId,
-    scenarioId: scenario.id,
-    title:
-      scenario.id === "swap"
-        ? "Swap prepared"
+    return {
+      id: `approval_${scenario.id}_demo`,
+      agentId: agent.id,
+      templateId: scenario.templateId,
+      scenarioId: scenario.id,
+      title: scenario.id === "swap"
+        ? "Swap review draft"
         : scenario.id === "verify"
-          ? "Holder verification"
-          : scenario.id === "scan"
-            ? "Launch scan"
-            : "Launch policy draft",
-    command: scenario.command,
-    route: scenario.route,
-    risk: scenario.risk,
-    status: scenario.approvalRequired
-      ? "waiting_wallet"
-      : scenario.risk === "read-only"
+        ? "Holder verification"
+        : scenario.id === "scan"
+        ? "Launch scan"
+        : "Launch policy draft",
+      command: scenario.command,
+      route: scenario.route,
+      risk: scenario.risk,
+      status: scenario.approvalRequired
+        ? "waiting_wallet"
+        : scenario.risk === "read-only"
         ? "read_only_ready"
         : "review_required",
-    feePayer: "connected_wallet",
-    requiresWallet: scenario.approvalRequired,
-    createdAt: `2026-05-31T05:${String(42 + index).padStart(2, "0")}:00Z`,
-  };
-});
+      feePayer: "connected_wallet",
+      requiresWallet: scenario.approvalRequired,
+      createdAt: `2026-05-31T05:${String(42 + index).padStart(2, "0")}:00Z`,
+    };
+  },
+);
 
 export const demoActivityLogs: DemoActivityLog[] = [
   {
@@ -121,7 +127,7 @@ export const demoActivityLogs: DemoActivityLog[] = [
     timestamp: "12:05:02",
     source: "telegram_sessions",
     level: "info",
-    message: "command received: swap 10 USDC to ETH",
+    message: "command received: review 10 USDC to ETH swap",
   },
   {
     id: "log_context_loaded",
@@ -135,21 +141,21 @@ export const demoActivityLogs: DemoActivityLog[] = [
     timestamp: "12:05:04",
     source: "approval_requests",
     level: "notice",
-    message: "NYX-05 risk check passed",
+    message: "NYX-05 risk review required",
   },
   {
     id: "log_approval_simulated",
     timestamp: "12:05:05",
     source: "approval_requests",
     level: "warning",
-    message: "approval request simulated",
+    message: "review draft recorded; wallet execution disabled",
   },
   {
     id: "log_waiting_wallet",
     timestamp: "12:05:06",
     source: "approval_requests",
     level: "notice",
-    message: "status: waiting for wallet approval",
+    message: "status: waiting for future owner approval path",
   },
 ];
 
@@ -170,7 +176,8 @@ export const demoBackendTables: DemoBackendTable[] = [
     name: "approval_requests",
     records: demoApprovalRequests.length,
     status: "mocked",
-    purpose: "Command, route, risk, fee payer, and wallet approval state.",
+    purpose:
+      "Command, route, risk, review state, and wallet approval boundary.",
   },
   {
     name: "wallet_policies",

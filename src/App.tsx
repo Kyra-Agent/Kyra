@@ -597,12 +597,12 @@ function App() {
                     Backend-connected demo
                   </span>
                   <h1>
-                    Deploy Base agents with approval-first onchain workflows.
+                    Deploy Base agents with approval-first action workflows.
                   </h1>
                   <p className="hero-subtitle">
                     Launch Telegram-native AI agents that read wallet context,
-                    prepare Base actions, and keep every transaction behind
-                    wallet approval.
+                    prepare Base action reviews, and keep wallet prompts,
+                    signing, and onchain execution gated.
                   </p>
 
                   <div className="hero-actions">

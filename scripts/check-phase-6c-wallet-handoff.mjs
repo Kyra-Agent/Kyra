@@ -46,6 +46,11 @@ const parsedPackageJson = JSON.parse(packageJson);
 const walletModal = read("src/components/WalletApprovalModal.tsx");
 const actionConsole = read("src/components/ActionConsole.tsx");
 const actionData = read("src/data/actions.ts");
+const templateData = read("src/data/templates.ts");
+const demoScenarioData = read("src/data/demoScenarios.ts");
+const demoBackendData = read("src/data/demoBackend.ts");
+const faqData = read("src/data/faqs.ts");
+const dashboardPreview = read("src/components/DashboardPreview.tsx");
 const heroConsole = read("src/components/HeroConsole.tsx");
 const securitySection = read("src/components/SecuritySection.tsx");
 const app = read("src/App.tsx");
@@ -211,6 +216,65 @@ assertIncludes(
   actionData,
   "No Telegram-triggered swap execution",
 );
+assertIncludes(
+  "template data",
+  templateData,
+  "Personal wallet readiness agent",
+);
+assertIncludes("template data", templateData, "swap reviews");
+assertIncludes("template data", templateData, "transfer reviews");
+assertIncludes("template data", templateData, "approval-gated Base readiness");
+assertIncludes("template data", templateData, "review 10 USDC to ETH swap");
+assertIncludes("demo scenarios", demoScenarioData, "Swap Review");
+assertIncludes("demo scenarios", demoScenarioData, "token_swap_review");
+assertIncludes(
+  "demo scenarios",
+  demoScenarioData,
+  "BASE ACTION review draft created",
+);
+assertIncludes("demo scenarios", demoScenarioData, "wallet_execution_disabled");
+assertIncludes("demo backend data", demoBackendData, "Swap review draft");
+assertIncludes(
+  "demo backend data",
+  demoBackendData,
+  "review draft recorded; wallet execution disabled",
+);
+assertIncludes(
+  "FAQ data",
+  faqData,
+  "wallet prompts, signing, and onchain execution stay disabled",
+);
+assertIncludes("DashboardPreview", dashboardPreview, "review drafted");
+assertIncludes("DashboardPreview", dashboardPreview, "wallet gated");
+assertIncludes(
+  "DashboardPreview",
+  dashboardPreview,
+  "Wallet prompts, signing, and network",
+);
+assertIncludes(
+  "DashboardPreview",
+  dashboardPreview,
+  "fees stay disabled until the owner-controlled handoff is audited.",
+);
+for (
+  const forbidden of [
+    "approval-driven execution",
+    "prepare onchain actions",
+    "prepares transactions",
+    "pays network fees",
+    "approval requested",
+    "status: waiting for wallet approval",
+  ]
+) {
+  assert(
+    !templateData.includes(forbidden) &&
+      !demoScenarioData.includes(forbidden) &&
+      !demoBackendData.includes(forbidden) &&
+      !faqData.includes(forbidden) &&
+      !dashboardPreview.includes(forbidden),
+    `Phase 6C product copy must not imply live wallet execution: ${forbidden}`,
+  );
+}
 assertIncludes("HeroConsole", heroConsole, "BASE ACTION review layer gated");
 assertIncludes("HeroConsole", heroConsole, "Wallet review");
 assertIncludes("HeroConsole", heroConsole, "Base gated");
