@@ -53,7 +53,7 @@ for (const boundary of [
   "User privacy, user wallet security, and user Telegram bot token security are the",
   "no live Base MCP provider call wired into runtime",
   "no prepared-action SQL applied to Supabase",
-  "Runtime dependencies do not wire `createBaseMcpStatusCheckAdapter`.",
+  "Phase 7J later allows this adapter only behind the exact runtime",
   "Runtime dependencies do not wire `storePreparedActionSummary`.",
   "Do not push just to preview Netlify.",
   "Do not apply SQL without a separate explicit approval.",
@@ -85,8 +85,8 @@ assertIncludes("Prepared action read model", readModel, "there is still no prepa
 assertIncludes("package.json", packageJson, "\"check:phase-6b\"");
 
 assert(
-  !dependencies.includes("createBaseMcpStatusCheckAdapter"),
-  "Runtime dependencies must not wire provider adapter during review packet phase.",
+  dependencies.includes("createBaseMcpStatusCheckAdapter"),
+  "Runtime dependencies must wire provider adapter after Phase 7J.",
 );
 assert(
   !dependencies.includes("storePreparedActionSummary"),

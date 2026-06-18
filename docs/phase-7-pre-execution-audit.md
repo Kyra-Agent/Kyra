@@ -2,9 +2,10 @@
 
 Date: 2026-06-18
 
-Status: Phase 7A started. No production wallet prompt, Base MCP runtime call,
-prepared-action write, signing, swap, transfer, contract call, or transaction
-submission is enabled.
+Status: Phase 7J started. The first read-only Base MCP status provider adapter
+is wired behind backend runtime gates. No production wallet prompt,
+prepared-action write, signing, swap, transfer, contract call, Telegram
+execution, or transaction submission is enabled.
 
 ## Objective
 
@@ -36,7 +37,9 @@ Phase 6 is closed as a hardened foundation:
 - Telegram + LLM read-only replies are live.
 - Telegram execution requests are refused.
 - Wallet/Base readiness and review surfaces exist.
-- Base MCP preparation remains backend-only and runtime-disabled.
+- Base MCP preparation remains backend-only. Phase 7J wires only the read-only
+  status provider adapter behind exact runtime gate, HTTPS endpoint, owner auth,
+  ownership lookup, and request freshness.
 - Prepared-action storage SQL remains review-only.
 - Wallet provider dependencies are installed but runtime-gated.
 - Wallet prompt/signing/submission paths are not enabled.
@@ -159,6 +162,19 @@ and owner approval are complete:
 - Wallet prompts, signing, transaction submission, prepared-action production
   writes, and Telegram-triggered execution remain disabled.
 
+### 7J - Base MCP Status Provider Wiring
+
+- Audit packet: `docs/phase-7J-base-mcp-provider-wiring.md`.
+- Runtime dependencies wire only `createBaseMcpStatusCheckAdapter`.
+- Runtime gate still requires exact `KYRA_BASE_MCP_PREP_ENABLED=true`.
+- Provider endpoint still must be HTTPS and backend-only.
+- Provider payload excludes owner id, workspace id, agent id, wallet data,
+  token amounts, calldata, transaction hashes, and Telegram token refs.
+- Prepared-action storage remains unwired.
+- Telegram and public routes cannot trigger Base MCP.
+- Wallet prompts, signing, transaction submission, swaps, transfers, approvals,
+  and contract calls remain disabled.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -190,6 +206,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7g`
 - `npm run check:phase-7h`
 - `npm run check:phase-7i`
+- `npm run check:phase-7j`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`

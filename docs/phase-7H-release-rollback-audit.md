@@ -2,9 +2,11 @@
 
 Date: 2026-06-19
 
-Status: audit packet started. This phase does not enable production execution,
-wallet prompts, signing, transaction submission, Telegram execution, Base MCP
-provider calls, or prepared-action production storage.
+Status: historical audit packet. This phase did not enable production
+execution, wallet prompts, signing, transaction submission, Telegram execution,
+Base MCP provider calls, or prepared-action production storage. Phase 7J later
+wires the read-only Base MCP status provider adapter behind the exact runtime
+gate.
 
 ## Objective
 
@@ -34,7 +36,9 @@ No production gate can be enabled until all of these are true:
 All execution-adjacent gates remain non-executing:
 
 - Prepared-action SQL: review-only.
-- Base MCP runtime provider call: default-off and not wired from dependencies.
+- Base MCP runtime provider call: default-off; Phase 7J wires only the
+  read-only status adapter behind `KYRA_BASE_MCP_PREP_ENABLED=true` and an
+  HTTPS backend endpoint.
 - Prepared-action storage write: adapter exists as a tested draft, not wired.
 - Wallet provider runtime: dependencies installed, prompt execution disabled.
 - Wallet signing/submission: state model only, no live signer call.
@@ -140,7 +144,9 @@ After enabling a gate:
 - Local verification before push is explicit.
 - Live smoke checklist is explicit.
 - Netlify credit discipline is explicit.
-- No production execution capability is enabled by this audit.
+- No production execution capability is enabled by this audit. The later 7J
+  provider wiring remains read-only and default-off until the runtime gate is
+  explicitly enabled.
 
 ## Next Step
 

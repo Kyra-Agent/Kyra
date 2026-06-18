@@ -126,7 +126,7 @@ assert(
 );
 assert(
   functionCore.includes("Base MCP preparation is not configured."),
-  "Base MCP function must keep the live adapter unwired by default.",
+  "Base MCP function must fail closed when endpoint or adapter is not configured.",
 );
 assert(
   functionRuntimeConfig.includes("normalizeBaseMcpEndpoint") &&
@@ -154,12 +154,12 @@ assert(
   "Base MCP function must expose only an optional prepared-action storage hook.",
 );
 assert(
-  !functionDependencies.includes("prepareBaseMcpAction"),
-  "Base MCP runtime dependencies must not wire a live adapter yet.",
+  functionDependencies.includes("prepareBaseMcpAction"),
+  "Base MCP runtime dependencies must wire only the reviewed read-only adapter after Phase 7J.",
 );
 assert(
-  !functionDependencies.includes("createBaseMcpStatusCheckAdapter"),
-  "Base MCP runtime dependencies must not wire the provider adapter yet.",
+  functionDependencies.includes("createBaseMcpStatusCheckAdapter"),
+  "Base MCP runtime dependencies must wire the reviewed provider adapter after Phase 7J.",
 );
 assert(
   !functionDependencies.includes("storePreparedActionSummary"),

@@ -677,6 +677,7 @@ Deno.test("base-mcp-prepare runtime dependencies stay inert while disabled", () 
 Deno.test("base-mcp-prepare runtime ownership lookup reads service role lazily", async () => {
   const envReads: string[] = [];
   const serviceClientInputs: string[] = [];
+  const providerRequests: Request[] = [];
   const dependencies = createBaseMcpPrepareDependenciesFromOptions({
     getOptionalEnv: (key) => {
       if (key === "KYRA_BASE_MCP_PREP_ENABLED") {
@@ -696,10 +697,16 @@ Deno.test("base-mcp-prepare runtime ownership lookup reads service role lazily",
       serviceClientInputs.push(`${supabaseUrl}:${serviceRoleKey}`);
       return createOwnershipLookupClient();
     },
+    baseMcpProviderTransport: async (request) => {
+      providerRequests.push(request);
+      return Response.json({ ok: true });
+    },
   });
 
   assertEquals(dependencies.baseMcpPrepareRuntimeConfig?.enabled, true);
   assertEquals(typeof dependencies.lookupAgentOwnership, "function");
+  assertEquals(typeof dependencies.prepareBaseMcpAction, "function");
+  assertEquals(dependencies.storePreparedActionSummary, undefined);
   assertEquals(envReads.length, 0);
   assertEquals(serviceClientInputs.length, 0);
 
@@ -720,6 +727,53 @@ Deno.test("base-mcp-prepare runtime ownership lookup reads service role lazily",
 
   await dependencies.lookupAgentOwnership?.(agentId, ownerUserId);
   assertEquals(serviceClientInputs.length, 1);
+
+  const providerInput: Parameters<
+    NonNullable<BaseMcpPrepareDependencies["prepareBaseMcpAction"]>
+  >[0] = {
+    actionKind: "base_mcp_status_check",
+    agentId,
+    workspaceId,
+    requestId: "base-mcp-request-01",
+    chain: "base",
+    mode: "read_only",
+    requestedAt: fixedNow.toISOString(),
+  };
+  const providerResult = await dependencies.prepareBaseMcpAction?.(
+    providerInput,
+    {
+      enabled: true,
+      endpoint: "https://base-mcp.test",
+      apiKey: "backend-only-key",
+      timeoutMs: 2500,
+    },
+  );
+  const providerRequest = providerRequests[0];
+  const providerBody = await providerRequest.json() as Record<string, unknown>;
+  const serializedProviderBody = JSON.stringify(providerBody);
+
+  assertEquals(providerResult?.ok, true);
+  assertEquals(providerRequests.length, 1);
+  assertEquals(providerRequest.url, "https://base-mcp.test/status-check");
+  assertEquals(
+    providerRequest.headers.get("authorization"),
+    "Bearer backend-only-key",
+  );
+  assertEquals(providerBody.actionKind, "base_mcp_status_check");
+  assertEquals(providerBody.chain, "base");
+  assertEquals(providerBody.mode, "read_only");
+  assert(
+    !serializedProviderBody.includes(agentId),
+    "Provider payload must not include agent id.",
+  );
+  assert(
+    !serializedProviderBody.includes(workspaceId),
+    "Provider payload must not include workspace id.",
+  );
+  assert(
+    !serializedProviderBody.includes(ownerUserId),
+    "Provider payload must not include owner id.",
+  );
 });
 
 Deno.test("base-mcp-prepare OPTIONS returns CORS response", async () => {

@@ -2,8 +2,9 @@
 
 Date: 2026-06-19
 
-Status: audit packet started. Base MCP runtime preparation remains disabled and
-unwired for production execution.
+Status: historical audit packet. Phase 7J supersedes the provider adapter
+wiring decision while keeping production storage writes, wallet prompts,
+signing, transaction submission, and Telegram execution disabled.
 
 ## Objective
 
@@ -17,7 +18,7 @@ separate from wallet signing or transaction submission.
 
 ## Current Finding
 
-Current state is acceptable for Phase 7C entry:
+Phase 7C entry state was acceptable:
 
 - `base-mcp-prepare` is default-off.
 - Disabled runtime returns before bearer parsing, required env reads, body read,
@@ -26,23 +27,24 @@ Current state is acceptable for Phase 7C entry:
 - Runtime enablement requires exact `KYRA_BASE_MCP_PREP_ENABLED=true`.
 - Provider endpoint normalization accepts only valid `https://` URLs.
 - Runtime timeout defaults to 2500 ms and caps at 5000 ms.
-- Enabled dependency factory wires auth and ownership lookup only.
-- Runtime dependency factory does not wire `prepareBaseMcpAction`.
-- Runtime dependency factory does not wire `createBaseMcpStatusCheckAdapter`.
+- Enabled dependency factory originally wired auth and ownership lookup only.
+- Runtime dependency factory now wires `prepareBaseMcpAction` through
+  `createBaseMcpStatusCheckAdapter` only after Phase 7J review.
 - Runtime dependency factory does not wire `storePreparedActionSummary`.
-- If enabled but adapter is unwired, the function returns
-  `base_mcp_not_configured`.
+- If enabled but endpoint is missing or invalid, the function returns
+  `base_mcp_not_configured` before any provider request.
 - The only allowed action kind is `base_mcp_status_check`.
 - Request mode must be `read_only`.
 - Request freshness and future clock skew are bounded.
 - Preview expiry is bounded.
-- Provider adapter draft exists but is not wired into runtime dependencies.
+- Provider adapter is runtime-wired only behind exact gate, HTTPS endpoint,
+  authenticated owner session, ownership lookup, and request freshness.
 - Prepared-action storage adapter exists but is not wired into runtime
   dependencies.
 
 ## Runtime Gate Rules
 
-Base MCP runtime may not be enabled until all of these are true:
+Base MCP provider wiring may not be enabled until all of these are true:
 
 - Owner approval is captured.
 - Provider endpoint is selected and documented.
@@ -114,7 +116,7 @@ Current adapter result must remain:
 
 ## Storage Boundary
 
-Prepared-action storage is not live in Phase 7C.
+Prepared-action storage is not live.
 
 The storage adapter may exist as a draft, but it must not be wired into runtime
 dependencies until Phase 7D approves:
@@ -150,12 +152,13 @@ Do not return:
 - wallet addresses
 - Telegram token refs
 
-## Gaps Before Live Runtime
+## Gaps Before Wider Runtime
 
-These must be resolved before any Base MCP provider call is enabled:
+These must be resolved before any broader Base MCP action is enabled:
 
-- No production provider endpoint has been selected.
-- No provider-specific auth review exists.
+- Production provider endpoint must be confirmed in backend secrets before
+  live gate enablement.
+- Provider auth must remain backend-only.
 - No provider replay/idempotency policy exists beyond request freshness.
 - No live rate-limit policy exists for Base MCP preparation.
 - No production storage path is approved.
@@ -166,7 +169,8 @@ These must be resolved before any Base MCP provider call is enabled:
 
 - Base MCP runtime audit packet exists.
 - Automated Phase 7C check exists.
-- Runtime dependency factory remains unwired for provider and storage.
+- Runtime dependency factory wires only the reviewed read-only provider
+  adapter from Phase 7J.
 - Runtime config remains exact-gate and HTTPS-only.
 - Provider adapter remains read-only and sends no owner/wallet/secret scope.
 - Storage adapter remains draft-only and unwired.

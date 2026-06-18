@@ -171,9 +171,9 @@ assertIncludes("runtime config", runtimeConfig, "return Math.min(parsed, 5000);"
 
 assertIncludes("dependencies", dependencies, "if (!baseMcpPrepareRuntimeConfig.enabled)");
 assertIncludes("dependencies", dependencies, "lookupAgentOwnershipRecord");
-assertNotIncludes("dependencies", dependencies, "createBaseMcpStatusCheckAdapter");
+assertIncludes("dependencies", dependencies, "createBaseMcpStatusCheckAdapter");
 assertNotIncludes("dependencies", dependencies, "storePreparedActionSummary");
-assertNotIncludes("dependencies", dependencies, "prepareBaseMcpAction");
+assertIncludes("dependencies", dependencies, "prepareBaseMcpAction");
 
 assertIncludes("provider adapter", providerAdapter, "createBaseMcpStatusCheckAdapter");
 assertIncludes("provider adapter", providerAdapter, "baseMcpStatusPath = \"/status-check\"");
@@ -187,7 +187,7 @@ assertNotIncludes("provider adapter", providerAdapter, "walletAddress");
 assertIncludes("storage adapter", storageAdapter, 'from("prepared_actions")');
 assertIncludes("storage adapter", storageAdapter, "No wallet prompt, no signing, no transaction submission.");
 assertIncludes("base-mcp README", baseMcpReadme, "Do not call this function from Telegram.");
-assertIncludes("base-mcp README", baseMcpReadme, "Do not enable a live Base MCP provider call without a separate review.");
+assertIncludes("base-mcp README", baseMcpReadme, "Do not expand beyond the reviewed read-only status provider adapter");
 
 assertFilesDoNotInclude(
   telegramRuntimeFiles,

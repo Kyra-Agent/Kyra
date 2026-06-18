@@ -77,7 +77,7 @@ const edgeRuntimeFiles = walkFiles("supabase/functions").filter((path) =>
 for (
   const required of [
     "# Phase 7H Release And Rollback Audit",
-    "Status: audit packet started.",
+    "Status: historical audit packet.",
     "## Release Rule",
     "## Current Gate State",
     "## Rollback Inventory",
@@ -87,6 +87,7 @@ for (
     "## Netlify Credit Discipline",
     "## Phase 7H Done Criteria",
     "No production execution capability is enabled by this audit.",
+    "provider wiring remains read-only and default-off",
   ]
 ) {
   assertIncludes("Phase 7H audit", audit, required);
@@ -189,12 +190,12 @@ assertIncludes("Telegram webhook runtime config", telegramWebhookRuntimeConfig, 
 assertIncludes("Telegram connect core", telegramConnectCore, 'value === "true"');
 assertIncludes("Telegram connect runtime config", telegramConnectRuntimeConfig, "isTelegramConnectWebhookRegisterEnabled");
 assertIncludes("base-mcp README", baseMcpReadme, "With `KYRA_BASE_MCP_PREP_ENABLED` disabled or unset");
-assertIncludes("base-mcp README", baseMcpReadme, "Do not enable a live Base MCP provider call without a separate review.");
+assertIncludes("base-mcp README", baseMcpReadme, "Do not expand beyond the reviewed read-only status provider adapter");
 assertIncludes("telegram webhook README", telegramWebhookReadme, "All runtime gates enable only for the exact string `true`.");
 assertIncludes("telegram webhook README", telegramWebhookReadme, "Do not enable write, approval, wallet, Base MCP, onchain, or LLM command");
 assertIncludes("Phase 6B review packet", phase6BReviewPacket, "Do not push just to preview Netlify.");
 
-assertNotIncludes("Base MCP dependencies", baseMcpDependencies, "createBaseMcpStatusCheckAdapter");
+assertIncludes("Base MCP dependencies", baseMcpDependencies, "createBaseMcpStatusCheckAdapter");
 assertNotIncludes("Base MCP dependencies", baseMcpDependencies, "storePreparedActionSummary");
 assertIncludes("app config", appConfig, 'walletExecution: "disabled"');
 assertIncludes("wallet boundary", walletBoundary, 'appConfig.integrations.walletExecution === "disabled"');

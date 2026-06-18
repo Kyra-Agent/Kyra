@@ -2,8 +2,9 @@
 
 Review date: 2026-06-15
 
-Status: local review packet only. Do not push, deploy, apply SQL, wire provider
-calls, or enable wallet execution from this document.
+Status: historical local review packet. Phase 7J supersedes the provider
+adapter runtime wiring decision. Do not apply SQL, wire storage, or enable
+wallet execution from this document.
 
 ## Security Priority
 
@@ -70,7 +71,9 @@ Static guard scripts:
 
 ## What Is Still Disabled
 
-- Runtime dependencies do not wire `createBaseMcpStatusCheckAdapter`.
+- Runtime dependencies did not wire `createBaseMcpStatusCheckAdapter` during
+  Phase 6B. Phase 7J later allows this adapter only behind the exact runtime
+  gate and owner-dashboard auth path.
 - Runtime dependencies do not wire `storePreparedActionSummary`.
 - `supabase/schema.sql` does not include `public.prepared_actions`.
 - Prepared-action SQL files are review artifacts only.
@@ -89,7 +92,7 @@ Do not skip order.
 4. Run verifier SQL and inspect results.
 5. Wire storage adapter only after SQL verifier passes.
 6. Wire provider adapter only after endpoint, timeout, API key handling, and
-   sanitized failure behavior are reviewed.
+   sanitized failure behavior are reviewed. Phase 7J is that review packet.
 7. Enable `KYRA_BASE_MCP_PREP_ENABLED=true` only after runtime wiring review.
 8. Smoke test dashboard owner session.
 9. Smoke test Telegram refusal for swap/wallet/onchain commands.
@@ -112,7 +115,7 @@ git diff --check
 
 Expected current Deno count:
 
-- `28 passed`
+- `29 passed`
 
 ## Hard No-Go
 
@@ -132,7 +135,8 @@ Phase 6B can be considered locally ready for push review when:
 
 - this packet is current
 - all verification commands pass
-- runtime dependencies remain unwired
+- provider adapter wiring is covered by Phase 7J
+- storage runtime dependencies remain unwired
 - SQL packet remains unapplied
 - no public or Telegram path can read prepared-action state
 - no wallet execution path is enabled

@@ -80,19 +80,19 @@ const telegramRuntimeFiles = walkFiles("supabase/functions/telegram-webhook")
 for (
   const required of [
     "# Phase 7C Base MCP Runtime Audit",
-    "Status: audit packet started.",
+    "Status: historical audit packet.",
     "## Runtime Gate Rules",
     "## Request Boundary",
     "## Provider Adapter Boundary",
     "## Storage Boundary",
     "## Failure Boundary",
-    "## Gaps Before Live Runtime",
+    "## Gaps Before Wider Runtime",
     "## Phase 7C Done Criteria",
-    "Runtime dependency factory does not wire `prepareBaseMcpAction`.",
-    "Runtime dependency factory does not wire `createBaseMcpStatusCheckAdapter`.",
+    "Runtime dependency factory now wires `prepareBaseMcpAction` through",
+    "`createBaseMcpStatusCheckAdapter` only after Phase 7J review.",
     "Runtime dependency factory does not wire `storePreparedActionSummary`.",
     "The only allowed action kind is `base_mcp_status_check`.",
-    "Prepared-action storage is not live in Phase 7C.",
+    "Prepared-action storage is not live.",
   ]
 ) {
   assertIncludes("Phase 7C audit", audit, required);
@@ -124,8 +124,8 @@ assertIncludes(
 );
 assertIncludes("dependencies", dependencies, "return dependencies;");
 assertIncludes("dependencies", dependencies, "lookupAgentOwnershipRecord");
-assertNotIncludes("dependencies", dependencies, "prepareBaseMcpAction");
-assertNotIncludes("dependencies", dependencies, "createBaseMcpStatusCheckAdapter");
+assertIncludes("dependencies", dependencies, "prepareBaseMcpAction");
+assertIncludes("dependencies", dependencies, "createBaseMcpStatusCheckAdapter");
 assertNotIncludes("dependencies", dependencies, "storePreparedActionSummary");
 
 assertIncludes("core", core, "Base MCP preparation is disabled.");
@@ -191,7 +191,7 @@ assertIncludes("storage adapter", storageAdapter, "No wallet prompt, no signing,
 
 assertIncludes("function README", functionReadme, "Do not call this function from Telegram.");
 assertIncludes("function README", functionReadme, "non-HTTPS Base MCP endpoints as not configured");
-assertIncludes("function README", functionReadme, "Do not enable a live Base MCP provider call without a separate review.");
+assertIncludes("function README", functionReadme, "Do not expand beyond the reviewed read-only status provider adapter");
 assertNotIncludes("schema", schema, "create table if not exists public.prepared_actions");
 
 assertFilesDoNotInclude(

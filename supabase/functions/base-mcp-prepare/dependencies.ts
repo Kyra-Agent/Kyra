@@ -7,6 +7,10 @@ import {
   createBaseMcpPrepareRuntimeConfig,
   type OptionalEnvReader,
 } from "./runtime-config.ts";
+import {
+  createBaseMcpStatusCheckAdapter,
+  type BaseMcpProviderTransport,
+} from "./provider-adapter.ts";
 
 export interface BaseMcpPrepareDependencyOptions {
   getEnv: (key: string) => string;
@@ -16,6 +20,7 @@ export interface BaseMcpPrepareDependencyOptions {
     supabaseUrl: string,
     serviceRoleKey: string,
   ) => Promise<OwnershipLookupClient> | OwnershipLookupClient;
+  baseMcpProviderTransport?: BaseMcpProviderTransport;
 }
 
 export function createBaseMcpPrepareDependenciesFromOptions(
@@ -34,6 +39,10 @@ export function createBaseMcpPrepareDependenciesFromOptions(
 
   dependencies.getEnv = options.getEnv;
   dependencies.getUser = options.getUser;
+  dependencies.prepareBaseMcpAction = createBaseMcpStatusCheckAdapter(
+    options.baseMcpProviderTransport,
+  );
+
   let serviceClientPromise: Promise<OwnershipLookupClient> | null = null;
   const getServiceClient = () => {
     serviceClientPromise ??= Promise.resolve(options.createServiceClient(

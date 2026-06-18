@@ -76,7 +76,7 @@ const telegramRuntimeFiles = walkFiles("supabase/functions/telegram-webhook")
 for (
   const section of [
     "# Phase 7 Pre-Execution Audit",
-    "Status: Phase 7A started.",
+    "Status: Phase 7J started.",
     "## Crown Jewels",
     "## Non-Negotiable Gates",
     "### 7B - Ownership, RLS, And Write Path Audit",
@@ -138,7 +138,7 @@ assertIncludes(
 assertIncludes(
   "README",
   readme,
-  "Phase 7 starts with a pre-execution security audit",
+  "Phase 7 starts with pre-execution security audits",
 );
 assertIncludes("package.json", packageJson, '"check:phase-6"');
 assertIncludes("package.json", packageJson, '"check:phase-7-entry"');
@@ -157,16 +157,16 @@ assertIncludes(
 assertIncludes("WalletProviderBoundary", walletBoundary, "return <>{children}</>;");
 
 assert(
-  !baseMcpDependencies.includes("prepareBaseMcpAction"),
-  "Base MCP runtime dependencies must not wire provider preparation at Phase 7 entry.",
+  baseMcpDependencies.includes("prepareBaseMcpAction"),
+  "Base MCP runtime dependencies must wire provider preparation after Phase 7J.",
 );
 assert(
-  !baseMcpDependencies.includes("createBaseMcpStatusCheckAdapter"),
-  "Base MCP runtime dependencies must not wire the provider adapter at Phase 7 entry.",
+  baseMcpDependencies.includes("createBaseMcpStatusCheckAdapter"),
+  "Base MCP runtime dependencies must wire the reviewed provider adapter after Phase 7J.",
 );
 assert(
   !baseMcpDependencies.includes("storePreparedActionSummary"),
-  "Base MCP runtime dependencies must not wire prepared-action storage at Phase 7 entry.",
+  "Base MCP runtime dependencies must not wire prepared-action storage.",
 );
 assertIncludes("Base MCP core", baseMcpCore, "Base MCP preparation is disabled.");
 assertIncludes(

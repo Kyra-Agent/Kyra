@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img alt="Phase 6" src="https://img.shields.io/badge/Phase%206-Wallet%20%2B%20Base%20Hardened-111827?style=for-the-badge" />
+  <img alt="Phase 7" src="https://img.shields.io/badge/Phase%207-Read--Only%20Base%20MCP%20Wiring-111827?style=for-the-badge" />
   <img alt="Base" src="https://img.shields.io/badge/Base-Native-0052FF?style=for-the-badge" />
   <img alt="Safety" src="https://img.shields.io/badge/Execution-Approval%20First-16A34A?style=for-the-badge" />
 </p>
@@ -39,7 +39,7 @@ approval.
 | Telegram             | Live read-only commands and natural planning chat      |
 | LLM layer            | Backend-only enrichment for eligible read-only replies |
 | Wallet/Base layer    | Phase 6 hardened foundation, execution still gated     |
-| Base MCP             | Backend-only preparation path, runtime disabled        |
+| Base MCP             | Read-only status provider wired behind backend gate    |
 | Onchain transactions | Not live in the current demo                           |
 
 ## What Is Live
@@ -61,6 +61,8 @@ Kyra can currently:
 - Handle bounded natural Telegram chat for planning requests.
 - Use backend-only LLM enrichment for eligible read-only replies.
 - Show non-executing wallet/Base readiness and review surfaces.
+- Prepare a read-only Base MCP status check behind owner-dashboard auth and
+  backend runtime gates.
 - Refuse wallet, approval, Base MCP, swap, transfer, and onchain execution from
   Telegram.
 
@@ -126,10 +128,11 @@ Kyra is built around approval-first execution.
 | ------------------------------------------ | ----------------------------------- |
 | Read-only Telegram commands                | Live wallet prompts                 |
 | Natural planning chat                      | Token approvals                     |
-| LLM-assisted planning replies              | Base MCP runtime execution          |
+| LLM-assisted planning replies              | Base MCP transaction execution      |
 | Dashboard and public profiles              | Contract calls                      |
 | Demo persistence                           | Live onchain transaction submission |
 | Wallet/Base readiness and review surfaces  | Arbitrary swaps or transfers        |
+| Read-only Base MCP status check            | Prepared-action production writes   |
 
 Current boundaries:
 
@@ -158,9 +161,11 @@ Phase 6 focused on the execution foundation without turning execution on:
 6. Onchain execution result states.
 7. Telegram execution refusal and future gate design.
 
-Phase 7 starts with a pre-execution security audit before any production wallet
-prompt, Base MCP runtime call, prepared-action write, or transaction submission
-is enabled. See `docs/phase-7-pre-execution-audit.md`.
+Phase 7 starts with pre-execution security audits before any production wallet
+prompt, prepared-action write, transaction signing, or transaction submission is
+enabled. The first approved runtime step is narrow: a read-only Base MCP status
+provider adapter behind backend gates, without prepared-action storage or wallet
+execution. See `docs/phase-7-pre-execution-audit.md`.
 
 ## Product Principles
 
