@@ -104,6 +104,7 @@ export function reviewTelegramExecutionGate(
     replayProtectionRequired: true,
     rateLimitRequired: true,
     responseText: [
+      "Kyra cannot execute that from Telegram.",
       "Telegram execution stays disabled.",
       "This can only become an owner-scoped dashboard approval draft after Phase 6 gates are enabled.",
       "No wallet prompt, signature, Base MCP call, or transaction submission was created.",

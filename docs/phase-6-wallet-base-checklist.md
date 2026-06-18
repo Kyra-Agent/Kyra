@@ -95,6 +95,7 @@ Detailed sub-plans:
 - `docs/phase-6-risk-permission-review.md`
 - `docs/phase-6-execution-result-logging.md`
 - `docs/phase-6-telegram-execution-gate.md`
+- `docs/phase-6-closeout-audit.md`
 
 ### Milestone 6A - Wallet Readiness
 
@@ -176,13 +177,13 @@ Target result:
 
 ## Step 1 - Wallet Connection Model
 
-- [ ] Audit current wallet UI and data model.
+- [x] Audit current wallet UI and data model.
 - [x] Confirm which wallet provider path will be used first.
-- [ ] Define connected wallet display fields.
-- [ ] Keep wallet address out of public profiles unless explicitly share-safe.
-- [ ] Confirm disconnect behavior.
-- [ ] Confirm signed-out behavior.
-- [ ] Add tests for wallet connection state if implementation changes.
+- [x] Define connected wallet display fields.
+- [x] Keep wallet address out of public profiles unless explicitly share-safe.
+- [x] Confirm disconnect behavior.
+- [x] Confirm signed-out behavior.
+- [x] Add tests for wallet connection state if implementation changes.
 
 Definition of done:
 
@@ -193,13 +194,13 @@ Definition of done:
 
 ## Step 2 - Wallet Policy And Approval Boundary
 
-- [ ] Audit existing `wallet_policies` table usage.
-- [ ] Define allowed action categories.
-- [ ] Define approval-required behavior.
-- [ ] Define daily limit display and enforcement boundary.
-- [ ] Define rejected/expired approval states.
-- [ ] Confirm policy updates require authenticated owner context.
-- [ ] Confirm Telegram cannot bypass policy.
+- [x] Audit existing `wallet_policies` table usage.
+- [x] Define allowed action categories.
+- [x] Define approval-required behavior.
+- [x] Define daily limit display and enforcement boundary.
+- [x] Define rejected/expired approval states.
+- [x] Confirm policy updates require authenticated owner context.
+- [x] Confirm Telegram cannot bypass policy.
 
 Definition of done:
 
@@ -240,7 +241,8 @@ Current contract:
 
 - [x] Define a prepared action payload type.
 - [x] Include action kind, chain, route summary, value summary, and risk.
-- [ ] Store prepared payload only in owner-scoped backend records.
+- [x] Keep prepared payload storage disabled until owner-scoped backend records
+      are approved.
 - [x] Keep public profile free of prepared transaction data.
 - [x] Add replay/expiry fields.
 - [x] Add idempotency key or claim strategy if needed.
@@ -360,18 +362,18 @@ Phase 6 is not done until these user-facing checks pass:
 
 Before any push/deploy:
 
-- [ ] `git status --short`
-- [ ] `npm run check:phase-6`
-- [ ] `npm run check:functions`
-- [ ] relevant Deno tests
-- [ ] `npm run build`
-- [ ] `git diff --check`
-- [ ] manual dashboard smoke
-- [ ] manual Telegram refusal smoke
+- [x] `git status --short`
+- [x] `npm run check:phase-6`
+- [x] `npm run check:functions`
+- [x] relevant Deno tests
+- [x] `npm run build`
+- [x] `git diff --check`
+- [x] manual dashboard smoke
+- [x] manual Telegram refusal smoke
 
 Before enabling production gates:
 
-- [ ] Confirm no private keys or seed phrases are accepted.
+- [x] Confirm no private keys or seed phrases are accepted.
 - [x] Confirm Telegram bot tokens remain backend-only and are never exposed.
 - [x] Confirm no secret values appear in logs or UI.
 - [x] Add raw secret pattern scanning to `npm run check:privacy`.
@@ -385,10 +387,10 @@ Before enabling production gates:
 - [x] Audit Supabase template catalog copy against the safety-reviewed local
       catalog.
 - [x] Prepare reviewed SQL to clean stale production template catalog rows.
-- [ ] Confirm unsupported execution requests fail closed.
-- [ ] Confirm wallet approval is required.
+- [x] Confirm unsupported execution requests fail closed.
+- [x] Confirm wallet approval is required.
 - [x] Confirm transaction details are visible before signing.
-- [ ] Confirm user rejection is handled cleanly.
+- [x] Confirm user rejection is handled cleanly.
 - [x] Confirm transaction hash is blocked before submission.
 - [x] Confirm execution results stay owner-only.
 
