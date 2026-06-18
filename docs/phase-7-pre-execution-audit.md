@@ -85,6 +85,7 @@ and owner approval are complete:
 
 ### 7C - Base MCP Runtime Audit
 
+- Audit packet: `docs/phase-7C-base-mcp-runtime-audit.md`.
 - Keep `base-mcp-prepare` disabled until runtime config, provider endpoint,
   request signing, ownership, replay, rate limits, and failure sanitization are
   reviewed together.
@@ -167,6 +168,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-6`
 - `npm run check:phase-7-entry`
 - `npm run check:phase-7b`
+- `npm run check:phase-7c`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`
