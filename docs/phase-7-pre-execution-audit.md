@@ -131,6 +131,7 @@ and owner approval are complete:
 
 ### 7G - Logs, Errors, And Observability Audit
 
+- Audit packet: `docs/phase-7G-logs-errors-observability-audit.md`.
 - Runtime Edge Functions do not use raw `console.*` logging without reviewed
   sanitization.
 - Provider, wallet, MCP, Telegram, and backend errors collapse to sanitized
@@ -175,6 +176,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7d`
 - `npm run check:phase-7e`
 - `npm run check:phase-7f`
+- `npm run check:phase-7g`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`
