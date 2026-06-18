@@ -116,6 +116,25 @@ export interface DemoPreparedActionPreview {
   safetyNote: string;
 }
 
+export interface DemoExecutionResult {
+  id: string;
+  preparedActionId: string;
+  agentId: string;
+  status:
+    | "pending"
+    | "approved"
+    | "rejected"
+    | "submitted"
+    | "failed"
+    | "confirmed";
+  label: string;
+  summary: string;
+  txHashLabel: string;
+  failureReason: string | null;
+  visibility: "owner-only";
+  updatedAt: string;
+}
+
 export interface DemoActivityLog {
   id: string;
   timestamp: string;
@@ -123,7 +142,8 @@ export interface DemoActivityLog {
     | "agent_instances"
     | "telegram_sessions"
     | "base_mcp_routes"
-    | "approval_requests";
+    | "approval_requests"
+    | "execution_results";
   level: "info" | "notice" | "warning";
   message: string;
 }

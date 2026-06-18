@@ -4,6 +4,7 @@ import type {
   DemoAgentInstance,
   DemoApprovalRequest,
   DemoBackendTable,
+  DemoExecutionResult,
   DemoPreparedActionPreview,
   DemoRecordStatus,
   DemoTelegramSessionSummary,
@@ -54,6 +55,7 @@ export interface SupabaseDashboardData {
   walletReadiness: DemoWalletReadiness;
   walletProviderStatus: DemoWalletProviderStatus;
   preparedActionPreview: DemoPreparedActionPreview;
+  executionResults: DemoExecutionResult[];
   backendTables: DemoBackendTable[];
   activityLogs: DemoActivityLog[];
   telegramSessions: DemoTelegramSessionSummary[];
@@ -391,6 +393,44 @@ function mapActivityLog(row: ActivityLogRow): DemoActivityLog {
   };
 }
 
+function createExecutionResults(
+  approvalRequests: DemoApprovalRequest[],
+): DemoExecutionResult[] {
+  return approvalRequests.slice(0, 6).map((request) => {
+    const status = request.status === "approved"
+      ? "approved"
+      : request.status === "rejected"
+      ? "rejected"
+      : "pending";
+    const txHashLabel = status === "rejected"
+      ? "No transaction hash"
+      : "Not submitted";
+    const label = status === "approved"
+      ? "Approved for wallet handoff"
+      : status === "rejected"
+      ? "Rejected safely"
+      : "Pending owner review";
+    const summary = status === "approved"
+      ? "Owner approval recorded; wallet submission still requires an owner-initiated prompt."
+      : status === "rejected"
+      ? "Owner rejection closed the action without wallet submission."
+      : "Prepared action is waiting for explicit owner approval.";
+
+    return {
+      id: `execution_${request.id}`,
+      preparedActionId: request.id,
+      agentId: request.agentId,
+      status,
+      label,
+      summary,
+      txHashLabel,
+      failureReason: null,
+      visibility: "owner-only",
+      updatedAt: formatTimestamp(request.createdAt),
+    };
+  });
+}
+
 function mapTelegramSessionSummary(
   row: TelegramSessionSummaryRow,
 ): DemoTelegramSessionSummary {
@@ -425,6 +465,7 @@ function createBackendTables(
   policies: WalletPolicyRow[],
   logs: ActivityLogRow[],
   telegramSessions: TelegramSessionSummaryRow[],
+  executionResults: DemoExecutionResult[],
 ): DemoBackendTable[] {
   return [
     countTable(
@@ -456,6 +497,12 @@ function createBackendTables(
       "active",
       "Replayable server-style logs for the dashboard stream.",
       "activity_logs",
+    ),
+    countTable(
+      executionResults,
+      "active",
+      "Owner-only execution state trail; transaction hash appears only after submission.",
+      "execution_results",
     ),
     countTable(
       telegramSessions,
@@ -540,6 +587,10 @@ export async function fetchSupabaseDashboardData(
     const latestAgent = mappedAgents[0] ?? null;
     const walletReadiness = createWalletReadiness(walletPolicies);
     const walletProviderStatus = createWalletProviderStatus();
+    const mappedApprovalRequests = approvalRequests.map((request) =>
+      mapApprovalRequest(request, agentTemplateLookup)
+    );
+    const executionResults = createExecutionResults(mappedApprovalRequests);
 
     return {
       ok: true,
@@ -547,13 +598,12 @@ export async function fetchSupabaseDashboardData(
       data: {
         workspace: mapWorkspace(workspace, session),
         agentInstances: mappedAgents,
-        approvalRequests: approvalRequests.map((request) =>
-          mapApprovalRequest(request, agentTemplateLookup)
-        ),
+        approvalRequests: mappedApprovalRequests,
         walletPolicies: walletPolicies.flatMap(mapWalletPolicy).slice(0, 6),
         walletReadiness,
         walletProviderStatus,
         preparedActionPreview: createPreparedActionPreview(walletReadiness),
+        executionResults,
         backendTables: createBackendTables(
           workspaces,
           agents,
@@ -561,6 +611,7 @@ export async function fetchSupabaseDashboardData(
           walletPolicies,
           activityLogs,
           telegramSessions,
+          executionResults,
         ),
         activityLogs: activityLogs.map(mapActivityLog),
         telegramSessions: telegramSessions.map(mapTelegramSessionSummary),

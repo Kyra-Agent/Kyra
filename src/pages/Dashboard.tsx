@@ -60,6 +60,7 @@ import type { DataProvider } from "../types/api";
 import type {
   DemoActivityLog,
   DemoApprovalRequest,
+  DemoExecutionResult,
   DemoPreparedActionPreview,
   DemoRecordStatus,
   DemoTelegramSessionSummary,
@@ -239,12 +240,46 @@ function getPreparedActionTone(status: DemoPreparedActionPreview["status"]) {
   return status === "draft" ? "locked" : "standby";
 }
 
+function getExecutionResultFallback(
+  signedIn: boolean,
+): DemoExecutionResult[] {
+  return [
+    {
+      id: "execution_pending_fallback",
+      preparedActionId: "base_mcp_status_check_preview",
+      agentId: "no-agent",
+      status: "pending",
+      label: signedIn ? "No execution record" : "Sign-in required",
+      summary: signedIn
+        ? "Deploy an agent before Kyra can show owner-only execution states."
+        : "Execution results are hidden until an account session is active.",
+      txHashLabel: "Not submitted",
+      failureReason: null,
+      visibility: "owner-only",
+      updatedAt: "--:--:--",
+    },
+  ];
+}
+
+function getExecutionResultTone(status: DemoExecutionResult["status"]) {
+  if (status === "confirmed" || status === "approved") {
+    return "ready";
+  }
+
+  if (status === "failed" || status === "rejected") {
+    return "error";
+  }
+
+  return status === "submitted" ? "locked" : "standby";
+}
+
 function formatActivityLog(log: DemoActivityLog) {
   const sourceLabel = {
     agent_instances: "agent",
     telegram_sessions: "telegram",
     base_mcp_routes: "base action",
     approval_requests: "approval",
+    execution_results: "execution",
     wallet_policies: "wallet policy",
     activity_logs: "activity",
   }[log.source] ?? "backend";
@@ -876,6 +911,9 @@ export function Dashboard({
   const preparedActionTone = getPreparedActionTone(
     preparedActionPreview.status,
   );
+  const executionResults = dashboardData?.executionResults.length
+    ? dashboardData.executionResults
+    : getExecutionResultFallback(Boolean(authSession));
   const backendTables = dashboardData?.backendTables ?? [];
   const hasPublicRoute = Boolean(agentRecord?.publicPath);
   const latestDeployEvent = getLatestEvent(backendEvents, "deploy");
@@ -2005,6 +2043,48 @@ export function Dashboard({
               <p>{preparedActionPreview.routeSummary}</p>
               <small>{preparedActionPreview.approvalRequirement}</small>
               <small>{preparedActionPreview.safetyNote}</small>
+            </div>
+          </section>
+
+          <section className="dashboard-panel execution-result-panel">
+            <div className="panel-title">
+              <span>Execution audit trail</span>
+              <span>owner-only</span>
+            </div>
+            <div className="execution-result-list">
+              {executionResults.map((result) => (
+                <article
+                  className={`execution-result-card readiness-${
+                    getExecutionResultTone(result.status)
+                  }`}
+                  key={result.id}
+                >
+                  <div className="execution-result-header">
+                    <span className="queue-icon">
+                      <Activity size={16} />
+                    </span>
+                    <div>
+                      <small>{result.status.replace(/_/g, " ")}</small>
+                      <strong>{result.label}</strong>
+                    </div>
+                    <time>{result.updatedAt}</time>
+                  </div>
+                  <p>{result.summary}</p>
+                  <div className="execution-result-grid">
+                    <span>
+                      Tx hash
+                      <strong>{result.txHashLabel}</strong>
+                    </span>
+                    <span>
+                      Visibility
+                      <strong>{result.visibility.replace(/-/g, " ")}</strong>
+                    </span>
+                  </div>
+                  {result.failureReason
+                    ? <small>{result.failureReason}</small>
+                    : null}
+                </article>
+              ))}
             </div>
           </section>
 

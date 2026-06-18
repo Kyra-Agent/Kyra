@@ -5,6 +5,7 @@ import type {
   DemoAgentInstance,
   DemoApprovalRequest,
   DemoBackendTable,
+  DemoExecutionResult,
   DemoWalletPolicy,
   DemoWorkspaceRecord,
 } from "../types/backend";
@@ -157,6 +158,59 @@ export const demoActivityLogs: DemoActivityLog[] = [
     level: "notice",
     message: "status: waiting for future owner approval path",
   },
+  {
+    id: "log_execution_pending",
+    timestamp: "12:05:07",
+    source: "execution_results",
+    level: "notice",
+    message: "execution result pending; no transaction hash recorded",
+  },
+  {
+    id: "log_execution_sanitized_failure",
+    timestamp: "12:05:08",
+    source: "execution_results",
+    level: "warning",
+    message: "failure state stores sanitized copy only",
+  },
+];
+
+export const demoExecutionResults: DemoExecutionResult[] = [
+  {
+    id: "execution_swap_pending_demo",
+    preparedActionId: "demo-swap-handoff",
+    agentId: getDemoAgentInstance("operator").id,
+    status: "pending",
+    label: "Pending owner review",
+    summary: "Prepared action is waiting for explicit owner approval.",
+    txHashLabel: "Not submitted",
+    failureReason: null,
+    visibility: "owner-only",
+    updatedAt: "12:05:07",
+  },
+  {
+    id: "execution_rejection_demo",
+    preparedActionId: "demo-rejected-handoff",
+    agentId: getDemoAgentInstance("operator").id,
+    status: "rejected",
+    label: "Rejected safely",
+    summary: "Owner rejection closes the action without wallet submission.",
+    txHashLabel: "No transaction hash",
+    failureReason: null,
+    visibility: "owner-only",
+    updatedAt: "12:05:08",
+  },
+  {
+    id: "execution_failure_demo",
+    preparedActionId: "demo-failed-handoff",
+    agentId: getDemoAgentInstance("operator").id,
+    status: "failed",
+    label: "Sanitized failure",
+    summary: "Provider and Base errors collapse into safe user-facing copy.",
+    txHashLabel: "No transaction hash before submission",
+    failureReason: "Wallet must be connected to Base.",
+    visibility: "owner-only",
+    updatedAt: "12:05:09",
+  },
 ];
 
 export const demoBackendTables: DemoBackendTable[] = [
@@ -190,5 +244,12 @@ export const demoBackendTables: DemoBackendTable[] = [
     records: demoActivityLogs.length,
     status: "mocked",
     purpose: "Replayable server-style logs for the dashboard stream.",
+  },
+  {
+    name: "execution_results",
+    records: demoExecutionResults.length,
+    status: "mocked",
+    purpose:
+      "Owner-only execution state trail with transaction hashes only after submission.",
   },
 ];

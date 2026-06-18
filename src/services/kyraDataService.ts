@@ -11,6 +11,7 @@ function formatActivityLog(log: DemoActivityLog) {
       telegram_sessions: "telegram",
       base_mcp_routes: "base action",
       approval_requests: "approval",
+      execution_results: "execution",
     }[log.source] ?? "demo";
 
   return `[${log.timestamp}] ${sourceLabel}: ${log.message}`;

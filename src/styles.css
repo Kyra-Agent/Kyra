@@ -3108,6 +3108,73 @@ h2 {
   line-height: 1.5;
 }
 
+.execution-result-panel {
+  background:
+    linear-gradient(135deg, rgba(138, 230, 177, 0.06), transparent 44%),
+    var(--panel);
+}
+
+.execution-result-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.execution-result-card {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.82rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.execution-result-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.62rem;
+}
+
+.execution-result-header small,
+.execution-result-card > small,
+.execution-result-card p,
+.execution-result-grid span {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.execution-result-header strong,
+.execution-result-grid strong {
+  display: block;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.execution-result-header time {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+}
+
+.execution-result-card p {
+  margin: 0;
+}
+
+.execution-result-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.execution-result-grid span {
+  display: grid;
+  gap: 0.18rem;
+  min-height: 58px;
+  padding: 0.58rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
 .backend-table-list article {
   display: grid;
   grid-template-columns: minmax(8rem, 0.7fr) minmax(5rem, 0.32fr) 1fr;
@@ -4588,6 +4655,7 @@ h2 {
   .admin-action-grid,
   .reset-scope-grid,
   .deploy-checklist-grid,
+  .execution-result-grid,
   .readiness-grid {
     grid-template-columns: 1fr;
   }

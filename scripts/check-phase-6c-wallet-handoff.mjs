@@ -40,6 +40,7 @@ const audit = read("docs/phase-6C-wallet-signing-handoff-audit.md");
 const plan = read("docs/phase-6C-wallet-signing-handoff-plan.md");
 const providerDecision = read("docs/phase-6C-wallet-provider-decision.md");
 const riskReviewDoc = read("docs/phase-6-risk-permission-review.md");
+const executionResultDoc = read("docs/phase-6-execution-result-logging.md");
 const checklist = read("docs/phase-6-wallet-base-checklist.md");
 const appConfig = read("src/config/appConfig.ts");
 const packageJson = read("package.json");
@@ -60,6 +61,7 @@ const supabaseKyraRepository = read("src/services/supabaseKyraRepository.ts");
 const dashboard = read("src/pages/Dashboard.tsx");
 const walletSigningTypes = read("src/types/walletSigning.ts");
 const riskReviewTypes = read("src/types/riskReview.ts");
+const executionResultTypes = read("src/types/executionResult.ts");
 const unsignedTransactionHandoffTypes = read(
   "src/types/unsignedTransactionHandoff.ts",
 );
@@ -174,6 +176,7 @@ assertIncludes("package.json", packageJson, '"check:phase-6c"');
 assertIncludes("package.json", packageJson, '"test:wallet-signing"');
 assertIncludes("package.json", packageJson, '"test:unsigned-handoff"');
 assertIncludes("package.json", packageJson, '"test:risk-review"');
+assertIncludes("package.json", packageJson, '"test:execution-result"');
 assertIncludes("package.json", packageJson, '"wagmi"');
 assertIncludes("package.json", packageJson, '"viem"');
 assertIncludes("package.json", packageJson, '"@tanstack/react-query"');
@@ -200,6 +203,9 @@ for (const path of sourceFiles) {
   );
 }
 assertIncludes("dashboard", dashboard, "walletProviderStatus");
+assertIncludes("dashboard", dashboard, "executionResults");
+assertIncludes("dashboard", dashboard, "Execution audit trail");
+assertIncludes("dashboard", dashboard, "owner-only");
 assertIncludes("ActionConsole", actionConsole, "Action Readiness");
 assertIncludes("ActionConsole", actionConsole, "review draft");
 assertIncludes(
@@ -262,6 +268,17 @@ assertIncludes(
   "demo backend data",
   demoBackendData,
   "review draft recorded; wallet execution disabled",
+);
+assertIncludes("demo backend data", demoBackendData, "demoExecutionResults");
+assertIncludes(
+  "demo backend data",
+  demoBackendData,
+  "execution result pending; no transaction hash recorded",
+);
+assertIncludes(
+  "demo backend data",
+  demoBackendData,
+  "failure state stores sanitized copy only",
 );
 assertIncludes(
   "FAQ data",
@@ -430,6 +447,36 @@ for (
   ]
 ) {
   assertIncludes("risk review doc", riskReviewDoc, boundary);
+}
+for (
+  const boundary of [
+    "ExecutionResultStatus",
+    '"pending"',
+    '"approved"',
+    '"rejected"',
+    '"submitted"',
+    '"failed"',
+    '"confirmed"',
+    "Transaction hash is only allowed after submission.",
+    "Execution approval requires explicit owner action.",
+    "Failed actions before submission must not include a transaction hash.",
+    "Execution results must not be public profile data.",
+    "sanitizeExecutionFailureReason",
+    "validateExecutionResultRecord",
+  ]
+) {
+  assertIncludes("execution result model", executionResultTypes, boundary);
+}
+for (
+  const boundary of [
+    "Every execution attempt must produce",
+    "`rejected`, `failed`, and `confirmed` are terminal states.",
+    "Retry must create a new prepared action",
+    "No transaction submission.",
+    "No Telegram execution.",
+  ]
+) {
+  assertIncludes("execution result doc", executionResultDoc, boundary);
 }
 for (
   const state of [

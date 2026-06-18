@@ -93,6 +93,7 @@ Detailed sub-plans:
 - `docs/phase-6C-wallet-signing-handoff-audit.md`
 - `docs/phase-6C-wallet-signing-handoff-plan.md`
 - `docs/phase-6-risk-permission-review.md`
+- `docs/phase-6-execution-result-logging.md`
 
 ### Milestone 6A - Wallet Readiness
 
@@ -129,8 +130,8 @@ Target result:
 
 ### Milestone 6D - Execution State And Audit Trail
 
-- Submitted/failed/confirmed states are logged.
-- Dashboard reflects the result.
+- Submitted/failed/confirmed states are modeled and validated.
+- Dashboard reflects the owner-only execution result trail.
 - Public profile stays share-safe.
 
 Target result:
@@ -295,13 +296,13 @@ Definition of done:
 
 ## Step 7 - Execution Result Logging
 
-- [ ] Store pending, approved, rejected, submitted, failed, and confirmed
+- [x] Store pending, approved, rejected, submitted, failed, and confirmed
       states.
-- [ ] Store transaction hash only after submission.
-- [ ] Store sanitized failure reason.
-- [ ] Show result in dashboard activity.
-- [ ] Keep public profile display bounded and share-safe.
-- [ ] Add rollback/retry rules.
+- [x] Store transaction hash only after submission.
+- [x] Store sanitized failure reason.
+- [x] Show result in dashboard activity.
+- [x] Keep public profile display bounded and share-safe.
+- [x] Add rollback/retry rules.
 
 Definition of done:
 
@@ -380,6 +381,8 @@ Before enabling production gates:
 - [ ] Confirm wallet approval is required.
 - [x] Confirm transaction details are visible before signing.
 - [ ] Confirm user rejection is handled cleanly.
+- [x] Confirm transaction hash is blocked before submission.
+- [x] Confirm execution results stay owner-only.
 
 ## Phase 6 Done Criteria
 
