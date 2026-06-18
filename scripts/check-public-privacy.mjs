@@ -170,6 +170,15 @@ assertNoForbidden(
 );
 
 const dashboardService = read("src/services/supabaseDashboardService.ts");
+const deployAgentFunction = read("supabase/functions/deploy-agent/index.ts");
+assert(
+  !dashboardService.includes("agent_instances?select=*"),
+  "Dashboard agent instance reads must not use select=*.",
+);
+assert(
+  !dashboardService.includes("activity_logs?select=*"),
+  "Dashboard activity log reads must not use select=*.",
+);
 assert(
   !dashboardService.includes("wallet_policies?select=*"),
   "Dashboard wallet policy reads must not use select=*.",
@@ -200,5 +209,21 @@ assertNoForbidden("dashboard approval request query", approvalRequestQuery[1], [
   "token_secret_ref",
   "telegram_bot_token",
 ]);
+
+assert(
+  dashboardService.includes("function sanitizeActivityLogMessage") &&
+    dashboardService.includes("message: sanitizeActivityLogMessage(row.message)"),
+  "Dashboard activity log messages must be sanitized before display.",
+);
+assert(
+  deployAgentFunction.includes("function sanitizeActivityLogMessage") &&
+    deployAgentFunction.includes("message: sanitizeActivityLogMessage(log.message)"),
+  "Deploy activity log messages must be sanitized before insert.",
+);
+assert(
+  /operator:\s*\{[\s\S]*?id:\s*"swap"[\s\S]*?approvalRequired:\s*true/u
+    .test(deployAgentFunction),
+  "Operator swap deploy scenario must remain approval-required.",
+);
 
 console.log("Public privacy checks passed.");

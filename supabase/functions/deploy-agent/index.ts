@@ -86,7 +86,7 @@ const scenarios: Record<string, DemoScenario> = {
     command: "review 10 USDC to ETH swap",
     route: "USDC -> WETH review route on Base",
     risk: "review",
-    approvalRequired: false,
+    approvalRequired: true,
   },
   scout: {
     id: "scan",
@@ -268,6 +268,21 @@ function sanitizeErrorMessage(message: string) {
       "jwt_[hidden]",
     )
     .slice(0, 240);
+}
+
+function sanitizeActivityLogMessage(message: string) {
+  return message
+    .replace(/\b\d{8,10}:[A-Za-z0-9_-]{35,}\b/g, "[telegram_token_hidden]")
+    .replace(/sk-or-v1-[A-Za-z0-9_-]+/g, "[api_key_hidden]")
+    .replace(/sb_secret_[A-Za-z0-9_-]+/g, "sb_secret_[hidden]")
+    .replace(/sb_publishable_[A-Za-z0-9_-]+/g, "sb_publishable_[hidden]")
+    .replace(
+      /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g,
+      "jwt_[hidden]",
+    )
+    .replace(/\b0x[a-fA-F0-9]{64}\b/g, "[private_key_or_hash_hidden]")
+    .replace(/\b(?:seed phrase|private key|mnemonic)\b/gi, "[secret_hidden]")
+    .slice(0, 180);
 }
 
 function getUnknownErrorMessage(error: unknown) {
@@ -567,7 +582,10 @@ async function insertRelatedRecords(
         level: "notice",
         message: "demo review draft persisted with wallet execution disabled",
       },
-    ],
+    ].map((log) => ({
+      ...log,
+      message: sanitizeActivityLogMessage(log.message),
+    })),
   );
 
   if (logsError) {
