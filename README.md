@@ -158,9 +158,9 @@ Phase 6 focused on the execution foundation without turning execution on:
 6. Onchain execution result states.
 7. Telegram execution refusal and future gate design.
 
-The next execution phase should start with another security audit before any
-production wallet prompt, Base MCP runtime call, or transaction submission is
-enabled.
+Phase 7 starts with a pre-execution security audit before any production wallet
+prompt, Base MCP runtime call, prepared-action write, or transaction submission
+is enabled. See `docs/phase-7-pre-execution-audit.md`.
 
 ## Product Principles
 

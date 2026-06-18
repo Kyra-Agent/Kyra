@@ -171,7 +171,9 @@ These are intentionally not live at Phase 6 closeout:
 
 Before any future live execution work:
 
+- Start from `docs/phase-7-pre-execution-audit.md`.
 - Re-run the full Phase 6 check suite.
+- Run `npm run check:phase-7-entry`.
 - Review RLS and ownership rules for every write path.
 - Verify Telegram bot tokens remain backend-only.
 - Verify public routes still hide wallet-sensitive fields.
