@@ -149,6 +149,16 @@ and owner approval are complete:
 - Netlify deploys should be batched to avoid unnecessary credit usage.
 - Push only after local checks and owner approval.
 
+### 7I - First Live Candidate Decision
+
+- Audit packet: `docs/phase-7I-base-mcp-status-decision.md`.
+- The first selected candidate is read-only Base MCP status preparation.
+- Candidate action kind is exactly `base_mcp_status_check`.
+- Candidate chain is exactly `base`.
+- Candidate surface is owner dashboard only.
+- Wallet prompts, signing, transaction submission, prepared-action production
+  writes, and Telegram-triggered execution remain disabled.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -179,6 +189,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7f`
 - `npm run check:phase-7g`
 - `npm run check:phase-7h`
+- `npm run check:phase-7i`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`
