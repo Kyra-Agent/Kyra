@@ -73,6 +73,7 @@ and owner approval are complete:
 
 ### 7B - Ownership, RLS, And Write Path Audit
 
+- Audit packet: `docs/phase-7B-ownership-rls-write-path-audit.md`.
 - Review every write path that could create, update, or resolve execution
   records.
 - Confirm writes require authenticated owner context or service-role backend
@@ -165,6 +166,7 @@ Before any Phase 7 push or deploy:
 
 - `npm run check:phase-6`
 - `npm run check:phase-7-entry`
+- `npm run check:phase-7b`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`
