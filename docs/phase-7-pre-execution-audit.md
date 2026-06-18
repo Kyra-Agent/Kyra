@@ -119,6 +119,7 @@ and owner approval are complete:
 
 ### 7F - Telegram Execution Boundary Audit
 
+- Audit packet: `docs/phase-7F-telegram-execution-boundary-audit.md`.
 - Telegram remains read-only until the dashboard/wallet path is live and
   reviewed.
 - `canExecuteFromTelegram` remains `false`.
@@ -173,6 +174,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7c`
 - `npm run check:phase-7d`
 - `npm run check:phase-7e`
+- `npm run check:phase-7f`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`
