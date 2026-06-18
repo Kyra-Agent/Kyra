@@ -94,6 +94,7 @@ Detailed sub-plans:
 - `docs/phase-6C-wallet-signing-handoff-plan.md`
 - `docs/phase-6-risk-permission-review.md`
 - `docs/phase-6-execution-result-logging.md`
+- `docs/phase-6-telegram-execution-gate.md`
 
 ### Milestone 6A - Wallet Readiness
 
@@ -310,18 +311,25 @@ Definition of done:
 
 ## Step 8 - Telegram Execution Gate Design
 
-- [ ] Keep Phase 5 Telegram read-only behavior unchanged first.
-- [ ] Define which Telegram messages can create an approval draft.
-- [ ] Require dashboard or wallet approval before any execution.
-- [ ] Refuse direct Telegram swaps/transfers until reviewed.
-- [ ] Add command-level replay protection.
-- [ ] Add abuse/rate limits.
-- [ ] Smoke test refusal behavior after execution gates are added.
+- [x] Keep Phase 5 Telegram read-only behavior unchanged first.
+- [x] Define which Telegram messages can create an approval draft.
+- [x] Require dashboard or wallet approval before any execution.
+- [x] Refuse direct Telegram swaps/transfers until reviewed.
+- [x] Add command-level replay protection.
+- [x] Add abuse/rate limits.
+- [x] Smoke test refusal behavior after execution gates are added.
 
 Definition of done:
 
 - Telegram can never directly execute a wallet or onchain action without the
   approved wallet flow.
+
+Current boundary:
+
+- `approval_draft_candidate` is classification only.
+- `canExecuteFromTelegram` and `canCreateDraftNow` stay `false`.
+- No Telegram-created approval record, prepared action, wallet prompt, Base MCP
+  call, signing, or transaction submission is enabled.
 
 ## Suggested First Live Candidate
 

@@ -66,6 +66,7 @@ import {
   type TelegramWebhookParsedCommand,
 } from "./update-parser.ts";
 import { planTelegramClaimedReadOnlyResponse } from "./claim-aware-response.ts";
+import { reviewTelegramExecutionGate } from "./execution-gate.ts";
 import {
   classifyTelegramReadOnlyChatIntent,
   type TelegramReadOnlyCommandResponse,
@@ -845,11 +846,28 @@ export async function handleTelegramWebhookRequest(
       }
 
       let response = deliveryPlan.response;
+      const executionGate = parsedUpdate.command === "chat" &&
+          chatAuthorization
+        ? reviewTelegramExecutionGate({
+          text: parsedUpdate.text,
+          command: parsedUpdate.command,
+          authorizationRole: chatAuthorization.role,
+        })
+        : null;
+
+      if (executionGate && executionGate.status !== "read_only_allowed") {
+        response = {
+          command: parsedUpdate.command,
+          text: executionGate.responseText,
+        };
+      }
+
       let templateContext: TelegramTemplateContextLookupOutput | null = null;
 
       if (
         templateContextRuntimeConfig.enabled &&
-        shouldUseTelegramTemplateContext(parsedUpdate.command)
+        shouldUseTelegramTemplateContext(parsedUpdate.command) &&
+        executionGate?.status !== "blocked"
       ) {
         if (!dependencies.lookupTelegramTemplateContext) {
           throw new HttpError(
@@ -874,7 +892,9 @@ export async function handleTelegramWebhookRequest(
       if (
         agentBrainRuntimeConfig.enabled &&
         dependencies.generateTelegramAgentBrainReply &&
-        shouldUseTelegramAgentBrain(parsedUpdate.command)
+        shouldUseTelegramAgentBrain(parsedUpdate.command) &&
+        executionGate?.status !== "blocked" &&
+        executionGate?.status !== "approval_draft_candidate"
       ) {
         try {
           const agentBrainReply = await dependencies

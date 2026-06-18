@@ -7,6 +7,7 @@ import {
   buildTelegramReadOnlyCommandResponse,
   type TelegramReadOnlyCommandResponse,
 } from "./read-only-response.ts";
+import { reviewTelegramExecutionGate } from "./execution-gate.ts";
 import {
   parseTelegramWebhookUpdate,
   type TelegramWebhookParsedCommandName,
@@ -39,10 +40,23 @@ export function processVerifiedTelegramReadOnlyUpdate(
     input.chatPolicy,
     parsed.commandKind,
   );
-  const response = buildTelegramReadOnlyCommandResponse(
+  const staticResponse = buildTelegramReadOnlyCommandResponse(
     parsed.command,
     parsed.text,
   );
+  const executionGate = parsed.command === "chat"
+    ? reviewTelegramExecutionGate({
+      text: parsed.text,
+      command: parsed.command,
+      authorizationRole: authorization.role,
+    })
+    : null;
+  const response = executionGate && executionGate.status !== "read_only_allowed"
+    ? {
+      command: parsed.command,
+      text: executionGate.responseText,
+    }
+    : staticResponse;
 
   return {
     command: parsed.command,

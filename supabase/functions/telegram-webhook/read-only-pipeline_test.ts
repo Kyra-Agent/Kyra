@@ -194,6 +194,76 @@ Deno.test("telegram read-only pipeline rejects unsupported command before author
   );
 });
 
+Deno.test("telegram read-only pipeline routes owner execution intent to draft boundary", () => {
+  const result = processVerifiedTelegramReadOnlyUpdate({
+    update: createUpdate("review 10 USDC to ETH swap"),
+    chatPolicy: {
+      mode: "personal",
+      ownerTelegramUserId: 123456,
+      ownerTelegramChatId: -987654,
+    },
+  });
+
+  assertEquals(result.command, "chat");
+  assertEquals(result.commandKind, "read_only");
+  assertEquals(result.authorizationRole, "owner");
+  assert(
+    result.response.text.includes("Telegram execution stays disabled."),
+    "Owner execution intent must stay disabled from Telegram.",
+  );
+  assert(
+    result.response.text.includes("approval draft"),
+    "Owner execution intent may only describe a future approval draft.",
+  );
+  assert(
+    result.response.text.includes("No wallet prompt"),
+    "Response must not imply a wallet prompt was opened.",
+  );
+});
+
+Deno.test("telegram read-only pipeline blocks non-owner execution draft intent", () => {
+  const result = processVerifiedTelegramReadOnlyUpdate({
+    update: createUpdate("transfer 10 USDC to 0x1111111111111111111111111111111111111111"),
+    chatPolicy: {
+      mode: "community",
+      allowedTelegramUserIds: [123456],
+    },
+  });
+
+  assertEquals(result.command, "chat");
+  assertEquals(result.authorizationRole, "member");
+  assert(
+    result.response.text.includes("Only an owner dashboard flow"),
+    "Non-owner execution intent must not create a draft.",
+  );
+  assert(
+    result.response.text.includes("cannot execute"),
+    "Response must keep direct execution disabled.",
+  );
+});
+
+Deno.test("telegram read-only pipeline blocks direct owner execution wording", () => {
+  const result = processVerifiedTelegramReadOnlyUpdate({
+    update: createUpdate("swap now 10 USDC to ETH and execute"),
+    chatPolicy: {
+      mode: "personal",
+      ownerTelegramUserId: 123456,
+      ownerTelegramChatId: -987654,
+    },
+  });
+
+  assertEquals(result.command, "chat");
+  assertEquals(result.authorizationRole, "owner");
+  assert(
+    result.response.text.includes("Command rejected"),
+    "Direct execution wording must be rejected.",
+  );
+  assert(
+    !result.response.text.toLowerCase().includes("submitted"),
+    "Response must not imply submission.",
+  );
+});
+
 Deno.test("telegram read-only pipeline rejects mismatched bot target", () => {
   assertThrowsHttpError(
     () =>

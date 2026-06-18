@@ -38,6 +38,14 @@ replies only when the corresponding runtime gates are enabled.
 - Does not access Supabase Vault from the owner-link consume path.
 - Does not call Telegram APIs from the owner-link consume path.
 - Does not trigger wallet, Base MCP, or onchain execution.
+- Natural chat execution-like messages are classified by the Phase 6 execution
+  gate. Owner/admin review wording can only be described as a future dashboard
+  approval-draft candidate; direct execution wording and non-owner execution
+  intent are refused.
+- Execution-gate decisions keep `canExecuteFromTelegram` and
+  `canCreateDraftNow` false. No Telegram-created approval record, prepared
+  action, wallet prompt, Base MCP call, signature, or transaction submission is
+  enabled by this webhook.
 
 ## Current Response
 
@@ -79,6 +87,22 @@ Keep the webhook path staged behind runtime gates:
 
 Do not enable write, approval, wallet, Base MCP, onchain, or LLM command
 execution from this webhook without a separate reviewed implementation.
+
+## Phase 6 Execution Gate
+
+`execution-gate.ts` is a local fail-closed classifier for natural chat messages
+that look like wallet, approval, Base MCP, swap, transfer, or onchain requests.
+
+It can return:
+
+- `read_only_allowed`
+- `approval_draft_candidate`
+- `blocked`
+
+This is not a database writer. Draft creation stays disabled until owner-scoped
+storage, replay protection, rate limits, dashboard review, and wallet approval
+are approved. The replay-key shape for future draft creation is
+`telegram-draft:<telegram_session_id>:<update_id>:<message_id>`.
 
 ## Agent Brain Boundary
 

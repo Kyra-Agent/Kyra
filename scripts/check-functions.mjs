@@ -106,3 +106,55 @@ for (const entrypoint of functionEntrypoints) {
     process.exit(result.status ?? 1);
   }
 }
+
+const telegramWebhookIndex = readFileSync(
+  "supabase/functions/telegram-webhook/index.ts",
+  "utf8",
+);
+const telegramExecutionGate = readFileSync(
+  "supabase/functions/telegram-webhook/execution-gate.ts",
+  "utf8",
+);
+const telegramExecutionGateDoc = readFileSync(
+  "docs/phase-6-telegram-execution-gate.md",
+  "utf8",
+);
+
+for (
+  const boundary of [
+    "reviewTelegramExecutionGate",
+    'executionGate?.status !== "blocked"',
+    'executionGate?.status !== "approval_draft_candidate"',
+  ]
+) {
+  if (!telegramWebhookIndex.includes(boundary)) {
+    throw new Error(`telegram-webhook index must include: ${boundary}`);
+  }
+}
+
+for (
+  const boundary of [
+    "canExecuteFromTelegram: false",
+    "canCreateDraftNow: false",
+    "approval_draft_candidate",
+    "Command rejected: Telegram cannot execute",
+    "buildTelegramExecutionDraftReplayKey",
+  ]
+) {
+  if (!telegramExecutionGate.includes(boundary)) {
+    throw new Error(`telegram execution gate must include: ${boundary}`);
+  }
+}
+
+for (
+  const boundary of [
+    "No Telegram-created approval records.",
+    "No wallet prompts.",
+    "No Base MCP calls.",
+    "No transaction submission.",
+  ]
+) {
+  if (!telegramExecutionGateDoc.includes(boundary)) {
+    throw new Error(`telegram execution gate doc must include: ${boundary}`);
+  }
+}
