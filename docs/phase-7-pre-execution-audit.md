@@ -97,6 +97,7 @@ and owner approval are complete:
 
 ### 7D - Prepared Action Storage Audit
 
+- Audit packet: `docs/phase-7D-prepared-action-storage-approval.md`.
 - Apply no storage SQL until forward, rollback, verifier, RLS, column grants,
   idempotency, expiry, replay protection, and owner-summary view are approved.
 - Store only bounded owner-summary fields.
@@ -169,6 +170,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7-entry`
 - `npm run check:phase-7b`
 - `npm run check:phase-7c`
+- `npm run check:phase-7d`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`

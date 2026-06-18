@@ -106,7 +106,8 @@
 --   authenticated
 -- - grant select on public.prepared_actions to authenticated only if the row is
 --   summary-safe and RLS is verified
--- - grant all on public.prepared_actions to service_role
+-- - grant select, insert, and update on public.prepared_actions to service_role
+-- - do not grant delete on public.prepared_actions to service_role
 --
 -- Preferred owner summary view:
 -- - public.prepared_action_owner_summaries with security_invoker = true
