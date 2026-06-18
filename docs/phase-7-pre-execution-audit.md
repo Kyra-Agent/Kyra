@@ -142,6 +142,7 @@ and owner approval are complete:
 
 ### 7H - Release And Rollback Audit
 
+- Audit packet: `docs/phase-7H-release-rollback-audit.md`.
 - Every production gate needs a rollback plan before enabling.
 - Every enabled runtime gate needs a live smoke checklist.
 - Live smoke must use a low-risk test account.
@@ -177,6 +178,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7e`
 - `npm run check:phase-7f`
 - `npm run check:phase-7g`
+- `npm run check:phase-7h`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`

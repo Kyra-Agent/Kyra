@@ -41,7 +41,8 @@
     "check:phase-7e": "node scripts/check-phase-7e-wallet-signing-boundary.mjs",
     "check:phase-7f": "node scripts/check-phase-7f-telegram-execution-boundary.mjs",
     "check:phase-7g": "node scripts/check-phase-7g-observability.mjs",
-    "check:phase-7": "npm run check:phase-6 && npm run check:phase-7-entry && npm run check:phase-7b && npm run check:phase-7c && npm run check:phase-7d && npm run check:phase-7e && npm run check:phase-7f && npm run check:phase-7g",
+    "check:phase-7h": "node scripts/check-phase-7h-release-rollback.mjs",
+    "check:phase-7": "npm run check:phase-6 && npm run check:phase-7-entry && npm run check:phase-7b && npm run check:phase-7c && npm run check:phase-7d && npm run check:phase-7e && npm run check:phase-7f && npm run check:phase-7g && npm run check:phase-7h",
     "check:phase-6": "npm run check:privacy && npm run check:base-mcp && npm run check:prepared-actions && npm run check:supabase-copy && npm run check:phase-6b && npm run check:phase-6c && npm run test:unsigned-handoff && npm run test:wallet-signing && npm run test:risk-review && npm run test:execution-result && npm run check:functions",
     "build": "tsc && vite build",
     "preview": "vite preview --host localhost"
