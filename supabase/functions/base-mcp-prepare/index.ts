@@ -13,6 +13,7 @@ export * from "./dependencies.ts";
 export * from "./runtime-config.ts";
 export * from "./storage-adapter.ts";
 export * from "./provider-adapter.ts";
+export * from "./provider-contract.ts";
 export * from "./rate-limit.ts";
 
 export interface BaseMcpPrepareRuntimeOptions {

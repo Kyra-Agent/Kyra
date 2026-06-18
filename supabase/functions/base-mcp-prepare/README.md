@@ -2,8 +2,8 @@
 
 Default-off Edge Function for read-only Base MCP status preparation.
 
-Phase 7L prepares one controlled live smoke around the Phase 7K signed-in
-owner-dashboard caller. The caller does not
+Phase 7M hardens the exact provider contract around the Phase 7K signed-in
+owner-dashboard caller and Phase 7L smoke preparation. The caller does not
 change the backend runtime gate, provider credential boundary, storage state,
 wallet state, or Telegram execution boundary.
 
@@ -24,6 +24,9 @@ Enabled contract:
 - Require exact provider protocol `kyra_status_v1`.
 - Enforce a persistent service-role rate limit before any provider call.
 - Call only the reviewed read-only status provider adapter.
+- Require the exact `kyra_status_v1` request/response contract.
+- Require the provider response request id to match the current request.
+- Reject non-JSON, extra-field, mismatched, or over-4096-byte responses.
 - Return only a bounded read-only preparation summary.
 - Keep `opaquePayloadRef` null for the first status-check candidate.
 - Treat missing, invalid, or non-HTTPS Base MCP endpoints as not configured.

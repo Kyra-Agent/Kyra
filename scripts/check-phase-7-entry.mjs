@@ -76,7 +76,7 @@ const telegramRuntimeFiles = walkFiles("supabase/functions/telegram-webhook")
 for (
   const section of [
     "# Phase 7 Pre-Execution Audit",
-    "Status: Phase 7L local live-smoke preparation complete.",
+    "Status: Phase 7M local provider qualification complete.",
     "## Crown Jewels",
     "## Non-Negotiable Gates",
     "### 7B - Ownership, RLS, And Write Path Audit",

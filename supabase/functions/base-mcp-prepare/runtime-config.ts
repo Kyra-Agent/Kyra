@@ -1,10 +1,12 @@
+import { baseMcpProviderProtocol } from "./provider-contract.ts";
+
+export { baseMcpProviderProtocol } from "./provider-contract.ts";
+
 export const baseMcpPrepareEnabledEnvKey = "KYRA_BASE_MCP_PREP_ENABLED";
 export const baseMcpEndpointEnvKey = "KYRA_BASE_MCP_ENDPOINT";
 export const baseMcpApiKeyEnvKey = "KYRA_BASE_MCP_API_KEY";
 export const baseMcpTimeoutMsEnvKey = "KYRA_BASE_MCP_TIMEOUT_MS";
-export const baseMcpProviderProtocolEnvKey =
-  "KYRA_BASE_MCP_PROVIDER_PROTOCOL";
-export const baseMcpProviderProtocol = "kyra_status_v1";
+export const baseMcpProviderProtocolEnvKey = "KYRA_BASE_MCP_PROVIDER_PROTOCOL";
 
 export type OptionalEnvReader = (key: string) => string;
 

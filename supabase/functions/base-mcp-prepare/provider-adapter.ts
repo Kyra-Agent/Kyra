@@ -1,4 +1,8 @@
 import type { BaseMcpPrepareDependencies } from "./core.ts";
+import {
+  baseMcpProviderProtocol,
+  readBaseMcpProviderStatusResponse,
+} from "./provider-contract.ts";
 
 export type BaseMcpProviderTransport = (
   request: Request,
@@ -32,7 +36,7 @@ export function createBaseMcpStatusCheckAdapter(
       };
     }
 
-    if (runtimeConfig.providerProtocol !== "kyra_status_v1") {
+    if (runtimeConfig.providerProtocol !== baseMcpProviderProtocol) {
       return {
         ok: false,
         status: "blocked",
@@ -59,7 +63,7 @@ export function createBaseMcpStatusCheckAdapter(
         return createBaseMcpUnavailableFailure();
       }
 
-      await readProviderJsonObject(response);
+      await readBaseMcpProviderStatusResponse(response, input.requestId);
 
       return {
         ok: true,
@@ -113,6 +117,7 @@ function createBaseMcpStatusCheckRequest(
     headers,
     body: JSON.stringify({
       actionKind: input.actionKind,
+      protocol: baseMcpProviderProtocol,
       chain: input.chain,
       mode: input.mode,
       requestId: input.requestId,
@@ -133,16 +138,6 @@ function createBaseMcpStatusCheckRequest(
 
 function createStatusCheckUrl(endpoint: string) {
   return new URL(baseMcpStatusPath, endpoint).toString();
-}
-
-async function readProviderJsonObject(response: Response) {
-  const body = await response.json().catch(() => null);
-
-  if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    throw new Error("Base MCP provider response is invalid.");
-  }
-
-  return body as Record<string, unknown>;
 }
 
 function createBaseMcpUnavailableFailure() {

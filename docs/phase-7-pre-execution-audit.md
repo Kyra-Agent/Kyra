@@ -2,7 +2,7 @@
 
 Date: 2026-06-19
 
-Status: Phase 7L local live-smoke preparation complete. The first read-only
+Status: Phase 7M local provider qualification complete. The first read-only
 Base MCP status adapter and owner-dashboard caller are protected by an exact
 protocol gate and service-role rate-limit contract. No compatible production
 provider is approved and the runtime gate remains disabled. No production wallet prompt,
@@ -200,6 +200,16 @@ and owner approval are complete:
 - Keep the production runtime gate disabled until a compatible provider,
   database verifier, rollback, and controlled smoke window are approved.
 
+### 7M - Provider Contract Qualification
+
+- Audit packet: `docs/phase-7M-provider-contract-qualification.md`.
+- Require exact bounded request and response shapes for `kyra_status_v1`.
+- Bind provider success to the original request id.
+- Reject non-JSON, malformed, mismatched, extra-field, and oversized responses.
+- Cap provider response bodies at 4096 bytes, including streamed bodies.
+- Keep provider errors sanitized and keep the production gate disabled until a
+  real candidate passes qualification with owner approval.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -234,6 +244,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7j`
 - `npm run check:phase-7k`
 - `npm run check:phase-7l`
+- `npm run check:phase-7m`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`

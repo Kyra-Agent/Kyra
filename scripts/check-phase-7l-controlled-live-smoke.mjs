@@ -28,6 +28,7 @@ function ordered(name, source, values) {
 const doc = read("docs/phase-7L-controlled-live-smoke-preparation.md");
 const core = read("supabase/functions/base-mcp-prepare/core.ts");
 const runtime = read("supabase/functions/base-mcp-prepare/runtime-config.ts");
+const providerContract = read("supabase/functions/base-mcp-prepare/provider-contract.ts");
 const limiter = read("supabase/functions/base-mcp-prepare/rate-limit.ts");
 const forward = read("supabase/base_mcp_status_rate_limit_forward_review.sql");
 const rollback = read("supabase/base_mcp_status_rate_limit_rollback_review.sql");
@@ -49,7 +50,7 @@ for (const value of [
   "Set `KYRA_BASE_MCP_PREP_ENABLED=false` first.",
 ]) includes("Phase 7L doc", doc, value);
 
-includes("runtime config", runtime, 'baseMcpProviderProtocol = "kyra_status_v1"');
+includes("provider contract", providerContract, 'baseMcpProviderProtocol = "kyra_status_v1"');
 includes("runtime config", runtime, 'value === "true"');
 includes("function env", functionEnv, "KYRA_BASE_MCP_PROVIDER_PROTOCOL=");
 excludes("frontend env", envExample, "VITE_BASE_MCP_URL");

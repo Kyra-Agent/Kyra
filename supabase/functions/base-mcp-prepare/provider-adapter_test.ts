@@ -42,6 +42,17 @@ function validInput() {
   } as const;
 }
 
+function validProviderResponse() {
+  return Response.json({
+    protocol: "kyra_status_v1",
+    status: "ok",
+    actionKind: "base_mcp_status_check",
+    chain: "base",
+    mode: "read_only",
+    requestId: validInput().requestId,
+  });
+}
+
 Deno.test("Base MCP provider adapter sends only bounded status-check payload", async () => {
   const capturedRequests: Request[] = [];
   let capturedPayload = "";
@@ -49,11 +60,7 @@ Deno.test("Base MCP provider adapter sends only bounded status-check payload", a
     capturedRequests.push(request);
     capturedPayload = await request.text();
 
-    return Response.json({
-      status: "ok",
-      rawCalldata: "0xdeadbeef",
-      providerPayloadRef: "provider-secret-ref",
-    });
+    return validProviderResponse();
   });
   const result = await adapter(validInput(), runtimeConfig);
   const serializedResult = JSON.stringify(result);
@@ -81,6 +88,10 @@ Deno.test("Base MCP provider adapter sends only bounded status-check payload", a
     "Payload needs read-only mode.",
   );
   assert(
+    capturedPayload.includes("kyra_status_v1"),
+    "Payload needs exact provider protocol.",
+  );
+  assert(
     !capturedPayload.includes("agentId"),
     "Provider payload must not include agent id.",
   );
@@ -106,12 +117,8 @@ Deno.test("Base MCP provider adapter sends only bounded status-check payload", a
     "Adapter result should describe read-only no-calldata status.",
   );
   assert(
-    !serializedResult.includes("0xdeadbeef"),
-    "Adapter result must ignore raw provider calldata.",
-  );
-  assert(
-    !serializedResult.includes("provider-secret-ref"),
-    "Adapter result must ignore provider payload refs.",
+    !serializedResult.includes(validInput().requestId),
+    "Result must hide request id.",
   );
 });
 
@@ -120,7 +127,7 @@ Deno.test("Base MCP provider adapter adds API key only as backend authorization 
   const adapter = createBaseMcpStatusCheckAdapter(async (request) => {
     authorizationHeader = request.headers.get("authorization");
 
-    return Response.json({ status: "ok" });
+    return validProviderResponse();
   });
   const result = await adapter(validInput(), {
     ...runtimeConfig,
@@ -141,7 +148,7 @@ Deno.test("Base MCP provider adapter fails closed for unsupported action and mis
   const adapter = createBaseMcpStatusCheckAdapter(async () => {
     transportCalls += 1;
 
-    return Response.json({ status: "ok" });
+    return validProviderResponse();
   });
   const unsupported = await adapter({
     ...validInput(),
