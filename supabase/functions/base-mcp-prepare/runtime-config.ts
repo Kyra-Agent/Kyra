@@ -2,6 +2,9 @@ export const baseMcpPrepareEnabledEnvKey = "KYRA_BASE_MCP_PREP_ENABLED";
 export const baseMcpEndpointEnvKey = "KYRA_BASE_MCP_ENDPOINT";
 export const baseMcpApiKeyEnvKey = "KYRA_BASE_MCP_API_KEY";
 export const baseMcpTimeoutMsEnvKey = "KYRA_BASE_MCP_TIMEOUT_MS";
+export const baseMcpProviderProtocolEnvKey =
+  "KYRA_BASE_MCP_PROVIDER_PROTOCOL";
+export const baseMcpProviderProtocol = "kyra_status_v1";
 
 export type OptionalEnvReader = (key: string) => string;
 
@@ -12,6 +15,7 @@ export type BaseMcpPrepareRuntimeConfig =
     endpoint: string | null;
     apiKey: string | null;
     timeoutMs: number;
+    providerProtocol: typeof baseMcpProviderProtocol | null;
   };
 
 export function isBaseMcpPrepareEnabled(value: unknown) {
@@ -68,11 +72,16 @@ export function createBaseMcpPrepareRuntimeConfig(
   const timeoutMs = parseBaseMcpTimeoutMs(
     readOptionalEnv(baseMcpTimeoutMsEnvKey),
   );
+  const providerProtocol = readOptionalEnv(baseMcpProviderProtocolEnvKey) ===
+      baseMcpProviderProtocol
+    ? baseMcpProviderProtocol
+    : null;
 
   return {
     enabled: true,
     endpoint,
     apiKey,
     timeoutMs,
+    providerProtocol,
   };
 }

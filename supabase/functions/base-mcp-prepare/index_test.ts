@@ -8,6 +8,7 @@ import {
 } from "./core.ts";
 import { createBaseMcpPrepareDependenciesFromOptions } from "./dependencies.ts";
 import type { OwnershipLookupClient } from "../telegram-connect/core.ts";
+import type { BaseMcpRateLimitRpcClient } from "./rate-limit.ts";
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -79,6 +80,7 @@ function createEnabledDependencies(
     baseMcpPrepareRuntimeConfig: {
       enabled: true,
       endpoint: "https://base-mcp.test",
+      providerProtocol: "kyra_status_v1",
       apiKey: null,
       timeoutMs: 2500,
     },
@@ -89,6 +91,10 @@ function createEnabledDependencies(
       agentId,
       ownerUserId,
       workspaceId,
+    }),
+    checkBaseMcpRateLimit: async () => ({
+      allowed: true,
+      status: "allowed",
     }),
     prepareBaseMcpAction: async () => ({
       ok: true,
@@ -107,13 +113,21 @@ function createEnabledDependencies(
   };
 }
 
-function createOwnershipLookupClient(): OwnershipLookupClient {
+function createOwnershipLookupClient():
+  & OwnershipLookupClient
+  & BaseMcpRateLimitRpcClient {
   const rows = {
     agent_instances: [{ id: agentId, workspace_id: workspaceId }],
     workspaces: [{ id: workspaceId, owner_user_id: ownerUserId }],
   };
 
   return {
+    async rpc() {
+      return {
+        data: [{ allowed: true, status: "allowed" }],
+        error: null,
+      };
+    },
     from(table) {
       const builder = {
         select() {
@@ -412,6 +426,83 @@ Deno.test("base-mcp-prepare enabled but unwired adapter returns sanitized not co
   assertEquals(body.message, "Base MCP preparation is not configured.");
 });
 
+Deno.test("base-mcp-prepare validates provider config before consuming rate limit", async () => {
+  let limiterCalled = false;
+  const response = await handleBaseMcpPrepareRequest(
+    makeRequest({ authorization: "Bearer session", contentType: "application/json" }),
+    createEnabledDependencies({
+      baseMcpPrepareRuntimeConfig: {
+        enabled: true,
+        endpoint: "https://base-mcp.test",
+        providerProtocol: null,
+        apiKey: null,
+        timeoutMs: 2500,
+      },
+      checkBaseMcpRateLimit: async () => {
+        limiterCalled = true;
+        return { allowed: true, status: "allowed" };
+      },
+    }),
+  );
+
+  assertEquals(response.status, 501);
+  assertEquals((await readJson(response)).code, "base_mcp_not_configured");
+  assert(!limiterCalled, "Invalid provider config must not consume rate limit.");
+});
+
+Deno.test("base-mcp-prepare rate limits after ownership and before provider", async () => {
+  const order: string[] = [];
+  const response = await handleBaseMcpPrepareRequest(
+    makeRequest({ authorization: "Bearer session", contentType: "application/json" }),
+    createEnabledDependencies({
+      lookupAgentOwnership: async () => {
+        order.push("ownership");
+        return { agentId, ownerUserId, workspaceId };
+      },
+      checkBaseMcpRateLimit: async () => {
+        order.push("rate-limit");
+        return { allowed: false, status: "rate_limited" };
+      },
+      prepareBaseMcpAction: async () => {
+        order.push("provider");
+        throw new Error("Rate-limited request must not call provider.");
+      },
+    }),
+  );
+  const body = await readJson(response);
+
+  assertEquals(response.status, 429);
+  assertEquals(body.code, "base_mcp_rate_limited");
+  assertEquals(order.join(","), "ownership,rate-limit");
+  assertEquals(response.headers.get("x-kyra-request-id"), "base-mcp-request-01");
+  assertEquals(response.headers.get("x-kyra-base-mcp-outcome"), "base_mcp_rate_limited");
+});
+
+Deno.test("base-mcp-prepare fails closed when rate limit check fails", async () => {
+  for (const checkBaseMcpRateLimit of [
+    async () => ({ allowed: true, status: "unexpected" }) as never,
+    async () => { throw new Error("raw limiter error"); },
+  ]) {
+    let adapterCalled = false;
+    const response = await handleBaseMcpPrepareRequest(
+      makeRequest({ authorization: "Bearer session", contentType: "application/json" }),
+      createEnabledDependencies({
+        checkBaseMcpRateLimit,
+        prepareBaseMcpAction: async () => {
+          adapterCalled = true;
+          throw new Error("Broken limiter must reject before provider.");
+        },
+      }),
+    );
+    const body = await readJson(response);
+
+    assertEquals(response.status, 500);
+    assertEquals(body.status, "server_error");
+    assertEquals(body.message, "Base MCP rate limit check failed.");
+    assert(!adapterCalled, "Broken limiter must reject before provider.");
+  }
+});
+
 Deno.test("base-mcp-prepare returns bounded status-check preview from injected adapter", async () => {
   const response = await handleBaseMcpPrepareRequest(
     makeRequest({
@@ -686,6 +777,9 @@ Deno.test("base-mcp-prepare runtime ownership lookup reads service role lazily",
       if (key === "KYRA_BASE_MCP_ENDPOINT") {
         return "https://base-mcp.test";
       }
+      if (key === "KYRA_BASE_MCP_PROVIDER_PROTOCOL") {
+        return "kyra_status_v1";
+      }
       return "";
     },
     getEnv: (key) => {
@@ -744,6 +838,7 @@ Deno.test("base-mcp-prepare runtime ownership lookup reads service role lazily",
     {
       enabled: true,
       endpoint: "https://base-mcp.test",
+      providerProtocol: "kyra_status_v1",
       apiKey: "backend-only-key",
       timeoutMs: 2500,
     },

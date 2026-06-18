@@ -11,6 +11,12 @@ import {
   createBaseMcpStatusCheckAdapter,
   type BaseMcpProviderTransport,
 } from "./provider-adapter.ts";
+import {
+  createBaseMcpStatusRateLimitChecker,
+  type BaseMcpRateLimitRpcClient,
+} from "./rate-limit.ts";
+
+type BaseMcpServiceClient = OwnershipLookupClient & BaseMcpRateLimitRpcClient;
 
 export interface BaseMcpPrepareDependencyOptions {
   getEnv: (key: string) => string;
@@ -19,7 +25,7 @@ export interface BaseMcpPrepareDependencyOptions {
   createServiceClient: (
     supabaseUrl: string,
     serviceRoleKey: string,
-  ) => Promise<OwnershipLookupClient> | OwnershipLookupClient;
+  ) => Promise<BaseMcpServiceClient> | BaseMcpServiceClient;
   baseMcpProviderTransport?: BaseMcpProviderTransport;
 }
 
@@ -43,7 +49,7 @@ export function createBaseMcpPrepareDependenciesFromOptions(
     options.baseMcpProviderTransport,
   );
 
-  let serviceClientPromise: Promise<OwnershipLookupClient> | null = null;
+  let serviceClientPromise: Promise<BaseMcpServiceClient> | null = null;
   const getServiceClient = () => {
     serviceClientPromise ??= Promise.resolve(options.createServiceClient(
       options.getEnv("SUPABASE_URL"),
@@ -58,6 +64,11 @@ export function createBaseMcpPrepareDependenciesFromOptions(
       await getServiceClient(),
       agentId,
     );
+  };
+  dependencies.checkBaseMcpRateLimit = async (input) => {
+    return await createBaseMcpStatusRateLimitChecker(
+      await getServiceClient(),
+    )(input);
   };
 
   return dependencies;

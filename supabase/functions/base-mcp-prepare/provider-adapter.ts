@@ -32,6 +32,15 @@ export function createBaseMcpStatusCheckAdapter(
       };
     }
 
+    if (runtimeConfig.providerProtocol !== "kyra_status_v1") {
+      return {
+        ok: false,
+        status: "blocked",
+        code: "base_mcp_not_configured",
+        message: "Base MCP preparation is not configured.",
+      };
+    }
+
     try {
       const statusCheckRequest = createBaseMcpStatusCheckRequest(
         input,

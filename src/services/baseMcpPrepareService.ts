@@ -13,6 +13,7 @@ export type BaseMcpDashboardStatus =
   | "base_mcp_unknown_action"
   | "base_mcp_timeout"
   | "base_mcp_unavailable"
+  | "base_mcp_rate_limited"
   | "invalid_request"
   | "unauthorized"
   | "forbidden"
@@ -42,6 +43,7 @@ const allowedFailureMessages = new Set([
   "This Base MCP action is not supported.",
   "Base MCP preparation timed out.",
   "No Base MCP action can be prepared right now.",
+  "Base MCP status checks are temporarily limited.",
   "Base MCP preparation request is invalid.",
   "A valid Supabase session is required.",
   "Agent does not belong to the signed-in user.",
@@ -116,6 +118,7 @@ function normalizeStatus(
     case "base_mcp_unknown_action":
     case "base_mcp_timeout":
     case "base_mcp_unavailable":
+    case "base_mcp_rate_limited":
     case "invalid_request":
     case "unauthorized":
     case "forbidden":

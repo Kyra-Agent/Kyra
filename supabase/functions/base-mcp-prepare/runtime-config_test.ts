@@ -36,6 +36,7 @@ Deno.test("base-mcp runtime config trims optional provider fields when enabled",
   const values = new Map([
     ["KYRA_BASE_MCP_PREP_ENABLED", "true"],
     ["KYRA_BASE_MCP_ENDPOINT", "  https://base-mcp.test  "],
+    ["KYRA_BASE_MCP_PROVIDER_PROTOCOL", "kyra_status_v1"],
     ["KYRA_BASE_MCP_API_KEY", "  secret-value  "],
     ["KYRA_BASE_MCP_TIMEOUT_MS", "4500"],
   ]);
@@ -47,8 +48,23 @@ Deno.test("base-mcp runtime config trims optional provider fields when enabled",
 
   if (config.enabled) {
     assertEquals(config.endpoint, "https://base-mcp.test/");
+    assertEquals(config.providerProtocol, "kyra_status_v1");
     assertEquals(config.apiKey, "secret-value");
     assertEquals(config.timeoutMs, 4500);
+  }
+});
+
+Deno.test("base-mcp runtime protocol enables only the reviewed adapter contract", () => {
+  for (const value of ["", "KYRA_STATUS_V1", " kyra_status_v1", "mcp"] ) {
+    const config = createBaseMcpPrepareRuntimeConfig((key) => {
+      if (key === "KYRA_BASE_MCP_PREP_ENABLED") return "true";
+      if (key === "KYRA_BASE_MCP_PROVIDER_PROTOCOL") return value;
+      return "";
+    });
+
+    if (config.enabled) {
+      assertEquals(config.providerProtocol, null);
+    }
   }
 });
 

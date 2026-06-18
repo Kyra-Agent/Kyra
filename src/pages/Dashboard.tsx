@@ -1218,7 +1218,8 @@ export function Dashboard({
       result.ok
         ? "ready"
         : result.status === "base_mcp_disabled" ||
-            result.status === "base_mcp_not_configured"
+            result.status === "base_mcp_not_configured" ||
+            result.status === "base_mcp_rate_limited"
         ? "blocked"
         : "error",
     );

@@ -25,6 +25,7 @@ function assertFailure(
 const runtimeConfig = {
   enabled: true,
   endpoint: "https://base-mcp.test/v1",
+  providerProtocol: "kyra_status_v1",
   apiKey: null,
   timeoutMs: 2500,
 } as const;

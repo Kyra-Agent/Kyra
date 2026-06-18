@@ -27,7 +27,8 @@ type BaseMcpAdapterErrorCode =
   | "base_mcp_not_configured"
   | "base_mcp_unknown_action"
   | "base_mcp_timeout"
-  | "base_mcp_unavailable";
+  | "base_mcp_unavailable"
+  | "base_mcp_rate_limited";
 
 interface BaseMcpStatusCheckRequest {
   actionKind: "base_mcp_status_check";
@@ -84,6 +85,17 @@ interface BaseMcpPreparedActionStorageResult {
   ok: true;
 }
 
+interface BaseMcpRateLimitInput {
+  ownerUserId: string;
+  workspaceId: string;
+  agentId: string;
+}
+
+interface BaseMcpRateLimitDecision {
+  allowed: boolean;
+  status: "allowed" | "rate_limited";
+}
+
 export interface BaseMcpPrepareDependencies {
   baseMcpPrepareRuntimeConfig?: BaseMcpPrepareRuntimeConfig;
   getEnv?: (key: string) => string;
@@ -97,6 +109,9 @@ export interface BaseMcpPrepareDependencies {
     ownerUserId: string,
   ) => Promise<AgentOwnershipRecord | null>;
   getNow?: () => Date;
+  checkBaseMcpRateLimit?: (
+    input: BaseMcpRateLimitInput,
+  ) => Promise<BaseMcpRateLimitDecision>;
   prepareBaseMcpAction?: (
     input: BaseMcpPrepareRequest,
     runtimeConfig: Extract<BaseMcpPrepareRuntimeConfig, { enabled: true }>,
@@ -178,13 +193,38 @@ export async function handleBaseMcpPrepareRequest(
       );
     }
 
-    if (!runtimeConfig.endpoint || !dependencies.prepareBaseMcpAction) {
+    if (
+      !runtimeConfig.endpoint ||
+      runtimeConfig.providerProtocol !== "kyra_status_v1" ||
+      !dependencies.prepareBaseMcpAction
+    ) {
       return baseMcpFailureResponse({
         ok: false,
         status: "blocked",
         code: "base_mcp_not_configured",
         message: "Base MCP preparation is not configured.",
-      }, 501);
+      }, 501, allowedPrepareRequest.requestId);
+    }
+
+    const checkBaseMcpRateLimit = requireDependency(
+      dependencies.checkBaseMcpRateLimit,
+    );
+    const rateLimitDecision = await safeCheckBaseMcpRateLimit(
+      checkBaseMcpRateLimit,
+      {
+        ownerUserId,
+        workspaceId: allowedPrepareRequest.workspaceId,
+        agentId: allowedPrepareRequest.agentId,
+      },
+    );
+
+    if (!rateLimitDecision.allowed) {
+      return baseMcpFailureResponse({
+        ok: false,
+        status: "blocked",
+        code: "base_mcp_rate_limited",
+        message: "Base MCP status checks are temporarily limited.",
+      }, 429, allowedPrepareRequest.requestId);
     }
 
     try {
@@ -208,9 +248,13 @@ export async function handleBaseMcpPrepareRequest(
         );
       }
 
-      return baseMcpResultResponse(result);
+      return baseMcpResultResponse(result, allowedPrepareRequest.requestId);
     } catch (error) {
-      return baseMcpFailureResponse(sanitizeBaseMcpAdapterError(error), 502);
+      return baseMcpFailureResponse(
+        sanitizeBaseMcpAdapterError(error),
+        502,
+        allowedPrepareRequest.requestId,
+      );
     }
   } catch (error) {
     if (error instanceof HttpError) {
@@ -342,9 +386,10 @@ function assertBaseMcpPrepareFailure(
   if (
     result.code !== "base_mcp_disabled" &&
     result.code !== "base_mcp_not_configured" &&
-    result.code !== "base_mcp_unknown_action" &&
-    result.code !== "base_mcp_timeout" &&
-    result.code !== "base_mcp_unavailable"
+      result.code !== "base_mcp_unknown_action" &&
+      result.code !== "base_mcp_timeout" &&
+      result.code !== "base_mcp_unavailable" &&
+      result.code !== "base_mcp_rate_limited"
   ) {
     throw invalidBaseMcpAdapterResponse();
   }
@@ -388,22 +433,60 @@ function createPreparedActionStorageInput(
   };
 }
 
-function baseMcpResultResponse(result: BaseMcpPrepareResult) {
+function baseMcpResultResponse(
+  result: BaseMcpPrepareResult,
+  requestId?: string,
+) {
   if (result.ok) {
-    return jsonResponse(result as unknown as Record<string, unknown>);
+    return baseMcpJsonResponse(
+      result as unknown as Record<string, unknown>,
+      200,
+      requestId,
+      result.status,
+    );
   }
 
-  return baseMcpFailureResponse(result, statusForBaseMcpFailure(result));
+  return baseMcpFailureResponse(
+    result,
+    statusForBaseMcpFailure(result),
+    requestId,
+  );
 }
 
 function baseMcpFailureResponse(
   failure: BaseMcpPrepareFailure,
   httpStatus: number,
+  requestId?: string,
 ) {
-  return jsonResponse(
+  return baseMcpJsonResponse(
     failure as unknown as Record<string, unknown>,
     httpStatus,
+    requestId,
+    failure.code,
   );
+}
+
+function baseMcpJsonResponse(
+  body: Record<string, unknown>,
+  status: number,
+  requestId?: string,
+  outcome?: string,
+) {
+  const response = jsonResponse(body, status);
+
+  if (requestId) {
+    response.headers.set("x-kyra-request-id", requestId);
+    response.headers.set(
+      "Access-Control-Expose-Headers",
+      "x-kyra-request-id, x-kyra-base-mcp-outcome",
+    );
+  }
+
+  if (outcome) {
+    response.headers.set("x-kyra-base-mcp-outcome", outcome);
+  }
+
+  return response;
 }
 
 function statusForBaseMcpFailure(failure: BaseMcpPrepareFailure) {
@@ -417,7 +500,35 @@ function statusForBaseMcpFailure(failure: BaseMcpPrepareFailure) {
       return 504;
     case "base_mcp_unavailable":
       return 502;
+    case "base_mcp_rate_limited":
+      return 429;
   }
+}
+
+async function safeCheckBaseMcpRateLimit(
+  checkBaseMcpRateLimit: NonNullable<
+    BaseMcpPrepareDependencies["checkBaseMcpRateLimit"]
+  >,
+  input: BaseMcpRateLimitInput,
+) {
+  try {
+    const result = await checkBaseMcpRateLimit(input);
+
+    if (
+      (result.allowed === true && result.status === "allowed") ||
+      (result.allowed === false && result.status === "rate_limited")
+    ) {
+      return result;
+    }
+  } catch {
+    // Collapse limiter failures below.
+  }
+
+  throw new HttpError(
+    500,
+    "server_error",
+    "Base MCP rate limit check failed.",
+  );
 }
 
 async function safeLookupAgentOwnership(
@@ -587,6 +698,7 @@ function isAllowedBaseMcpFailureMessage(value: unknown) {
     value === "Base MCP preparation is not configured." ||
     value === "This Base MCP action is not supported." ||
     value === "Base MCP preparation timed out." ||
+    value === "Base MCP status checks are temporarily limited." ||
     value === "No Base MCP action can be prepared right now.";
 }
 

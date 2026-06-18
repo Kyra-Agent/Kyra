@@ -2,7 +2,8 @@
 
 Default-off Edge Function for read-only Base MCP status preparation.
 
-Phase 7K adds one explicit signed-in owner-dashboard caller. The caller does not
+Phase 7L prepares one controlled live smoke around the Phase 7K signed-in
+owner-dashboard caller. The caller does not
 change the backend runtime gate, provider credential boundary, storage state,
 wallet state, or Telegram execution boundary.
 
@@ -20,10 +21,14 @@ Enabled contract:
 - Validate the Supabase session.
 - Accept only the `base_mcp_status_check` action shape.
 - Verify agent ownership before any adapter call.
+- Require exact provider protocol `kyra_status_v1`.
+- Enforce a persistent service-role rate limit before any provider call.
 - Call only the reviewed read-only status provider adapter.
 - Return only a bounded read-only preparation summary.
 - Keep `opaquePayloadRef` null for the first status-check candidate.
 - Treat missing, invalid, or non-HTTPS Base MCP endpoints as not configured.
+- Treat missing or mismatched provider protocol as not configured.
+- Return only bounded request-id and outcome correlation headers.
 - Keep prepared-action storage unwired until separate SQL/storage approval.
 
 Hard boundaries:
@@ -37,3 +42,5 @@ Hard boundaries:
   phrases, or Telegram bot tokens.
 - Do not expand beyond the reviewed read-only status provider adapter without a
   separate review.
+- Do not enable the runtime gate until the rate-limit SQL verifier and a
+  compatible provider have been approved.

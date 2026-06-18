@@ -9,7 +9,8 @@ export type BaseMcpAdapterErrorCode =
   | "base_mcp_not_configured"
   | "base_mcp_unknown_action"
   | "base_mcp_timeout"
-  | "base_mcp_unavailable";
+  | "base_mcp_unavailable"
+  | "base_mcp_rate_limited";
 
 export interface BaseMcpStatusCheckRequest {
   actionKind: "base_mcp_status_check";

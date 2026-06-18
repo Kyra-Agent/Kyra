@@ -39,7 +39,7 @@ approval.
 | Telegram             | Live read-only commands and natural planning chat      |
 | LLM layer            | Backend-only enrichment for eligible read-only replies |
 | Wallet/Base layer    | Phase 6 hardened foundation, execution still gated     |
-| Base MCP             | Read-only status provider wired behind backend gate    |
+| Base MCP             | Read-only status path prepared; production gate off    |
 | Onchain transactions | Not live in the current demo                           |
 
 ## What Is Live
@@ -61,8 +61,9 @@ Kyra can currently:
 - Handle bounded natural Telegram chat for planning requests.
 - Use backend-only LLM enrichment for eligible read-only replies.
 - Show non-executing wallet/Base readiness and review surfaces.
-- Run an explicit owner-dashboard read-only Base MCP status check behind
-  refreshed session auth, backend ownership verification, and runtime gates.
+- Prepare an explicit owner-dashboard read-only Base MCP status check behind
+  refreshed session auth, backend ownership verification, protocol validation,
+  persistent rate limits, and a default-off production gate.
 - Refuse wallet, approval, Base MCP, swap, transfer, and onchain execution from
   Telegram.
 
@@ -163,9 +164,11 @@ Phase 6 focused on the execution foundation without turning execution on:
 
 Phase 7 starts with pre-execution security audits before any production wallet
 prompt, prepared-action write, transaction signing, or transaction submission is
-enabled. The first approved runtime step is narrow: a read-only Base MCP status
+enabled. The first runtime candidate is narrow: a read-only Base MCP status
 provider adapter behind backend gates, without prepared-action storage or wallet
-execution. See `docs/phase-7-pre-execution-audit.md`.
+execution. Its controlled smoke remains blocked until a compatible provider and
+reviewed database rate-limit contract are approved. See
+`docs/phase-7-pre-execution-audit.md`.
 
 ## Product Principles
 

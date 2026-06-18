@@ -6,12 +6,14 @@ import {
 import { createBaseMcpPrepareDependenciesFromOptions } from "./dependencies.ts";
 import type { OptionalEnvReader } from "./runtime-config.ts";
 import type { OwnershipLookupClient } from "../telegram-connect/core.ts";
+import type { BaseMcpRateLimitRpcClient } from "./rate-limit.ts";
 
 export * from "./core.ts";
 export * from "./dependencies.ts";
 export * from "./runtime-config.ts";
 export * from "./storage-adapter.ts";
 export * from "./provider-adapter.ts";
+export * from "./rate-limit.ts";
 
 export interface BaseMcpPrepareRuntimeOptions {
   getEnv?: (key: string) => string;
@@ -19,7 +21,8 @@ export interface BaseMcpPrepareRuntimeOptions {
   createServiceClient?: (
     supabaseUrl: string,
     serviceRoleKey: string,
-  ) => Promise<OwnershipLookupClient> | OwnershipLookupClient;
+  ) => Promise<OwnershipLookupClient & BaseMcpRateLimitRpcClient> |
+    (OwnershipLookupClient & BaseMcpRateLimitRpcClient);
 }
 
 export function getEnv(key: string) {
@@ -85,7 +88,7 @@ export async function createServiceClient(
       persistSession: false,
       autoRefreshToken: false,
     },
-  }) as unknown as OwnershipLookupClient;
+  }) as unknown as OwnershipLookupClient & BaseMcpRateLimitRpcClient;
 }
 
 export function createBaseMcpPrepareDependencies(

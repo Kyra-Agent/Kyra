@@ -2,9 +2,10 @@
 
 Date: 2026-06-19
 
-Status: Phase 7K started. The first read-only Base MCP status provider adapter
-is wired behind backend runtime gates and has an explicit owner-dashboard
-caller. No production wallet prompt,
+Status: Phase 7L local live-smoke preparation complete. The first read-only
+Base MCP status adapter and owner-dashboard caller are protected by an exact
+protocol gate and service-role rate-limit contract. No compatible production
+provider is approved and the runtime gate remains disabled. No production wallet prompt,
 prepared-action write, signing, swap, transfer, contract call, Telegram
 execution, or transaction submission is enabled.
 
@@ -187,6 +188,18 @@ and owner approval are complete:
 - No storage write, wallet prompt, approval, signing, submission, public route,
   or Telegram execution path is enabled.
 
+### 7L - Controlled Live Smoke Preparation
+
+- Audit packet: `docs/phase-7L-controlled-live-smoke-preparation.md`.
+- Require exact provider protocol `kyra_status_v1`; generic MCP endpoints are
+  not compatible by assumption.
+- Require persistent service-role rate limiting before provider calls.
+- Keep rate-limit forward, verifier, and rollback SQL review-only until explicit
+  target-project approval.
+- Use bounded correlation headers without external raw-data logging.
+- Keep the production runtime gate disabled until a compatible provider,
+  database verifier, rollback, and controlled smoke window are approved.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -220,6 +233,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7i`
 - `npm run check:phase-7j`
 - `npm run check:phase-7k`
+- `npm run check:phase-7l`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`
