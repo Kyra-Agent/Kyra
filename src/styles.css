@@ -2279,6 +2279,89 @@ h2 {
   line-height: 1.45;
 }
 
+.risk-review-panel {
+  display: grid;
+  gap: 0.68rem;
+  margin-top: 0.68rem;
+  padding: 0.78rem;
+  border: 1px solid rgba(138, 230, 177, 0.24);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(138, 230, 177, 0.07), transparent 42%),
+    rgba(255, 255, 255, 0.035);
+}
+
+.risk-review-panel.risk-review_required {
+  border-color: rgba(255, 214, 128, 0.3);
+  background:
+    linear-gradient(135deg, rgba(255, 214, 128, 0.08), transparent 42%),
+    rgba(255, 255, 255, 0.035);
+}
+
+.risk-review-panel.risk-blocked {
+  border-color: rgba(255, 127, 138, 0.34);
+  background:
+    linear-gradient(135deg, rgba(255, 127, 138, 0.09), transparent 42%),
+    rgba(255, 255, 255, 0.035);
+}
+
+.risk-review-panel > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.risk-review-panel span {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.risk-review-panel strong {
+  color: var(--text);
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.risk-review-panel > div:first-child strong {
+  color: var(--green);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+.risk-review-panel.risk-review_required > div:first-child strong {
+  color: #ffd680;
+}
+
+.risk-review-panel.risk-blocked > div:first-child strong {
+  color: var(--red);
+}
+
+.risk-review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.risk-review-grid span {
+  display: grid;
+  gap: 0.25rem;
+  min-height: 58px;
+  padding: 0.58rem;
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) - 2px);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.risk-review-panel ul {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding-left: 1rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
 .handoff-review {
   display: grid;
   gap: 0.68rem;
@@ -4388,6 +4471,7 @@ h2 {
   .receipt-grid,
   .diagnostic-status-grid,
   .approval-detail-grid,
+  .risk-review-grid,
   .handoff-review-grid {
     grid-template-columns: 1fr;
   }

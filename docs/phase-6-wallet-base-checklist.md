@@ -92,6 +92,7 @@ Detailed sub-plans:
 - `docs/phase-6C-wallet-provider-decision.md`
 - `docs/phase-6C-wallet-signing-handoff-audit.md`
 - `docs/phase-6C-wallet-signing-handoff-plan.md`
+- `docs/phase-6-risk-permission-review.md`
 
 ### Milestone 6A - Wallet Readiness
 
@@ -253,13 +254,13 @@ Definition of done:
 
 ## Step 5 - Risk And Permission Review
 
-- [ ] Define NYX-05 risk gate role.
-- [ ] Classify low/medium/high risk actions.
-- [ ] Require explicit approval for high-risk actions.
-- [ ] Display fees, route, target contract, and chain before signing.
-- [ ] Refuse unknown or unsupported action types.
-- [ ] Add safety copy for failed or risky preparation.
-- [ ] Add tests for risk classification.
+- [x] Define NYX-05 risk gate role.
+- [x] Classify read-only/low/medium/high/blocked risk actions.
+- [x] Require explicit approval for signable and risky actions.
+- [x] Display route, chain, value, expiry, permissions, and risk before signing.
+- [x] Refuse unknown or unsupported action types.
+- [x] Add safety copy for failed or risky preparation.
+- [x] Add tests for risk classification.
 
 Definition of done:
 
@@ -377,7 +378,7 @@ Before enabling production gates:
 - [x] Prepare reviewed SQL to clean stale production template catalog rows.
 - [ ] Confirm unsupported execution requests fail closed.
 - [ ] Confirm wallet approval is required.
-- [ ] Confirm transaction details are visible before signing.
+- [x] Confirm transaction details are visible before signing.
 - [ ] Confirm user rejection is handled cleanly.
 
 ## Phase 6 Done Criteria

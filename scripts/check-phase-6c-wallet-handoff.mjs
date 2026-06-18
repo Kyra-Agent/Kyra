@@ -39,6 +39,7 @@ function walkFiles(path) {
 const audit = read("docs/phase-6C-wallet-signing-handoff-audit.md");
 const plan = read("docs/phase-6C-wallet-signing-handoff-plan.md");
 const providerDecision = read("docs/phase-6C-wallet-provider-decision.md");
+const riskReviewDoc = read("docs/phase-6-risk-permission-review.md");
 const checklist = read("docs/phase-6-wallet-base-checklist.md");
 const appConfig = read("src/config/appConfig.ts");
 const packageJson = read("package.json");
@@ -58,6 +59,7 @@ const dashboardService = read("src/services/supabaseDashboardService.ts");
 const supabaseKyraRepository = read("src/services/supabaseKyraRepository.ts");
 const dashboard = read("src/pages/Dashboard.tsx");
 const walletSigningTypes = read("src/types/walletSigning.ts");
+const riskReviewTypes = read("src/types/riskReview.ts");
 const unsignedTransactionHandoffTypes = read(
   "src/types/unsignedTransactionHandoff.ts",
 );
@@ -171,6 +173,7 @@ assertIncludes(
 assertIncludes("package.json", packageJson, '"check:phase-6c"');
 assertIncludes("package.json", packageJson, '"test:wallet-signing"');
 assertIncludes("package.json", packageJson, '"test:unsigned-handoff"');
+assertIncludes("package.json", packageJson, '"test:risk-review"');
 assertIncludes("package.json", packageJson, '"wagmi"');
 assertIncludes("package.json", packageJson, '"viem"');
 assertIncludes("package.json", packageJson, '"@tanstack/react-query"');
@@ -356,6 +359,13 @@ assertIncludes(
   walletModal,
   "No wallet prompt was opened.",
 );
+assertIncludes("WalletApprovalModal", walletModal, "NYX-05 risk review");
+assertIncludes("WalletApprovalModal", walletModal, "riskReview.permissions");
+assertIncludes(
+  "WalletApprovalModal",
+  walletModal,
+  "riskReview.explicitApprovalRequired",
+);
 assertIncludes("WalletApprovalModal", walletModal, "onReject");
 assertIncludes("WalletApprovalModal", walletModal, "Cancel");
 assertIncludes("WalletApprovalModal", walletModal, "Disabled");
@@ -396,6 +406,31 @@ assert(
   !walletModal.includes('"submitted"') && !walletModal.includes('"confirmed"'),
   "Demo wallet modal must not present submitted or confirmed wallet states.",
 );
+for (
+  const boundary of [
+    "RiskReviewLevel",
+    '"read-only"',
+    '"low"',
+    '"medium"',
+    '"high"',
+    '"blocked"',
+    "Unsupported action type. Kyra fails closed.",
+    "reviewPreparedActionRisk",
+    "reviewUnsignedTransactionHandoff",
+  ]
+) {
+  assertIncludes("risk review model", riskReviewTypes, boundary);
+}
+for (
+  const boundary of [
+    "NYX-05 must classify every prepared action",
+    "`blocked`",
+    "`wallet_prompt`",
+    "Unsupported action kinds return `blocked`",
+  ]
+) {
+  assertIncludes("risk review doc", riskReviewDoc, boundary);
+}
 for (
   const state of [
     "not_ready",

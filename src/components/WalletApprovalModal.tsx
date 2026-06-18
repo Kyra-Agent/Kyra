@@ -5,6 +5,7 @@ import type {
   WalletUnsignedTransactionHandoffValidation,
 } from "../types/unsignedTransactionHandoff";
 import type { WalletSigningState } from "../types/walletSigning";
+import type { RiskReviewResult } from "../types/riskReview";
 
 interface WalletApprovalModalProps {
   scenario: DemoScenario;
@@ -15,6 +16,7 @@ interface WalletApprovalModalProps {
   signingState: WalletSigningState;
   unsignedHandoff: WalletUnsignedTransactionHandoff;
   unsignedHandoffValidation: WalletUnsignedTransactionHandoffValidation;
+  riskReview: RiskReviewResult;
   onApprove: () => void;
   onReject: () => void;
   onClose: () => void;
@@ -29,6 +31,7 @@ export function WalletApprovalModal({
   signingState,
   unsignedHandoff,
   unsignedHandoffValidation,
+  riskReview,
   onApprove,
   onReject,
   onClose,
@@ -90,16 +93,51 @@ export function WalletApprovalModal({
           </span>
           <span>
             Risk
-            <strong>{scenario.risk}</strong>
+            <strong>{riskReview.level}</strong>
           </span>
           <span>
             Execution
             <strong>Disabled</strong>
           </span>
           <span>
+            Approval
+            <strong>
+              {riskReview.explicitApprovalRequired
+                ? "Required"
+                : "Not required"}
+            </strong>
+          </span>
+          <span>
             Signing state
             <strong>{formatSigningState(signingState)}</strong>
           </span>
+        </div>
+
+        <div
+          className={`risk-review-panel risk-${riskReview.status}`}
+          aria-label="NYX-05 risk review"
+        >
+          <div>
+            <span>NYX-05 risk review</span>
+            <strong>{formatRiskStatus(riskReview.status)}</strong>
+          </div>
+          <div className="risk-review-grid">
+            <span>
+              Permissions
+              <strong>
+                {riskReview.permissions.map(formatPermission).join(", ")}
+              </strong>
+            </span>
+            <span>
+              Safety
+              <strong>
+                {riskReview.refusalReason ?? riskReview.safetyCopy}
+              </strong>
+            </span>
+          </div>
+          <ul>
+            {riskReview.checks.map((check) => <li key={check}>{check}</li>)}
+          </ul>
         </div>
 
         <div
@@ -181,6 +219,14 @@ export function WalletApprovalModal({
 
 function formatSigningState(state: WalletSigningState) {
   return state.replace(/_/g, " ");
+}
+
+function formatRiskStatus(status: RiskReviewResult["status"]) {
+  return status.replace(/_/g, " ");
+}
+
+function formatPermission(permission: RiskReviewResult["permissions"][number]) {
+  return permission.replace(/_/g, " ");
 }
 
 function formatExpiry(expiresAt: string) {

@@ -36,6 +36,7 @@ import {
   type WalletUnsignedTransactionHandoff,
   walletUnsignedTransactionHandoffVersion,
 } from "./types/unsignedTransactionHandoff";
+import { reviewUnsignedTransactionHandoff } from "./types/riskReview";
 import {
   transitionWalletSigningState,
   type WalletSigningState,
@@ -211,6 +212,14 @@ function App() {
   const walletUnsignedHandoffValidation = useMemo(
     () => validateUnsignedTransactionHandoff(walletUnsignedHandoff),
     [walletUnsignedHandoff],
+  );
+  const riskReview = useMemo(
+    () =>
+      reviewUnsignedTransactionHandoff(
+        walletUnsignedHandoff,
+        walletUnsignedHandoffValidation,
+      ),
+    [walletUnsignedHandoff, walletUnsignedHandoffValidation],
   );
 
   useEffect(() => {
@@ -700,6 +709,7 @@ function App() {
         signingState={walletSigningState}
         unsignedHandoff={walletUnsignedHandoff}
         unsignedHandoffValidation={walletUnsignedHandoffValidation}
+        riskReview={riskReview}
         onApprove={approveDemoAction}
         onReject={rejectDemoAction}
         onClose={closeApprovalModal}
