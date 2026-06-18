@@ -46,7 +46,10 @@ export function normalizeBaseMcpEndpoint(value: unknown) {
   try {
     const url = new URL(value.trim());
 
-    if (url.protocol !== "https:") {
+    if (
+      url.protocol !== "https:" ||
+      url.hostname.toLowerCase() === "mcp.base.org"
+    ) {
       return null;
     }
 

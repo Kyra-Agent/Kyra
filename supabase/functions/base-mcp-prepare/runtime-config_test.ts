@@ -55,7 +55,7 @@ Deno.test("base-mcp runtime config trims optional provider fields when enabled",
 });
 
 Deno.test("base-mcp runtime protocol enables only the reviewed adapter contract", () => {
-  for (const value of ["", "KYRA_STATUS_V1", " kyra_status_v1", "mcp"] ) {
+  for (const value of ["", "KYRA_STATUS_V1", " kyra_status_v1", "mcp"]) {
     const config = createBaseMcpPrepareRuntimeConfig((key) => {
       if (key === "KYRA_BASE_MCP_PREP_ENABLED") return "true";
       if (key === "KYRA_BASE_MCP_PROVIDER_PROTOCOL") return value;
@@ -83,6 +83,7 @@ Deno.test("base-mcp runtime endpoint accepts only valid HTTPS URLs", () => {
   assertEquals(normalizeBaseMcpEndpoint("not-a-url"), null);
   assertEquals(normalizeBaseMcpEndpoint("http://base-mcp.test"), null);
   assertEquals(normalizeBaseMcpEndpoint("ftp://base-mcp.test"), null);
+  assertEquals(normalizeBaseMcpEndpoint("https://mcp.base.org/"), null);
   assertEquals(
     normalizeBaseMcpEndpoint("  https://base-mcp.test/v1  "),
     "https://base-mcp.test/v1",

@@ -2,6 +2,9 @@
 
 Default-off Edge Function for read-only Base MCP status preparation.
 
+This function implements Kyra's custom `kyra_status_v1` status bridge. It is
+not an authenticated client for the official OAuth endpoint at `mcp.base.org`.
+
 Phase 7M hardens the exact provider contract around the Phase 7K signed-in
 owner-dashboard caller and Phase 7L smoke preparation. The caller does not
 change the backend runtime gate, provider credential boundary, storage state,
@@ -31,6 +34,7 @@ Enabled contract:
 - Keep `opaquePayloadRef` null for the first status-check candidate.
 - Treat missing, invalid, or non-HTTPS Base MCP endpoints as not configured.
 - Treat missing or mismatched provider protocol as not configured.
+- Reject `mcp.base.org` because it is not the custom bridge protocol.
 - Return only bounded request-id and outcome correlation headers.
 - Keep prepared-action storage unwired until separate SQL/storage approval.
 
@@ -47,3 +51,5 @@ Hard boundaries:
   separate review.
 - Do not enable the runtime gate until the rate-limit SQL verifier and a
   compatible provider have been approved.
+- Do not add official MCP OAuth registration, wallet scopes, token storage, or
+  tool calls without a separate security review.

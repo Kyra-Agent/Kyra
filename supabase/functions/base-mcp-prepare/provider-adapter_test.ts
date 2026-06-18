@@ -1,4 +1,5 @@
 import { createBaseMcpStatusCheckAdapter } from "./provider-adapter.ts";
+import { normalizeBaseMcpEndpoint } from "./runtime-config.ts";
 
 function assert(condition: boolean, message: string): asserts condition {
   if (!condition) {
@@ -163,6 +164,22 @@ Deno.test("Base MCP provider adapter fails closed for unsupported action and mis
   assertEquals(unsupported.code, "base_mcp_unknown_action");
   assertFailure(notConfigured);
   assertEquals(notConfigured.code, "base_mcp_not_configured");
+  assertEquals(transportCalls, 0);
+});
+
+Deno.test("Base MCP custom adapter never calls the official OAuth MCP endpoint", async () => {
+  let transportCalls = 0;
+  const adapter = createBaseMcpStatusCheckAdapter(async () => {
+    transportCalls += 1;
+    return validProviderResponse();
+  });
+  const result = await adapter(validInput(), {
+    ...runtimeConfig,
+    endpoint: normalizeBaseMcpEndpoint("https://mcp.base.org/"),
+  });
+
+  assertFailure(result);
+  assertEquals(result.code, "base_mcp_not_configured");
   assertEquals(transportCalls, 0);
 });
 

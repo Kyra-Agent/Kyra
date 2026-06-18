@@ -2,7 +2,7 @@
 
 Date: 2026-06-19
 
-Status: Phase 7M local provider qualification complete. The first read-only
+Status: Phase 7N official Base MCP protocol decision complete. The first read-only
 Base MCP status adapter and owner-dashboard caller are protected by an exact
 protocol gate and service-role rate-limit contract. No compatible production
 provider is approved and the runtime gate remains disabled. No production wallet prompt,
@@ -210,6 +210,17 @@ and owner approval are complete:
 - Keep provider errors sanitized and keep the production gate disabled until a
   real candidate passes qualification with owner approval.
 
+### 7N - Official Base MCP Protocol Decision
+
+- Audit packet: `docs/phase-7N-official-base-mcp-protocol-decision.md`.
+- Treat the custom `kyra_status_v1` bridge and official OAuth MCP as separate
+  protocol lanes.
+- Reject `mcp.base.org` from the custom endpoint normalizer.
+- Do not register, authorize, request tokens, initialize authenticated MCP, or
+  request agent-wallet scopes during this phase.
+- Require a separate wallet-authority, consent, token-storage, and tool audit
+  before official MCP implementation.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -245,6 +256,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7k`
 - `npm run check:phase-7l`
 - `npm run check:phase-7m`
+- `npm run check:phase-7n`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`
