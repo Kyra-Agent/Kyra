@@ -2,8 +2,9 @@
 
 Date: 2026-06-18
 
-Status: local closeout ready. Phase 6 prepares Kyra for wallet-approved Base
-actions, but production wallet execution is still intentionally disabled.
+Status: pushed live hardening complete. Phase 6 prepares Kyra for
+wallet-approved Base actions, but production wallet execution is still
+intentionally disabled.
 
 ## Closeout Position
 
@@ -18,6 +19,10 @@ Phase 6 is complete as a safety-first product foundation:
 - Execution result states are modeled without storing a transaction hash before
   user submission.
 - Telegram execution intent is classified and refused safely.
+- Owner dashboard reads for sensitive tables are column-scoped.
+- Activity log messages are sanitized before deploy writes and before dashboard
+  display.
+- Operator/swap deploy scenarios stay approval-required.
 
 This is not a live arbitrary execution release. It is a reviewed execution
 foundation that keeps wallet approval, Base MCP enablement, and production
@@ -42,6 +47,8 @@ Closeout rules:
   RLS, replay protection, and verifier SQL are approved.
 - Public profiles stay free of wallet-sensitive and transaction-preparation
   payloads.
+- Owner dashboard queries do not use broad `select=*` reads for agent
+  instances, wallet policies, approval requests, or activity logs.
 - Transaction hashes are accepted only after a user-submitted wallet
   transaction.
 - Base MCP runtime preparation remains default-off.
@@ -50,6 +57,8 @@ Closeout rules:
 - Runtime Edge Function logs stay free of unreviewed `console.*` calls.
 - Raw provider, wallet, MCP, and backend errors collapse to sanitized user
   messages.
+- Activity log text is sanitized at both backend write and frontend read
+  boundaries.
 
 ## Implemented Boundaries
 
@@ -120,19 +129,29 @@ Closeout rules:
 
 ## Verification
 
-Closeout verification should pass before push or deploy:
+Closeout verification passed before push and live smoke:
 
 - `git status --short`
 - `npm run check:phase-6`
-- relevant Deno Telegram execution tests
+- `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`
 - local dashboard smoke
 - local Telegram refusal smoke
+- live `https://kyraagent.xyz` and `/dashboard` HTTP smoke
+- live bundle marker check for sanitizer coverage, approval-required operator
+  swap behavior, and absence of broad `select=*` owner dashboard reads
 
 The local Telegram refusal smoke is covered by the execution gate and
 read-only pipeline tests. The dashboard smoke confirms the product route loads
 locally without enabling wallet prompts or transaction submission.
+
+The latest hardening added regression checks for:
+
+- no `agent_instances?select=*` owner dashboard read
+- no `activity_logs?select=*` owner dashboard read
+- activity log sanitizer present before deploy insert and dashboard display
+- operator/swap deploy scenario remains approval-required
 
 ## Still Gated For Future Approval
 

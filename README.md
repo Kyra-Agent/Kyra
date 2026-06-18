@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img alt="Phase 5" src="https://img.shields.io/badge/Phase%205-Telegram%20%2B%20LLM%20Live-111827?style=for-the-badge" />
+  <img alt="Phase 6" src="https://img.shields.io/badge/Phase%206-Wallet%20%2B%20Base%20Hardened-111827?style=for-the-badge" />
   <img alt="Base" src="https://img.shields.io/badge/Base-Native-0052FF?style=for-the-badge" />
   <img alt="Safety" src="https://img.shields.io/badge/Execution-Approval%20First-16A34A?style=for-the-badge" />
 </p>
@@ -38,14 +38,19 @@ approval.
 | Public profiles      | Shareable agent identity and capability pages          |
 | Telegram             | Live read-only commands and natural planning chat      |
 | LLM layer            | Backend-only enrichment for eligible read-only replies |
-| Wallet execution     | Gated for Phase 6                                      |
-| Base MCP             | Gated for Phase 6                                      |
+| Wallet/Base layer    | Phase 6 hardened foundation, execution still gated     |
+| Base MCP             | Backend-only preparation path, runtime disabled        |
 | Onchain transactions | Not live in the current demo                           |
 
 ## What Is Live
 
 Phase 5 is complete: Telegram + LLM read-only interaction is live for connected
 agent sessions.
+
+Phase 6 is complete as a hardened foundation: wallet readiness, approval
+policy, prepared-action review, risk review, signing handoff states, execution
+result states, and Telegram execution refusal are modeled without enabling live
+wallet prompts or onchain execution.
 
 Kyra can currently:
 
@@ -55,6 +60,7 @@ Kyra can currently:
 - Reply in Telegram through read-only slash commands.
 - Handle bounded natural Telegram chat for planning requests.
 - Use backend-only LLM enrichment for eligible read-only replies.
+- Show non-executing wallet/Base readiness and review surfaces.
 - Refuse wallet, approval, Base MCP, swap, transfer, and onchain execution from
   Telegram.
 
@@ -116,13 +122,14 @@ Different templates can use different module stacks depending on their role.
 
 Kyra is built around approval-first execution.
 
-| Allowed Now                   | Gated For Phase 6                   |
-| ----------------------------- | ----------------------------------- |
-| Read-only Telegram commands   | Wallet connection                   |
-| Natural planning chat         | Token approvals                     |
-| LLM-assisted planning replies | Base MCP execution                  |
-| Dashboard and public profiles | Contract calls                      |
-| Demo persistence              | Live onchain transaction submission |
+| Allowed Now                                | Still Gated                         |
+| ------------------------------------------ | ----------------------------------- |
+| Read-only Telegram commands                | Live wallet prompts                 |
+| Natural planning chat                      | Token approvals                     |
+| LLM-assisted planning replies              | Base MCP runtime execution          |
+| Dashboard and public profiles              | Contract calls                      |
+| Demo persistence                           | Live onchain transaction submission |
+| Wallet/Base readiness and review surfaces  | Arbitrary swaps or transfers        |
 
 Current boundaries:
 
@@ -133,21 +140,27 @@ Current boundaries:
 - No live wallet signing from Telegram.
 - No Base MCP execution from Telegram.
 - No live onchain transaction submission in the current demo.
+- Owner dashboard sensitive reads are column-scoped.
+- Activity log messages are sanitized before display and backend persistence.
 
 Future execution should remain wallet-approved: Kyra can prepare an action, but
 the user's wallet must remain the final approval gate.
 
-## Phase 6 Direction
+## Phase 6 Status
 
-The next product phase focuses on the execution layer:
+Phase 6 focused on the execution foundation without turning execution on:
 
 1. Wallet connection model.
 2. Approval policy and signing boundary.
-3. Base MCP integration.
+3. Base MCP preparation boundary.
 4. Prepared transaction review.
-5. User wallet signing.
-6. Onchain execution audit logs.
-7. Telegram execution gates only after wallet approval is safe.
+5. User wallet signing handoff model.
+6. Onchain execution result states.
+7. Telegram execution refusal and future gate design.
+
+The next execution phase should start with another security audit before any
+production wallet prompt, Base MCP runtime call, or transaction submission is
+enabled.
 
 ## Product Principles
 

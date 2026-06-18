@@ -57,7 +57,9 @@ Security targets:
 - No private key or seed phrase path exists.
 - No Telegram message can directly execute a transaction.
 - No public route exposes wallet-sensitive data.
+- No owner dashboard sensitive read uses broad `select=*` fields.
 - No raw provider, wallet, MCP, or backend error leaks to users.
+- No raw or unbounded activity log message is shown without sanitizer coverage.
 - Unsupported action requests fail closed.
 - BotFather tokens remain backend-only and never appear in browser storage,
   logs, public profiles, screenshots, or API responses.
@@ -393,6 +395,29 @@ Before enabling production gates:
 - [x] Confirm user rejection is handled cleanly.
 - [x] Confirm transaction hash is blocked before submission.
 - [x] Confirm execution results stay owner-only.
+
+## Phase 6 Hardening Closeout
+
+- [x] Remove broad owner dashboard `select=*` reads for `agent_instances`.
+- [x] Remove broad owner dashboard `select=*` reads for `activity_logs`.
+- [x] Keep `wallet_policies` and `approval_requests` reads column-scoped.
+- [x] Sanitize activity log messages before deploy-function inserts.
+- [x] Sanitize activity log messages before dashboard display.
+- [x] Keep operator/swap deploy scenario approval-required.
+- [x] Add static regression checks for dashboard privacy and approval-required
+      operator/swap behavior.
+- [x] Run full Supabase function Deno tests.
+- [x] Run production build.
+- [x] Live-smoke `https://kyraagent.xyz` and `/dashboard` after push.
+- [x] Confirm live bundle markers show sanitizer coverage and no broad
+      sensitive owner dashboard reads.
+
+Current pushed boundary:
+
+- Phase 6 wallet/Base foundation is hardened and live as a read-only,
+  approval-first product surface.
+- Wallet prompts, Base MCP runtime execution, signing, swaps, transfers, and
+  contract calls remain disabled until a future explicitly approved gate.
 
 ## Phase 6 Done Criteria
 
