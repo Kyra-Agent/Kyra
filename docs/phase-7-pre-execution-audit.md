@@ -107,6 +107,7 @@ and owner approval are complete:
 
 ### 7E - Wallet Prompt And Signing Audit
 
+- Audit packet: `docs/phase-7E-wallet-prompt-signing-audit.md`.
 - Wallet prompts must be user-initiated from the owner dashboard.
 - No prompt opens on page load, public pages, Telegram messages, or background
   effects.
@@ -171,6 +172,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7b`
 - `npm run check:phase-7c`
 - `npm run check:phase-7d`
+- `npm run check:phase-7e`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`
