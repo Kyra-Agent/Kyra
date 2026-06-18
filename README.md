@@ -61,8 +61,8 @@ Kyra can currently:
 - Handle bounded natural Telegram chat for planning requests.
 - Use backend-only LLM enrichment for eligible read-only replies.
 - Show non-executing wallet/Base readiness and review surfaces.
-- Prepare a read-only Base MCP status check behind owner-dashboard auth and
-  backend runtime gates.
+- Run an explicit owner-dashboard read-only Base MCP status check behind
+  refreshed session auth, backend ownership verification, and runtime gates.
 - Refuse wallet, approval, Base MCP, swap, transfer, and onchain execution from
   Telegram.
 

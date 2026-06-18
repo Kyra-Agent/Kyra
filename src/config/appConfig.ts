@@ -21,6 +21,8 @@ const telegramLinkFunctionUrl =
 const telegramDashboardStatusFunctionUrl =
   readEnv("VITE_KYRA_TELEGRAM_DASHBOARD_STATUS_FUNCTION_URL") ||
   (supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/telegram-dashboard-status` : "");
+const baseMcpPrepareFunctionUrl =
+  supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/base-mcp-prepare` : "";
 const telegramConnectTokenInputEnabled =
   readEnv("VITE_KYRA_ENABLE_TELEGRAM_CONNECT_TOKEN_INPUT").toLowerCase() === "true";
 const telegramDashboardStatusReadModelEnabled =
@@ -49,6 +51,10 @@ export const appConfig = {
     telegramDashboardStatusUrl: telegramDashboardStatusFunctionUrl,
     telegramDashboardStatusConfigured: Boolean(
       telegramDashboardStatusFunctionUrl && supabaseConfigured,
+    ),
+    baseMcpPrepareUrl: baseMcpPrepareFunctionUrl,
+    baseMcpPrepareConfigured: Boolean(
+      baseMcpPrepareFunctionUrl && supabaseConfigured,
     ),
   },
   featureFlags: {

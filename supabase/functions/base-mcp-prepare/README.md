@@ -2,6 +2,10 @@
 
 Default-off Edge Function for read-only Base MCP status preparation.
 
+Phase 7K adds one explicit signed-in owner-dashboard caller. The caller does not
+change the backend runtime gate, provider credential boundary, storage state,
+wallet state, or Telegram execution boundary.
+
 Current behavior:
 
 - `OPTIONS` returns CORS `ok`.

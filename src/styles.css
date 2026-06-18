@@ -3108,6 +3108,61 @@ h2 {
   line-height: 1.5;
 }
 
+.base-mcp-status-controls {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.7rem;
+  padding-top: 0.2rem;
+  border-top: 1px solid var(--line);
+}
+
+.base-mcp-status-controls .button {
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.base-mcp-status-note {
+  display: grid;
+  min-width: 0;
+  gap: 0.16rem;
+}
+
+.base-mcp-status-note strong,
+.base-mcp-status-note small {
+  overflow-wrap: anywhere;
+}
+
+.base-mcp-status-note strong {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.base-mcp-status-note small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.base-mcp-status-note.status-ready strong {
+  color: var(--green);
+}
+
+.base-mcp-status-note.status-blocked strong,
+.base-mcp-status-note.status-error strong {
+  color: var(--amber);
+}
+
+@media (max-width: 680px) {
+  .base-mcp-status-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .base-mcp-status-controls .button {
+    width: 100%;
+  }
+}
+
 .execution-result-panel {
   background:
     linear-gradient(135deg, rgba(138, 230, 177, 0.06), transparent 44%),

@@ -205,8 +205,8 @@ assert(
 );
 assertFilesDoNotInclude(
   frontendFiles,
-  /base-mcp-prepare|KYRA_BASE_MCP/u,
-  "Frontend must not reference Base MCP function endpoints or backend secrets",
+  /VITE_.*(?:BASE_MCP_API_KEY|BASE_MCP_ENDPOINT)|KYRA_BASE_MCP_API_KEY|KYRA_BASE_MCP_ENDPOINT/u,
+  "Frontend must not reference Base MCP backend secrets",
 );
 assertFilesDoNotInclude(
   telegramWebhookFiles,

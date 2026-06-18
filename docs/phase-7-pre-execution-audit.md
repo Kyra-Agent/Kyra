@@ -1,9 +1,10 @@
 # Phase 7 Pre-Execution Audit
 
-Date: 2026-06-18
+Date: 2026-06-19
 
-Status: Phase 7J started. The first read-only Base MCP status provider adapter
-is wired behind backend runtime gates. No production wallet prompt,
+Status: Phase 7K started. The first read-only Base MCP status provider adapter
+is wired behind backend runtime gates and has an explicit owner-dashboard
+caller. No production wallet prompt,
 prepared-action write, signing, swap, transfer, contract call, Telegram
 execution, or transaction submission is enabled.
 
@@ -175,6 +176,17 @@ and owner approval are complete:
 - Wallet prompts, signing, transaction submission, swaps, transfers, approvals,
   and contract calls remain disabled.
 
+### 7K - Owner Dashboard Base MCP Status Caller
+
+- Audit packet: `docs/phase-7K-owner-dashboard-status-caller.md`.
+- One explicit owner click can request only `base_mcp_status_check`.
+- The request uses the selected persisted agent and its workspace id.
+- Session freshness is checked before the request.
+- Browser response parsing requires the exact read-only summary shape.
+- The backend runtime gate remains default-off until separately approved.
+- No storage write, wallet prompt, approval, signing, submission, public route,
+  or Telegram execution path is enabled.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -207,6 +219,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7h`
 - `npm run check:phase-7i`
 - `npm run check:phase-7j`
+- `npm run check:phase-7k`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`

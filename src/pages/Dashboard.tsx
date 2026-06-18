@@ -56,6 +56,11 @@ import {
   fetchTelegramDashboardStatuses,
   type TelegramDashboardStatusRecord,
 } from "../services/telegramDashboardStatusService";
+import {
+  prepareBaseMcpStatusCheck,
+  type BaseMcpDashboardStatus,
+} from "../services/baseMcpPrepareService";
+import type { BaseMcpPreparedActionSummary } from "../types/baseMcp";
 import type { DataProvider } from "../types/api";
 import type {
   DemoActivityLog,
@@ -238,6 +243,32 @@ function getPreparedActionTone(status: DemoPreparedActionPreview["status"]) {
   }
 
   return status === "draft" ? "locked" : "standby";
+}
+
+function createBaseMcpPreparedActionPreview(
+  summary: BaseMcpPreparedActionSummary,
+): DemoPreparedActionPreview {
+  return {
+    id: "base_mcp_status_check_live_preview",
+    status: "preview_ready",
+    actionKind: summary.actionKind,
+    title: "Base MCP status check",
+    chain: summary.chain,
+    routeSummary: summary.routeSummary,
+    valueSummary: summary.valueSummary,
+    risk: summary.risk,
+    expiresLabel: summary.expiryIso
+      ? new Date(summary.expiryIso).toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      })
+      : "No expiry",
+    approvalRequirement: "Read-only result. No wallet approval was requested.",
+    ownerScope: "Signed-in dashboard owner only",
+    safetyNote: "No storage write, wallet prompt, signing, or transaction submission.",
+  };
 }
 
 function getExecutionResultFallback(
@@ -606,6 +637,19 @@ export function Dashboard({
   const [telegramDashboardStatuses, setTelegramDashboardStatuses] = useState<
     TelegramDashboardStatusRecord[]
   >([]);
+  const [baseMcpStatusState, setBaseMcpStatusState] = useState<
+    "idle" | "checking" | "ready" | "blocked" | "error"
+  >("idle");
+  const [baseMcpStatusCode, setBaseMcpStatusCode] = useState<
+    BaseMcpDashboardStatus | null
+  >(null);
+  const [baseMcpStatusMessage, setBaseMcpStatusMessage] = useState(
+    "Run an owner-only read-only capability check.",
+  );
+  const [baseMcpPreparedSummary, setBaseMcpPreparedSummary] = useState<
+    BaseMcpPreparedActionSummary | null
+  >(null);
+  const baseMcpRequestSequenceRef = useRef(0);
   const supabaseStatus = getSupabaseAdapterStatus();
 
   useEffect(() => {
@@ -849,6 +893,16 @@ export function Dashboard({
     }
   }, [agentRecords, selectedDashboardAgentId]);
 
+  useEffect(() => {
+    baseMcpRequestSequenceRef.current += 1;
+    setBaseMcpStatusState("idle");
+    setBaseMcpStatusCode(null);
+    setBaseMcpStatusMessage(
+      "Run an owner-only read-only capability check.",
+    );
+    setBaseMcpPreparedSummary(null);
+  }, [authSession?.user.id, selectedDashboardAgentId]);
+
   const agentRecord =
     agentRecords.find((agent) => agent.id === selectedDashboardAgentId) ??
       dashboardData?.latestAgent ??
@@ -906,8 +960,10 @@ export function Dashboard({
   const walletProviderStatus = dashboardData?.walletProviderStatus ??
     getWalletProviderStatusFallback();
   const walletReadinessTone = getWalletReadinessTone(walletReadiness.state);
-  const preparedActionPreview = dashboardData?.preparedActionPreview ??
-    getPreparedActionPreviewFallback(Boolean(authSession));
+  const preparedActionPreview = baseMcpPreparedSummary
+    ? createBaseMcpPreparedActionPreview(baseMcpPreparedSummary)
+    : dashboardData?.preparedActionPreview ??
+      getPreparedActionPreviewFallback(Boolean(authSession));
   const preparedActionTone = getPreparedActionTone(
     preparedActionPreview.status,
   );
@@ -1040,6 +1096,12 @@ export function Dashboard({
     },
   ];
   const isAdminActionRunning = adminActionStatus === "running";
+  const canRunBaseMcpStatusCheck = Boolean(
+    authSession &&
+      agentRecord &&
+      appConfig.functions.baseMcpPrepareConfigured &&
+      baseMcpStatusState !== "checking",
+  );
 
   const diagnosticRows = [
     {
@@ -1111,6 +1173,55 @@ export function Dashboard({
     ) {
       onAuthSessionChange(result.session, result.status, result.message);
     }
+  }
+
+  async function handleBaseMcpStatusCheck() {
+    if (!authSession || !agentRecord || baseMcpStatusState === "checking") {
+      return;
+    }
+
+    setBaseMcpStatusState("checking");
+    setBaseMcpStatusCode(null);
+    setBaseMcpStatusMessage("Checking owner session and Base MCP capability...");
+    setBaseMcpPreparedSummary(null);
+
+    const requestSequence = ++baseMcpRequestSequenceRef.current;
+    const freshAuth = await ensureFreshAuthSession(authSession);
+
+    if (requestSequence !== baseMcpRequestSequenceRef.current) {
+      return;
+    }
+
+    syncFreshAuthSession(authSession, freshAuth);
+
+    if (!freshAuth.session) {
+      setBaseMcpStatusState("error");
+      setBaseMcpStatusCode("unauthorized");
+      setBaseMcpStatusMessage(freshAuth.message);
+      return;
+    }
+
+    const result = await prepareBaseMcpStatusCheck({
+      session: freshAuth.session,
+      agentId: agentRecord.id,
+      workspaceId: agentRecord.workspaceId,
+    });
+
+    if (requestSequence !== baseMcpRequestSequenceRef.current) {
+      return;
+    }
+
+    setBaseMcpStatusCode(result.status);
+    setBaseMcpStatusMessage(result.message);
+    setBaseMcpPreparedSummary(result.summary);
+    setBaseMcpStatusState(
+      result.ok
+        ? "ready"
+        : result.status === "base_mcp_disabled" ||
+            result.status === "base_mcp_not_configured"
+        ? "blocked"
+        : "error",
+    );
   }
 
   function handleOpenResetConfirmation() {
@@ -2043,6 +2154,27 @@ export function Dashboard({
               <p>{preparedActionPreview.routeSummary}</p>
               <small>{preparedActionPreview.approvalRequirement}</small>
               <small>{preparedActionPreview.safetyNote}</small>
+              <div className="base-mcp-status-controls">
+                <button
+                  className="button button-ghost"
+                  disabled={!canRunBaseMcpStatusCheck}
+                  onClick={handleBaseMcpStatusCheck}
+                  type="button"
+                >
+                  <Server size={16} />
+                  {baseMcpStatusState === "checking"
+                    ? "Checking status"
+                    : "Check Base MCP status"}
+                </button>
+                <span className={`base-mcp-status-note status-${baseMcpStatusState}`}>
+                  <strong>
+                    {baseMcpStatusCode
+                      ? formatRuntimeValue(baseMcpStatusCode)
+                      : "owner-only read-only"}
+                  </strong>
+                  <small>{baseMcpStatusMessage}</small>
+                </span>
+              </div>
             </div>
           </section>
 
