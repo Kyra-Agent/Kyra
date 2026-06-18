@@ -86,8 +86,10 @@ assertIncludes(
 assertIncludes(
   "Catalog audit doc",
   catalogAudit,
-  "Production DB write not applied",
+  "live Supabase catalog fix applied and verified",
 );
+assertIncludes("Catalog audit doc", catalogAudit, "returned zero rows");
+assertIncludes("Catalog audit doc", catalogAudit, "stale=false");
 
 assertIncludes("Supabase seed", seed, "approval-gated Base readiness");
 assertIncludes("Supabase seed", seed, "swap review");

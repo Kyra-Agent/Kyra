@@ -1,6 +1,6 @@
 # Phase 6 Supabase Catalog Copy Audit
 
-Status: local fix prepared. Production DB write not applied in this commit.
+Status: live Supabase catalog fix applied and verified on June 18, 2026.
 
 ## Why This Exists
 
@@ -11,7 +11,8 @@ do not inherit stale execution copy.
 
 ## Live Read-Only Audit
 
-Read-only REST audit against `agent_templates` showed stale production rows:
+Initial read-only REST audit against `agent_templates` showed stale production
+rows:
 
 | Template     | Live status                           |
 | ------------ | ------------------------------------- |
@@ -41,8 +42,13 @@ Prepared SQL:
 - `supabase/agent_template_catalog_safety_copy_forward_review.sql`
 - `supabase/verify_agent_template_catalog_safety_copy.sql`
 
-Apply only after explicit approval. The verifier should return zero rows after
-the forward review SQL is applied.
+Applied after explicit approval on June 18, 2026.
+
+Verification:
+
+- `supabase/verify_agent_template_catalog_safety_copy.sql` returned zero rows.
+- Follow-up REST audit returned `stale=false` for every remaining template.
+- Obsolete `launcher` was removed because it had no dependent demo agents.
 
 ## Boundary
 
