@@ -11,6 +11,9 @@ by Kyra.
 
 - Requires `KYRA_BASE_MCP_PROVIDER_SHARED_SECRET` with at least 32 characters.
 - Requires backend-only `KYRA_BASE_RPC_URL` using HTTPS.
+- Requires `KYRA_BASE_RPC_PROVIDER=coinbase_cdp` for sustained production use.
+- Accepts `base_public_smoke` only for the previously completed bounded smoke.
+- Production URLs must use the exact Coinbase CDP Base endpoint origin and path.
 - Accepts no owner, workspace, agent, Telegram, wallet, token, calldata,
   signature, or transaction fields.
 - Performs only `eth_chainId`.

@@ -37,6 +37,7 @@ function createDependencies(fetchRpc: typeof fetch) {
   return {
     expectedBearerSecret: providerSecret,
     baseRpcUrl: "https://mainnet.base.org",
+    baseRpcProvider: "base_public_smoke",
     getNow: () => now,
     fetchRpc,
   };
@@ -170,21 +171,31 @@ Deno.test("status provider fails closed for wrong chain and malformed RPC respon
 
 Deno.test("status provider requires HTTPS RPC URLs without embedded credentials", () => {
   assertEquals(
-    normalizeBaseRpcUrl("https://mainnet.base.org"),
+    normalizeBaseRpcUrl("https://mainnet.base.org", "base_public_smoke"),
     "https://mainnet.base.org/",
   );
+  assertEquals(
+    normalizeBaseRpcUrl(
+      "https://api.developer.coinbase.com/rpc/v1/base/client_api_key_123456",
+      "coinbase_cdp",
+    ),
+    "https://api.developer.coinbase.com/rpc/v1/base/client_api_key_123456",
+  );
 
-  for (
-    const value of [
-      "http://mainnet.base.org",
-      "https://user:password@mainnet.base.org",
-      "not-a-url",
+  for (const [value, provider] of [
+    ["http://mainnet.base.org", "base_public_smoke"],
+    ["https://user:password@mainnet.base.org", "base_public_smoke"],
+    ["https://mainnet.base.org/?key=value", "base_public_smoke"],
+    ["https://mainnet.base.org", "coinbase_cdp"],
+    [
+      "https://api.developer.coinbase.com/rpc/v1/ethereum/client_api_key_123456",
+      "coinbase_cdp",
     ]
-  ) {
+  ]) {
     let failed = false;
 
     try {
-      normalizeBaseRpcUrl(value);
+      normalizeBaseRpcUrl(value, provider);
     } catch {
       failed = true;
     }

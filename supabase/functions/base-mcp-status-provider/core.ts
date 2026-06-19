@@ -15,6 +15,7 @@ const jsonHeaders = {
 interface BaseMcpStatusProviderDependencies {
   expectedBearerSecret: string;
   baseRpcUrl: string;
+  baseRpcProvider: string;
   getNow?: () => Date;
   fetchRpc?: typeof fetch;
 }
@@ -49,7 +50,10 @@ export async function handleBaseMcpStatusProviderRequest(
       dependencies.getNow?.() ?? new Date(),
     );
 
-    const baseRpcUrl = normalizeBaseRpcUrl(dependencies.baseRpcUrl);
+    const baseRpcUrl = normalizeBaseRpcUrl(
+      dependencies.baseRpcUrl,
+      dependencies.baseRpcProvider,
+    );
     await verifyBaseMainnet(baseRpcUrl, dependencies.fetchRpc ?? fetch);
 
     return jsonResponse({
@@ -108,7 +112,7 @@ export function readStatusRequest(
   };
 }
 
-export function normalizeBaseRpcUrl(value: string) {
+export function normalizeBaseRpcUrl(value: string, provider: string) {
   try {
     const url = new URL(value.trim());
 
@@ -116,12 +120,35 @@ export function normalizeBaseRpcUrl(value: string) {
       url.protocol !== "https:" ||
       url.username ||
       url.password ||
+      url.search ||
       url.hash
     ) {
       throw new Error("invalid");
     }
 
-    return url.toString();
+    if (provider === "coinbase_cdp") {
+      if (
+        url.hostname !== "api.developer.coinbase.com" ||
+        !/^\/rpc\/v1\/base\/[A-Za-z0-9_-]{16,256}$/u.test(url.pathname)
+      ) {
+        throw new Error("invalid");
+      }
+
+      return url.toString();
+    }
+
+    if (provider === "base_public_smoke") {
+      if (
+        url.hostname !== "mainnet.base.org" ||
+        (url.pathname !== "/" && url.pathname !== "")
+      ) {
+        throw new Error("invalid");
+      }
+
+      return "https://mainnet.base.org/";
+    }
+
+    throw new Error("invalid");
   } catch {
     throw new ProviderHttpError(
       503,
