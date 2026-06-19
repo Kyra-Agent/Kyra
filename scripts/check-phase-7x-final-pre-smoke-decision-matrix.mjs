@@ -92,7 +92,7 @@ for (
 includes(
   "Phase 7 entry checker",
   entryCheck,
-  "Status: Phase 7Z provider selection sandbox complete.",
+  "Status: Phase 7AA provider candidate intake gate complete.",
 );
 
 for (

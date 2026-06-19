@@ -2,7 +2,7 @@
 
 Date: 2026-06-19
 
-Status: Phase 7Z provider selection sandbox complete. The first read-only
+Status: Phase 7AA provider candidate intake gate complete. The first read-only
 Base MCP status adapter and owner-dashboard caller are protected by an exact
 protocol gate and service-role rate-limit contract. No compatible production
 provider is approved and the runtime gate remains disabled. No production wallet prompt,
@@ -394,6 +394,22 @@ and owner approval are complete:
   only move one candidate into a Phase 7V dossier draft; it cannot approve a
   provider or smoke.
 
+### 7AA - Provider Candidate Intake Gate
+
+- Intake packet: `docs/phase-7AA-provider-candidate-intake-gate.md`.
+- Require explicit owner nomination before any real provider candidate can
+  enter the 7Z sandbox.
+- Accept only redacted candidate metadata: provider/project name, public
+  source, endpoint origin, accountable contacts, credential type without value,
+  credential lifecycle notes, and written support for `kyra_status_v1` plus
+  `POST /status-check`.
+- Reject intake that includes provider credentials, Telegram secrets, Supabase
+  secrets, wallet data, user identifiers, official MCP OAuth material,
+  `agent_wallet:*` scopes, raw provider bodies, or live-probe requirements.
+- Keep the current result as no candidate intake accepted. A passing intake can
+  only move redacted metadata into the Phase 7Z sandbox; it cannot approve a
+  provider, SQL, runtime gate, or smoke.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -443,6 +459,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7x`
 - `npm run check:phase-7y`
 - `npm run check:phase-7z`
+- `npm run check:phase-7aa`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`

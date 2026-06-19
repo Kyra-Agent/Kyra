@@ -11,14 +11,13 @@ const includes = (name, source, value) =>
 const excludes = (name, source, value) =>
   assert(!source.includes(value), `${name} must not include: ${value}`);
 
-const doc = read("docs/phase-7Z-provider-selection-sandbox.md");
+const doc = read("docs/phase-7AA-provider-candidate-intake-gate.md");
 const phase7Audit = read("docs/phase-7-pre-execution-audit.md");
 const entryCheck = read("scripts/check-phase-7-entry.mjs");
 const packageJson = read("package.json");
 const readme = read("README.md");
-const phase7Y = read("docs/phase-7Y-full-pre-provider-audit.md");
+const phase7Z = read("docs/phase-7Z-provider-selection-sandbox.md");
 const phase7V = read("docs/phase-7V-provider-candidate-dossier.md");
-const phase7M = read("docs/phase-7M-provider-contract-qualification.md");
 const runtime = read("supabase/functions/base-mcp-prepare/runtime-config.ts");
 const dependencies = read(
   "supabase/functions/base-mcp-prepare/dependencies.ts",
@@ -31,44 +30,48 @@ const publicAgent = read("src/pages/PublicAgent.tsx");
 
 for (
   const value of [
-    "Status: local provider selection sandbox complete.",
-    "Current decision: no provider selected.",
-    "No provider has been contacted.",
-    "No endpoint has been",
-    "No credential has been requested or pasted.",
-    "## Allowed Sandbox Inputs",
+    "Status: local provider candidate intake gate complete.",
+    "Current decision: no candidate intake accepted.",
+    "No provider is nominated, selected, approved, contacted, or called.",
+    "No credential has been requested, pasted, stored, or rotated.",
+    "## Intake Source Rules",
+    "Owner-provided provider or project name.",
+    "Public website or public documentation URL.",
     "Endpoint origin only",
-    "Expected protocol: `kyra_status_v1`.",
-    "Expected path: `POST /status-check`.",
     "Credential type without credential value.",
-    "## Forbidden Sandbox Inputs",
+    "Written statement that the provider can support exact `kyra_status_v1`.",
+    "Written statement that the provider can support `POST /status-check`.",
+    "## Forbidden Intake Material",
     "Provider API keys",
-    "Telegram bot tokens or token refs.",
+    "Telegram bot tokens",
     "Supabase service-role keys",
     "Wallet addresses",
-    "Raw provider request bodies",
     "Official MCP OAuth client ids",
-    "## Candidate Scorecard",
-    "Data boundary",
-    "OAuth boundary",
+    "Raw provider request bodies",
+    "## Intake Acceptance Checklist",
+    "Owner nomination",
+    "Protocol fit",
     "Surface boundary",
+    "Authority boundary",
     "## Rejection Rules",
-    "Candidate requires official MCP OAuth",
+    "Candidate is not explicitly owner-nominated.",
+    "Candidate requires official MCP OAuth.",
     "Candidate requires any `agent_wallet:*` scope.",
-    "Candidate requires running a live probe before the dossier is complete.",
-    "## Sandbox Result States",
-    "`candidate_for_dossier`",
+    "Candidate requires a live probe before the dossier is complete.",
+    "## Intake Result States",
+    "`ready_for_7z_sandbox`",
     "does not approve provider use",
-    "## Offline Review Template",
-    "Decision: rejected | incomplete | candidate_for_dossier",
+    "## Redacted Intake Template",
+    "Decision: rejected | needs_owner_input | incomplete | ready_for_7z_sandbox",
     "## Guardrails",
     "Do not call the provider.",
+    "Do not request credentials.",
     "Do not set runtime gates.",
     "Do not apply SQL.",
-    "Do not move directly from sandbox to smoke approval.",
+    "Do not move directly from intake to dossier approval.",
     "## Done Criteria",
   ]
-) includes("Phase 7Z sandbox", doc, value);
+) includes("Phase 7AA intake gate", doc, value);
 
 for (
   const forbidden of [
@@ -83,13 +86,13 @@ for (
     "approve automatically",
     "auto-enable",
   ]
-) excludes("Phase 7Z sandbox", doc, forbidden);
+) excludes("Phase 7AA intake gate", doc, forbidden);
 
 for (
   const value of [
-    "### 7Z - Provider Selection Sandbox",
-    "Sandbox packet: `docs/phase-7Z-provider-selection-sandbox.md`.",
-    "`npm run check:phase-7z`",
+    "### 7AA - Provider Candidate Intake Gate",
+    "Intake packet: `docs/phase-7AA-provider-candidate-intake-gate.md`.",
+    "`npm run check:phase-7aa`",
   ]
 ) includes("Phase 7 audit", phase7Audit, value);
 
@@ -101,15 +104,18 @@ includes(
 
 for (
   const value of [
-    '"check:phase-7z"',
-    "npm run check:phase-7z",
+    '"check:phase-7aa"',
+    "npm run check:phase-7aa",
   ]
 ) includes("package scripts", packageJson, value);
 
-includes("README", readme, "provider selection sandbox");
-includes("Phase 7Y audit", phase7Y, "Phase 7Y is locally green");
+includes("README", readme, "provider candidate intake gate");
+includes(
+  "Phase 7Z sandbox",
+  phase7Z,
+  "Current decision: no provider selected.",
+);
 includes("Phase 7V dossier", phase7V, "Current decision: blocked.");
-includes("Phase 7M contract", phase7M, "kyra_status_v1");
 includes("runtime gate", runtime, 'return value === "true"');
 includes(
   "runtime endpoint",
@@ -123,4 +129,4 @@ excludes("provider adapter", providerAdapter, "transactionHash");
 excludes("Telegram runtime", telegram, "base-mcp-prepare");
 excludes("public agent", publicAgent, "base-mcp-prepare");
 
-console.log("Phase 7Z provider selection sandbox checks passed.");
+console.log("Phase 7AA provider candidate intake gate checks passed.");
