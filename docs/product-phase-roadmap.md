@@ -329,3 +329,12 @@ The next work item is Phase 7C:
 
 Do not resume CDP work, wallet signing, or transaction execution before this
 provider-contract decision is clear.
+
+Transition lock:
+
+- `docs/phase-7AK-official-base-mcp-transition-gate.md`
+- `npm run check:phase-7ak`
+
+This gate keeps Phase 7D Base Account connection, official MCP OAuth, token
+storage, tool discovery, prepared actions, signing, and transaction submission
+blocked while Phase 7C remains no-go.

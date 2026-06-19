@@ -12,6 +12,9 @@ service-role rate-limit contract passed production verification. The runtime
 gate is disabled after closeout. No production wallet prompt,
 prepared-action write, signing, swap, transfer, contract call, Telegram
 execution, or transaction submission is enabled.
+Phase 7AK now adds a transition gate that blocks Base Account connection,
+official MCP OAuth, token storage, tool discovery, prepared actions, signing,
+and transaction submission while Phase 7C remains no-go.
 
 Phase status: security audit and custom read-only infrastructure proof are
 complete. Official Base MCP live execution is not complete.
@@ -232,6 +235,21 @@ and owner approval are complete:
   request agent-wallet scopes during this phase.
 - Require a separate wallet-authority, consent, token-storage, and tool audit
   before official MCP implementation.
+
+### 7AK - Official Base MCP Transition Gate
+
+- Audit packet: `docs/phase-7AK-official-base-mcp-transition-gate.md`.
+- Keep Phase 7D Base Account connection blocked while official Base MCP
+  provider-contract evidence remains no-go.
+- Require protected resource metadata, exact resource, exact issuer and
+  audience, non-escalating scope, exact scope-to-tool mapping, tool/schema
+  snapshot, approval-link binding, token lifecycle, revocation, and owner
+  consent evidence before official wallet authority begins.
+- Keep official MCP OAuth start/callback functions, access tokens, refresh
+  tokens, `agent_wallet:*` scopes, authenticated MCP sessions, tool listing,
+  tool invocation, provider approval links, wallet prompts, signing, and
+  transaction submission absent until the transition gate changes.
+- Verification: `npm run check:phase-7ak`.
 
 ### 7O - Official MCP OAuth And Wallet-Authority Threat Model
 
