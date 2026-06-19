@@ -175,6 +175,12 @@ outcome.
 
 Status: blocked by currently verified provider metadata and scope ambiguity.
 
+Current audit:
+
+- `docs/phase-7C-official-base-mcp-provider-contract-audit.md`
+- decision: no-go for live wallet authority until official provider metadata,
+  non-escalating scope semantics, and exact scope-to-tool mapping are verified.
+
 Required:
 
 - verify current official endpoint and discovery contract
@@ -312,11 +318,14 @@ Before implementation resumes, keep the pre-Base MCP cleanup gate green:
 
 The next work item is Phase 7C:
 
-1. Re-audit the current official Base MCP discovery metadata and documentation.
-2. Resolve the exact resource, scope, and tool-authority contract.
-3. Produce a go/no-go implementation decision.
+1. Keep monitoring the current official Base MCP discovery metadata and
+   documentation.
+2. Resolve the exact resource, non-escalating scope, and tool-authority
+   contract.
+3. Maintain the current no-go decision until the missing provider contract is
+   verified.
 4. Only after a go decision, implement Base Account connection and OAuth
-   transaction storage per deployed agent.
+   token storage per deployed agent.
 
 Do not resume CDP work, wallet signing, or transaction execution before this
 provider-contract decision is clear.
