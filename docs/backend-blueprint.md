@@ -1,5 +1,9 @@
 # Kyra Agent Backend Blueprint
 
+Canonical product phase flow:
+
+- `docs/product-phase-roadmap.md`
+
 This is the backend plan for Kyra Agent. The product is still demo-only for
 onchain execution, but Supabase now powers the template catalog, auth sessions,
 dashboard records, public agent profiles, persisted demo deploy receipts, and
@@ -187,11 +191,14 @@ Demo/read-only phase:
 
 Live phase:
 
-1. Base MCP prepares an unsigned transaction or action payload.
-2. NYX-05 checks risk, approvals, slippage, and action limits.
-3. Frontend asks the connected wallet or Base Account to approve.
-4. Wallet signs and submits.
-5. API stores `tx_hash` and final status.
+1. The owner connects their Base Account to one selected deployed agent.
+2. Official Base MCP prepares an unsigned transaction or action payload for
+   that owner, workspace, and agent binding.
+3. NYX-05 checks risk, approvals, slippage, and action limits.
+4. Kyra requires explicit owner approval.
+5. Base Account presents its separate manual approval.
+6. The user's Base Account signs and submits.
+7. API stores `tx_hash` only after submission and records the final status.
 
 ## Security Rules
 

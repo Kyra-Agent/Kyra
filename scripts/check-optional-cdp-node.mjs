@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 
 const doc = readFileSync(
-  "docs/phase-7AK-production-base-rpc-selection.md",
+  "docs/optional-cdp-node-infrastructure.md",
   "utf8",
 );
 const provider = readFileSync(
@@ -20,14 +20,15 @@ const envExample = readFileSync("supabase/functions/.env.example", "utf8");
 
 for (
   const expected of [
-    "Coinbase CDP Node selected; account endpoint configuration pending.",
+    "optional infrastructure prepared; not part of the primary Phase 7",
+    "Official Base MCP remains the primary Phase 7",
     "KYRA_BASE_RPC_PROVIDER=coinbase_cdp",
     "KYRA_BASE_MCP_PREP_ENABLED=false",
     "calls only `eth_chainId` and `eth_blockNumber`",
     "No payment method, account registration, endpoint creation, or key handling was",
   ]
 ) {
-  assertIncludes("Phase 7AK document", doc, expected);
+  assertIncludes("optional CDP document", doc, expected);
 }
 
 for (
@@ -74,10 +75,10 @@ for (
     "SUPABASE_SERVICE_ROLE_KEY=",
   ]
 ) {
-  assertExcludes("Phase 7AK sources", `${provider}\n${validator}`, forbidden);
+  assertExcludes("optional CDP sources", `${provider}\n${validator}`, forbidden);
 }
 
-console.log("Phase 7AK production Base RPC selection checks passed.");
+console.log("Optional CDP Node infrastructure checks passed.");
 
 function assertIncludes(label, source, expected) {
   if (!source.includes(expected)) {

@@ -44,6 +44,9 @@ approval.
 
 ## What Is Live
 
+The canonical phase flow and exact meaning of `live` are maintained in
+[`docs/product-phase-roadmap.md`](docs/product-phase-roadmap.md).
+
 Phase 5 is complete: Telegram + LLM read-only interaction is live for connected
 agent sessions.
 
@@ -162,6 +165,25 @@ Phase 6 focused on the execution foundation without turning execution on:
 5. User wallet signing handoff model.
 6. Onchain execution result states.
 7. Telegram execution refusal and future gate design.
+
+Phase 6 is foundation-complete, not execution-live.
+
+## Phase 7 Product Target
+
+Phase 7 is complete only when one selected deployed agent can:
+
+1. Connect the owner's Base Account.
+2. Authorize official Base MCP for that owner, workspace, and agent.
+3. Prepare one allowlisted action.
+4. Pass risk and permission review.
+5. Receive explicit Kyra owner approval.
+6. Receive explicit Base Account approval.
+7. Submit from the user's Base Account.
+8. Record a sanitized confirmed or failed result.
+
+The existing custom read-only status bridge is a completed security and
+infrastructure proof. It is not official Base MCP and does not complete Phase
+7.
 
 Phase 7 starts with pre-execution security audits before any production wallet
 prompt, prepared-action write, transaction signing, or transaction submission is

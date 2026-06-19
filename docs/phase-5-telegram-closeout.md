@@ -2,6 +2,10 @@
 
 Phase 5 is closed as the Telegram + LLM read-only production milestone.
 
+Canonical phase sequence and status definitions:
+
+- `docs/product-phase-roadmap.md`
+
 ## Final Scope
 
 - Live Telegram webhook integration through Supabase Edge Functions.
@@ -83,3 +87,7 @@ Recommended Phase 6 order:
 7. Telegram command gates for execution requests only after wallet approval is safe.
 
 Security reminder: rotate any provider API key that was pasted into chat before long-running production use.
+
+Historical note: Phase 6 later closed as a hardened wallet/approval foundation,
+not as live wallet execution. Official Base MCP and the first real
+wallet-approved transaction remain Phase 7 outcomes.

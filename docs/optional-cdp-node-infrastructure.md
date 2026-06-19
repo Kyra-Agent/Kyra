@@ -1,13 +1,26 @@
-# Phase 7AK Production Base RPC Selection
+# Optional Coinbase CDP Node Infrastructure
 
 Date: 2026-06-20
 
-Status: Coinbase CDP Node selected; account endpoint configuration pending.
+Status: optional infrastructure prepared; not part of the primary Phase 7
+product flow.
 
-## Decision
+## Classification
 
-Kyra selects Coinbase Developer Platform Node as the production Base RPC for
-the read-only status bridge.
+Coinbase Developer Platform Node is an optional RPC provider for independent
+chain verification, monitoring, analytics, or fallback reads.
+
+It is not required for:
+
+- connecting a user's Base Account
+- official Base MCP OAuth
+- Base MCP tool discovery
+- creating a Base MCP approval link
+- Base Account transaction approval
+
+The canonical product sequence is defined in
+`docs/product-phase-roadmap.md`. Official Base MCP remains the primary Phase 7
+integration.
 
 Reasons:
 
@@ -59,7 +72,7 @@ until endpoint validation and one controlled owner-dashboard smoke pass.
 - bounds every response to 4096 bytes
 - never prints the endpoint, client key, raw response, or block number
 
-## Current Blocker
+## Current State
 
 The repository and Supabase project do not contain a Coinbase CDP Node endpoint.
 Creating one requires the owner to access the CDP Portal. Coinbase documents
@@ -68,7 +81,9 @@ that Node accounts require a payment method on file starting January 2026.
 No payment method, account registration, endpoint creation, or key handling was
 performed automatically.
 
-## Activation Sequence
+No CDP endpoint is currently required to continue the official Base MCP phase.
+
+## Optional Activation Sequence
 
 1. Owner creates or selects a CDP project.
 2. Owner selects Base Mainnet on the CDP Node page.

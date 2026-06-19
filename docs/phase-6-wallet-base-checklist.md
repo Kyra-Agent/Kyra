@@ -3,6 +3,15 @@
 Phase 6 goal: connect Kyra's execution layer safely without weakening the Phase
 5 Telegram read-only boundary.
 
+Canonical roadmap:
+
+- `docs/product-phase-roadmap.md`
+
+Closeout clarification: this file preserves the original Phase 6 product
+target. The implemented Phase 6 release closed as a hardened foundation with
+wallet prompts, official Base MCP, signing, and transaction submission still
+disabled. Those remaining live-execution outcomes are carried into Phase 7.
+
 ## Product Objective
 
 Move Kyra from read-only Telegram + LLM planning into wallet-approved Base
@@ -418,6 +427,9 @@ Current pushed boundary:
   approval-first product surface.
 - Wallet prompts, Base MCP runtime execution, signing, swaps, transfers, and
   contract calls remain disabled until a future explicitly approved gate.
+
+The phrase "live as a read-only product surface" does not mean wallet execution
+is live.
 
 ## Phase 6 Done Criteria
 

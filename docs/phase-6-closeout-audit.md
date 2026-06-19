@@ -2,9 +2,15 @@
 
 Date: 2026-06-18
 
+Canonical roadmap:
+
+- `docs/product-phase-roadmap.md`
+
 Status: pushed live hardening complete. Phase 6 prepares Kyra for
 wallet-approved Base actions, but production wallet execution is still
 intentionally disabled.
+
+Status classification: foundation complete, not live execution.
 
 ## Closeout Position
 
@@ -181,3 +187,9 @@ Before any future live execution work:
 - Enable one narrow action path first.
 - Require explicit owner approval and wallet confirmation.
 - Run live smoke with a low-risk test account only.
+
+Phase 7 product completion must follow the canonical deployed-agent flow:
+connect the owner's Base Account, authorize official Base MCP for the selected
+agent, prepare and review one action, collect Kyra approval, collect Base
+Account approval, submit from the user's account, and record the sanitized
+result.

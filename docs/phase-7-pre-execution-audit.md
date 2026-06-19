@@ -2,12 +2,19 @@
 
 Date: 2026-06-19
 
+Canonical roadmap:
+
+- `docs/product-phase-roadmap.md`
+
 Status: Phase 7AJ controlled read-only Base status smoke complete. The
 Kyra-operated provider bridge, owner-dashboard caller, exact protocol gate, and
 service-role rate-limit contract passed production verification. The runtime
 gate is disabled after closeout. No production wallet prompt,
 prepared-action write, signing, swap, transfer, contract call, Telegram
 execution, or transaction submission is enabled.
+
+Phase status: security audit and custom read-only infrastructure proof are
+complete. Official Base MCP live execution is not complete.
 
 ## Objective
 
@@ -18,6 +25,11 @@ The first goal is not speed. The first goal is proving that no execution path ca
 touch a user wallet, Telegram token, prepared-action record, Base MCP runtime,
 or transaction submission path without explicit owner approval and a reviewed
 gate.
+
+The Phase 7 product goal is not the custom status bridge. The goal is one
+selected deployed agent using the owner's Base Account through official Base
+MCP, with separate Kyra and Base Account approvals, followed by a sanitized
+transaction result.
 
 ## Crown Jewels
 
@@ -567,6 +579,11 @@ The first live candidate must be narrow:
 
 The current safest candidate remains read-only Base MCP status preparation. A
 real signable action requires a separate Phase 7 decision packet.
+
+Historical clarification: the custom status candidate was selected as an
+infrastructure proof and has completed its smoke. It does not close Phase 7.
+The remaining primary path is the official Base MCP sequence defined in
+`docs/product-phase-roadmap.md`.
 
 ## Required Checks
 
