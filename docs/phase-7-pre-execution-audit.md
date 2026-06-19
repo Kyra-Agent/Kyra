@@ -2,7 +2,7 @@
 
 Date: 2026-06-19
 
-Status: Phase 7O official MCP OAuth threat model complete. The first read-only
+Status: Phase 7P official MCP OAuth client architecture decision complete. The first read-only
 Base MCP status adapter and owner-dashboard caller are protected by an exact
 protocol gate and service-role rate-limit contract. No compatible production
 provider is approved and the runtime gate remains disabled. No production wallet prompt,
@@ -232,6 +232,18 @@ and owner approval are complete:
 - Require separate architecture, scope, storage, tool, and smoke approvals
   before implementation.
 
+### 7P - Official MCP OAuth Client Architecture
+
+- Architecture packet:
+  `docs/phase-7P-official-mcp-oauth-client-architecture.md`.
+- Select a backend-for-frontend client with server-owned transaction state,
+  callback exchange, encrypted token lifecycle, and MCP transport.
+- Reject browser token handling, Telegram initiation, custom-bridge reuse,
+  hardcoded discovery, runtime registration, and shared user tokens.
+- Keep implementation blocked while Protected Resource Metadata is unavailable
+  and the provider advertises only wallet-authority scopes.
+- Require scope/consent qualification before callback or token-storage work.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -269,6 +281,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7m`
 - `npm run check:phase-7n`
 - `npm run check:phase-7o`
+- `npm run check:phase-7p`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`

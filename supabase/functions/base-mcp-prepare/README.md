@@ -55,3 +55,5 @@ Hard boundaries:
   tool calls without a separate security review.
 - Phase 7O defines that review contract; this custom function remains outside
   the official OAuth, token, MCP-session, and wallet-authority boundaries.
+- Phase 7P selects a future backend-for-frontend OAuth architecture but keeps
+  implementation blocked and separate from this custom bridge.
