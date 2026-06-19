@@ -92,7 +92,7 @@ for (
 includes(
   "Phase 7 entry checker",
   entryCheck,
-  "Status: Phase 7X pre-smoke decision matrix complete.",
+  "Status: Phase 7Y full pre-provider audit complete.",
 );
 
 for (
