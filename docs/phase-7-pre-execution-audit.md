@@ -2,7 +2,7 @@
 
 Date: 2026-06-19
 
-Status: Phase 7R official Base MCP provider evidence monitor complete. The first read-only
+Status: Phase 7S provider drift response runbook complete. The first read-only
 Base MCP status adapter and owner-dashboard caller are protected by an exact
 protocol gate and service-role rate-limit contract. No compatible production
 provider is approved and the runtime gate remains disabled. No production wallet prompt,
@@ -268,6 +268,20 @@ and owner approval are complete:
   transaction endpoints.
 - Keep drift review manual and keep all OAuth/runtime gates disabled.
 
+### 7S - Provider Drift Response Runbook
+
+- Runbook packet: `docs/phase-7S-provider-drift-response-runbook.md`.
+- Classify provider evidence drift as critical or caution before any baseline
+  update.
+- Treat authorization, token, registration, scope, protected-resource, tool-map,
+  and escalation-semantics changes as critical drift.
+- Re-run Phase 7O and Phase 7Q before changing any official MCP decision.
+- Require explicit owner approval before manually updating the reviewed
+  baseline.
+- Keep OAuth client work, token storage, MCP sessions, tool calls, wallet
+  prompts, signatures, approvals, swaps, transfers, contract calls, Telegram
+  drafts, and Telegram execution blocked during drift response.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -309,6 +323,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7q`
 - `npm run test:phase-7r`
 - `npm run check:phase-7r`
+- `npm run check:phase-7s`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`
