@@ -2,7 +2,7 @@
 
 Date: 2026-06-19
 
-Status: Phase 7Y full pre-provider audit complete. The first read-only
+Status: Phase 7Z provider selection sandbox complete. The first read-only
 Base MCP status adapter and owner-dashboard caller are protected by an exact
 protocol gate and service-role rate-limit contract. No compatible production
 provider is approved and the runtime gate remains disabled. No production wallet prompt,
@@ -378,6 +378,22 @@ and owner approval are complete:
 - Keep provider selection blocked until this audit remains green and the next
   provider sandbox packet is created.
 
+### 7Z - Provider Selection Sandbox
+
+- Sandbox packet: `docs/phase-7Z-provider-selection-sandbox.md`.
+- Define an offline-only candidate evaluation flow after the Phase 7Y audit,
+  without contacting providers, pasting credentials, applying SQL, enabling
+  runtime gates, running smoke tests, or expanding execution scope.
+- Score candidates only on redacted business identity, endpoint ownership,
+  protocol compatibility, credential lifecycle, data boundary, rollback
+  readiness, incident path, retention, and support ownership.
+- Reject any candidate that requires official MCP OAuth, `agent_wallet:*`
+  scopes, wallet data, Telegram data, Supabase data, user identifiers, public
+  frontend configuration, raw provider payload sharing, or Telegram initiation.
+- Keep the current result as no provider selected. A passing sandbox result can
+  only move one candidate into a Phase 7V dossier draft; it cannot approve a
+  provider or smoke.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -426,6 +442,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7w`
 - `npm run check:phase-7x`
 - `npm run check:phase-7y`
+- `npm run check:phase-7z`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`

@@ -82,7 +82,7 @@ for (
 includes(
   "Phase 7 entry checker",
   entryCheck,
-  "Status: Phase 7Y full pre-provider audit complete.",
+  "Status: Phase 7Z provider selection sandbox complete.",
 );
 
 for (

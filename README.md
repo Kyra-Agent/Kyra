@@ -39,7 +39,7 @@ approval.
 | Telegram             | Live read-only commands and natural planning chat      |
 | LLM layer            | Backend-only enrichment for eligible read-only replies |
 | Wallet/Base layer    | Phase 6 hardened foundation, execution still gated     |
-| Base MCP             | Custom bridge prepared; pre-provider audit blocked      |
+| Base MCP             | Custom bridge prepared; provider sandbox blocked        |
 | Onchain transactions | Not live in the current demo                           |
 
 ## What Is Live
@@ -181,7 +181,8 @@ go/no-go packet, target Supabase verifier readiness checklist, and provider
 candidate dossier plus redacted smoke approval packet requirement. The final
 pre-smoke decision matrix remains blocked until every provider, SQL, rollback,
 approval, and gate-off condition is satisfied. The pre-provider audit keeps
-provider selection blocked until the next sandbox packet exists. See
+provider selection blocked until the provider selection sandbox scorecard is
+completed without rejection rules. See
 `docs/phase-7-pre-execution-audit.md`.
 
 ## Product Principles
