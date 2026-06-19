@@ -67,7 +67,7 @@ for (
 includes(
   "Phase 7 entry checker",
   entryCheck,
-  "Status: Phase 7AC candidate dossier fill gate complete.",
+  "Status: Phase 7AD SQL verifier final approval packet complete.",
 );
 
 for (

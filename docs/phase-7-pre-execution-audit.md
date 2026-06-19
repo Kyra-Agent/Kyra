@@ -2,7 +2,7 @@
 
 Date: 2026-06-19
 
-Status: Phase 7AC candidate dossier fill gate complete. The first read-only
+Status: Phase 7AD SQL verifier final approval packet complete. The first read-only
 Base MCP status adapter and owner-dashboard caller are protected by an exact
 protocol gate and service-role rate-limit contract. No compatible production
 provider is approved and the runtime gate remains disabled. No production wallet prompt,
@@ -447,6 +447,24 @@ and owner approval are complete:
   can only move to owner dossier review; it cannot approve a provider, SQL,
   runtime gate, provider credential, endpoint call, or smoke.
 
+### 7AD - SQL Verifier Final Approval Packet
+
+- SQL approval packet: `docs/phase-7AD-sql-verifier-final-approval-packet.md`.
+- Require Phase 7U target verifier readiness, Phase 7T smoke go/no-go context,
+  7AC dossier fill gate status, exact target Supabase project, operator, apply
+  window, rollback operator and window, gate-off confirmation, provider and
+  smoke still blocked, and owner approval before SQL can be considered for a
+  later manual apply.
+- Keep approval scope narrow to the reviewed forward SQL, verifier SQL, and
+  rollback SQL files.
+- Accept only boolean-only verifier evidence and redacted operator summary;
+  reject service-role keys, Supabase credentials, Telegram tokens, provider
+  credentials, wallet data, user identifiers, raw rows, migration logs with
+  secrets, official OAuth material, and transaction material.
+- Keep the current result as SQL approval not requested. Owner SQL approval
+  still cannot apply SQL, run verifier, enable runtime gates, approve provider
+  use, or approve smoke.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -499,6 +517,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7aa`
 - `npm run check:phase-7ab`
 - `npm run check:phase-7ac`
+- `npm run check:phase-7ad`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`
