@@ -2,7 +2,7 @@
 
 Date: 2026-06-19
 
-Status: Phase 7AA provider candidate intake gate complete. The first read-only
+Status: Phase 7AB provider candidate scoring worksheet complete. The first read-only
 Base MCP status adapter and owner-dashboard caller are protected by an exact
 protocol gate and service-role rate-limit contract. No compatible production
 provider is approved and the runtime gate remains disabled. No production wallet prompt,
@@ -410,6 +410,24 @@ and owner approval are complete:
   only move redacted metadata into the Phase 7Z sandbox; it cannot approve a
   provider, SQL, runtime gate, or smoke.
 
+### 7AB - Provider Candidate Scoring Worksheet
+
+- Scoring packet: `docs/phase-7AB-provider-candidate-scoring-worksheet.md`.
+- Define an offline-only weighted scorecard for one owner-nominated candidate
+  using redacted metadata only.
+- Hard-fail rules override numeric score. A candidate is rejected if it requires
+  official MCP OAuth, `agent_wallet:*` scopes, wallet data, Telegram data,
+  Supabase data, user identity, transaction material, public credential config,
+  Telegram initiation, live probes before dossier completion, or non-exact
+  `kyra_status_v1` and `POST /status-check` support.
+- Require minimum scoring floors before a candidate can be treated as
+  `scored_ready_for_7z_sandbox`: total at least 90, data boundary full score,
+  protocol/path full score, endpoint safety full score, credential lifecycle at
+  least 10, and evidence readiness at least 5.
+- Keep the current result as no candidate scored. A passing score can only move
+  redacted metadata and score summary into the Phase 7Z sandbox review; it
+  cannot approve a provider, SQL, runtime gate, or smoke.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -460,6 +478,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7y`
 - `npm run check:phase-7z`
 - `npm run check:phase-7aa`
+- `npm run check:phase-7ab`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`

@@ -67,7 +67,7 @@ for (
 includes(
   "Phase 7 entry checker",
   entryCheck,
-  "Status: Phase 7AA provider candidate intake gate complete.",
+  "Status: Phase 7AB provider candidate scoring worksheet complete.",
 );
 
 for (
