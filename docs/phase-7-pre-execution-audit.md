@@ -2,7 +2,7 @@
 
 Date: 2026-06-19
 
-Status: Phase 7V provider candidate dossier template complete. The first read-only
+Status: Phase 7W smoke approval packet template complete. The first read-only
 Base MCP status adapter and owner-dashboard caller are protected by an exact
 protocol gate and service-role rate-limit contract. No compatible production
 provider is approved and the runtime gate remains disabled. No production wallet prompt,
@@ -329,6 +329,23 @@ and owner approval are complete:
 - Keep runtime gates, SQL application, provider calls, wallet prompts, signing,
   Telegram execution, and onchain execution disabled.
 
+### 7W - Redacted Smoke Approval Packet
+
+- Approval packet: `docs/phase-7W-redacted-smoke-approval-packet.md`.
+- Convert an approved provider dossier into an owner-review packet without
+  exposing credentials, wallet data, Telegram tokens, Supabase secrets, raw
+  provider bodies, user identifiers, calldata, signatures, or transaction
+  material.
+- Require exact provider endpoint origin, smoke window, rollback operator,
+  gate-off confirmation, safe request/response evidence, Phase 7U verifier
+  booleans, Phase 7T go/no-go rows, and explicit owner approval.
+- Keep approval capture separate from execution; this packet does not authorize
+  SQL application, provider calls, gate enablement, wallet prompts, Telegram
+  execution, signing, swaps, transfers, contract calls, or transaction
+  submission.
+- Keep current smoke decision blocked until the exact packet is filled and
+  approved.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -374,6 +391,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7t`
 - `npm run check:phase-7u`
 - `npm run check:phase-7v`
+- `npm run check:phase-7w`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`
