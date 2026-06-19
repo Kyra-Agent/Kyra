@@ -2,7 +2,7 @@
 
 Date: 2026-06-19
 
-Status: Phase 7T custom bridge smoke go/no-go packet complete. The first read-only
+Status: Phase 7U target Supabase rate-limit verifier readiness complete. The first read-only
 Base MCP status adapter and owner-dashboard caller are protected by an exact
 protocol gate and service-role rate-limit contract. No compatible production
 provider is approved and the runtime gate remains disabled. No production wallet prompt,
@@ -297,6 +297,23 @@ and owner approval are complete:
 - Keep Telegram, public routes, wallet prompts, signing, prepared-action
   writes, and onchain execution disabled.
 
+### 7U - Target Supabase Rate-Limit Verifier Readiness
+
+- Verifier packet:
+  `docs/phase-7U-target-supabase-rate-limit-verifier-readiness.md`.
+- Require target project reference, environment label, operator identity, owner
+  approval, apply window, rollback operator, rollback window, and gate-off
+  confirmation before touching a target Supabase project.
+- Keep the rate-limit forward and rollback SQL as review drafts until explicit
+  target-project approval.
+- Share only boolean verifier evidence; never share service-role keys, database
+  passwords, JWTs, row data, Telegram tokens, wallet data, provider secrets, or
+  user identifiers.
+- Treat any false verifier boolean, target mismatch, SQL drift, secret exposure,
+  or local check failure as a no-go.
+- Keep runtime gates, provider calls, Telegram execution, wallet prompts,
+  signing, prepared-action writes, and onchain execution disabled.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -340,6 +357,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7r`
 - `npm run check:phase-7s`
 - `npm run check:phase-7t`
+- `npm run check:phase-7u`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`

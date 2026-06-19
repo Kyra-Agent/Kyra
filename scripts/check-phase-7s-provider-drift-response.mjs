@@ -60,7 +60,7 @@ for (
 includes(
   "Phase 7 entry checker",
   entryCheck,
-  "Status: Phase 7T custom bridge smoke go/no-go packet complete.",
+  "Status: Phase 7U target Supabase rate-limit verifier readiness complete.",
 );
 
 for (
