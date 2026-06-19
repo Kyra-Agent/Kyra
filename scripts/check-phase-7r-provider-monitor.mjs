@@ -25,11 +25,16 @@ for (
     "## Fixed Public Sources",
     "## Network Contract",
     "No redirect following.",
+    "Unauthenticated GET to `/mcp` is allowed only to read the bearer challenge.",
     "No calls to `/authorize`, `/register`, `/token`",
     "## Sanitized Report",
     "## Baseline Decision",
     "## Drift Behavior",
     "exits `2` when evidence changes",
+    "## Current Live Observation",
+    "baseline match: true",
+    "`/mcp` challenge: bearer realm `mcp`, no `resource_metadata`, no scope",
+    "Phase 7C no-go decision",
     "## Baseline Update Procedure",
   ]
 ) includes("Phase 7R monitor doc", doc, value);
@@ -41,6 +46,8 @@ for (
     'credentials: "omit"',
     "forbiddenPaths",
     "readBoundedResponseBody",
+    "normalizeMcpEndpointChallenge",
+    "sanitizeWwwAuthenticate",
     "response_too_large",
     "compareProviderEvidence",
     "process.exitCode = comparison.matches ? 0 : 2",
@@ -64,6 +71,8 @@ for (
     "Monitor must use GET only.",
     "Monitor must not send authorization or cookie headers.",
     "Monitor must never call a sensitive OAuth endpoint.",
+    "MCP endpoint challenge must capture only the bounded bearer realm.",
+    "Missing MCP challenge resource metadata and scope must remain blockers.",
     "Redirects must fail closed",
     "Oversized metadata must fail closed.",
     "Scope drift must be detected.",
@@ -84,6 +93,13 @@ assert(
   baseline.protectedResources.root.available === false &&
     baseline.protectedResources.mcpPath.available === false,
   "Baseline must preserve unavailable protected resource metadata.",
+);
+assert(
+  baseline.mcpChallenge.available === true &&
+    baseline.mcpChallenge.bearerRealm === "mcp" &&
+    baseline.mcpChallenge.resourceMetadata === null &&
+    baseline.mcpChallenge.scopes.length === 0,
+  "Baseline must preserve the unauthenticated MCP challenge blocker.",
 );
 
 for (

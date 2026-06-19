@@ -21,6 +21,7 @@ The monitor can request only:
 - `https://mcp.base.org/.well-known/oauth-authorization-server`
 - `https://mcp.base.org/.well-known/oauth-protected-resource`
 - `https://mcp.base.org/.well-known/oauth-protected-resource/mcp`
+- `https://mcp.base.org/mcp`
 - `https://docs.base.org/llms-full.txt`
 
 The URL allowlist is exact. Query strings, fragments, embedded credentials,
@@ -33,6 +34,7 @@ HTTP, arbitrary hosts, and caller-provided URLs are rejected.
 - No `Authorization` header.
 - No cookie header or credential mode.
 - No redirect following.
+- Unauthenticated GET to `/mcp` is allowed only to read the bearer challenge.
 - No calls to `/authorize`, `/register`, `/token`, MCP initialize, tool
   discovery, tool invocation, approval links, wallet APIs, or RPC endpoints.
 - Eight-second timeout per source.
@@ -73,6 +75,8 @@ The tracked baseline records the reviewed public contract:
 - public token endpoint authentication method `none`
 - advertised scopes `agent_wallet:transact` and `agent_wallet:escalate`
 - both tested Protected Resource Metadata locations unavailable
+- the unauthenticated `/mcp` challenge returns bearer realm `mcp` without
+  `resource_metadata` or scope guidance
 - read and write product guides documented
 - arbitrary calldata through `send_calls` documented
 - exact scope-to-tool mapping absent
@@ -101,6 +105,24 @@ The monitor must never:
 - create a database record
 - trigger a deployment
 - run from the browser, Telegram, public agent pages, or an LLM tool call
+
+## Current Live Observation
+
+Latest local observation on 2026-06-20:
+
+- baseline match: true
+- decision: blocked
+- protected resource metadata: unavailable
+- advertised wallet-authority scopes: `agent_wallet:transact`,
+  `agent_wallet:escalate`
+- `/mcp` challenge: bearer realm `mcp`, no `resource_metadata`, no scope
+  guidance
+- documentation: read and write guides present, but exact scope-to-tool mapping
+  and escalation semantics remain unverified
+
+This confirms the current Phase 7C no-go decision. No Phase 7D wallet,
+OAuth, token storage, MCP session, or execution implementation may start from
+this evidence.
 
 ## Baseline Update Procedure
 

@@ -54,6 +54,8 @@ for (
     "`agent_wallet:transact`",
     "`agent_wallet:escalate`",
     "No-go for Phase 7D wallet/Base MCP implementation.",
+    "monitor official provider metadata, unauthenticated `/mcp` challenge",
+    "`npm run observe:base-mcp-provider`",
     "Protected resource metadata is available and stable.",
     "Exact non-escalating scope candidate is known.",
     "User wallet security and user Telegram bot token security stay above product",

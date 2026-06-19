@@ -11,6 +11,7 @@ export const providerEvidenceSources = Object.freeze({
     "https://mcp.base.org/.well-known/oauth-protected-resource",
   protectedResourceMetadataMcp:
     "https://mcp.base.org/.well-known/oauth-protected-resource/mcp",
+  mcpEndpointChallenge: "https://mcp.base.org/mcp",
   documentationCorpus: "https://docs.base.org/llms-full.txt",
 });
 
@@ -26,6 +27,11 @@ const sourcePolicies = Object.freeze({
     successContentType: "application/json",
   },
   protectedResourceMetadataMcp: {
+    accept: "application/json",
+    maxBytes: 16 * 1024,
+    successContentType: "application/json",
+  },
+  mcpEndpointChallenge: {
     accept: "application/json",
     maxBytes: 16 * 1024,
     successContentType: "application/json",
@@ -77,6 +83,9 @@ export async function observeBaseMcpProviderEvidence(options = {}) {
   const documentation = normalizeDocumentationSignals(
     sources.documentationCorpus,
   );
+  const mcpChallenge = normalizeMcpEndpointChallenge(
+    sources.mcpEndpointChallenge,
+  );
   const blockers = [];
 
   if (
@@ -96,6 +105,12 @@ export async function observeBaseMcpProviderEvidence(options = {}) {
   if (!documentation.escalationSemanticsDocumented) {
     blockers.push("escalation_semantics_unverified");
   }
+  if (!mcpChallenge.resourceMetadata) {
+    blockers.push("mcp_challenge_resource_metadata_missing");
+  }
+  if (mcpChallenge.scopes.length === 0) {
+    blockers.push("mcp_challenge_scope_missing");
+  }
 
   return {
     version: providerEvidenceVersion,
@@ -104,6 +119,7 @@ export async function observeBaseMcpProviderEvidence(options = {}) {
     blockers,
     authorization,
     protectedResources,
+    mcpChallenge,
     documentation,
     evidence: Object.fromEntries(
       Object.entries(sources).map(([name, source]) => [
@@ -116,6 +132,7 @@ export async function observeBaseMcpProviderEvidence(options = {}) {
           sha256: source.sha256,
           ok: source.ok,
           errorCode: source.errorCode,
+          wwwAuthenticate: source.wwwAuthenticate ?? null,
         },
       ]),
     ),
@@ -165,7 +182,13 @@ async function readPublicEvidenceSource({
     });
 
     if (response.status >= 300 && response.status < 400) {
-      return failedSource(url, response.status, "redirect_rejected");
+      return failedSource(
+        url,
+        response.status,
+        "redirect_rejected",
+        "",
+        response.headers.get("www-authenticate"),
+      );
     }
 
     const contentType = normalizeContentType(
@@ -180,6 +203,7 @@ async function readPublicEvidenceSource({
         response.status,
         "unexpected_content_type",
         contentType,
+        response.headers.get("www-authenticate"),
       );
     }
 
@@ -193,6 +217,9 @@ async function readPublicEvidenceSource({
       sha256: sha256(body),
       ok: response.ok,
       errorCode: response.ok ? null : `http_${response.status}`,
+      wwwAuthenticate: sanitizeWwwAuthenticate(
+        response.headers.get("www-authenticate"),
+      ),
       text: new TextDecoder().decode(body),
     };
   } catch (error) {
@@ -327,6 +354,18 @@ function normalizeDocumentationSignals(source) {
   };
 }
 
+function normalizeMcpEndpointChallenge(source) {
+  const challenge = parseBearerChallenge(source.wwwAuthenticate);
+
+  return {
+    available: source.status === 401 && challenge.scheme === "bearer",
+    status: source.status,
+    bearerRealm: challenge.realm,
+    resourceMetadata: readExactHttpsUrl(challenge.resource_metadata),
+    scopes: readScopeList(challenge.scope),
+  };
+}
+
 function createComparableEvidence(value) {
   return {
     version: value.version,
@@ -334,6 +373,7 @@ function createComparableEvidence(value) {
     blockers: [...(value.blockers ?? [])].sort(),
     authorization: value.authorization,
     protectedResources: value.protectedResources,
+    mcpChallenge: value.mcpChallenge,
     documentation: value.documentation,
     evidence: Object.fromEntries(
       Object.entries(value.evidence ?? {}).map(([name, source]) => [
@@ -344,6 +384,7 @@ function createComparableEvidence(value) {
           contentType: source.contentType,
           ok: source.ok,
           errorCode: source.errorCode,
+          wwwAuthenticate: source.wwwAuthenticate ?? null,
         },
       ]),
     ),
@@ -422,6 +463,48 @@ function normalizeContentType(value) {
     : "";
 }
 
+function sanitizeWwwAuthenticate(value) {
+  if (typeof value !== "string") return null;
+
+  return value
+    .replace(/token="?[^",\s]+"?/giu, 'token="[redacted]"')
+    .slice(0, 300);
+}
+
+function parseBearerChallenge(value) {
+  if (typeof value !== "string") {
+    return { scheme: null, realm: null, resource_metadata: null, scope: null };
+  }
+
+  const trimmed = value.trim();
+  const schemeMatch = trimmed.match(/^([A-Za-z]+)\s*(.*)$/su);
+  const scheme = schemeMatch?.[1]?.toLowerCase() ?? null;
+  const params = schemeMatch?.[2] ?? "";
+  const parsed = { scheme, realm: null, resource_metadata: null, scope: null };
+  const pattern = /([A-Za-z_][A-Za-z0-9_-]*)="([^"]*)"/gu;
+
+  for (const match of params.matchAll(pattern)) {
+    const key = match[1].toLowerCase();
+    if (key === "realm" || key === "resource_metadata" || key === "scope") {
+      parsed[key] = match[2].slice(0, 200);
+    }
+  }
+
+  return parsed;
+}
+
+function readScopeList(value) {
+  if (typeof value !== "string") return [];
+
+  return [
+    ...new Set(
+      value
+        .split(/\s+/u)
+        .filter((item) => item.length > 0 && item.length <= 160),
+    ),
+  ].sort();
+}
+
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
@@ -431,6 +514,7 @@ function failedSource(
   status,
   errorCode,
   contentType = "",
+  wwwAuthenticate = null,
 ) {
   return {
     url,
@@ -440,6 +524,7 @@ function failedSource(
     sha256: null,
     ok: false,
     errorCode,
+    wwwAuthenticate: sanitizeWwwAuthenticate(wwwAuthenticate),
     text: "",
   };
 }

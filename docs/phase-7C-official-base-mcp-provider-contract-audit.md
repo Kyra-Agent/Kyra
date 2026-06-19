@@ -134,7 +134,8 @@ Current permitted work:
 - keep Telegram live read-only
 - keep the custom `kyra_status_v1` bridge separate and read-only
 - maintain pre-Base MCP cleanup and security gates
-- monitor official provider metadata and docs for the missing contract
+- monitor official provider metadata, unauthenticated `/mcp` challenge, and
+  docs for the missing contract
 - prepare local architecture docs/checks that do not request authority
 
 ## Go Criteria Before Phase 7D
@@ -172,6 +173,7 @@ No Base MCP integration is allowed to weaken:
 ## Verification
 
 - `npm run check:phase-7c-contract`
+- `npm run observe:base-mcp-provider`
 - `npm run check:phase-7`
 - `deno test supabase/functions`
 - `npm run build`

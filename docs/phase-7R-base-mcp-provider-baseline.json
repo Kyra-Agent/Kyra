@@ -3,6 +3,8 @@
   "decision": "blocked",
   "blockers": [
     "escalation_semantics_unverified",
+    "mcp_challenge_resource_metadata_missing",
+    "mcp_challenge_scope_missing",
     "protected_resource_metadata_unavailable",
     "scope_to_tool_mapping_unverified",
     "wallet_authority_scopes_advertised"
@@ -45,6 +47,13 @@
       "scopes": []
     }
   },
+  "mcpChallenge": {
+    "available": true,
+    "status": 401,
+    "bearerRealm": "mcp",
+    "resourceMetadata": null,
+    "scopes": []
+  },
   "documentation": {
     "available": true,
     "readOnlyGuidesDocumented": true,
@@ -74,6 +83,14 @@
       "contentType": "text/plain",
       "ok": false,
       "errorCode": "http_404"
+    },
+    "mcpEndpointChallenge": {
+      "url": "https://mcp.base.org/mcp",
+      "status": 401,
+      "contentType": "application/json",
+      "ok": false,
+      "errorCode": "http_401",
+      "wwwAuthenticate": "Bearer realm=\"mcp\""
     },
     "documentationCorpus": {
       "url": "https://docs.base.org/llms-full.txt",

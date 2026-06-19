@@ -57,6 +57,16 @@ function createFakeFetch(overrides = {}) {
         headers: { "content-type": "text/plain; charset=utf-8" },
       });
     }
+    if (url === providerEvidenceSources.mcpEndpointChallenge) {
+      return createResponse('{"error":"invalid_token"}', {
+        status: 401,
+        headers: {
+          "content-type": "application/json",
+          "www-authenticate": 'Bearer realm="mcp"',
+          "set-cookie": "secret=value",
+        },
+      });
+    }
     if (url === providerEvidenceSources.documentationCorpus) {
       return createResponse(documentation, {
         status: 200,
@@ -77,7 +87,7 @@ function createFakeFetch(overrides = {}) {
     observedAt: "2026-06-19T00:00:00.000Z",
   });
 
-  assert(calls.length === 4, "Monitor must call exactly four public sources.");
+  assert(calls.length === 5, "Monitor must call exactly five public sources.");
   for (const call of calls) {
     const url = new URL(call.url);
     assert(call.init.method === "GET", "Monitor must use GET only.");
@@ -110,6 +120,15 @@ function createFakeFetch(overrides = {}) {
   assert(
     report.documentation.arbitraryCalldataDocumented,
     "Documentation risk signal must detect arbitrary calldata.",
+  );
+  assert(
+    report.mcpChallenge.available && report.mcpChallenge.bearerRealm === "mcp",
+    "MCP endpoint challenge must capture only the bounded bearer realm.",
+  );
+  assert(
+    report.blockers.includes("mcp_challenge_resource_metadata_missing") &&
+      report.blockers.includes("mcp_challenge_scope_missing"),
+    "Missing MCP challenge resource metadata and scope must remain blockers.",
   );
   assert(
     !JSON.stringify(report).toLowerCase().includes("set-cookie"),
