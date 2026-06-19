@@ -39,7 +39,7 @@ approval.
 | Telegram             | Live read-only commands and natural planning chat      |
 | LLM layer            | Backend-only enrichment for eligible read-only replies |
 | Wallet/Base layer    | Phase 6 hardened foundation, execution still gated     |
-| Base MCP             | Custom bridge prepared; official OAuth remains blocked |
+| Base MCP             | Custom bridge prepared; official scopes not approved    |
 | Onchain transactions | Not live in the current demo                           |
 
 ## What Is Live
@@ -171,9 +171,10 @@ execution. The official OAuth Base MCP path remains disabled because its
 agent-wallet scopes require separately approved consent, encrypted token
 storage, tool allowlisting, and wallet-authority controls. Its current standard
 Protected Resource Metadata paths are unavailable, so Kyra will not hardcode
-discovery or launch authorization. The custom
-bridge smoke remains blocked until a compatible provider and reviewed database
-rate-limit contract are approved. See
+discovery or launch authorization. Current advertised scopes are also rejected:
+transaction authority is not tool-bounded and escalation is undefined. The
+custom bridge smoke remains blocked until a compatible provider and reviewed
+database rate-limit contract are approved. See
 `docs/phase-7-pre-execution-audit.md`.
 
 ## Product Principles

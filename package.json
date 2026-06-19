@@ -50,7 +50,8 @@
     "check:phase-7n": "node scripts/check-phase-7n-official-mcp-decision.mjs",
     "check:phase-7o": "node scripts/check-phase-7o-oauth-threat-model.mjs",
     "check:phase-7p": "node scripts/check-phase-7p-oauth-client-architecture.mjs",
-    "check:phase-7": "npm run check:phase-6 && npm run check:phase-7-entry && npm run check:phase-7b && npm run check:phase-7c && npm run check:phase-7d && npm run check:phase-7e && npm run check:phase-7f && npm run check:phase-7g && npm run check:phase-7h && npm run check:phase-7i && npm run check:phase-7j && npm run check:phase-7k && npm run check:phase-7l && npm run check:phase-7m && npm run check:phase-7n && npm run check:phase-7o && npm run check:phase-7p",
+    "check:phase-7q": "node scripts/check-phase-7q-scope-consent-qualification.mjs",
+    "check:phase-7": "npm run check:phase-6 && npm run check:phase-7-entry && npm run check:phase-7b && npm run check:phase-7c && npm run check:phase-7d && npm run check:phase-7e && npm run check:phase-7f && npm run check:phase-7g && npm run check:phase-7h && npm run check:phase-7i && npm run check:phase-7j && npm run check:phase-7k && npm run check:phase-7l && npm run check:phase-7m && npm run check:phase-7n && npm run check:phase-7o && npm run check:phase-7p && npm run check:phase-7q",
     "check:phase-6": "npm run check:privacy && npm run check:base-mcp && npm run check:prepared-actions && npm run check:supabase-copy && npm run check:phase-6b && npm run check:phase-6c && npm run test:unsigned-handoff && npm run test:wallet-signing && npm run test:risk-review && npm run test:execution-result && npm run check:functions",
     "build": "tsc && vite build",
     "preview": "vite preview --host localhost"

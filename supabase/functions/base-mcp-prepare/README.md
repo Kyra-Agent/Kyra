@@ -57,3 +57,5 @@ Hard boundaries:
   the official OAuth, token, MCP-session, and wallet-authority boundaries.
 - Phase 7P selects a future backend-for-frontend OAuth architecture but keeps
   implementation blocked and separate from this custom bridge.
+- Phase 7Q rejects every currently advertised official OAuth scope; no scope,
+  consent, token, or tool behavior is added to this function.

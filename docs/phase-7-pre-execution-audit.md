@@ -2,7 +2,7 @@
 
 Date: 2026-06-19
 
-Status: Phase 7P official MCP OAuth client architecture decision complete. The first read-only
+Status: Phase 7Q official MCP scope and consent qualification complete. The first read-only
 Base MCP status adapter and owner-dashboard caller are protected by an exact
 protocol gate and service-role rate-limit contract. No compatible production
 provider is approved and the runtime gate remains disabled. No production wallet prompt,
@@ -244,6 +244,20 @@ and owner approval are complete:
   and the provider advertises only wallet-authority scopes.
 - Require scope/consent qualification before callback or token-storage work.
 
+### 7Q - Official MCP Scope And Consent Qualification
+
+- Qualification packet:
+  `docs/phase-7Q-official-mcp-scope-consent-qualification.md`.
+- Reject omitted scopes because MCP fallback can select the protected
+  resource's complete scope set, which cannot currently be verified.
+- Reject `agent_wallet:transact` because current documented capabilities include
+  broad spending, signing, contract-call, x402, plugin, and multi-chain surface
+  without an exact scope-to-tool authority map.
+- Reject `agent_wallet:escalate` because no current official authority
+  definition was found.
+- Keep all OAuth implementation blocked until a non-escalating scope, exact
+  tool map, and complete consent contract are verifiable.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -282,6 +296,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7n`
 - `npm run check:phase-7o`
 - `npm run check:phase-7p`
+- `npm run check:phase-7q`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`
