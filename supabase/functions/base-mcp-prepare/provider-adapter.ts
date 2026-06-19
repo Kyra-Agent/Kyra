@@ -137,7 +137,11 @@ function createBaseMcpStatusCheckRequest(
 }
 
 function createStatusCheckUrl(endpoint: string) {
-  return new URL(baseMcpStatusPath, endpoint).toString();
+  const url = new URL(endpoint);
+  url.pathname = `${url.pathname.replace(/\/+$/u, "")}${baseMcpStatusPath}`;
+  url.search = "";
+  url.hash = "";
+  return url.toString();
 }
 
 function createBaseMcpUnavailableFailure() {

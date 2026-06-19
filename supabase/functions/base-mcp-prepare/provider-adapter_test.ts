@@ -72,7 +72,7 @@ Deno.test("Base MCP provider adapter sends only bounded status-check payload", a
     "Transport must receive a request.",
   );
   assertEquals(capturedRequest.method, "POST");
-  assertEquals(capturedRequest.url, "https://base-mcp.test/status-check");
+  assertEquals(capturedRequest.url, "https://base-mcp.test/v1/status-check");
   assertEquals(capturedRequest.headers.get("accept"), "application/json");
   assertEquals(capturedRequest.headers.get("content-type"), "application/json");
   assertEquals(
@@ -120,6 +120,28 @@ Deno.test("Base MCP provider adapter sends only bounded status-check payload", a
   assert(
     !serializedResult.includes(validInput().requestId),
     "Result must hide request id.",
+  );
+});
+
+Deno.test("Base MCP provider adapter preserves a provider function path", async () => {
+  let capturedUrl = "";
+  const adapter = createBaseMcpStatusCheckAdapter(async (request) => {
+    capturedUrl = request.url;
+    return validProviderResponse();
+  });
+
+  await adapter(validInput(), {
+    enabled: true,
+    endpoint:
+      "https://project.supabase.co/functions/v1/base-mcp-status-provider/",
+    apiKey: null,
+    timeoutMs: 2500,
+    providerProtocol: "kyra_status_v1",
+  });
+
+  assertEquals(
+    capturedUrl,
+    "https://project.supabase.co/functions/v1/base-mcp-status-provider/status-check",
   );
 });
 

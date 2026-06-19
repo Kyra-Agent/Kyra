@@ -101,7 +101,7 @@ for (
 includes(
   "Phase 7 entry checker",
   entryCheck,
-  "Status: Phase 7AI final smoke authorization packet complete.",
+  "Status: Phase 7AJ controlled read-only Base status smoke complete.",
 );
 
 for (const value of ['"check:phase-7ai"', "npm run check:phase-7ai"]) {

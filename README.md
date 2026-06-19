@@ -39,7 +39,7 @@ approval.
 | Telegram             | Live read-only commands and natural planning chat      |
 | LLM layer            | Backend-only enrichment for eligible read-only replies |
 | Wallet/Base layer    | Phase 6 hardened foundation, execution still gated     |
-| Base MCP             | Custom bridge prepared; provider intake blocked         |
+| Base MCP             | Read-only status bridge live; runtime gate default-off   |
 | Onchain transactions | Not live in the current demo                           |
 
 ## What Is Live

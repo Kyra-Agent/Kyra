@@ -16,6 +16,12 @@ verify_jwt = true
 [functions.base-mcp-prepare]
 verify_jwt = true
 
+# Kyra's internal Base status bridge is server-to-server only. Supabase gateway
+# JWT verification is disabled because the caller authenticates with a
+# dedicated backend bearer secret that is never exposed to the browser.
+[functions.base-mcp-status-provider]
+verify_jwt = false
+
 # Telegram disconnect is called by a signed-in dashboard user. Keep Supabase
 # gateway JWT verification enabled in addition to future function ownership
 # validation and operator action checks.
