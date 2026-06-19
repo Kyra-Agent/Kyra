@@ -2,7 +2,7 @@
 
 Date: 2026-06-19
 
-Status: Phase 7Q official MCP scope and consent qualification complete. The first read-only
+Status: Phase 7R official Base MCP provider evidence monitor complete. The first read-only
 Base MCP status adapter and owner-dashboard caller are protected by an exact
 protocol gate and service-role rate-limit contract. No compatible production
 provider is approved and the runtime gate remains disabled. No production wallet prompt,
@@ -258,6 +258,16 @@ and owner approval are complete:
 - Keep all OAuth implementation blocked until a non-escalating scope, exact
   tool map, and complete consent contract are verifiable.
 
+### 7R - Official Base MCP Provider Evidence Monitor
+
+- Monitor packet: `docs/phase-7R-provider-evidence-monitor.md`.
+- Observe only four exact public metadata/documentation URLs with GET, no
+  credentials, no body, no redirects, bounded responses, and sanitized output.
+- Track a reviewed semantic baseline and report drift without modifying it.
+- Never call authorization, registration, token, MCP session, tool, wallet, or
+  transaction endpoints.
+- Keep drift review manual and keep all OAuth/runtime gates disabled.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -297,6 +307,8 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7o`
 - `npm run check:phase-7p`
 - `npm run check:phase-7q`
+- `npm run test:phase-7r`
+- `npm run check:phase-7r`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`

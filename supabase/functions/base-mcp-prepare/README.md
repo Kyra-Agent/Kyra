@@ -59,3 +59,5 @@ Hard boundaries:
   implementation blocked and separate from this custom bridge.
 - Phase 7Q rejects every currently advertised official OAuth scope; no scope,
   consent, token, or tool behavior is added to this function.
+- Phase 7R adds an operator-only public evidence monitor outside this function;
+  monitor drift cannot enable this runtime.
