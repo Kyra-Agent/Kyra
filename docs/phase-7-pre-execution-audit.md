@@ -2,7 +2,7 @@
 
 Date: 2026-06-19
 
-Status: Phase 7AD SQL verifier final approval packet complete. The first read-only
+Status: Phase 7AE controlled smoke closeout runbook complete. The first read-only
 Base MCP status adapter and owner-dashboard caller are protected by an exact
 protocol gate and service-role rate-limit contract. No compatible production
 provider is approved and the runtime gate remains disabled. No production wallet prompt,
@@ -465,6 +465,23 @@ and owner approval are complete:
   still cannot apply SQL, run verifier, enable runtime gates, approve provider
   use, or approve smoke.
 
+### 7AE - Controlled Smoke Closeout Runbook
+
+- Closeout runbook: `docs/phase-7AE-controlled-smoke-closeout-runbook.md`.
+- Require Phase 7V provider dossier approval, Phase 7M contract evidence, Phase
+  7U target verifier readiness, Phase 7AD SQL approval, Phase 7T go/no-go
+  readiness, Phase 7W owner smoke approval, and Phase 7X ready decision before
+  any future smoke can be authorized.
+- Keep authorization limited to one owner workspace, one persisted demo agent,
+  one action kind, one chain, one protocol, one endpoint origin, one short
+  window, and owner dashboard only.
+- Require gate-off before and after the window, immediate abort rules, safe
+  closeout evidence, local checks after the window, and a redacted result state.
+- Keep the current result as smoke not authorized. This runbook cannot apply
+  SQL, run verifier SQL, enable runtime gates, contact providers, approve
+  smoke, trigger Telegram execution, open wallet prompts, or submit
+  transactions.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -518,6 +535,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7ab`
 - `npm run check:phase-7ac`
 - `npm run check:phase-7ad`
+- `npm run check:phase-7ae`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`

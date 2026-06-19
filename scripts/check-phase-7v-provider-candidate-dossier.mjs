@@ -82,7 +82,7 @@ for (
 includes(
   "Phase 7 entry checker",
   entryCheck,
-  "Status: Phase 7AD SQL verifier final approval packet complete.",
+  "Status: Phase 7AE controlled smoke closeout runbook complete.",
 );
 
 for (

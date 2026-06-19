@@ -183,8 +183,8 @@ pre-smoke decision matrix remains blocked until every provider, SQL, rollback,
 approval, and gate-off condition is satisfied. The pre-provider audit keeps
 provider selection and smoke blocked until the provider candidate intake gate,
 provider candidate scoring worksheet, candidate dossier fill gate,
-SQL/verifier final approval packet, and provider selection sandbox scorecard are
-completed without rejection rules. See
+SQL/verifier final approval packet, controlled smoke closeout runbook, and
+provider selection sandbox scorecard are completed without rejection rules. See
 `docs/phase-7-pre-execution-audit.md`.
 
 ## Product Principles
