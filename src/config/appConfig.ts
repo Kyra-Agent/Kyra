@@ -27,6 +27,10 @@ const telegramConnectTokenInputEnabled =
   readEnv("VITE_KYRA_ENABLE_TELEGRAM_CONNECT_TOKEN_INPUT").toLowerCase() === "true";
 const telegramDashboardStatusReadModelEnabled =
   readEnv("VITE_KYRA_ENABLE_TELEGRAM_DASHBOARD_STATUS").toLowerCase() === "true";
+const telegramBackendConfigured = Boolean(
+  telegramConnectFunctionUrl && telegramLinkFunctionUrl &&
+    telegramDashboardStatusFunctionUrl && supabaseConfigured,
+);
 
 export const appConfig = {
   appName: "Kyra Agent",
@@ -65,8 +69,10 @@ export const appConfig = {
     auth: requestedDataProvider === "supabase" && supabaseConfigured ? "supabase" : "demo",
     database: requestedDataProvider === "supabase" && supabaseConfigured ? "supabase" : "mock",
     deployApi: requestedDataProvider === "supabase" && deployFunctionUrl ? "edge preferred" : "edge scaffolded",
-    telegram: "simulated",
-    baseMcp: "simulated",
+    telegram: telegramBackendConfigured ? "live read-only" : "read-only scaffold",
+    baseMcp: baseMcpPrepareFunctionUrl && supabaseConfigured
+      ? "custom read-only bridge"
+      : "read-only scaffold",
     walletExecution: "disabled",
   },
 } as const;

@@ -256,8 +256,8 @@ function mapWalletPolicy(row: WalletPolicyRow): DemoWalletPolicy[] {
       value: row.wallet_address
         ? shortenAddress(row.wallet_address)
         : "Demo connected",
-      status: row.status === "active" ? "active" : "simulated",
-      description: "Persisted demo policy record, no real funds touched.",
+      status: row.status === "active" ? "active" : "gated",
+      description: "Persisted owner policy record. No wallet prompt or funds touched.",
     },
     {
       id: `${row.id}_limit`,
@@ -265,14 +265,14 @@ function mapWalletPolicy(row: WalletPolicyRow): DemoWalletPolicy[] {
       value: row.daily_limit_usdc
         ? `${row.daily_limit_usdc} USDC`
         : "No cap set",
-      status: "simulated",
+      status: "gated",
       description: "Stored spending cap for future wallet policy enforcement.",
     },
     {
       id: `${row.id}_approval`,
       label: "Approval gate",
       value: row.approval_required ? "Required" : "Optional",
-      status: row.approval_required ? "active" : "simulated",
+      status: row.approval_required ? "active" : "gated",
       description: "Every write action remains behind wallet approval.",
     },
   ];
@@ -319,7 +319,7 @@ function createWalletReadiness(rows: WalletPolicyRow[]): DemoWalletReadiness {
   if (policy.status !== "active") {
     return {
       state: "not_connected",
-      label: "Policy simulated",
+      label: "Policy gated",
       addressLabel,
       network: "Base pending",
       approvalGate,

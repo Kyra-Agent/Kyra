@@ -305,6 +305,11 @@ numbered as a primary product phase.
 
 ## Current Next Step
 
+Before implementation resumes, keep the pre-Base MCP cleanup gate green:
+
+- `docs/phase-7-pre-base-mcp-cleanup-audit.md`
+- `npm run check:pre-base-mcp`
+
 The next work item is Phase 7C:
 
 1. Re-audit the current official Base MCP discovery metadata and documentation.

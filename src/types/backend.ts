@@ -69,7 +69,7 @@ export interface DemoWalletPolicy {
   id: string;
   label: string;
   value: string;
-  status: "active" | "simulated";
+  status: "active" | "gated" | "inactive";
   description: string;
 }
 
