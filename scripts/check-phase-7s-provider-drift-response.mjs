@@ -60,7 +60,7 @@ for (
 includes(
   "Phase 7 entry checker",
   entryCheck,
-  "Status: Phase 7W smoke approval packet template complete.",
+  "Status: Phase 7X pre-smoke decision matrix complete.",
 );
 
 for (

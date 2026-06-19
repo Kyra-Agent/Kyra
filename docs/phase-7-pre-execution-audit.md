@@ -2,7 +2,7 @@
 
 Date: 2026-06-19
 
-Status: Phase 7W smoke approval packet template complete. The first read-only
+Status: Phase 7X pre-smoke decision matrix complete. The first read-only
 Base MCP status adapter and owner-dashboard caller are protected by an exact
 protocol gate and service-role rate-limit contract. No compatible production
 provider is approved and the runtime gate remains disabled. No production wallet prompt,
@@ -346,6 +346,22 @@ and owner approval are complete:
 - Keep current smoke decision blocked until the exact packet is filled and
   approved.
 
+### 7X - Final Pre-Smoke Decision Matrix
+
+- Decision packet: `docs/phase-7X-final-pre-smoke-decision-matrix.md`.
+- Consolidate Phase 7A through Phase 7W into one final no-go/go-forward matrix
+  before any compatible provider, SQL target, runtime gate, or smoke window is
+  accepted.
+- Require all prior packets, local checks, redacted approval packet fields,
+  provider dossier status, target Supabase verifier readiness, rollback plan,
+  and gate-off confirmation to align before the decision can move from blocked.
+- Keep the current decision blocked because no provider is approved, no target
+  Supabase verifier has been applied, no redacted owner approval packet is
+  filled, and no smoke window is approved.
+- Keep SQL application, provider calls, runtime gate enablement, wallet prompts,
+  signing, Telegram execution, swaps, transfers, contract calls, and transaction
+  submission disabled.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -392,6 +408,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7u`
 - `npm run check:phase-7v`
 - `npm run check:phase-7w`
+- `npm run check:phase-7x`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`
