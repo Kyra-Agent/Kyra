@@ -53,3 +53,5 @@ Hard boundaries:
   compatible provider have been approved.
 - Do not add official MCP OAuth registration, wallet scopes, token storage, or
   tool calls without a separate security review.
+- Phase 7O defines that review contract; this custom function remains outside
+  the official OAuth, token, MCP-session, and wallet-authority boundaries.

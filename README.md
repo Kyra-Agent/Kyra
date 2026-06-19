@@ -39,7 +39,7 @@ approval.
 | Telegram             | Live read-only commands and natural planning chat      |
 | LLM layer            | Backend-only enrichment for eligible read-only replies |
 | Wallet/Base layer    | Phase 6 hardened foundation, execution still gated     |
-| Base MCP             | Custom status bridge prepared; official OAuth path off |
+| Base MCP             | Custom status bridge prepared; OAuth threat-modeled    |
 | Onchain transactions | Not live in the current demo                           |
 
 ## What Is Live
@@ -168,7 +168,8 @@ prompt, prepared-action write, transaction signing, or transaction submission is
 enabled. The first runtime candidate is narrow: a read-only Base MCP status
 provider bridge behind backend gates, without prepared-action storage or wallet
 execution. The official OAuth Base MCP path remains disabled because its
-agent-wallet scopes require a separate authority and consent audit. The custom
+agent-wallet scopes require separately approved consent, encrypted token
+storage, tool allowlisting, and wallet-authority controls. The custom
 bridge smoke remains blocked until a compatible provider and reviewed database
 rate-limit contract are approved. See
 `docs/phase-7-pre-execution-audit.md`.
