@@ -181,7 +181,7 @@ go/no-go packet, target Supabase verifier readiness checklist, and provider
 candidate dossier plus redacted smoke approval packet requirement. The final
 pre-smoke decision matrix remains blocked until every provider, SQL, rollback,
 approval, and gate-off condition is satisfied. The pre-provider audit keeps
-provider selection blocked until the provider candidate intake gate, provider candidate scoring worksheet, and provider selection sandbox scorecard are completed without rejection rules. See
+provider selection blocked until the provider candidate intake gate, provider candidate scoring worksheet, candidate dossier fill gate, and provider selection sandbox scorecard are completed without rejection rules. See
 `docs/phase-7-pre-execution-audit.md`.
 
 ## Product Principles

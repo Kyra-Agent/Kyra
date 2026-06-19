@@ -2,7 +2,7 @@
 
 Date: 2026-06-19
 
-Status: Phase 7AB provider candidate scoring worksheet complete. The first read-only
+Status: Phase 7AC candidate dossier fill gate complete. The first read-only
 Base MCP status adapter and owner-dashboard caller are protected by an exact
 protocol gate and service-role rate-limit contract. No compatible production
 provider is approved and the runtime gate remains disabled. No production wallet prompt,
@@ -428,6 +428,25 @@ and owner approval are complete:
   redacted metadata and score summary into the Phase 7Z sandbox review; it
   cannot approve a provider, SQL, runtime gate, or smoke.
 
+### 7AC - Candidate Dossier Fill Gate
+
+- Dossier fill packet: `docs/phase-7AC-candidate-dossier-fill-gate.md`.
+- Require Phase 7AA `ready_for_7z_sandbox`, Phase 7AB
+  `scored_ready_for_7z_sandbox`, Phase 7Z `candidate_for_dossier`, Phase 7V
+  dossier format, no hard-fail rules, and explicit owner confirmation before a
+  real dossier can be filled.
+- Allow only redacted dossier fields: provider/project name, public source,
+  endpoint origin, owners and contacts, exact protocol/path, credential type
+  without value, credential lifecycle, data boundary, summarized evidence
+  readiness, retention, incident path, support window, and redacted owner
+  summary.
+- Reject dossier fill that includes provider credentials, Telegram secrets,
+  Supabase secrets, wallet data, user identifiers, official MCP OAuth material,
+  `agent_wallet:*` grants, raw provider bodies, or transaction material.
+- Keep the current result as no candidate dossier filled. A completed dossier
+  can only move to owner dossier review; it cannot approve a provider, SQL,
+  runtime gate, provider credential, endpoint call, or smoke.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -479,6 +498,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7z`
 - `npm run check:phase-7aa`
 - `npm run check:phase-7ab`
+- `npm run check:phase-7ac`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`

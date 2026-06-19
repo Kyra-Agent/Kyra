@@ -11,14 +11,19 @@ const includes = (name, source, value) =>
 const excludes = (name, source, value) =>
   assert(!source.includes(value), `${name} must not include: ${value}`);
 
-const doc = read("docs/phase-7AB-provider-candidate-scoring-worksheet.md");
+const doc = read("docs/phase-7AC-candidate-dossier-fill-gate.md");
 const phase7Audit = read("docs/phase-7-pre-execution-audit.md");
 const entryCheck = read("scripts/check-phase-7-entry.mjs");
 const packageJson = read("package.json");
 const readme = read("README.md");
 const phase7AA = read("docs/phase-7AA-provider-candidate-intake-gate.md");
+const phase7AB = read("docs/phase-7AB-provider-candidate-scoring-worksheet.md");
 const phase7Z = read("docs/phase-7Z-provider-selection-sandbox.md");
 const phase7V = read("docs/phase-7V-provider-candidate-dossier.md");
+const phase7U = read(
+  "docs/phase-7U-target-supabase-rate-limit-verifier-readiness.md",
+);
+const phase7T = read("docs/phase-7T-custom-bridge-smoke-go-no-go.md");
 const runtime = read("supabase/functions/base-mcp-prepare/runtime-config.ts");
 const dependencies = read(
   "supabase/functions/base-mcp-prepare/dependencies.ts",
@@ -31,44 +36,49 @@ const publicAgent = read("src/pages/PublicAgent.tsx");
 
 for (
   const value of [
-    "Status: local provider candidate scoring worksheet complete.",
-    "Current decision: no candidate scored.",
-    "No provider is nominated, selected, approved, contacted, or called.",
-    "offline-only",
-    "## Scoring Inputs",
-    "Provider/project name from owner nomination.",
-    "Endpoint origin only.",
+    "Status: local candidate dossier fill gate complete.",
+    "Current decision: no candidate dossier filled.",
+    "No provider is nominated, scored, selected, approved, contacted, or called.",
+    "## Prerequisites",
+    "Phase 7AA intake decision is `ready_for_7z_sandbox`.",
+    "Phase 7AB scoring decision is `scored_ready_for_7z_sandbox`.",
+    "Phase 7Z sandbox decision is `candidate_for_dossier`.",
+    "Phase 7V dossier template remains the controlling dossier format.",
+    "## Dossier Fill Inputs",
+    "Endpoint origin only",
     "Expected protocol: `kyra_status_v1`.",
     "Expected path: `POST /status-check`.",
-    "## Hard-Fail Rules",
-    "Any hard fail forces `rejected`, regardless of numeric score:",
-    "Candidate requires official MCP OAuth.",
-    "Candidate requires any `agent_wallet:*` scope.",
-    "Candidate endpoint is not HTTPS or is `mcp.base.org`.",
-    "Candidate asks for wallet data, Telegram data, Supabase data, user identity",
-    "## Weighted Scorecard",
-    "| Total | 100 | Sum of all rows after hard-fail review | 0 |",
-    "## Minimum Scoring Floors",
-    "Total score is at least 90.",
-    "Data boundary score is 20.",
-    "Protocol and path fit score is 15.",
-    "Endpoint safety score is 10.",
-    "## Result States",
-    "`score_below_floor`",
-    "`scored_ready_for_7z_sandbox`",
+    "Credential type without value.",
+    "Summarized positive contract evidence readiness.",
+    "Summarized negative contract evidence readiness.",
+    "## Forbidden Dossier Material",
+    "Provider API keys",
+    "Telegram bot tokens",
+    "Supabase service-role keys",
+    "Wallet addresses",
+    "Official MCP OAuth client ids",
+    "Raw provider request bodies",
+    "## Fill Checklist",
+    "Intake gate",
+    "Scoring gate",
+    "Sandbox gate",
+    "Credential lifecycle",
+    "Redacted owner summary",
+    "## Dossier Result States",
+    "`ready_for_owner_dossier_review`",
     "does not approve provider use",
-    "## Redacted Scoring Template",
-    "Decision: rejected | needs_owner_input | incomplete | score_below_floor | scored_ready_for_7z_sandbox",
+    "## Redacted Dossier Fill Template",
+    "Decision: blocked | rejected | incomplete | ready_for_owner_dossier_review",
     "## Guardrails",
     "Do not call the provider.",
     "Do not request credentials.",
-    "Do not score raw provider request or response bodies.",
+    "Do not include raw provider request or response bodies.",
     "Do not set runtime gates.",
     "Do not apply SQL.",
-    "Do not move directly from scoring to dossier approval.",
+    "Do not move directly from dossier fill to smoke approval.",
     "## Done Criteria",
   ]
-) includes("Phase 7AB scoring worksheet", doc, value);
+) includes("Phase 7AC dossier fill gate", doc, value);
 
 for (
   const forbidden of [
@@ -83,13 +93,13 @@ for (
     "approve automatically",
     "auto-enable",
   ]
-) excludes("Phase 7AB scoring worksheet", doc, forbidden);
+) excludes("Phase 7AC dossier fill gate", doc, forbidden);
 
 for (
   const value of [
-    "### 7AB - Provider Candidate Scoring Worksheet",
-    "Scoring packet: `docs/phase-7AB-provider-candidate-scoring-worksheet.md`.",
-    "`npm run check:phase-7ab`",
+    "### 7AC - Candidate Dossier Fill Gate",
+    "Dossier fill packet: `docs/phase-7AC-candidate-dossier-fill-gate.md`.",
+    "`npm run check:phase-7ac`",
   ]
 ) includes("Phase 7 audit", phase7Audit, value);
 
@@ -101,16 +111,21 @@ includes(
 
 for (
   const value of [
-    '"check:phase-7ab"',
-    "npm run check:phase-7ab",
+    '"check:phase-7ac"',
+    "npm run check:phase-7ac",
   ]
 ) includes("package scripts", packageJson, value);
 
-includes("README", readme, "provider candidate scoring worksheet");
+includes("README", readme, "candidate dossier fill gate");
 includes(
   "Phase 7AA intake",
   phase7AA,
   "Current decision: no candidate intake accepted.",
+);
+includes(
+  "Phase 7AB scoring",
+  phase7AB,
+  "Current decision: no candidate scored.",
 );
 includes(
   "Phase 7Z sandbox",
@@ -118,6 +133,8 @@ includes(
   "Current decision: no provider selected.",
 );
 includes("Phase 7V dossier", phase7V, "Current decision: blocked.");
+includes("Phase 7U verifier", phase7U, "Current decision: blocked.");
+includes("Phase 7T smoke", phase7T, "Current decision: blocked.");
 includes("runtime gate", runtime, 'return value === "true"');
 includes(
   "runtime endpoint",
@@ -131,4 +148,4 @@ excludes("provider adapter", providerAdapter, "transactionHash");
 excludes("Telegram runtime", telegram, "base-mcp-prepare");
 excludes("public agent", publicAgent, "base-mcp-prepare");
 
-console.log("Phase 7AB provider candidate scoring checks passed.");
+console.log("Phase 7AC candidate dossier fill checks passed.");
