@@ -60,7 +60,7 @@ for (
 includes(
   "Phase 7 entry checker",
   entryCheck,
-  "Status: Phase 7S provider drift response runbook complete.",
+  "Status: Phase 7T custom bridge smoke go/no-go packet complete.",
 );
 
 for (

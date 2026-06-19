@@ -39,7 +39,7 @@ approval.
 | Telegram             | Live read-only commands and natural planning chat      |
 | LLM layer            | Backend-only enrichment for eligible read-only replies |
 | Wallet/Base layer    | Phase 6 hardened foundation, execution still gated     |
-| Base MCP             | Custom bridge prepared; provider drift runbook ready    |
+| Base MCP             | Custom bridge prepared; smoke go/no-go remains blocked  |
 | Onchain transactions | Not live in the current demo                           |
 
 ## What Is Live
@@ -176,7 +176,8 @@ transaction authority is not tool-bounded and escalation is undefined. The
 public provider contract is monitored locally for semantic drift with a manual
 response runbook, but changes never enable OAuth automatically. The custom
 bridge smoke remains blocked until a compatible provider and reviewed database
-rate-limit contract are approved. See `docs/phase-7-pre-execution-audit.md`.
+rate-limit contract are approved; the custom smoke now has an explicit
+go/no-go packet. See `docs/phase-7-pre-execution-audit.md`.
 
 ## Product Principles
 

@@ -2,7 +2,7 @@
 
 Date: 2026-06-19
 
-Status: Phase 7S provider drift response runbook complete. The first read-only
+Status: Phase 7T custom bridge smoke go/no-go packet complete. The first read-only
 Base MCP status adapter and owner-dashboard caller are protected by an exact
 protocol gate and service-role rate-limit contract. No compatible production
 provider is approved and the runtime gate remains disabled. No production wallet prompt,
@@ -282,6 +282,21 @@ and owner approval are complete:
   prompts, signatures, approvals, swaps, transfers, contract calls, Telegram
   drafts, and Telegram execution blocked during drift response.
 
+### 7T - Custom Bridge Smoke Go/No-Go
+
+- Go/no-go packet: `docs/phase-7T-custom-bridge-smoke-go-no-go.md`.
+- Require provider contract, provider ownership, provider safety, target-project
+  rate-limit SQL verification, rollback review, gate window, low-risk account,
+  local verification, and owner approval before any smoke.
+- Keep the current smoke decision blocked until every evidence row is ready.
+- Require `KYRA_BASE_MCP_PREP_ENABLED=false` before and immediately after any
+  approved smoke window.
+- Treat wallet data, calldata, signatures, Telegram tokens, Supabase sessions,
+  raw provider bodies, user identifiers, and transaction material as
+  non-shareable evidence.
+- Keep Telegram, public routes, wallet prompts, signing, prepared-action
+  writes, and onchain execution disabled.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -324,6 +339,7 @@ Before any Phase 7 push or deploy:
 - `npm run test:phase-7r`
 - `npm run check:phase-7r`
 - `npm run check:phase-7s`
+- `npm run check:phase-7t`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`
