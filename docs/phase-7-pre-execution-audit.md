@@ -2,7 +2,7 @@
 
 Date: 2026-06-19
 
-Status: Phase 7AE controlled smoke closeout runbook complete. The first read-only
+Status: Phase 7AI final smoke authorization packet complete. The first read-only
 Base MCP status adapter and owner-dashboard caller are protected by an exact
 protocol gate and service-role rate-limit contract. No compatible production
 provider is approved and the runtime gate remains disabled. No production wallet prompt,
@@ -482,6 +482,75 @@ and owner approval are complete:
   smoke, trigger Telegram execution, open wallet prompts, or submit
   transactions.
 
+### 7AF - Provider Candidate Submission Template
+
+- Submission template: `docs/phase-7AF-provider-candidate-submission-template.md`.
+- Accept only redacted provider candidate submissions: provider name, public
+  source, endpoint origin, accountable contacts, credential type without value,
+  credential lifecycle, exact `kyra_status_v1` and `POST /status-check`
+  support, data boundary, retention, incident path, and support window.
+- Reject provider credentials, Telegram tokens, Supabase secrets, wallet data,
+  user identifiers, raw provider bodies, transaction material, official MCP
+  OAuth material, `agent_wallet:*` scope requirements, live-probe requirements,
+  Telegram initiation, and public frontend credential configuration.
+- Keep the current result as no provider candidate submitted. A clean
+  submission can only move redacted fields into Phase 7AA intake review; it
+  cannot approve provider use, credentials, endpoint calls, SQL, runtime gates,
+  smoke, wallet prompts, Telegram execution, or transactions.
+
+### 7AG - Provider Evidence Fill Review
+
+- Evidence review: `docs/phase-7AG-provider-evidence-fill-review.md`.
+- Require redacted evidence for identity, endpoint ownership, exact protocol and
+  path, positive and negative contract summaries, data boundary, credential
+  lifecycle, retention, incident path, rollback, and support window.
+- Accept only public links, redacted provider statements, redacted operator
+  summaries, redacted contract-shape summaries, and redacted incident/rollback
+  summaries.
+- Reject credentials, Telegram tokens, Supabase secrets, wallet data, user
+  identifiers, raw provider bodies, transaction material, official OAuth
+  material, `agent_wallet:*` grants, browser storage, and live probe output
+  gathered before dossier completion.
+- Keep the current result as no provider evidence filled. Filled evidence can
+  only move toward Phase 7AB scoring; it cannot approve provider use, endpoint
+  calls, SQL, runtime gates, or smoke.
+
+### 7AH - Target SQL Approval Prep
+
+- SQL prep packet: `docs/phase-7AH-target-sql-approval-prep.md`.
+- Prepare the exact target-project approval material for the review-only Base
+  MCP status rate-limit SQL: redacted target project, environment, operator,
+  apply window, rollback operator, rollback window, gate-off proof, SQL file
+  list, boolean-only verifier evidence policy, and owner approval status.
+- Keep the forward, verifier, and rollback SQL files review-only. Share only
+  boolean verifier fields after a future approved manual apply.
+- Reject service-role keys, database passwords, JWTs, Telegram tokens, provider
+  credentials, wallet data, user identifiers, raw rows, raw migration output
+  with sensitive values, transaction material, open-ended windows, and
+  runtime-gate-on state.
+- Keep the current result as target SQL approval not ready. SQL prep cannot
+  request approval, apply SQL, run verifier SQL, enable runtime gates, contact
+  providers, or authorize smoke.
+
+### 7AI - Final Smoke Authorization Packet
+
+- Authorization packet: `docs/phase-7AI-final-smoke-authorization-packet.md`.
+- Consolidate Phase 7AF, 7AG, 7AA, 7AB, 7Z, 7AC, 7V, 7AH, 7AD, 7U, 7W, 7X,
+  and 7AE into one final redacted authorization gate before any future
+  one-call read-only smoke can be considered.
+- Limit any future authorization to one owner workspace, one persisted demo
+  agent, one `base_mcp_status_check`, Base chain, `kyra_status_v1`, one
+  provider endpoint origin, one provider call, one short window, and owner
+  dashboard only.
+- Explicitly exclude wallet prompts, signatures, token approvals, swaps,
+  transfers, contract calls, prepared-action production writes outside reviewed
+  scope, Telegram execution, public-route execution, official MCP OAuth,
+  `agent_wallet:*` scopes, arbitrary calldata, transaction submission, and
+  long-running runtime gates.
+- Keep the current result as final smoke not authorized. This packet cannot run
+  smoke, enable runtime gates, apply SQL, run verifier SQL, contact providers,
+  request credentials, paste credentials, or approve wallet/onchain execution.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -536,6 +605,10 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7ac`
 - `npm run check:phase-7ad`
 - `npm run check:phase-7ae`
+- `npm run check:phase-7af`
+- `npm run check:phase-7ag`
+- `npm run check:phase-7ah`
+- `npm run check:phase-7ai`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`

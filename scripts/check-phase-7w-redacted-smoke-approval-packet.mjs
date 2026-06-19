@@ -89,7 +89,7 @@ for (
 includes(
   "Phase 7 entry checker",
   entryCheck,
-  "Status: Phase 7AE controlled smoke closeout runbook complete.",
+  "Status: Phase 7AI final smoke authorization packet complete.",
 );
 
 for (
