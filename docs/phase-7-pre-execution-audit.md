@@ -2,7 +2,7 @@
 
 Date: 2026-06-19
 
-Status: Phase 7U target Supabase rate-limit verifier readiness complete. The first read-only
+Status: Phase 7V provider candidate dossier template complete. The first read-only
 Base MCP status adapter and owner-dashboard caller are protected by an exact
 protocol gate and service-role rate-limit contract. No compatible production
 provider is approved and the runtime gate remains disabled. No production wallet prompt,
@@ -314,6 +314,21 @@ and owner approval are complete:
 - Keep runtime gates, provider calls, Telegram execution, wallet prompts,
   signing, prepared-action writes, and onchain execution disabled.
 
+### 7V - Provider Candidate Dossier
+
+- Dossier packet: `docs/phase-7V-provider-candidate-dossier.md`.
+- Require provider identity, endpoint owner, operational contact, rollback
+  contact, credential lifecycle, data retention, incident path, and endpoint
+  origin without credentials before a provider can enter review.
+- Require exact `kyra_status_v1` positive and negative contract evidence.
+- Reject candidates that require official Base MCP OAuth, `agent_wallet:*`
+  scopes, wallet data, Telegram data, Supabase data, user identity data, public
+  frontend configuration, or Telegram initiation.
+- Keep provider approval separate from smoke approval; dossier approval only
+  permits a later smoke approval discussion.
+- Keep runtime gates, SQL application, provider calls, wallet prompts, signing,
+  Telegram execution, and onchain execution disabled.
+
 ## Candidate Selection Rules
 
 The first live candidate must be narrow:
@@ -358,6 +373,7 @@ Before any Phase 7 push or deploy:
 - `npm run check:phase-7s`
 - `npm run check:phase-7t`
 - `npm run check:phase-7u`
+- `npm run check:phase-7v`
 - `deno test --quiet supabase/functions`
 - `npm run build`
 - `git diff --check`

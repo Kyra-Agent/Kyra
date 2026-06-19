@@ -60,7 +60,7 @@ for (
 includes(
   "Phase 7 entry checker",
   entryCheck,
-  "Status: Phase 7U target Supabase rate-limit verifier readiness complete.",
+  "Status: Phase 7V provider candidate dossier template complete.",
 );
 
 for (
