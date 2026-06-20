@@ -334,7 +334,12 @@ Transition lock:
 
 - `docs/phase-7AK-official-base-mcp-transition-gate.md`
 - `npm run check:phase-7ak`
+- `docs/phase-7AL-official-base-mcp-unblock-readiness.md`
+- `npm run check:phase-7al`
 
 This gate keeps Phase 7D Base Account connection, official MCP OAuth, token
 storage, tool discovery, prepared actions, signing, and transaction submission
 blocked while Phase 7C remains no-go.
+
+The unblock readiness matrix states the exact evidence required before the
+transition can be reconsidered.

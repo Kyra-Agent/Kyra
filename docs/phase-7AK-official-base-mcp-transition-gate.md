@@ -106,4 +106,5 @@ priority. Product progress cannot override:
 ## Verification
 
 - `npm run check:phase-7ak`
+- `npm run check:phase-7al`
 - `npm run check:phase-7`
