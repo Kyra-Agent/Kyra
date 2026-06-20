@@ -351,6 +351,8 @@ Transition lock:
 - `npm run check:phase-7ar`
 - `docs/phase-7AS-official-mcp-token-schema-rls-blueprint.md`
 - `npm run check:phase-7as`
+- `docs/phase-7AT-owner-consent-and-disconnect-ux-blueprint.md`
+- `npm run check:phase-7at`
 
 This gate keeps Phase 7D Base Account connection, official MCP OAuth, token
 storage, tool discovery, prepared actions, signing, and transaction submission
@@ -387,3 +389,8 @@ token storage.
 The official MCP token schema and RLS blueprint defines future private tables,
 owner-summary views, forbidden secret columns, grant lockdown, boolean-only
 verifiers, and public/Telegram/LLM exclusions without approving executable SQL.
+
+The owner consent and disconnect UX blueprint defines future consent fields,
+required copy, forbidden generic authority copy, approval separation,
+disconnect, emergency disablement, failure states, Telegram refusal, and public
+route boundaries without enabling any interactive wallet authority control.
