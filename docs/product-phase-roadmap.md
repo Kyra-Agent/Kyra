@@ -341,6 +341,8 @@ Transition lock:
 - `npm run check:phase-7am`
 - `docs/phase-7AN-production-ui-and-base-mcp-evidence-refresh.md`
 - `npm run check:phase-7an`
+- `docs/phase-7AO-official-base-mcp-go-no-go-decision-packet.md`
+- `npm run check:phase-7ao`
 
 This gate keeps Phase 7D Base Account connection, official MCP OAuth, token
 storage, tool discovery, prepared actions, signing, and transaction submission
@@ -356,3 +358,7 @@ side effects.
 The production UI and evidence refresh checkpoint confirms the deployed site is
 reachable, the dashboard still shows the Base MCP blocked boundary, and the
 latest official Base MCP public evidence still matches the blocked baseline.
+
+The go/no-go decision packet freezes the current result as NO-GO for Phase 7D
+until the missing official Base MCP evidence is reviewed and the owner
+explicitly approves a transition.
