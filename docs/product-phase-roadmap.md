@@ -355,6 +355,8 @@ Transition lock:
 - `npm run check:phase-7at`
 - `docs/phase-7AU-official-oauth-route-implementation-plan.md`
 - `npm run check:phase-7au`
+- `docs/phase-7AV-disabled-route-test-harness-plan.md`
+- `npm run check:phase-7av`
 
 This gate keeps Phase 7D Base Account connection, official MCP OAuth, token
 storage, tool discovery, prepared actions, signing, and transaction submission
@@ -400,3 +402,7 @@ route boundaries without enabling any interactive wallet authority control.
 The official OAuth route implementation plan defines future start, callback,
 token broker, revoke, status, gate, test, rollback, and incident contracts
 without creating official OAuth routes or enabling runtime authority.
+
+The disabled route test harness plan defines the future static absence,
+disabled-route, gate parsing, request shape, redaction, no-wiring, and
+pass/fail test contracts that must exist before route skeletons can be added.
