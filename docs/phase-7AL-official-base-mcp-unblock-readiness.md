@@ -104,7 +104,9 @@ The transition stays blocked if any of these are true:
 
 ## Verification
 
+- `npm run status:base-mcp`
 - `npm run check:phase-7al`
+- `npm run check:phase-7am`
 - `npm run check:phase-7`
 
 ## Done Criteria
