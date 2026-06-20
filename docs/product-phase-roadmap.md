@@ -339,6 +339,8 @@ Transition lock:
 - `docs/phase-7AM-official-base-mcp-operator-status.md`
 - `npm run status:base-mcp`
 - `npm run check:phase-7am`
+- `docs/phase-7AN-production-ui-and-base-mcp-evidence-refresh.md`
+- `npm run check:phase-7an`
 
 This gate keeps Phase 7D Base Account connection, official MCP OAuth, token
 storage, tool discovery, prepared actions, signing, and transaction submission
@@ -350,3 +352,7 @@ transition can be reconsidered.
 The operator status command summarizes the current blocked state and safe next
 work without network, OAuth, token, wallet, MCP session, tool, or transaction
 side effects.
+
+The production UI and evidence refresh checkpoint confirms the deployed site is
+reachable, the dashboard still shows the Base MCP blocked boundary, and the
+latest official Base MCP public evidence still matches the blocked baseline.
