@@ -361,6 +361,8 @@ Transition lock:
 - `npm run check:phase-7aw`
 - `docs/phase-7AX-disabled-only-route-skeleton.md`
 - `npm run check:phase-7ax`
+- `docs/phase-7AY-owner-authentication-boundary-packet.md`
+- `npm run check:phase-7ay`
 
 This gate keeps Phase 7D Base Account connection, official MCP OAuth, token
 storage, tool discovery, prepared actions, signing, and transaction submission
@@ -425,3 +427,10 @@ not-implemented responses, redaction helpers, route tests, and a static
 no-wiring checker. Its result is `disabled_safe`; the routes have no provider,
 OAuth, token, MCP, frontend, Telegram, wallet, signing, transaction, deploy, or
 production configuration path.
+
+The Phase 7AY owner-authentication boundary packet defines trusted owner
+identity, owner/workspace/agent ownership, separate caller classes for start,
+status, revoke, callback, and token broker, gateway versus function-level auth,
+request ordering, replay, CORS, enumeration, logging, and privacy rules. It
+does not add auth helpers or allow the disabled skeletons to process identity,
+body, query, OAuth, token, wallet, or provider data.
