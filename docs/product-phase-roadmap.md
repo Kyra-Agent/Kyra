@@ -349,6 +349,8 @@ Transition lock:
 - `npm run check:phase-7aq`
 - `docs/phase-7AR-token-lifecycle-and-revocation-blueprint.md`
 - `npm run check:phase-7ar`
+- `docs/phase-7AS-official-mcp-token-schema-rls-blueprint.md`
+- `npm run check:phase-7as`
 
 This gate keeps Phase 7D Base Account connection, official MCP OAuth, token
 storage, tool discovery, prepared actions, signing, and transaction submission
@@ -381,3 +383,7 @@ The token lifecycle and revocation blueprint defines the future authorization
 code, PKCE, state, access-token, refresh-token, credential-reference, refresh,
 disconnect, audit, and incident boundaries without enabling official OAuth or
 token storage.
+
+The official MCP token schema and RLS blueprint defines future private tables,
+owner-summary views, forbidden secret columns, grant lockdown, boolean-only
+verifiers, and public/Telegram/LLM exclusions without approving executable SQL.
