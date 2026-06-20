@@ -345,6 +345,8 @@ Transition lock:
 - `npm run check:phase-7ao`
 - `docs/phase-7AP-no-go-runtime-freeze-guard.md`
 - `npm run check:phase-7ap`
+- `docs/phase-7AQ-owner-wallet-authority-blueprint.md`
+- `npm run check:phase-7aq`
 
 This gate keeps Phase 7D Base Account connection, official MCP OAuth, token
 storage, tool discovery, prepared actions, signing, and transaction submission
@@ -368,3 +370,7 @@ explicitly approves a transition.
 The NO-GO runtime freeze guard verifies the current code cannot open wallet,
 official OAuth, official MCP session, tool, signing, or transaction paths while
 the decision remains NO-GO.
+
+The owner wallet-authority blueprint defines the future owner/workspace/agent/
+Base Account/resource/scope/consent binding and approval order without enabling
+runtime wallet authority.
