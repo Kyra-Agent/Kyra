@@ -347,6 +347,8 @@ Transition lock:
 - `npm run check:phase-7ap`
 - `docs/phase-7AQ-owner-wallet-authority-blueprint.md`
 - `npm run check:phase-7aq`
+- `docs/phase-7AR-token-lifecycle-and-revocation-blueprint.md`
+- `npm run check:phase-7ar`
 
 This gate keeps Phase 7D Base Account connection, official MCP OAuth, token
 storage, tool discovery, prepared actions, signing, and transaction submission
@@ -374,3 +376,8 @@ the decision remains NO-GO.
 The owner wallet-authority blueprint defines the future owner/workspace/agent/
 Base Account/resource/scope/consent binding and approval order without enabling
 runtime wallet authority.
+
+The token lifecycle and revocation blueprint defines the future authorization
+code, PKCE, state, access-token, refresh-token, credential-reference, refresh,
+disconnect, audit, and incident boundaries without enabling official OAuth or
+token storage.
