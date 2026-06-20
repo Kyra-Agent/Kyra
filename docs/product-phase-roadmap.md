@@ -343,6 +343,8 @@ Transition lock:
 - `npm run check:phase-7an`
 - `docs/phase-7AO-official-base-mcp-go-no-go-decision-packet.md`
 - `npm run check:phase-7ao`
+- `docs/phase-7AP-no-go-runtime-freeze-guard.md`
+- `npm run check:phase-7ap`
 
 This gate keeps Phase 7D Base Account connection, official MCP OAuth, token
 storage, tool discovery, prepared actions, signing, and transaction submission
@@ -362,3 +364,7 @@ latest official Base MCP public evidence still matches the blocked baseline.
 The go/no-go decision packet freezes the current result as NO-GO for Phase 7D
 until the missing official Base MCP evidence is reviewed and the owner
 explicitly approves a transition.
+
+The NO-GO runtime freeze guard verifies the current code cannot open wallet,
+official OAuth, official MCP session, tool, signing, or transaction paths while
+the decision remains NO-GO.
