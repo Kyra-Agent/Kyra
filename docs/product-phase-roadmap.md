@@ -357,6 +357,8 @@ Transition lock:
 - `npm run check:phase-7au`
 - `docs/phase-7AV-disabled-route-test-harness-plan.md`
 - `npm run check:phase-7av`
+- `docs/phase-7AW-disabled-only-route-skeleton-approval-packet.md`
+- `npm run check:phase-7aw`
 
 This gate keeps Phase 7D Base Account connection, official MCP OAuth, token
 storage, tool discovery, prepared actions, signing, and transaction submission
@@ -406,3 +408,11 @@ without creating official OAuth routes or enabling runtime authority.
 The disabled route test harness plan defines the future static absence,
 disabled-route, gate parsing, request shape, redaction, no-wiring, and
 pass/fail test contracts that must exist before route skeletons can be added.
+
+The disabled-only route skeleton approval packet defines the exact future
+code-bearing scope, allowed file boundary, fixed disabled responses,
+independent gates, test-first order, privacy rules, rollback rules, and
+separate owner approval required before any route skeleton file can exist.
+Its current state is `ready_to_request_owner_skeleton_approval`; it does not
+approve implementation, provider contact, OAuth, tokens, wallet authority,
+deploy, or push.
