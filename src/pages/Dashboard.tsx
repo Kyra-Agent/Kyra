@@ -2120,6 +2120,14 @@ export function Dashboard({
               <span>Base MCP prep</span>
               <span>{preparedActionPreview.status.replace(/_/g, " ")}</span>
             </div>
+            <div className="base-mcp-boundary-banner">
+              <ShieldCheck size={16} />
+              <span>
+                Official Base MCP wallet authority is blocked until provider
+                metadata, least-privilege scope, tool mapping, and approval
+                behavior are verified.
+              </span>
+            </div>
             <div
               className={`prepared-action-card readiness-${preparedActionTone}`}
             >

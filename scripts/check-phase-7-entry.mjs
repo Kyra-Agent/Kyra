@@ -49,6 +49,7 @@ const context = read("docs/kyra-agent-context.md");
 const readme = read("README.md");
 const packageJson = read("package.json");
 const appConfig = read("src/config/appConfig.ts");
+const dashboard = read("src/pages/Dashboard.tsx");
 const walletBoundary = read("src/providers/WalletProviderBoundary.tsx");
 const baseMcpDependencies = read(
   "supabase/functions/base-mcp-prepare/dependencies.ts",
@@ -140,6 +141,16 @@ assertIncludes(
   "README",
   readme,
   "Phase 7 starts with pre-execution security audits",
+);
+assertIncludes(
+  "Dashboard",
+  dashboard,
+  "Official Base MCP wallet authority is blocked until provider",
+);
+assertIncludes(
+  "Dashboard",
+  dashboard,
+  "metadata, least-privilege scope, tool mapping, and approval",
 );
 assertIncludes("package.json", packageJson, '"check:phase-6"');
 assertIncludes("package.json", packageJson, '"check:phase-7-entry"');
