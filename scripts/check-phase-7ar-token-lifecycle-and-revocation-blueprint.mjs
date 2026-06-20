@@ -134,18 +134,27 @@ includes(
 includes("Base MCP runtime config", runtimeConfig, 'return { enabled: false };');
 
 for (
-  const forbiddenPath of [
+  const requiredPath of [
     "supabase/functions/official-mcp-oauth-start",
     "supabase/functions/official-mcp-oauth-callback",
     "supabase/functions/official-mcp-token-broker",
-    "supabase/functions/official-mcp-refresh-token",
     "supabase/functions/official-mcp-revoke",
+  ]
+) {
+  assert(
+    existsSync(resolve(root, requiredPath)),
+    `${requiredPath} disabled-only skeleton must exist after Phase 7AX.`,
+  );
+}
+for (
+  const forbiddenPath of [
+    "supabase/functions/official-mcp-refresh-token",
     "supabase/functions/official-mcp-tools",
   ]
 ) {
   assert(
     !existsSync(resolve(root, forbiddenPath)),
-    `${forbiddenPath} must remain absent during Phase 7AR.`,
+    `${forbiddenPath} must remain absent.`,
   );
 }
 

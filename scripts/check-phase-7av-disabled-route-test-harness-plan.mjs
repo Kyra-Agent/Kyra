@@ -36,6 +36,9 @@ const publicAgent = read("src/pages/PublicAgent.tsx");
 const telegramWebhook = read("supabase/functions/telegram-webhook/core.ts");
 const runtimeConfig = read("supabase/functions/base-mcp-prepare/runtime-config.ts");
 const supabaseSchema = read("supabase/schema.sql");
+const disabledResponse = read(
+  "supabase/functions/official-mcp-shared/disabled-response.ts",
+);
 
 for (
   const expected of [
@@ -110,7 +113,7 @@ includes(
 includes(
   "Phase 7AP freeze",
   freezeGuard,
-  "Official MCP OAuth start/callback functions must remain absent.",
+  "Only reviewed disabled-only skeletons may exist",
 );
 includes(
   "Phase 7AU route plan",
@@ -152,20 +155,35 @@ includes(
 includes("Base MCP runtime config", runtimeConfig, 'return { enabled: false };');
 
 for (
-  const forbiddenRuntimePath of [
+  const requiredRuntimePath of [
     "supabase/functions/official-mcp-shared",
     "supabase/functions/official-mcp-oauth-start",
     "supabase/functions/official-mcp-oauth-callback",
     "supabase/functions/official-mcp-token-broker",
-    "supabase/functions/official-mcp-refresh-token",
     "supabase/functions/official-mcp-revoke",
     "supabase/functions/official-mcp-status",
+  ]
+) {
+  assert(
+    existsSync(resolve(root, requiredRuntimePath)),
+    `${requiredRuntimePath} must exist after the approved Phase 7AX transition.`,
+  );
+}
+includes("disabled response", disabledResponse, "official_mcp_${route}_disabled");
+includes(
+  "disabled response",
+  disabledResponse,
+  "official_mcp_${route}_not_implemented",
+);
+for (
+  const forbiddenRuntimePath of [
+    "supabase/functions/official-mcp-refresh-token",
     "supabase/functions/official-mcp-tools",
   ]
 ) {
   assert(
     !existsSync(resolve(root, forbiddenRuntimePath)),
-    `${forbiddenRuntimePath} must remain absent during Phase 7AV.`,
+    `${forbiddenRuntimePath} must remain absent.`,
   );
 }
 

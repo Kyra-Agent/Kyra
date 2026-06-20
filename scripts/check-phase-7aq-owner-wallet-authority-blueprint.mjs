@@ -115,16 +115,16 @@ includes("Base MCP service", baseMcpService, 'actionKind: "base_mcp_status_check
 includes("Base MCP service", baseMcpService, 'mode: "read_only"');
 
 assert(
-  !existsSync(resolve(root, "supabase/functions/official-mcp-oauth-start")),
-  "Official MCP OAuth start function must remain absent.",
+  existsSync(resolve(root, "supabase/functions/official-mcp-oauth-start")),
+  "Official MCP OAuth start disabled-only skeleton must exist after Phase 7AX.",
 );
 assert(
-  !existsSync(resolve(root, "supabase/functions/official-mcp-oauth-callback")),
-  "Official MCP OAuth callback function must remain absent.",
+  existsSync(resolve(root, "supabase/functions/official-mcp-oauth-callback")),
+  "Official MCP OAuth callback disabled-only skeleton must exist after Phase 7AX.",
 );
 assert(
-  !existsSync(resolve(root, "supabase/functions/official-mcp-token-broker")),
-  "Official MCP token broker function must remain absent.",
+  existsSync(resolve(root, "supabase/functions/official-mcp-token-broker")),
+  "Official MCP token broker disabled-only skeleton must exist after Phase 7AX.",
 );
 
 console.log("Phase 7AQ owner wallet authority blueprint checks passed.");

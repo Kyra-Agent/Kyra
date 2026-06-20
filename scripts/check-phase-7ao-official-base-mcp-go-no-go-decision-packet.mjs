@@ -107,12 +107,12 @@ assert(
   "NO-GO packet requires scope-to-tool mapping blocker.",
 );
 assert(
-  !existsSync(resolve(root, "supabase/functions/official-mcp-oauth-start")),
-  "Official MCP OAuth start function must remain absent during NO-GO.",
+  existsSync(resolve(root, "supabase/functions/official-mcp-oauth-start")),
+  "Official MCP OAuth start disabled-only skeleton must exist after Phase 7AX.",
 );
 assert(
-  !existsSync(resolve(root, "supabase/functions/official-mcp-oauth-callback")),
-  "Official MCP OAuth callback function must remain absent during NO-GO.",
+  existsSync(resolve(root, "supabase/functions/official-mcp-oauth-callback")),
+  "Official MCP OAuth callback disabled-only skeleton must exist after Phase 7AX.",
 );
 
 console.log("Phase 7AO official Base MCP go/no-go checks passed.");

@@ -37,6 +37,9 @@ const runtimeConfigTest = read(
   "supabase/functions/base-mcp-prepare/runtime-config_test.ts",
 );
 const indexTest = read("supabase/functions/base-mcp-prepare/index_test.ts");
+const officialMcpDisabledResponse = read(
+  "supabase/functions/official-mcp-shared/disabled-response.ts",
+);
 
 for (
   const expected of [
@@ -45,7 +48,7 @@ for (
     "`walletExecution` remains hardcoded `disabled`",
     "Dashboard may only request `base_mcp_status_check` with `mode: read_only`.",
     "Custom bridge config must reject `https://mcp.base.org`",
-    "Official MCP OAuth start/callback functions must remain absent.",
+    "Only reviewed disabled-only skeletons may exist",
     "The freeze stays active while Phase 7AO is NO-GO.",
     "npm run check:phase-7ap",
   ]
@@ -135,13 +138,34 @@ excludes("provider adapter", providerAdapter, "/token");
 excludes("provider adapter", providerAdapter, "agent_wallet:transact");
 excludes("provider adapter", providerAdapter, "agent_wallet:escalate");
 
-assert(
-  !existsSync(resolve(root, "supabase/functions/official-mcp-oauth-start")),
-  "Official MCP OAuth start function must remain absent during NO-GO freeze.",
+for (
+  const routePath of [
+    "supabase/functions/official-mcp-oauth-start",
+    "supabase/functions/official-mcp-oauth-callback",
+    "supabase/functions/official-mcp-token-broker",
+    "supabase/functions/official-mcp-revoke",
+    "supabase/functions/official-mcp-status",
+  ]
+) {
+  assert(
+    existsSync(resolve(root, routePath)),
+    `${routePath} disabled-only skeleton must exist after Phase 7AX.`,
+  );
+}
+includes(
+  "official MCP disabled response",
+  officialMcpDisabledResponse,
+  "official_mcp_${route}_disabled",
 );
-assert(
-  !existsSync(resolve(root, "supabase/functions/official-mcp-oauth-callback")),
-  "Official MCP OAuth callback function must remain absent during NO-GO freeze.",
+includes(
+  "official MCP disabled response",
+  officialMcpDisabledResponse,
+  "official_mcp_${route}_not_implemented",
+);
+includes(
+  "official MCP disabled response",
+  officialMcpDisabledResponse,
+  "gateEnabled ? 503 : 403",
 );
 assert(
   !existsSync(resolve(root, "supabase/functions/official-mcp-tools")),

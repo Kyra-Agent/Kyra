@@ -173,6 +173,17 @@ scripts/check-official-mcp-disabled-routes.mjs
 Those files are not approved in Phase 7AV. This list is a future sequencing
 contract only.
 
+## Phase 7AX Transition Record
+
+After separate explicit owner approval, Phase 7AX implemented the reviewed
+disabled-only skeleton and tests. The harness result is `disabled_safe`.
+
+This transition does not approve provider contact, OAuth enablement, token
+handling, MCP sessions, wallet authority, signing, transactions, deploy, or
+push. The original Phase 7AV absence requirements describe the pre-approval
+state; the current repository is governed by the stricter Phase 7AX static
+file-boundary and no-wiring checker.
+
 ## Pass/Fail Rule
 
 Future disabled-route harness result states:

@@ -168,14 +168,20 @@ for (
 }
 
 for (
-  const forbiddenPath of [
+  const requiredPath of [
     "supabase/functions/official-mcp-oauth-start",
     "supabase/functions/official-mcp-oauth-callback",
-    "supabase/functions/official-base-mcp-tools",
   ]
 ) {
-  assert(!existsSync(resolve(root, forbiddenPath)), `${forbiddenPath} must remain absent.`);
+  assert(
+    existsSync(resolve(root, requiredPath)),
+    `${requiredPath} disabled-only skeleton must exist after Phase 7AX.`,
+  );
 }
+assert(
+  !existsSync(resolve(root, "supabase/functions/official-base-mcp-tools")),
+  "Official Base MCP tools function must remain absent.",
+);
 
 for (const { path, source } of [...frontendCode, ...functionCode]) {
   for (

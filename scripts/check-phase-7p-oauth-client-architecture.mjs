@@ -59,12 +59,12 @@ for (
 ) includes("Phase 7P architecture", doc, value);
 
 assert(
-  !existsSync(resolve(root, "supabase/functions/official-mcp-oauth-start")),
-  "official MCP OAuth start function must remain absent",
+  existsSync(resolve(root, "supabase/functions/official-mcp-oauth-start")),
+  "official MCP OAuth start disabled-only skeleton must exist after Phase 7AX",
 );
 assert(
-  !existsSync(resolve(root, "supabase/functions/official-mcp-oauth-callback")),
-  "official MCP OAuth callback function must remain absent",
+  existsSync(resolve(root, "supabase/functions/official-mcp-oauth-callback")),
+  "official MCP OAuth callback disabled-only skeleton must exist after Phase 7AX",
 );
 
 includes(

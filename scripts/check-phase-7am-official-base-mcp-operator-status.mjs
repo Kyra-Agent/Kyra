@@ -94,8 +94,8 @@ assertIncludes("canonical roadmap", roadmap, "docs/phase-7AL-official-base-mcp-u
 assertIncludes("readiness matrix", readiness, "Current decision: blocked.");
 
 assert(
-  !existsSync(resolve(root, "supabase/functions/official-mcp-oauth-start")),
-  "official MCP OAuth start function must remain absent.",
+  existsSync(resolve(root, "supabase/functions/official-mcp-oauth-start")),
+  "official MCP OAuth start disabled-only skeleton must exist after Phase 7AX.",
 );
 assert(
   baseline.decision === "blocked",

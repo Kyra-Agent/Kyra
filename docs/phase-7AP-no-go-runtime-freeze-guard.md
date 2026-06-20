@@ -38,7 +38,7 @@ deployment, or push.
 | Request mode | The only accepted mode remains `read_only`. |
 | Adapter contract | The custom bridge may call only `/status-check`, not official OAuth or MCP wallet endpoints. |
 | Prepared summary | Result summary must stay read-only with no token spend, gas request, calldata, or opaque payload ref. |
-| Official routes | Official MCP OAuth start/callback functions must remain absent. |
+| Official routes | Only reviewed disabled-only skeletons may exist; they must return fixed 403 disabled or 503 not-implemented responses and contain no provider, OAuth, token, MCP, wallet, signing, or transaction logic. |
 
 ## What This Allows
 
@@ -54,7 +54,7 @@ deployment, or push.
 - environment-controlled wallet execution
 - automatic wallet provider mounting
 - Base Account prompt from page load, Telegram, public routes, or background jobs
-- official Base MCP OAuth start/callback
+- functional official Base MCP OAuth start/callback
 - dynamic client registration
 - access token or refresh token request/storage
 - official MCP session initialization
@@ -83,7 +83,8 @@ official Base MCP wallet authority.
 - Automated freeze guard exists.
 - Frontend wallet execution remains disabled.
 - Base MCP prepare remains default-off and read-only only.
-- Official Base MCP OAuth functions remain absent.
+- Official Base MCP route code is limited to reviewed disabled-only skeletons
+  with no provider or authority path.
 - Official Base MCP wallet endpoint is not accepted as the custom bridge
   endpoint.
 - Package Phase 7 checks include this guard.

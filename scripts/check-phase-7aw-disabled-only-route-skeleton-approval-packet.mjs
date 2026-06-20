@@ -35,17 +35,20 @@ const publicAgent = read("src/pages/PublicAgent.tsx");
 const telegramWebhook = read("supabase/functions/telegram-webhook/core.ts");
 const runtimeConfig = read("supabase/functions/base-mcp-prepare/runtime-config.ts");
 const supabaseSchema = read("supabase/schema.sql");
+const disabledResponse = read(
+  "supabase/functions/official-mcp-shared/disabled-response.ts",
+);
 
 for (
   const expected of [
     "# Phase 7AW Disabled-Only Route Skeleton Approval Packet",
-    "Status: approval packet complete. Code-bearing route skeletons are not approved.",
-    "Approval state: `ready_to_request_owner_skeleton_approval`.",
-    "No implicit continuation",
+    "Status: owner approval recorded for local disabled-only skeleton work.",
+    "Approval state: `owner_approved_disabled_skeleton`.",
+    "The approval is limited to the exact local file boundary",
     "`owner_approved_disabled_skeleton`",
     "Exact Future Scope",
     "Future Allowed File Boundary",
-    "The list is an approval boundary, not permission to create the files.",
+    "The list is the approved Phase 7AX local file boundary.",
     "Fixed Disabled Contract",
     "official_mcp_oauth_start_disabled",
     "official_mcp_oauth_callback_disabled",
@@ -63,7 +66,7 @@ for (
     "Forbidden Changes",
     "User wallet authority and user Telegram bot-token privacy remain the highest",
     "Rollback Rule",
-    "Code-bearing skeleton work still requires separate explicit owner approval.",
+    "Code-bearing skeleton approval is recorded only for the exact Phase 7AX local",
     "npm run check:phase-7aw",
   ]
 ) {
@@ -73,7 +76,6 @@ for (
 for (
   const forbidden of [
     "Status: live",
-    "Approval state: `owner_approved_disabled_skeleton`.",
     "route skeletons are implemented",
     "provider calls are enabled",
     "OAuth is enabled",
@@ -103,7 +105,7 @@ includes("Phase 7AO decision", decisionPacket, "Decision: **NO-GO**.");
 includes(
   "Phase 7AP freeze",
   freezeGuard,
-  "Official MCP OAuth start/callback functions must remain absent.",
+  "Only reviewed disabled-only skeletons may exist",
 );
 includes(
   "Phase 7AU route plan",
@@ -140,20 +142,35 @@ includes(
 includes("Base MCP runtime config", runtimeConfig, "return { enabled: false };");
 
 for (
-  const forbiddenRuntimePath of [
+  const requiredRuntimePath of [
     "supabase/functions/official-mcp-shared",
     "supabase/functions/official-mcp-oauth-start",
     "supabase/functions/official-mcp-oauth-callback",
     "supabase/functions/official-mcp-token-broker",
-    "supabase/functions/official-mcp-refresh-token",
     "supabase/functions/official-mcp-revoke",
     "supabase/functions/official-mcp-status",
+  ]
+) {
+  assert(
+    existsSync(resolve(root, requiredRuntimePath)),
+    `${requiredRuntimePath} must exist after owner-approved Phase 7AX.`,
+  );
+}
+includes("disabled response", disabledResponse, "official_mcp_${route}_disabled");
+includes(
+  "disabled response",
+  disabledResponse,
+  "official_mcp_${route}_not_implemented",
+);
+for (
+  const forbiddenRuntimePath of [
+    "supabase/functions/official-mcp-refresh-token",
     "supabase/functions/official-mcp-tools",
   ]
 ) {
   assert(
     !existsSync(resolve(root, forbiddenRuntimePath)),
-    `${forbiddenRuntimePath} must remain absent during Phase 7AW.`,
+    `${forbiddenRuntimePath} must remain absent.`,
   );
 }
 

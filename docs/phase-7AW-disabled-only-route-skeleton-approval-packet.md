@@ -2,7 +2,7 @@
 
 Date: 2026-06-20
 
-Status: approval packet complete. Code-bearing route skeletons are not approved.
+Status: owner approval recorded for local disabled-only skeleton work.
 
 Canonical references:
 
@@ -25,16 +25,13 @@ submission, deploys, or pushes.
 
 ## Current Decision
 
-Approval state: `ready_to_request_owner_skeleton_approval`.
+Approval state: `owner_approved_disabled_skeleton`.
 
-This state means the documentation, file boundary, disabled response contract,
-and test order are defined well enough to ask the owner for a separate,
-explicit code-bearing approval.
+The owner explicitly approved Phase 7AX local disabled-only skeleton work on
+2026-06-20.
 
 It does not mean:
 
-- route skeleton code is approved
-- tests are approved for implementation
 - provider contact is approved
 - OAuth is approved
 - token handling is approved
@@ -52,9 +49,9 @@ Phase 7C remains NO-GO. Official Base MCP runtime authority remains blocked.
 | `ready_to_request_owner_skeleton_approval` | Disabled-only scope is documented and may be presented for owner approval |
 | `owner_approved_disabled_skeleton` | Owner explicitly approved local disabled-only skeleton code and tests |
 
-No implicit continuation, documentation approval, previous phase approval, or
-general instruction to continue may be treated as
-`owner_approved_disabled_skeleton`.
+The approval is limited to the exact local file boundary and fail-closed
+behavior in this packet. It does not carry forward to enablement, deployment,
+provider calls, token handling, or wallet authority.
 
 ## Exact Future Scope
 
@@ -110,7 +107,8 @@ supabase/functions/official-mcp-status/index_test.ts
 scripts/check-official-mcp-disabled-routes.mjs
 ```
 
-The list is an approval boundary, not permission to create the files.
+The list is the approved Phase 7AX local file boundary. It is not permission to
+add other runtime files or enable any route.
 
 No SQL migration, schema table, frontend component, provider client, wallet
 provider change, Telegram handler, public-agent handler, deployment config, or
@@ -206,12 +204,13 @@ call appears, or a response contains sensitive data:
 
 Existing unrelated owner work must never be reverted.
 
-## Approval Preconditions
+## Approval Preconditions Verified Before Phase 7AX
 
-Before requesting `owner_approved_disabled_skeleton`, verify:
+Before recording `owner_approved_disabled_skeleton`, the following were
+verified:
 
 1. Phase 7C is still explicitly NO-GO.
-2. All official route paths remain absent.
+2. All official route paths were absent before Phase 7AX implementation.
 3. `walletExecution` remains hardcoded `disabled`.
 4. The custom bridge still rejects `mcp.base.org`.
 5. No official MCP token schema exists.
@@ -222,10 +221,10 @@ Before requesting `owner_approved_disabled_skeleton`, verify:
 
 ## Current Repository Boundary
 
-After Phase 7AW:
+After the recorded owner approval and Phase 7AX implementation:
 
-- official OAuth route skeletons remain absent
-- disabled-route runtime tests remain absent
+- reviewed official OAuth route skeletons exist locally
+- disabled-route runtime tests exist locally
 - no official provider call exists
 - no OAuth authorization or callback runtime exists
 - no token storage schema exists
@@ -247,8 +246,9 @@ After Phase 7AW:
 - The future allowed file boundary is explicit.
 - Fixed disabled result codes and gates are explicit.
 - Test-first, privacy, rollback, and approval rules are explicit.
-- Current state is `ready_to_request_owner_skeleton_approval`.
-- Code-bearing skeleton work still requires separate explicit owner approval.
+- Current state is `owner_approved_disabled_skeleton`.
+- Code-bearing skeleton approval is recorded only for the exact Phase 7AX local
+  disabled-only file boundary.
 - Runtime remains NO-GO and disabled.
 - No route, test harness runtime, provider call, OAuth flow, token handling,
   MCP session, wallet prompt, signing, transaction, deploy, or push occurred.

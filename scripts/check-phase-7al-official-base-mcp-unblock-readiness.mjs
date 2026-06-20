@@ -187,14 +187,26 @@ for (
 }
 
 for (
-  const forbiddenPath of [
+  const requiredPath of [
     "supabase/functions/official-mcp-oauth-start",
     "supabase/functions/official-mcp-oauth-callback",
+  ]
+) {
+  assert(
+    existsSync(resolve(root, requiredPath)),
+    `${requiredPath} disabled-only skeleton must exist after Phase 7AX.`,
+  );
+}
+for (
+  const forbiddenPath of [
     "supabase/functions/official-mcp-token-store",
     "supabase/functions/official-mcp-tools",
   ]
 ) {
-  assert(!existsSync(resolve(root, forbiddenPath)), `${forbiddenPath} must remain absent.`);
+  assert(
+    !existsSync(resolve(root, forbiddenPath)),
+    `${forbiddenPath} must remain absent.`,
+  );
 }
 
 for (const { path, source } of [...frontendCode, ...functionCode]) {

@@ -122,7 +122,7 @@ includes(
   "The browser never receives an official MCP access token",
 );
 includes("Phase 7AO decision", decisionPacket, "Decision: **NO-GO**.");
-includes("Phase 7AP freeze", freezeGuard, "Official MCP OAuth start/callback functions must remain absent.");
+includes("Phase 7AP freeze", freezeGuard, "Only reviewed disabled-only skeletons may exist");
 includes(
   "Phase 7AT consent UX",
   consentUx,
@@ -153,19 +153,28 @@ includes(
 includes("Base MCP runtime config", runtimeConfig, 'return { enabled: false };');
 
 for (
-  const forbiddenRuntimePath of [
+  const requiredRuntimePath of [
     "supabase/functions/official-mcp-oauth-start",
     "supabase/functions/official-mcp-oauth-callback",
     "supabase/functions/official-mcp-token-broker",
-    "supabase/functions/official-mcp-refresh-token",
     "supabase/functions/official-mcp-revoke",
     "supabase/functions/official-mcp-status",
+  ]
+) {
+  assert(
+    existsSync(resolve(root, requiredRuntimePath)),
+    `${requiredRuntimePath} disabled-only skeleton must exist after Phase 7AX.`,
+  );
+}
+for (
+  const forbiddenRuntimePath of [
+    "supabase/functions/official-mcp-refresh-token",
     "supabase/functions/official-mcp-tools",
   ]
 ) {
   assert(
     !existsSync(resolve(root, forbiddenRuntimePath)),
-    `${forbiddenRuntimePath} must remain absent during Phase 7AU.`,
+    `${forbiddenRuntimePath} must remain absent.`,
   );
 }
 

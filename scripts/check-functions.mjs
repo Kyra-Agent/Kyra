@@ -5,6 +5,11 @@ import { spawnSync } from "node:child_process";
 const functionEntrypoints = [
   "supabase/functions/base-mcp-prepare/index.ts",
   "supabase/functions/deploy-agent/index.ts",
+  "supabase/functions/official-mcp-oauth-callback/index.ts",
+  "supabase/functions/official-mcp-oauth-start/index.ts",
+  "supabase/functions/official-mcp-revoke/index.ts",
+  "supabase/functions/official-mcp-status/index.ts",
+  "supabase/functions/official-mcp-token-broker/index.ts",
   "supabase/functions/reset-demo-workspace/index.ts",
   "supabase/functions/telegram-connect/index.ts",
   "supabase/functions/telegram-dashboard-status/index.ts",
