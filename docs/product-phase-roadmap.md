@@ -191,7 +191,7 @@ Required:
 
 ### 7D - Base Account Connection Per Deployed Agent
 
-Status: not implemented.
+Status: foundation clear; runtime connection remains blocked by Phase 7C NO-GO.
 
 Required binding:
 
@@ -210,6 +210,8 @@ Current implementation note:
   Telegram wiring
 - Base Account connection, OAuth runtime, token storage, and official MCP
   sessions remain not implemented
+- foundation closeout is recorded in
+  `docs/phase-7D-foundation-closeout.md`
 
 Only the authenticated owner may initiate connection from the private
 dashboard. Telegram, public profiles, LLM output, page load, and background

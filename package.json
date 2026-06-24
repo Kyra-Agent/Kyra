@@ -38,7 +38,7 @@
     "check:phase-7b": "node scripts/check-phase-7b-ownership.mjs",
     "check:phase-7c": "node scripts/check-phase-7c-base-mcp-runtime.mjs",
     "check:phase-7c-contract": "node scripts/check-phase-7c-official-contract.mjs",
-    "check:phase-7d": "node scripts/check-phase-7d-prepared-action-storage.mjs",
+    "check:phase-7d": "node scripts/check-phase-7d-prepared-action-storage.mjs && node scripts/check-phase-7d-foundation-closeout.mjs",
     "check:phase-7e": "node scripts/check-phase-7e-wallet-signing-boundary.mjs",
     "check:phase-7f": "node scripts/check-phase-7f-telegram-execution-boundary.mjs",
     "check:phase-7g": "node scripts/check-phase-7g-observability.mjs",
