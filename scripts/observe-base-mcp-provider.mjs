@@ -334,15 +334,15 @@ function normalizeDocumentationSignals(source) {
   return {
     available: source.ok,
     readOnlyGuidesDocumented: [
-      "/ai-agents/guides/check-balance",
-      "/ai-agents/guides/view-history",
+      "/agents/guides/check-balance",
+      "/agents/guides/view-history",
     ].every((value) => text.includes(value)),
     writeGuidesDocumented: [
-      "/ai-agents/guides/send-tokens",
-      "/ai-agents/guides/swap-tokens",
-      "/ai-agents/guides/sign-messages",
-      "/ai-agents/guides/batch-calls",
-      "/ai-agents/guides/x402-payments",
+      "/agents/guides/send-tokens",
+      "/agents/guides/swap-tokens",
+      "/agents/guides/sign-messages",
+      "/agents/guides/batch-calls",
+      "/agents/guides/x402-payments",
     ].every((value) => text.includes(value)),
     arbitraryCalldataDocumented: text.includes("unsigned calldata") &&
       text.includes("send_calls"),

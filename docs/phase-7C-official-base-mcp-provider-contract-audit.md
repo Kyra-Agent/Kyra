@@ -19,20 +19,22 @@ prepared actions, prompt a wallet, sign, or submit transactions.
 
 ## Sources Verified
 
-Official Base and MCP sources checked on 2026-06-20:
+Official Base and MCP sources checked on 2026-06-20 and refreshed on
+2026-06-24:
 
 - `https://mcp.base.org/.well-known/oauth-authorization-server`
 - `https://mcp.base.org/.well-known/oauth-protected-resource`
 - `https://mcp.base.org/.well-known/oauth-protected-resource/mcp`
 - `https://mcp.base.org/mcp`
-- `https://docs.base.org/ai-agents/index`
-- `https://docs.base.org/ai-agents/guides/check-balance`
-- `https://docs.base.org/ai-agents/guides/send-tokens`
-- `https://docs.base.org/ai-agents/guides/swap-tokens`
-- `https://docs.base.org/ai-agents/guides/sign-messages`
-- `https://docs.base.org/ai-agents/guides/batch-calls`
-- `https://docs.base.org/ai-agents/guides/x402-payments`
-- `https://docs.base.org/ai-agents/plugins/custom-plugins`
+- `https://docs.base.org/agents/quickstart`
+- `https://docs.base.org/agents/guides/check-balance`
+- `https://docs.base.org/agents/guides/send-tokens`
+- `https://docs.base.org/agents/guides/swap-tokens`
+- `https://docs.base.org/agents/guides/sign-messages`
+- `https://docs.base.org/agents/guides/batch-calls`
+- `https://docs.base.org/agents/guides/x402-payments`
+- `https://docs.base.org/agents/plugins/custom-plugins`
+- `https://docs.base.org/agents/llms-full.txt`
 - `https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization`
 
 ## Current Verified Endpoint Contract
@@ -55,6 +57,12 @@ Protected resource metadata checks returned:
 - unauthenticated `https://mcp.base.org/mcp`: 401 with
   `WWW-Authenticate: Bearer realm="mcp"` and no observed `resource_metadata`
   or scope challenge
+
+The 2026-06-24 monitor refresh still returns the same wallet-authority OAuth
+surface and the same protected-resource metadata blockers. Documentation paths
+have moved from `/ai-agents/...` to `/agents/...`, but the observed product
+surface still includes send, swap, sign, batched contract calls, x402 payments,
+custom plugin `send_calls`, and approval-link based write flows.
 
 ## Official Capability Surface
 
