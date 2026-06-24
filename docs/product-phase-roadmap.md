@@ -468,6 +468,30 @@ It is blueprint-only: it must not add executable SQL, RLS changes, OAuth
 routes, token exchange, token storage, consent UI, wallet prompts, signing, or
 transaction submission without a separate owner-approved implementation gate.
 
+Group 5 scope:
+
+- disabled-only route test harness plan:
+  `docs/phase-7AV-disabled-route-test-harness-plan.md`
+- disabled-only route skeleton approval packet:
+  `docs/phase-7AW-disabled-only-route-skeleton-approval-packet.md`
+- disabled-only route skeleton:
+  `docs/phase-7AX-disabled-only-route-skeleton.md`
+- owner-authentication boundary packet:
+  `docs/phase-7AY-owner-authentication-boundary-packet.md`
+- owner-auth helper approval packet:
+  `docs/phase-7AZ-owner-auth-helper-approval-packet.md`
+- local owner-auth helper boundary checker:
+  `scripts/check-official-mcp-owner-auth-boundary.mjs`
+
+Group 5 keeps official MCP route code disabled-only and helper-only. Route
+files must fail closed, avoid request-body and query-value business logic,
+return fixed sanitized responses, and remain unwired from frontend, Telegram,
+wallet providers, Supabase deployment config, provider endpoints, OAuth token
+exchange, MCP sessions, tool invocation, signing, and transaction submission.
+Owner-auth helpers may validate authenticated owner and owner/workspace/agent
+binding only through dependency-injected APIs; route integration still requires
+a separate owner-approved implementation gate.
+
 ## Telegram Boundary After Phase 7
 
 Telegram remains unable to sign or submit.
