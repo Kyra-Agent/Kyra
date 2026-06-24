@@ -260,17 +260,26 @@ Phase 7E closeout:
 
 ### 7F - Prepared-Action Adapter Allowlist
 
-Status: not implemented.
+Status: complete as a deterministic allowlist boundary.
 
-Required:
+Delivered:
 
 - allowlist exact Kyra action kinds and canonical input schemas
 - validate chain, asset, recipient, amount, value, and calldata policy
 - treat LLM, plugin, provider, and external API output as untrusted data
 - fail closed on action or schema drift
+- keep token spend, calldata, signing, submission, and provider tool authority
+  disabled
 
 Any future official MCP adapter must translate into this same contract and
 pass its separate Phase 7C qualification.
+
+Current implementation:
+
+- `src/types/preparedAction.ts`
+- `scripts/test-prepared-action-allowlist.mjs`
+- `docs/phase-7F-prepared-action-allowlist.md`
+- `npm run check:phase-7f`
 
 ### 7G - Prepared Action And Policy Enforcement
 
@@ -360,6 +369,8 @@ Current position:
   owner-smoked as a non-transactional connection.
 - Phase 7E wallet prompt/signing boundary is implemented as a deterministic
   fail-closed guard and dashboard evidence surface.
+- Phase 7F prepared-action adapter allowlist is implemented as a deterministic
+  owner-dashboard-only schema boundary.
 - Wallet signing, token approval, swaps, transfers, contract calls, transaction
   submission, and transaction hash persistence remain disabled.
 - Phase 7C official Base MCP evidence remains blocked, but blocks only the
@@ -370,12 +381,11 @@ Before implementation resumes, keep the pre-Base MCP cleanup gate green:
 - `docs/phase-7-pre-base-mcp-cleanup-audit.md`
 - `npm run check:pre-base-mcp`
 
-The current primary work item is Phase 7F:
+The current primary work item is Phase 7G:
 
-1. Define the first prepared-action adapter allowlist.
-2. Bind exact signable action schemas to deterministic policy and NYX-05.
-3. Keep LLM, provider output, Telegram text, and public pages as untrusted
-   inputs.
+1. Add owner-scoped prepared-action persistence only after storage approval.
+2. Bind the allowlisted prepared action to deterministic policy and NYX-05.
+3. Add idempotency, replay protection, expiry, and owner-visible context.
 4. Keep signing, submission, and all official MCP authority disabled until the
    later approval and execution gates.
 

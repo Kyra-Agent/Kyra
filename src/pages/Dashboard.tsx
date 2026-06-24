@@ -65,6 +65,8 @@ import {
   type BaseMcpDashboardStatus,
 } from "../services/baseMcpPrepareService";
 import type { BaseMcpPreparedActionSummary } from "../types/baseMcp";
+import { reviewPreparedActionAllowlist } from "../types/preparedAction";
+import { baseChainId } from "../types/unsignedTransactionHandoff";
 import type { DataProvider } from "../types/api";
 import type {
   DemoActivityLog,
@@ -1002,6 +1004,22 @@ export function Dashboard({
     ? createBaseMcpPreparedActionPreview(baseMcpPreparedSummary)
     : dashboardData?.preparedActionPreview ??
       getPreparedActionPreviewFallback(Boolean(authSession));
+  const preparedActionAllowlistReview = useMemo(
+    () =>
+      reviewPreparedActionAllowlist({
+        source: "owner_dashboard",
+        walletExecutionEnabled:
+          appConfig.integrations.walletExecution !== "disabled",
+        actionKind: "base_reviewed_transaction",
+        chainId: baseChainId,
+        recipient: "0x1111111111111111111111111111111111111111",
+        valueWei: "0",
+        data: "0x",
+        routeSummary: "Owner reviewed Base transaction preview.",
+        valueSummary: "No token spend in Phase 7F.",
+      }),
+    [],
+  );
   const preparedActionTone = getPreparedActionTone(
     preparedActionPreview.status,
   );
@@ -2225,6 +2243,36 @@ export function Dashboard({
                 metadata, least-privilege scope, tool mapping, and approval
                 behavior are verified.
               </span>
+            </div>
+            <div className="prepared-action-allowlist-grid">
+              <article>
+                <small>PreparedAction Allowlist</small>
+                <strong>
+                  {preparedActionAllowlistReview.allowed
+                    ? "review schema ready"
+                    : "execution locked"}
+                </strong>
+              </article>
+              <article>
+                <small>Source</small>
+                <strong>owner dashboard</strong>
+              </article>
+              <article>
+                <small>Allowed kinds</small>
+                <strong>status check, reviewed transaction</strong>
+              </article>
+              <article>
+                <small>Token spend</small>
+                <strong>blocked in 7F</strong>
+              </article>
+              <article>
+                <small>Calldata</small>
+                <strong>blocked in 7F</strong>
+              </article>
+              <article>
+                <small>Untrusted input</small>
+                <strong>Telegram, LLM, provider blocked</strong>
+              </article>
             </div>
             <div
               className={`prepared-action-card readiness-${preparedActionTone}`}

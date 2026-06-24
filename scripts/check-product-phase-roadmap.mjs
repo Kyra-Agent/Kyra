@@ -39,7 +39,8 @@ for (
     "It is not required for the primary Base Account product flow",
     "Status: complete and live for owner-initiated Base Account connection.",
     "Phase 7E wallet prompt/signing boundary is implemented",
-    "The current primary work item is Phase 7F:",
+    "Phase 7F prepared-action adapter allowlist is implemented",
+    "The current primary work item is Phase 7G:",
     "This restriction does not freeze the independent Base Account SDK primary",
   ]
 ) {
@@ -65,6 +66,8 @@ for (
     "Coinbase CDP Node or another standalone RPC provider is optional infrastructure",
     "Phase 7D owner-click Base Account connection is live",
     "Phase 7E wallet prompt/signing boundary is implemented",
+    "Phase 7F",
+    "prepared-action allowlist",
   ]
 ) {
   includes("private context roadmap", privateContext, expected);

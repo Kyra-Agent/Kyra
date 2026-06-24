@@ -79,9 +79,26 @@ const telegramWebhookFiles = listFiles("supabase/functions/telegram-webhook")
 
 assert(
   preparedActionTypes.includes(
-    'preparedActionAllowedKinds = ["base_mcp_status_check"] as const',
+    '"base_mcp_status_check"',
   ),
-  "Prepared action allowlist must start with base_mcp_status_check only.",
+  "Prepared action allowlist must include base_mcp_status_check.",
+);
+assert(
+  preparedActionTypes.includes('"base_reviewed_transaction"'),
+  "Prepared action allowlist must include the Phase 7F reviewed transaction schema.",
+);
+assert(
+  preparedActionTypes.includes("reviewPreparedActionAllowlist"),
+  "Prepared action allowlist review function is required.",
+);
+assert(
+  preparedActionTypes.includes('source !== "owner_dashboard"'),
+  "Prepared action allowlist must trust only the owner dashboard source.",
+);
+assert(
+  preparedActionTypes.includes("token_spend_not_allowed") &&
+    preparedActionTypes.includes("calldata_not_allowed"),
+  "Prepared action allowlist must keep token spend and calldata blocked in Phase 7F.",
 );
 assert(
   preparedActionTypes.includes("PreparedActionOwnerSummary"),

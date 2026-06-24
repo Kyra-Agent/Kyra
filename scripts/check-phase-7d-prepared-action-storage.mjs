@@ -248,7 +248,17 @@ assertIncludes(
 assertIncludes(
   "prepared action types",
   preparedActionTypes,
-  'preparedActionAllowedKinds = ["base_mcp_status_check"] as const',
+  '"base_mcp_status_check"',
+);
+assertIncludes(
+  "prepared action types",
+  preparedActionTypes,
+  '"base_reviewed_transaction"',
+);
+assertIncludes(
+  "prepared action types",
+  preparedActionTypes,
+  "reviewPreparedActionAllowlist",
 );
 assertIncludes(
   "prepared action types",

@@ -85,7 +85,12 @@ for (
 includes(
   "canonical roadmap",
   roadmap,
-  "The current primary work item is Phase 7F",
+  "Phase 7F prepared-action adapter allowlist is implemented",
+);
+includes(
+  "canonical roadmap",
+  roadmap,
+  "The current primary work item is Phase 7G",
 );
 includes(
   "canonical roadmap",

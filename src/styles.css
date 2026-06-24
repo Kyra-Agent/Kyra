@@ -3254,6 +3254,35 @@ h2 {
   margin-top: 0.08rem;
 }
 
+.prepared-action-allowlist-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+}
+
+.prepared-action-allowlist-grid article {
+  display: grid;
+  gap: 0.18rem;
+  min-height: 62px;
+  padding: 0.62rem;
+  border: 1px solid rgba(88, 166, 255, 0.22);
+  border-radius: var(--radius);
+  background: rgba(88, 166, 255, 0.055);
+}
+
+.prepared-action-allowlist-grid small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.prepared-action-allowlist-grid strong {
+  color: var(--text);
+  font-size: 0.84rem;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
 .prepared-action-header {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -4899,6 +4928,7 @@ h2 {
   .admin-action-grid,
   .reset-scope-grid,
   .deploy-checklist-grid,
+  .prepared-action-allowlist-grid,
   .execution-result-grid,
   .readiness-grid {
     grid-template-columns: 1fr;
