@@ -325,6 +325,13 @@ numbered as a primary product phase.
 
 ## Current Next Step
 
+Current position:
+
+- Phase 7D foundation is clear.
+- Phase 7D runtime Base Account connection is still blocked.
+- Phase 7E runtime OAuth and token work must not begin yet.
+- The active blocker is Phase 7C official Base MCP provider contract evidence.
+
 Before implementation resumes, keep the pre-Base MCP cleanup gate green:
 
 - `docs/phase-7-pre-base-mcp-cleanup-audit.md`
@@ -343,6 +350,18 @@ The next work item is Phase 7C:
 
 Do not resume CDP work, wallet signing, or transaction execution before this
 provider-contract decision is clear.
+
+Until Phase 7C changes from no-go to go, safe next work is limited to:
+
+- official Base MCP evidence monitoring
+- documentation cleanup
+- local checks and static guards
+- threat-model refinement
+- test-only helper hardening that does not integrate routes
+
+Do not start the next runtime phase until the roadmap, Phase 7C audit,
+transition gate, and owner approval all agree that the official Base MCP
+provider contract is safe.
 
 Transition lock:
 

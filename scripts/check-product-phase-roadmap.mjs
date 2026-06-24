@@ -33,6 +33,11 @@ for (
     "decision: no-go for live wallet authority",
     "CDP Node or another RPC provider may later support",
     "It is not required for the official Base MCP product flow",
+    "Phase 7D foundation is clear.",
+    "Phase 7D runtime Base Account connection is still blocked.",
+    "Phase 7E runtime OAuth and token work must not begin yet.",
+    "safe next work is limited to:",
+    "Do not start the next runtime phase until the roadmap, Phase 7C audit",
   ]
 ) {
   includes("canonical roadmap", roadmap, expected);
