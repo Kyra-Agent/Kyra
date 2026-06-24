@@ -413,6 +413,14 @@ Boundary:
 - Telegram and public routes cannot authorize controlled live transactions
 - wallet prompt, signing, and transaction submission remain false in Phase 7J
 
+## Supporting Readiness Packets
+
+The product roadmap ends at Phase 7J. Anything after that in this repository
+is a supporting readiness packet, not an additional product phase. These
+packets cover the read-only status caller, controlled smoke preparation,
+provider qualification, and official-provider decisioning needed for later
+launch review.
+
 ## Telegram Boundary After Phase 7
 
 Telegram remains unable to sign or submit.
@@ -452,6 +460,8 @@ Current position:
   owner-only sanitized result model with dashboard evidence.
 - Phase 7J controlled live transaction gate is implemented as a local
   owner-only go/no-go model with dashboard evidence.
+- Supporting readiness packets exist for the read-only caller, controlled
+  smoke preparation, provider qualification, and official-provider decision.
 - Wallet signing, token approval, swaps, transfers, contract calls, transaction
   submission, and transaction hash persistence remain disabled.
 - Phase 7C official Base MCP evidence remains blocked, but blocks only the
@@ -462,12 +472,13 @@ Before implementation resumes, keep the pre-Base MCP cleanup gate green:
 - `docs/phase-7-pre-base-mcp-cleanup-audit.md`
 - `npm run check:pre-base-mcp`
 
-The current primary work item is Phase 7K:
+The current primary roadmap work is complete at Phase 7J:
 
-1. Reconcile the owner dashboard status caller with the controlled-live gate.
-2. Keep Base MCP status calls read-only and owner-click-only.
+1. Keep the product roadmap frozen at the single canonical flow through 7J.
+2. Treat later supporting packets as readiness documents, not new product
+   phases.
 3. Keep wallet prompt, signing, submission, and transaction hash persistence
-   disabled until the later controlled smoke gate is explicitly approved.
+   disabled until a separate owner-approved launch decision.
 4. Preserve rollback, emergency disablement, and post-transaction audit
    readiness as mandatory prerequisites.
 
@@ -486,7 +497,7 @@ This restriction does not freeze the independent Base Account SDK primary
 lane. Do not let either lane bypass the shared ownership, prepared-action,
 policy, approval, signing, rollback, or audit boundaries.
 
-Transition lock:
+Supporting readiness packets:
 
 - `docs/phase-7AK-official-base-mcp-transition-gate.md`
 - `npm run check:phase-7ak`

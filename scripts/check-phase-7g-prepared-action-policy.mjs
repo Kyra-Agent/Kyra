@@ -106,7 +106,7 @@ includes("roadmap", roadmap, "`scripts/test-prepared-action-policy.mjs`");
 includes("roadmap", roadmap, "Phase 7H dual approval and freeze boundary is implemented");
 includes("roadmap", roadmap, "Phase 7I result monitoring and closeout boundary is implemented");
 includes("roadmap", roadmap, "Phase 7J controlled live transaction gate is implemented");
-includes("roadmap", roadmap, "The current primary work item is Phase 7K:");
+includes("roadmap", roadmap, "The product roadmap ends at Phase 7J.");
 
 for (
   const expected of [

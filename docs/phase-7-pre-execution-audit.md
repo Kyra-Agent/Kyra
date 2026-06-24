@@ -204,6 +204,9 @@ and owner approval are complete:
 
 ### 7K - Owner Dashboard Base MCP Status Caller
 
+The packets from here onward are supporting readiness packets, not additional
+product phases in the canonical roadmap.
+
 - Audit packet: `docs/phase-7K-owner-dashboard-status-caller.md`.
 - One explicit owner click can request only `base_mcp_status_check`.
 - The request uses the selected persisted agent and its workspace id.

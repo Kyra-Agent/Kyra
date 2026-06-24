@@ -110,7 +110,7 @@ includes(
 includes(
   "canonical roadmap",
   roadmap,
-  "The current primary work item is Phase 7K",
+  "The product roadmap ends at Phase 7J.",
 );
 includes(
   "canonical roadmap",
