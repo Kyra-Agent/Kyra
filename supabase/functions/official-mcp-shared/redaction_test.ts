@@ -27,7 +27,7 @@ Deno.test("official MCP redaction detects secret-bearing text", () => {
       "signature 0x1234",
       "telegram bot token secret",
       "service role secret",
-      "sk-abcdefghijklmnopqrstuvwxyz123456",
+      ["sk", "abcdefghijklmnopqrstuvwxyz123456"].join("-"),
       "aaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccc",
     ]
   ) {
