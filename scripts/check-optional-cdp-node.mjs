@@ -21,7 +21,7 @@ const envExample = readFileSync("supabase/functions/.env.example", "utf8");
 for (
   const expected of [
     "optional infrastructure prepared; not part of the primary Phase 7",
-    "Official Base MCP remains the primary Phase 7",
+    "The Base Account SDK plus Kyra's bounded",
     "KYRA_BASE_RPC_PROVIDER=coinbase_cdp",
     "KYRA_BASE_MCP_PREP_ENABLED=false",
     "calls only `eth_chainId` and `eth_blockNumber`",

@@ -27,10 +27,10 @@ deploy, or push.
 
 ## Current Decision
 
-Phase 7D remains NO-GO. Phase 7C official Base MCP provider evidence is still
-insufficient, so no Base Account connection, official OAuth, token storage,
-MCP session, tool invocation, wallet prompt, signing, or transaction runtime is
-approved.
+The official hosted MCP token/schema lane remains NO-GO because Phase 7C
+provider evidence is insufficient. This blocks official OAuth, token storage,
+MCP sessions, tools, and provider approval links. The independent Base Account
+SDK lane remains governed by its own connection and execution gates.
 
 ## Future Schema Classes
 

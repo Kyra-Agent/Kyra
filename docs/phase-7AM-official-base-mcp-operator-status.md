@@ -43,8 +43,10 @@ The status JSON includes:
 
 - current phase
 - current decision
-- whether Phase 7D can start
+- whether Phase 7D implementation may start
+- whether wallet execution may be enabled
 - official Base MCP authority state
+- independent Base Account primary-lane state
 - Telegram boundary state
 - observed public contract summary
 - blocker codes with operator-readable descriptions
@@ -58,14 +60,17 @@ The status JSON includes:
 The expected current output is blocked:
 
 - `decision`: `blocked`
-- `canStartPhase7D`: `false`
+- `canStartPhase7DImplementation`: `true`
+- `canEnableWalletExecution`: `false`
 - `officialBaseMcpAuthority`: `blocked`
+- `baseAccountPrimaryLane`: `independent_gated`
 - `telegramBoundary`: `read-only`
 
-This is intentional. Known OAuth endpoints are not enough to begin wallet
-authority. Protected resource metadata, least-privilege scope, exact
+This is intentional. Known OAuth endpoints are not enough to begin official
+MCP authority. Protected resource metadata, least-privilege scope, exact
 scope-to-tool mapping, approval-link behavior, token lifecycle, revocation, and
-owner-consent evidence are still required.
+owner-consent evidence are still required. Phase 7D implementation may proceed,
+but wallet execution remains disabled until its independent gates pass.
 
 ## Safety Rules
 

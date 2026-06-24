@@ -85,12 +85,12 @@ for (
 includes(
   "canonical roadmap",
   roadmap,
-  "The next work item is Phase 7C",
+  "The next primary work item is Phase 7D",
 );
 includes(
   "canonical roadmap",
   roadmap,
-  "Do not resume CDP work, wallet signing, or transaction execution before this",
+  "Do not enable wallet signing or transaction submission merely because the",
 );
 
 console.log("Pre-Base MCP cleanup checks passed.");

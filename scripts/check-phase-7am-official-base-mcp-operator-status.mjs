@@ -35,7 +35,8 @@ for (
     "npm run status:base-mcp",
     "It does not call the network",
     "`decision`: `blocked`",
-    "`canStartPhase7D`: `false`",
+    "`canStartPhase7DImplementation`: `true`",
+    "`canEnableWalletExecution`: `false`",
     "`officialBaseMcpAuthority`: `blocked`",
     "`telegramBoundary`: `read-only`",
     "`npm run check:phase-7am`",
@@ -81,7 +82,8 @@ assertIncludes(
   statusScript,
   'readJson("docs/phase-7R-base-mcp-provider-baseline.json")',
 );
-assertIncludes("status script", statusScript, "canStartPhase7D: false");
+assertIncludes("status script", statusScript, "canStartPhase7DImplementation: true");
+assertIncludes("status script", statusScript, "canEnableWalletExecution: false");
 assertIncludes("status script", statusScript, 'officialBaseMcpAuthority: "blocked"');
 assertIncludes("status script", statusScript, 'telegramBoundary: "read-only"');
 assertIncludes("status script", statusScript, "forbiddenUntilGo");

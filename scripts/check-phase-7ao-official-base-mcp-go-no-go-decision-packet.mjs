@@ -33,13 +33,13 @@ const refresh = read(
 for (
   const expected of [
     "# Phase 7AO Official Base MCP Go/No-Go Decision Packet",
-    "Status: decision packet complete. Current decision: NO-GO for Phase 7D.",
+    "Status: decision packet complete. Current decision: NO-GO for the official",
     "Decision: **NO-GO**.",
-    "Phase 7D Base Account connection must not start.",
+    "The official hosted MCP adapter must not start.",
     "Official Base MCP OAuth must not start.",
     "Official MCP tokens must not be requested or stored.",
     "Official MCP tools must not be listed or invoked.",
-    "Wallet prompts, signing, and transactions must remain disabled.",
+    "Wallet prompts, signing, and transactions remain disabled by their separate",
     "2026-06-20T10:04:36.669Z",
     "2026-06-20T10:11:20.655Z",
     "baseline match: `true`",
@@ -49,13 +49,12 @@ for (
     "Required GO Conditions",
     "Exact least-privilege non-escalating scope is identified.",
     "Exact scope-to-tool mapping is verified.",
-    "Owner explicitly approves the transition from Phase 7C to Phase 7D.",
-    "A future GO decision opens only Phase 7D preparation.",
+    "Owner explicitly approves enabling the official hosted MCP adapter.",
+    "A future GO decision opens only official MCP adapter preparation.",
     "It does not automatically authorize:",
     "Forbidden Work While NO-GO",
     "access token or refresh token storage",
     "official MCP tool invocation",
-    "transaction submission",
     "npm run check:phase-7ao",
   ]
 ) {

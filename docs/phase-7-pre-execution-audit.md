@@ -12,9 +12,10 @@ service-role rate-limit contract passed production verification. The runtime
 gate is disabled after closeout. No production wallet prompt,
 prepared-action write, signing, swap, transfer, contract call, Telegram
 execution, or transaction submission is enabled.
-Phase 7AK now adds a transition gate that blocks Base Account connection,
-official MCP OAuth, token storage, tool discovery, prepared actions, signing,
-and transaction submission while Phase 7C remains no-go.
+Phase 7AK adds a transition gate that blocks official MCP OAuth, token storage,
+tool discovery, and provider approval links while Phase 7C remains no-go.
+Base Account connection is an independent primary lane; prepared actions,
+signing, and submission remain protected by their own gates.
 
 Phase status: security audit and custom read-only infrastructure proof are
 complete. Official Base MCP live execution is not complete.
@@ -30,9 +31,10 @@ or transaction submission path without explicit owner approval and a reviewed
 gate.
 
 The Phase 7 product goal is not the custom status bridge. The goal is one
-selected deployed agent using the owner's Base Account through official Base
-MCP, with separate Kyra and Base Account approvals, followed by a sanitized
-transaction result.
+selected deployed agent using the owner's Base Account through Kyra's bounded
+prepared-action adapter, with separate Kyra and Base Account approvals,
+followed by a sanitized transaction result. Official hosted MCP is an optional
+future adapter.
 
 ## Crown Jewels
 
@@ -239,16 +241,17 @@ and owner approval are complete:
 ### 7AK - Official Base MCP Transition Gate
 
 - Audit packet: `docs/phase-7AK-official-base-mcp-transition-gate.md`.
-- Keep Phase 7D Base Account connection blocked while official Base MCP
-  provider-contract evidence remains no-go.
+- Keep only the official hosted MCP adapter blocked while provider-contract
+  evidence remains no-go.
 - Require protected resource metadata, exact resource, exact issuer and
   audience, non-escalating scope, exact scope-to-tool mapping, tool/schema
   snapshot, approval-link binding, token lifecycle, revocation, and owner
   consent evidence before official wallet authority begins.
 - Keep official MCP OAuth start/callback functions, access tokens, refresh
   tokens, `agent_wallet:*` scopes, authenticated MCP sessions, tool listing,
-  tool invocation, provider approval links, wallet prompts, signing, and
-  transaction submission absent until the transition gate changes.
+  tool invocation, and provider approval links absent until the transition
+  gate changes. Base Account wallet prompts, signing, and submission remain
+  governed by separate primary-lane gates.
 - Verification: `npm run check:phase-7ak`.
 
 ### 7O - Official MCP OAuth And Wallet-Authority Threat Model

@@ -14,8 +14,10 @@ Canonical references:
 ## Objective
 
 Lock the current runtime so a NO-GO official Base MCP decision cannot
-accidentally become wallet authority through frontend flags, dashboard actions,
-Edge Function configuration, custom provider wiring, or hidden OAuth routes.
+accidentally become official provider authority through frontend flags,
+dashboard actions, Edge Function configuration, custom provider wiring, or
+hidden OAuth routes. Independent Base Account execution remains separately
+disabled until its own gates pass.
 
 This phase does not implement Base Account connection, official MCP OAuth,
 dynamic client registration, token exchange, token storage, MCP session
@@ -65,11 +67,12 @@ deployment, or push.
 
 ## Current Decision
 
-The freeze stays active while Phase 7AO is NO-GO.
+The official MCP freeze stays active while Phase 7AO is NO-GO. The current
+wallet execution freeze stays active until the independent Base Account SDK
+connection, signing, rollback, and smoke gates pass.
 
-The only safe next implementation work before a future GO is architecture that
-keeps these runtime invariants intact and remains impossible to execute against
-official Base MCP wallet authority.
+Primary-lane Base Account work may proceed only if it keeps official MCP
+invariants intact and cannot execute until its own approvals are complete.
 
 ## Verification
 

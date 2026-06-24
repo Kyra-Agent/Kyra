@@ -24,9 +24,10 @@ transactions, SQL migrations, deploys, or pushes.
 
 ## Current Decision
 
-Phase 7D remains NO-GO. The product must not show a live Base Account connect,
-official Base MCP authorize, wallet prompt, approval, signing, or transaction
-control while official Base MCP provider evidence remains insufficient.
+The official hosted MCP consent lane remains NO-GO. The product must not show
+official MCP authorize controls while provider evidence remains insufficient.
+The independent Base Account SDK connection may proceed only through its own
+owner-bound prompt, disconnect, rollback, and execution gates.
 
 Current UI may only show blocked/read-only status and owner education.
 

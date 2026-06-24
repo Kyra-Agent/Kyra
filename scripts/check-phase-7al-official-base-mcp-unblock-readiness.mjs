@@ -92,7 +92,7 @@ for (
     "exact tools, schemas, chains, assets, and limits",
     "clear statement that Telegram cannot authorize or execute",
     "token storage and revocation design",
-    "explicit owner approval for the transition from 7C to 7D",
+    "explicit owner approval for official hosted MCP activation",
   ]
 ) {
   assertIncludes("Phase 7AL minimum go packet", doc, goRequirement);
@@ -115,8 +115,8 @@ for (
 for (
   const roadmapMarker of [
     "Status: blocked by currently verified provider metadata and scope ambiguity.",
-    "Only after a go decision, implement Base Account connection and OAuth",
-    "This gate keeps Phase 7D Base Account connection",
+    "Phase 7D primary Base Account runtime may proceed through its own gates.",
+    "This gate keeps official MCP OAuth, token storage, authenticated sessions",
   ]
 ) {
   assertIncludes("canonical roadmap", roadmap, roadmapMarker);
@@ -138,7 +138,7 @@ for (
     "protected resource metadata with a resource identifier",
     "exact scope-to-tool mapping",
     "a non-escalating read-only scope",
-    "No-go for Phase 7D wallet/Base MCP implementation.",
+    "No-go for the official hosted Base MCP adapter implementation.",
   ]
 ) {
   assertIncludes("Phase 7C official audit", officialAudit, auditMarker);

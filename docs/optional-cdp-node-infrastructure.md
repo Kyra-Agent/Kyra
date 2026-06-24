@@ -19,8 +19,9 @@ It is not required for:
 - Base Account transaction approval
 
 The canonical product sequence is defined in
-`docs/product-phase-roadmap.md`. Official Base MCP remains the primary Phase 7
-integration.
+`docs/product-phase-roadmap.md`. The Base Account SDK plus Kyra's bounded
+prepared-action adapter is the primary Phase 7 integration. Official hosted
+Base MCP and CDP Node are separate optional provider lanes.
 
 Reasons:
 
@@ -81,7 +82,8 @@ that Node accounts require a payment method on file starting January 2026.
 No payment method, account registration, endpoint creation, or key handling was
 performed automatically.
 
-No CDP endpoint is currently required to continue the official Base MCP phase.
+No CDP endpoint is currently required to continue the Base Account primary
+lane or monitor the official Base MCP adapter.
 
 ## Optional Activation Sequence
 

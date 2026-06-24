@@ -40,8 +40,8 @@ for (
     "owner user",
     "deployed agent instance",
     "Base Account",
-    "official Base MCP resource",
-    "exact scope",
+    "An optional official hosted MCP binding",
+    "exact provider",
     "exact consent packet",
     "Future Base Account connection may be initiated only from the private Kyra",
     "Telegram commands",
@@ -96,7 +96,7 @@ includes(
   "Phase 7AQ owner wallet authority blueprint is complete",
 );
 includes("decision packet", decisionPacket, "Decision: **NO-GO**.");
-includes("freeze guard", freezeGuard, "The freeze stays active while Phase 7AO is NO-GO.");
+includes("freeze guard", freezeGuard, "The official MCP freeze stays active while Phase 7AO is NO-GO.");
 includes(
   "OAuth architecture",
   oauthArchitecture,

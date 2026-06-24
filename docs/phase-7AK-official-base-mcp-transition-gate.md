@@ -8,10 +8,10 @@ Canonical reference: `docs/product-phase-roadmap.md`
 
 ## Objective
 
-This gate prevents Kyra from moving from Phase 7C monitoring into Base Account
-connection, official MCP OAuth, token storage, MCP tool discovery, prepared
-actions, signing, or transaction submission until the official Base MCP provider
-contract is verified.
+This gate prevents Kyra from moving from Phase 7C monitoring into official MCP
+OAuth, token storage, MCP tool discovery, tool invocation, or provider approval
+links until the official Base MCP provider contract is verified. It does not
+block the independent Base Account SDK primary lane.
 
 It does not implement wallet connection, OAuth registration, token exchange,
 tool calls, prepared-action writes, wallet prompts, signing, or submission.
@@ -36,7 +36,8 @@ blocker, not an implementation detail.
 
 ## Blocked Until
 
-Phase 7D may start only after a new reviewed audit proves all of these:
+The official hosted MCP adapter may start only after a new reviewed audit
+proves all of these:
 
 - protected resource metadata is available and stable
 - exact resource identifier is known
@@ -71,13 +72,14 @@ Until the blocked decision changes:
 
 ## Allowed Work
 
-Safe work may continue only in these lanes:
+Safe official-MCP work may continue only in these lanes:
 
 - monitor official provider metadata, unauthenticated `/mcp` challenge, and docs
 - keep Telegram live read-only
 - keep custom `kyra_status_v1` bridge separate and read-only
 - maintain local audits, tests, and fail-closed gates
-- prepare architecture notes that request no wallet or MCP authority
+- prepare architecture notes that request no official MCP authority
+- continue the independently gated Base Account SDK primary lane
 
 ## Security Priority
 

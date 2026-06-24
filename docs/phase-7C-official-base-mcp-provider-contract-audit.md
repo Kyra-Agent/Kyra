@@ -152,11 +152,12 @@ authorization-server scope list alone.
 
 ## Kyra Decision
 
-No-go for Phase 7D wallet/Base MCP implementation.
+No-go for the official hosted Base MCP adapter implementation.
 
 Phase 7C remains NO-GO after the 2026-06-24 exhaustive official-source
 refresh. Do not reinterpret completed evidence collection as completed
-provider evidence: the missing contracts above are external blockers.
+provider evidence: the missing contracts above are external blockers for the
+official adapter, not for the independent Base Account SDK primary lane.
 
 Kyra must not:
 
@@ -182,9 +183,10 @@ Current permitted work:
   docs for the missing contract
 - prepare local architecture docs/checks that do not request authority
 
-## Go Criteria Before Phase 7D
+## Go Criteria Before Official MCP Activation
 
-Phase 7D can start only after a new audit verifies all of the following:
+The official hosted MCP adapter can start only after a new audit verifies all
+of the following:
 
 1. Protected resource metadata is available and stable.
 2. Exact OAuth resource identifier is known.

@@ -26,9 +26,10 @@ deploys, or pushes.
 
 ## Current Decision
 
-Phase 7D remains NO-GO. Official Base MCP provider evidence still lacks the
-required Protected Resource Metadata and exact non-escalating scope/tool
-contract. Kyra must not implement or expose official OAuth routes yet.
+The official hosted MCP OAuth lane remains NO-GO. Provider evidence still
+lacks the required Protected Resource Metadata and exact non-escalating
+scope/tool contract. Kyra must not implement or expose official OAuth routes
+yet. This does not block the independent Base Account SDK connection lane.
 
 ## Future Route Set
 

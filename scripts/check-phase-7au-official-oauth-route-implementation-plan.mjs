@@ -42,7 +42,7 @@ for (
     "# Phase 7AU Official OAuth Route Implementation Plan",
     "Status: implementation plan complete. Runtime remains NO-GO and disabled.",
     "This phase is planning only.",
-    "Official Base MCP provider evidence still lacks the",
+    "Provider evidence still",
     "`official-mcp-oauth-start`",
     "`official-mcp-oauth-callback`",
     "`official-mcp-token-broker`",

@@ -106,7 +106,7 @@ includes(
 );
 
 includes("Phase 7AO decision", decisionPacket, "Decision: **NO-GO**.");
-includes("Phase 7AP freeze", freezeGuard, "The freeze stays active while Phase 7AO is NO-GO.");
+includes("Phase 7AP freeze", freezeGuard, "The official MCP freeze stays active while Phase 7AO is NO-GO.");
 includes(
   "Phase 7AQ authority blueprint",
   authorityBlueprint,

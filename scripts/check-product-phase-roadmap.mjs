@@ -14,6 +14,10 @@ const optionalCdp = readFileSync(
   "docs/optional-cdp-node-infrastructure.md",
   "utf8",
 );
+const providerSeparation = readFileSync(
+  "docs/phase-7-provider-separation-decision.md",
+  "utf8",
+);
 
 for (
   const expected of [
@@ -23,21 +27,20 @@ for (
     "Status: complete and live read-only.",
     "Phase 6 - Wallet And Approval Foundation",
     "Status: foundation complete, not live execution.",
-    "Phase 7 - Official Base MCP Live Execution",
+    "Phase 7 - Base Account Live Execution",
     "connect owner's Base Account",
     "receive explicit Kyra owner approval",
-    "receive explicit Base Account approval",
+    "receive explicit Base Account SDK approval",
     "The custom `kyra_status_v1` bridge",
-    "This bridge is not official Base MCP",
+    "This bridge is not a transaction adapter",
     "docs/phase-7C-official-base-mcp-provider-contract-audit.md",
-    "decision: no-go for live wallet authority",
+    "this NO-GO applies only to the official hosted `mcp.base.org` adapter",
     "CDP Node or another RPC provider may later support",
-    "It is not required for the official Base MCP product flow",
+    "It is not required for the primary Base Account product flow",
     "Phase 7D foundation is clear.",
-    "Phase 7D runtime Base Account connection is still blocked.",
-    "Phase 7E runtime OAuth and token work must not begin yet.",
-    "safe next work is limited to:",
-    "Do not start the next runtime phase until the roadmap, Phase 7C audit",
+    "Phase 7D primary Base Account runtime may proceed through its own gates.",
+    "The next primary work item is Phase 7D:",
+    "This restriction does not freeze the independent Base Account SDK primary",
   ]
 ) {
   includes("canonical roadmap", roadmap, expected);
@@ -54,11 +57,11 @@ for (const source of [readme, phase5, phase6, phase7]) {
 for (
   const expected of [
     "Phase 6 is foundation-complete, not execution-live",
-    "Phase 7 is in progress and targets official Base MCP live execution",
+    "Phase 7 is in progress and targets Base Account live execution",
     "The owner connects their own Base Account to that agent.",
     "Telegram remains unable to sign or submit.",
     "Phase 7C: monitor official Base MCP provider contract until a verified",
-    "only after Phase 7C changes from no-go to go.",
+    "independent from the official MCP NO-GO.",
     "Coinbase CDP Node or another standalone RPC provider is optional infrastructure",
   ]
 ) {
@@ -71,7 +74,7 @@ for (
     "Protected resource metadata checks returned:",
     "`agent_wallet:transact` | rejected",
     "`agent_wallet:escalate` | rejected",
-    "No-go for Phase 7D wallet/Base MCP implementation.",
+    "No-go for the official hosted Base MCP adapter implementation.",
   ]
 ) {
   includes("Phase 7C official contract audit", phase7cOfficialContract, expected);
@@ -85,8 +88,22 @@ includes(
 includes(
   "optional CDP classification",
   optionalCdp,
-  "Official Base MCP remains the primary Phase 7",
+  "The Base Account SDK plus Kyra's bounded",
 );
+
+for (
+  const expected of [
+    "# Phase 7 Provider Separation Decision",
+    "Kyra's production transaction path must not depend on the hosted official",
+    "Base Account SDK",
+    "Kyra Prepared-Action Adapter",
+    "Official Hosted Base MCP Adapter",
+    "It does not block:",
+    "owner-authenticated Base Account connection in the private dashboard",
+  ]
+) {
+  includes("provider separation decision", providerSeparation, expected);
+}
 
 for (
   const forbidden of [
@@ -94,9 +111,27 @@ for (
     "CDP Node is required for official Base MCP",
     "must use a platform-owned wallet",
     "Telegram signs and submits",
+    "Phase 7D runtime Base Account connection is still blocked.",
+    "Phase 7D product runtime still depends on Phase 7C",
+    "Only after a go decision, implement Base Account connection",
+    "Official Base MCP remains the primary Phase 7",
   ]
 ) {
-  excludes("canonical roadmap sources", `${roadmap}\n${optionalCdp}`, forbidden);
+  excludes(
+    "canonical roadmap sources",
+    `${roadmap}\n${optionalCdp}\n${providerSeparation}`,
+    forbidden,
+  );
+}
+
+for (
+  const forbidden of [
+    "Kyra must not start Phase 7D wallet/Base MCP implementation",
+    "Phase 7D cannot begin while provider evidence remains insufficient",
+    "only after Phase 7C changes from no-go to go",
+  ]
+) {
+  excludes("private context provider separation", privateContext, forbidden);
 }
 
 console.log("Canonical product phase roadmap checks passed.");

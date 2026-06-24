@@ -25,7 +25,9 @@ controls, SQL migrations, deploys, or pushes.
 
 ## Current Decision
 
-Phase 7D remains NO-GO. Official Base MCP OAuth routes must remain absent.
+The official hosted MCP route lane remains NO-GO. Official Base MCP OAuth
+routes must remain absent. Base Account SDK connection remains a separate
+primary lane.
 
 The only approved work is to define what tests must prove before future route
 skeletons can be added behind default-off gates.

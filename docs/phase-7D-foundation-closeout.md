@@ -2,7 +2,8 @@
 
 Date: 2026-06-24
 
-Status: foundation clear. Runtime Base Account connection remains blocked.
+Status: foundation clear. Base Account connection may proceed only through the
+independent primary-lane implementation gates.
 
 ## Objective
 
@@ -10,10 +11,11 @@ Close the safe Phase 7D foundation scope without opening Base Account
 connection, official MCP OAuth, token storage, route integration, wallet
 prompts, signing, or transaction submission.
 
-Phase 7D product runtime still depends on Phase 7C changing from NO-GO to GO.
-This closeout proves the local owner, workspace, agent, and prepared-action
-boundaries are ready to support that future runtime without weakening privacy
-or execution safety.
+Phase 7D Base Account SDK runtime does not depend on Phase 7C changing from
+NO-GO to GO. This closeout proves the local owner, workspace, agent, and
+prepared-action boundaries are ready to support the primary lane without
+weakening privacy or execution safety. Official hosted MCP remains separately
+blocked.
 
 ## Foundation Result
 
@@ -62,23 +64,21 @@ This closeout does not approve:
 
 ## 7D To 7E Handoff Rule
 
-Do not start Phase 7E runtime work while Phase 7C remains NO-GO.
+Do not start Phase 7E signing work until the Phase 7D Base Account connection
+implementation passes owner binding, wallet-prompt isolation, rollback, and
+controlled-smoke review.
 
-Allowed next work before 7C GO:
+Allowed primary-lane next work while official MCP remains NO-GO:
 
-- documentation cleanup
-- local checks
-- threat-model refinement
-- static boundary guards
-- test-only helper hardening
+- owner-authenticated Base Account SDK connection implementation
+- exact owner/workspace/agent wallet binding
+- private-dashboard wallet prompt isolation
+- disconnect, rollback, and controlled connection smoke tests
 
-Forbidden next work before 7C GO:
+Still forbidden until separately approved:
 
-- route integration
-- OAuth provider contact
-- token request or storage
-- Base Account connection prompts
-- wallet prompts
+- official MCP OAuth provider contact, token request, or token storage
+- Telegram, public, page-load, background, or LLM-triggered wallet prompts
 - signing
 - transaction submission
 
@@ -93,7 +93,7 @@ Forbidden next work before 7C GO:
 ## Done Criteria
 
 - Phase 7D foundation status is explicit.
-- Product runtime remains blocked by Phase 7C NO-GO.
+- Primary Base Account runtime is decoupled from Phase 7C NO-GO.
 - Owner-auth and ownership helpers are present but not route-integrated.
 - Prepared-action storage remains review-only and unwired.
 - Public, Telegram, and wallet execution paths remain isolated.

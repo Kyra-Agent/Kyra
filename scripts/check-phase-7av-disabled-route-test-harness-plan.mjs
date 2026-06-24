@@ -45,7 +45,7 @@ for (
     "# Phase 7AV Disabled Route Test Harness Plan",
     "Status: test harness plan complete. Runtime remains NO-GO and disabled.",
     "This phase is planning and verification only.",
-    "Official Base MCP OAuth routes must remain absent.",
+    "routes must remain absent.",
     "Disabled behavior must be tested before enabled behavior.",
     "Static absence verifier",
     "Disabled route contract tests",
@@ -129,7 +129,7 @@ includes(
 includes(
   "Phase 7AT consent UX",
   consentUx,
-  "The product must not show a live Base Account connect",
+  "official MCP authorize controls",
 );
 
 includes("app config", appConfig, 'walletExecution: "disabled"');

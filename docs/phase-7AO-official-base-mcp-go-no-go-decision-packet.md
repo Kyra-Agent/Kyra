@@ -2,7 +2,8 @@
 
 Date: 2026-06-20
 
-Status: decision packet complete. Current decision: NO-GO for Phase 7D.
+Status: decision packet complete. Current decision: NO-GO for the official
+hosted Base MCP adapter.
 
 Canonical references:
 
@@ -29,11 +30,12 @@ Decision: **NO-GO**.
 Meaning:
 
 - Phase 7C remains blocked.
-- Phase 7D Base Account connection must not start.
+- The official hosted MCP adapter must not start.
 - Official Base MCP OAuth must not start.
 - Official MCP tokens must not be requested or stored.
 - Official MCP tools must not be listed or invoked.
-- Wallet prompts, signing, and transactions must remain disabled.
+- Wallet prompts, signing, and transactions remain disabled by their separate
+  Base Account execution gates, not by this decision packet.
 
 This is not a product failure. It is the correct security decision while the
 official Base MCP provider contract is still ambiguous for wallet authority.
@@ -110,11 +112,11 @@ all of the following:
     limits, storage, revocation, and Telegram prohibition.
 11. Telegram, public routes, page load, background jobs, and LLM output cannot
     initiate authorization, approval, signing, or execution.
-12. Owner explicitly approves the transition from Phase 7C to Phase 7D.
+12. Owner explicitly approves enabling the official hosted MCP adapter.
 
 ## If GO Later
 
-A future GO decision opens only Phase 7D preparation.
+A future GO decision opens only official MCP adapter preparation.
 
 It does not automatically authorize:
 
@@ -139,7 +141,6 @@ controlled transaction plan.
 
 ## Forbidden Work While NO-GO
 
-- Base Account connection UI that can open a wallet prompt
 - official Base MCP OAuth start or callback
 - dynamic client registration
 - access token or refresh token request
@@ -149,8 +150,6 @@ controlled transaction plan.
 - official MCP tool invocation
 - provider approval-link creation
 - prepared action created from an official MCP write tool
-- wallet signing
-- transaction submission
 
 ## Verification
 
@@ -164,7 +163,7 @@ controlled transaction plan.
 - The current official Base MCP decision is explicitly NO-GO.
 - The evidence source for the decision is documented.
 - Required GO conditions are listed.
-- The future GO scope is bounded to opening Phase 7D only.
+- The future GO scope is bounded to the official hosted MCP adapter only.
 - Forbidden NO-GO work remains explicit.
 - Automated decision-packet check exists.
 - No OAuth, token, session, MCP tool, wallet, signing, transaction, SQL deploy,

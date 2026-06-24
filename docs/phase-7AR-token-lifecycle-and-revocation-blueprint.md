@@ -27,8 +27,9 @@ Supabase deploys, Netlify deploys, or GitHub pushes.
 
 ## Current Decision
 
-Phase 7D remains NO-GO while Phase 7C official Base MCP provider evidence is
-insufficient.
+The official hosted MCP token lane remains NO-GO while Phase 7C provider
+evidence is insufficient. The Base Account SDK primary connection lane does
+not require official MCP token storage.
 
 Current runtime must remain limited to:
 

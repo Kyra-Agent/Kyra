@@ -13,7 +13,8 @@ Canonical references:
 ## Objective
 
 Define the exact evidence Kyra needs before Phase 7C can change from no-go to
-go and before Phase 7D Base Account connection may begin.
+go and before the official hosted MCP adapter may begin. Phase 7D Base Account
+SDK connection is an independent lane.
 
 This phase does not implement wallet connection, official MCP OAuth, client
 registration, token exchange, token storage, MCP initialization, tool discovery,
@@ -42,7 +43,7 @@ Known issuer and OAuth endpoints do not authorize implementation by themselves.
 
 ## Unblock Matrix
 
-| Evidence | Current State | Required Before 7D |
+| Evidence | Current State | Required Before Official MCP Activation |
 | --- | --- | --- |
 | Protected Resource Metadata | unavailable at tested standard locations | stable metadata URL and response |
 | Resource identifier | not verified | exact resource/audience value |
@@ -75,7 +76,7 @@ A future go packet must include all of the following:
 - owner consent copy
 - rollback and emergency disablement plan
 - test plan for a non-wallet read-only smoke before write authority
-- explicit owner approval for the transition from 7C to 7D
+- explicit owner approval for official hosted MCP activation
 
 ## Hard No-Go Conditions
 
@@ -100,7 +101,8 @@ The transition stays blocked if any of these are true:
 - update the baseline only after reviewed public evidence changes
 - prepare local architecture and check scripts
 - keep Telegram live read-only
-- keep all wallet and official MCP authority disabled
+- keep all official MCP authority disabled
+- keep Base Account wallet execution disabled until its independent gates pass
 
 ## Verification
 

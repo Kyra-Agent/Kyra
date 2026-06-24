@@ -31,10 +31,12 @@ owner user
 -> workspace
 -> deployed agent instance
 -> Base Account
--> official Base MCP resource
--> exact scope
 -> exact consent packet
 ```
+
+An optional official hosted MCP binding may later add an exact provider,
+resource, and scope only after Phase 7C becomes GO. Those fields are not part
+of the Base Account SDK primary connection requirement.
 
 No global wallet, platform-owned wallet, shared provider credential, shared
 Telegram credential, or cross-agent authorization is allowed.
@@ -209,15 +211,17 @@ Current code remains limited to:
 - no signing
 - no transaction submission
 
-## Required Before Phase 7D Starts
+## Required Before Base Account Runtime Starts
 
 Phase 7D may start only after:
 
-1. Phase 7C changes from NO-GO to GO through reviewed provider evidence.
-2. The owner explicitly approves the transition.
-3. This blueprint is rechecked against the latest provider contract.
+1. The owner explicitly approves the primary-lane implementation.
+2. Owner/workspace/agent/Base Account binding is enforced.
+3. Wallet prompt isolation, disconnect, and rollback are tested.
 4. A concrete implementation plan maps every runtime route to a freeze guard.
-5. SQL/RLS and token lifecycle plans are approved before any token persistence.
+5. Prepared-action persistence remains separately gated.
+
+Official MCP resource, scope, OAuth, and token work still requires Phase 7C GO.
 
 ## Verification
 

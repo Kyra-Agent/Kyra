@@ -7,8 +7,8 @@ Status: hard gate complete. Current decision remains NO-GO.
 ## Objective
 
 Make the Phase 7C exit criteria explicit enough that Kyra cannot drift into
-Phase 7D runtime Base Account connection or Phase 7E OAuth/token runtime by
-accident.
+official hosted MCP OAuth, token, session, tool, or approval-link runtime by
+accident. This gate does not block the independent Base Account SDK lane.
 
 This gate does not implement official Base MCP OAuth, dynamic registration,
 token exchange, token storage, MCP sessions, tool discovery, tool invocation,
@@ -56,7 +56,7 @@ these:
 11. Owner consent copy names owner, workspace, agent, resource, scope, tools,
     chains, assets, limits, storage boundary, revocation path, and Telegram
     prohibition.
-12. Owner explicitly approves the transition from Phase 7C to Phase 7D.
+12. Owner explicitly approves enabling the official hosted MCP adapter.
 
 ## Hard Stop Conditions
 
@@ -109,6 +109,7 @@ Any one of these keeps Phase 7C as NO-GO:
 
 - Phase 7C GO criteria are explicit.
 - Hard-stop conditions are explicit.
-- Runtime Phase 7D and Phase 7E remain blocked while current evidence is
-  blocked.
+- Official MCP OAuth, token, session, tool, and provider approval-link runtime
+  remain blocked while current evidence is blocked.
+- The independent Base Account SDK lane remains governed by its own gates.
 - Full Phase 7 checks enforce the hard gate.

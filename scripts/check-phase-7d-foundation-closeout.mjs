@@ -46,8 +46,8 @@ for (
 for (
   const expected of [
     "# Phase 7D Foundation Closeout",
-    "Status: foundation clear. Runtime Base Account connection remains blocked.",
-    "Phase 7D product runtime still depends on Phase 7C changing from NO-GO to GO.",
+    "Status: foundation clear. Base Account connection may proceed only through the",
+    "Phase 7D Base Account SDK runtime does not depend on Phase 7C changing from",
     "owner-auth helper exists and is dependency-injected only",
     "ownership helper exists and is dependency-injected only",
     "inaccessible bindings return fixed sanitized 404",
@@ -55,7 +55,7 @@ for (
     "prepared-action runtime storage remains unwired",
     "official MCP route skeletons remain disabled and isolated",
     "wallet execution remains disabled",
-    "Do not start Phase 7E runtime work while Phase 7C remains NO-GO.",
+    "Do not start Phase 7E signing work until the Phase 7D Base Account connection",
     "npm run check:phase-7d",
   ]
 ) {
@@ -66,6 +66,7 @@ for (
   const forbidden of [
     "Status: live",
     "Runtime Base Account connection approved",
+    "Phase 7D product runtime still depends on Phase 7C",
     "OAuth runtime approved",
     "token storage enabled",
     "wallet execution enabled",

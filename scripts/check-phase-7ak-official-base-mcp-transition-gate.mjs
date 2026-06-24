@@ -58,7 +58,7 @@ for (
   const required of [
     "# Phase 7AK Official Base MCP Transition Gate",
     "Status: local transition gate complete. Current decision: blocked.",
-    "prevents Kyra from moving from Phase 7C monitoring into Base Account",
+    "prevents Kyra from moving from Phase 7C monitoring into official MCP",
     "absence of least-privilege evidence is a",
     "## Blocked Until",
     "## Transition Rules",
@@ -95,7 +95,7 @@ for (
     "### 7C - Official Base MCP Provider Contract",
     "Status: blocked by currently verified provider metadata and scope ambiguity.",
     "### 7D - Base Account Connection Per Deployed Agent",
-    "Only after a go decision, implement Base Account connection and OAuth",
+    "Phase 7D primary Base Account runtime may proceed through its own gates.",
   ]
 ) {
   assertIncludes("canonical roadmap", roadmap, roadmapMarker);
@@ -104,7 +104,7 @@ for (
 for (
   const auditMarker of [
     "Status: no-go for live wallet authority",
-    "No-go for Phase 7D wallet/Base MCP implementation.",
+    "No-go for the official hosted Base MCP adapter implementation.",
     "monitor official provider metadata, unauthenticated `/mcp` challenge",
     "Exact non-escalating scope candidate is known.",
   ]

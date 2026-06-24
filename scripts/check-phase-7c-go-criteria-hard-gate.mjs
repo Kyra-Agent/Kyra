@@ -58,7 +58,7 @@ for (
     "Exact resource/audience identifier is verified.",
     "Exact non-escalating least-privilege scope is known.",
     "Exact scope-to-tool mapping is verified outside untrusted tool text.",
-    "Owner explicitly approves the transition from Phase 7C to Phase 7D.",
+    "Owner explicitly approves enabling the official hosted MCP adapter.",
     "protected resource metadata is unavailable",
     "only wallet-authority scopes are available",
     "official Base MCP OAuth start",
@@ -85,9 +85,9 @@ for (
 }
 
 includes("roadmap", roadmap, "Phase 7D foundation is clear.");
-includes("roadmap", roadmap, "Phase 7E runtime OAuth and token work must not begin yet.");
-includes("roadmap", roadmap, "Do not start the next runtime phase until the roadmap, Phase 7C audit");
-includes("official audit", audit, "No-go for Phase 7D wallet/Base MCP implementation.");
+includes("roadmap", roadmap, "Phase 7D primary Base Account runtime may proceed through its own gates.");
+includes("roadmap", roadmap, "This restriction does not freeze the independent Base Account SDK primary");
+includes("official audit", audit, "No-go for the official hosted Base MCP adapter implementation.");
 includes("readiness", readiness, "Any missing required evidence keeps the result blocked.");
 includes("decision packet", decision, "Decision: **NO-GO**.");
 includes("package.json", packageJson, "\"check:phase-7c-hard-gate\"");

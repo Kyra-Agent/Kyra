@@ -53,12 +53,13 @@ for (
     "`WWW-Authenticate: Bearer realm=\"mcp\"`",
     "`agent_wallet:transact`",
     "`agent_wallet:escalate`",
-    "No-go for Phase 7D wallet/Base MCP implementation.",
+    "No-go for the official hosted Base MCP adapter implementation.",
     "monitor official provider metadata, unauthenticated `/mcp` challenge",
     "`npm run observe:base-mcp-provider`",
     "Protected resource metadata is available and stable.",
     "Exact non-escalating scope candidate is known.",
     "User wallet security and user Telegram bot token security stay above product",
+    "not for the independent Base Account SDK primary lane",
   ]
 ) {
   includes("Phase 7C official contract audit", doc, expected);

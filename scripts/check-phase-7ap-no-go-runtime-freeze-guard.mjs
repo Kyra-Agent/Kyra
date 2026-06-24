@@ -49,7 +49,7 @@ for (
     "Dashboard may only request `base_mcp_status_check` with `mode: read_only`.",
     "Custom bridge config must reject `https://mcp.base.org`",
     "Only reviewed disabled-only skeletons may exist",
-    "The freeze stays active while Phase 7AO is NO-GO.",
+    "The official MCP freeze stays active while Phase 7AO is NO-GO.",
     "npm run check:phase-7ap",
   ]
 ) {

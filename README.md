@@ -173,8 +173,8 @@ Phase 6 is foundation-complete, not execution-live.
 Phase 7 is complete only when one selected deployed agent can:
 
 1. Connect the owner's Base Account.
-2. Authorize official Base MCP for that owner, workspace, and agent.
-3. Prepare one allowlisted action.
+2. Prepare one allowlisted action through Kyra's bounded adapter.
+3. Bind it to the owner, workspace, and selected agent.
 4. Pass risk and permission review.
 5. Receive explicit Kyra owner approval.
 6. Receive explicit Base Account approval.
@@ -182,22 +182,23 @@ Phase 7 is complete only when one selected deployed agent can:
 8. Record a sanitized confirmed or failed result.
 
 The existing custom read-only status bridge is a completed security and
-infrastructure proof. It is not official Base MCP and does not complete Phase
-7.
+infrastructure proof. It is not a transaction adapter and does not complete
+Phase 7.
 
 Phase 7 starts with pre-execution security audits before any production wallet
 prompt, prepared-action write, transaction signing, or transaction submission is
-enabled. The first runtime candidate is narrow: a read-only Base MCP status
-provider bridge behind backend gates, without prepared-action storage or wallet
-execution. The official OAuth Base MCP path remains disabled because its
+enabled. The first execution path uses Kyra's canonical prepared-action
+contract and Base Account SDK so the user's browser wallet remains the signing
+boundary. The official OAuth Base MCP path remains disabled because its
 agent-wallet scopes require separately approved consent, encrypted token
 storage, tool allowlisting, and wallet-authority controls. Its current standard
 Protected Resource Metadata paths are unavailable, so Kyra will not hardcode
 discovery or launch authorization. Current advertised scopes are also rejected:
 transaction authority is not tool-bounded and escalation is undefined. The
 public provider contract is monitored locally for semantic drift with a manual
-response runbook, but changes never enable OAuth automatically. The custom
-bridge smoke remains blocked until a compatible provider and reviewed database
+response runbook, but changes never enable OAuth automatically. Official hosted
+Base MCP is an optional future adapter and does not block the Base Account SDK
+primary path. The custom bridge smoke remains blocked until a compatible provider and reviewed database
 rate-limit contract are approved; the custom smoke now has an explicit
 go/no-go packet, target Supabase verifier readiness checklist, and provider
 candidate dossier plus redacted smoke approval packet requirement. The final
