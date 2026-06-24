@@ -41,7 +41,8 @@ for (
     "Phase 7E wallet prompt/signing boundary is implemented",
     "Phase 7F prepared-action adapter allowlist is implemented",
     "Phase 7G prepared-action policy enforcement is implemented",
-    "The current primary work item is Phase 7H:",
+    "Phase 7H dual approval and freeze boundary is implemented",
+    "The current primary work item is Phase 7I:",
     "This restriction does not freeze the independent Base Account SDK primary",
   ]
 ) {
@@ -71,6 +72,8 @@ for (
     "prepared-action allowlist",
     "Phase 7G",
     "policy enforcement",
+    "Phase 7H",
+    "dual approval",
   ]
 ) {
   includes("private context roadmap", privateContext, expected);

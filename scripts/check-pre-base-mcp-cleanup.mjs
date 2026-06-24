@@ -95,7 +95,12 @@ includes(
 includes(
   "canonical roadmap",
   roadmap,
-  "The current primary work item is Phase 7H",
+  "Phase 7H dual approval and freeze boundary is implemented",
+);
+includes(
+  "canonical roadmap",
+  roadmap,
+  "The current primary work item is Phase 7I",
 );
 includes(
   "canonical roadmap",

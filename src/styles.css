@@ -3341,6 +3341,64 @@ h2 {
   line-height: 1.45;
 }
 
+.dual-approval-panel {
+  display: grid;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
+  padding: 0.76rem;
+  border: 1px solid rgba(59, 130, 246, 0.24);
+  border-radius: var(--radius);
+  background: rgba(59, 130, 246, 0.055);
+}
+
+.dual-approval-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.dual-approval-header span,
+.dual-approval-panel small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.dual-approval-header strong {
+  color: var(--text);
+  font-size: 0.86rem;
+  text-align: right;
+}
+
+.dual-approval-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.dual-approval-steps span {
+  display: grid;
+  gap: 0.16rem;
+  min-height: 52px;
+  padding: 0.52rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.dual-approval-steps strong {
+  color: var(--text);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.dual-approval-panel p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .prepared-action-header {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -4988,17 +5046,20 @@ h2 {
   .deploy-checklist-grid,
   .prepared-action-allowlist-grid,
   .prepared-action-policy-grid,
+  .dual-approval-steps,
   .execution-result-grid,
   .readiness-grid {
     grid-template-columns: 1fr;
   }
 
-  .prepared-action-policy-header {
+  .prepared-action-policy-header,
+  .dual-approval-header {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .prepared-action-policy-header strong {
+  .prepared-action-policy-header strong,
+  .dual-approval-header strong {
     text-align: left;
   }
 

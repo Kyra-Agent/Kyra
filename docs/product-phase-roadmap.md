@@ -311,7 +311,8 @@ Boundary:
 
 ### 7H - Dual Approval Execution
 
-Status: not implemented.
+Status: complete as a local dual-approval and freeze boundary. Runtime wallet
+prompt, signing, and transaction submission remain disabled.
 
 Required order:
 
@@ -323,6 +324,23 @@ Required order:
 
 Kyra approval and Base Account approval are separate decisions. Future
 official MCP OAuth consent would be a third, separate decision.
+
+Current implementation:
+
+- `src/types/dualApprovalExecution.ts`
+- `scripts/test-dual-approval-execution.mjs`
+- `scripts/check-phase-7h-dual-approval.mjs`
+- `docs/phase-7H-dual-approval-execution.md`
+- `npm run check:phase-7h`
+
+Boundary:
+
+- owner approval must include approval id, owner id, and timestamp
+- Kyra freezes the exact reviewed prepared action after owner approval
+- mutation after approval fails closed as `reviewed_action_changed`
+- Base Account connection and unsigned handoff are separate gates
+- wallet prompt, signing, submission, transaction hash persistence, and
+  official hosted Base MCP authority remain disabled
 
 ### 7I - Result Monitoring And Closeout
 
@@ -389,6 +407,8 @@ Current position:
   owner-dashboard-only schema boundary.
 - Phase 7G prepared-action policy enforcement is implemented as an
   owner/session/agent/storage/risk/approval boundary.
+- Phase 7H dual approval and freeze boundary is implemented as a local
+  owner-approval state model with dashboard evidence.
 - Wallet signing, token approval, swaps, transfers, contract calls, transaction
   submission, and transaction hash persistence remain disabled.
 - Phase 7C official Base MCP evidence remains blocked, but blocks only the
@@ -399,14 +419,12 @@ Before implementation resumes, keep the pre-Base MCP cleanup gate green:
 - `docs/phase-7-pre-base-mcp-cleanup-audit.md`
 - `npm run check:pre-base-mcp`
 
-The current primary work item is Phase 7H:
+The current primary work item is Phase 7I:
 
-1. Add the owner approval state machine without bypassing policy.
-2. Freeze the reviewed prepared action after explicit owner approval.
-3. Keep Base Account prompt eligibility locked until approval and handoff
-   checks pass.
-4. Keep signing, submission, and all official MCP authority disabled until the
-   later execution gate.
+1. Add result monitoring and closeout modeling for the locked execution path.
+2. Record only sanitized owner-only result states.
+3. Keep transaction hash persistence disabled until actual provider submission.
+4. Keep disconnect and emergency-disable behavior explicit.
 
 Do not enable wallet signing or transaction submission merely because the
 connection path exists. Each later gate remains separate.

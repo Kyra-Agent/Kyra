@@ -67,6 +67,7 @@ import {
 import type { BaseMcpPreparedActionSummary } from "../types/baseMcp";
 import { reviewPreparedActionAllowlist } from "../types/preparedAction";
 import { evaluatePreparedActionPolicy } from "../types/preparedActionPolicy";
+import { evaluateDualApprovalExecution } from "../types/dualApprovalExecution";
 import { baseChainId } from "../types/unsignedTransactionHandoff";
 import type { DataProvider } from "../types/api";
 import type {
@@ -1040,6 +1041,21 @@ export function Dashboard({
         valueSummary: "No token spend in Phase 7G policy review.",
       }),
     [agentRecord, authSession],
+  );
+  const dualApprovalReview = useMemo(
+    () =>
+      evaluateDualApprovalExecution({
+        policyReview: preparedActionPolicyReview,
+        ownerDecision: { decision: "pending" },
+        frozenAction: null,
+        baseAccountConnected: baseAccountConnectionStatus.connected,
+        handoffValid: false,
+        walletExecutionEnabled:
+          appConfig.integrations.walletExecution !== "disabled",
+        walletSigningEnabled: false,
+        officialMcpEnabled: false,
+      }),
+    [baseAccountConnectionStatus.connected, preparedActionPolicyReview],
   );
   const preparedActionTone = getPreparedActionTone(
     preparedActionPreview.status,
@@ -2343,6 +2359,54 @@ export function Dashboard({
                     gated.
                   </small>
                 )}
+            </div>
+            <div className="dual-approval-panel">
+              <div className="dual-approval-header">
+                <span>Phase 7H dual approval</span>
+                <strong>{dualApprovalReview.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="dual-approval-steps">
+                <span>
+                  Kyra approval
+                  <strong>
+                    {dualApprovalReview.reasons.includes(
+                        "owner_approval_required",
+                      )
+                      ? "required"
+                      : "recorded"}
+                  </strong>
+                </span>
+                <span>
+                  Frozen action
+                  <strong>
+                    {dualApprovalReview.frozenAction ? "locked" : "not issued"}
+                  </strong>
+                </span>
+                <span>
+                  Base Account
+                  <strong>
+                    {baseAccountConnectionStatus.connected
+                      ? "connected"
+                      : "required"}
+                  </strong>
+                </span>
+                <span>
+                  Wallet prompt
+                  <strong>
+                    {dualApprovalReview.walletPromptAllowed
+                      ? "eligible"
+                      : "locked"}
+                  </strong>
+                </span>
+              </div>
+              <p>{dualApprovalReview.message}</p>
+              <small>
+                Transaction submission:{" "}
+                {dualApprovalReview.transactionSubmissionAllowed
+                  ? "allowed"
+                  : "disabled"}{" "}
+                · execution gate remains closed
+              </small>
             </div>
             <div
               className={`prepared-action-card readiness-${preparedActionTone}`}
