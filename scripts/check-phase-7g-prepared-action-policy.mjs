@@ -104,7 +104,8 @@ includes("roadmap", roadmap, "Status: complete as a policy enforcement boundary.
 includes("roadmap", roadmap, "`src/types/preparedActionPolicy.ts`");
 includes("roadmap", roadmap, "`scripts/test-prepared-action-policy.mjs`");
 includes("roadmap", roadmap, "Phase 7H dual approval and freeze boundary is implemented");
-includes("roadmap", roadmap, "The current primary work item is Phase 7I:");
+includes("roadmap", roadmap, "Phase 7I result monitoring and closeout boundary is implemented");
+includes("roadmap", roadmap, "The current primary work item is Phase 7J:");
 
 for (
   const expected of [

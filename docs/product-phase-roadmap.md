@@ -344,7 +344,9 @@ Boundary:
 
 ### 7I - Result Monitoring And Closeout
 
-Status: model exists; live official MCP result path not implemented.
+Status: complete as a local result monitoring and closeout boundary. Live
+provider polling, transaction submission, and transaction hash persistence
+remain disabled.
 
 Required:
 
@@ -354,6 +356,24 @@ Required:
 - sanitize provider errors
 - keep results owner-only
 - support disconnect and emergency disablement
+
+Current implementation:
+
+- `src/types/resultMonitoringCloseout.ts`
+- `scripts/test-result-monitoring-closeout.mjs`
+- `scripts/check-phase-7i-result-monitoring-closeout.mjs`
+- `docs/phase-7I-result-monitoring-closeout.md`
+- `npm run check:phase-7i`
+
+Boundary:
+
+- owner, workspace, agent, and prepared-action scope are required
+- execution results remain owner-only
+- transaction hash is forbidden until provider submission is observed
+- confirmed results require confirmation data
+- provider failures use sanitized failure messages only
+- disconnect is allowed only after closed, expired, or disabled result states
+- emergency disablement closes the result without wallet or provider authority
 
 ### 7J - Controlled Live Transaction
 
@@ -409,6 +429,8 @@ Current position:
   owner/session/agent/storage/risk/approval boundary.
 - Phase 7H dual approval and freeze boundary is implemented as a local
   owner-approval state model with dashboard evidence.
+- Phase 7I result monitoring and closeout boundary is implemented as a local
+  owner-only sanitized result model with dashboard evidence.
 - Wallet signing, token approval, swaps, transfers, contract calls, transaction
   submission, and transaction hash persistence remain disabled.
 - Phase 7C official Base MCP evidence remains blocked, but blocks only the
@@ -419,12 +441,14 @@ Before implementation resumes, keep the pre-Base MCP cleanup gate green:
 - `docs/phase-7-pre-base-mcp-cleanup-audit.md`
 - `npm run check:pre-base-mcp`
 
-The current primary work item is Phase 7I:
+The current primary work item is Phase 7J:
 
-1. Add result monitoring and closeout modeling for the locked execution path.
-2. Record only sanitized owner-only result states.
-3. Keep transaction hash persistence disabled until actual provider submission.
-4. Keep disconnect and emergency-disable behavior explicit.
+1. Define the controlled live transaction gate and go/no-go criteria.
+2. Require one owner, one workspace, one deployed agent, one Base Account, and
+   one allowlisted low-risk action.
+3. Keep rollback, emergency disablement, and post-transaction audit mandatory.
+4. Keep wallet prompt, signing, submission, and transaction hash persistence
+   disabled until that gate is explicitly approved.
 
 Do not enable wallet signing or transaction submission merely because the
 connection path exists. Each later gate remains separate.

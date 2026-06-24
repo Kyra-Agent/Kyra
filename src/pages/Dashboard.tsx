@@ -68,6 +68,7 @@ import type { BaseMcpPreparedActionSummary } from "../types/baseMcp";
 import { reviewPreparedActionAllowlist } from "../types/preparedAction";
 import { evaluatePreparedActionPolicy } from "../types/preparedActionPolicy";
 import { evaluateDualApprovalExecution } from "../types/dualApprovalExecution";
+import { evaluateResultMonitoringCloseout } from "../types/resultMonitoringCloseout";
 import { baseChainId } from "../types/unsignedTransactionHandoff";
 import type { DataProvider } from "../types/api";
 import type {
@@ -1063,6 +1064,28 @@ export function Dashboard({
   const executionResults = dashboardData?.executionResults.length
     ? dashboardData.executionResults
     : getExecutionResultFallback(Boolean(authSession));
+  const resultMonitoringCloseout = useMemo(
+    () =>
+      evaluateResultMonitoringCloseout({
+        ownerUserId: authSession?.user.id ?? "",
+        workspaceId: dashboardData?.workspace.id ?? "",
+        agentId: agentRecord?.id ?? "",
+        preparedActionId: executionResults[0]?.preparedActionId ?? "",
+        providerStatus: "not_started",
+        txHash: null,
+        confirmationId: null,
+        failureCode: null,
+        disconnectRequested: false,
+        emergencyDisabled: false,
+        visibleInPublicProfile: false,
+      }),
+    [
+      agentRecord?.id,
+      authSession?.user.id,
+      dashboardData?.workspace.id,
+      executionResults,
+    ],
+  );
   const backendTables = dashboardData?.backendTables ?? [];
   const hasPublicRoute = Boolean(agentRecord?.publicPath);
   const latestDeployEvent = getLatestEvent(backendEvents, "deploy");
@@ -2471,6 +2494,55 @@ export function Dashboard({
             <div className="panel-title">
               <span>Execution audit trail</span>
               <span>owner-only</span>
+            </div>
+            <div className="result-monitoring-panel">
+              <div className="result-monitoring-header">
+                <span>Phase 7I result monitoring</span>
+                <strong>{resultMonitoringCloseout.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="result-monitoring-grid">
+                <span>
+                  Scope
+                  <strong>{resultMonitoringCloseout.ownerOnly ? "owner-only" : "blocked"}</strong>
+                </span>
+                <span>
+                  Tx hash
+                  <strong>
+                    {resultMonitoringCloseout.txHash
+                      ? "provider submitted"
+                      : "not persisted"}
+                  </strong>
+                </span>
+                <span>
+                  Disconnect
+                  <strong>
+                    {resultMonitoringCloseout.disconnectAllowed
+                      ? "allowed"
+                      : "locked"}
+                  </strong>
+                </span>
+                <span>
+                  Emergency
+                  <strong>
+                    {resultMonitoringCloseout.emergencyDisabled
+                      ? "disabled"
+                      : "ready"}
+                  </strong>
+                </span>
+              </div>
+              <p>{resultMonitoringCloseout.message}</p>
+              {resultMonitoringCloseout.reasons.length
+                ? (
+                  <small>
+                    Blocked by: {resultMonitoringCloseout.reasons.join(", ")}
+                  </small>
+                )
+                : (
+                  <small>
+                    Result closeout is sanitized. No public result data, wallet
+                    prompt, signing, or submission is enabled here.
+                  </small>
+                )}
             </div>
             <div className="execution-result-list">
               {executionResults.map((result) => (

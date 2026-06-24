@@ -148,7 +148,8 @@ for (
     "docs/phase-7H-dual-approval-execution.md",
     "src/types/dualApprovalExecution.ts",
     "Phase 7H dual approval and freeze boundary is implemented",
-    "The current primary work item is Phase 7I:",
+    "Phase 7I result monitoring and closeout boundary is implemented",
+    "The current primary work item is Phase 7J:",
   ]
 ) {
   assertIncludes("roadmap", roadmap, required);

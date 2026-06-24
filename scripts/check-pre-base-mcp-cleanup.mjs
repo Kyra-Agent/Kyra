@@ -100,7 +100,12 @@ includes(
 includes(
   "canonical roadmap",
   roadmap,
-  "The current primary work item is Phase 7I",
+  "Phase 7I result monitoring and closeout boundary is implemented",
+);
+includes(
+  "canonical roadmap",
+  roadmap,
+  "The current primary work item is Phase 7J",
 );
 includes(
   "canonical roadmap",
