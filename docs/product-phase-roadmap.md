@@ -180,6 +180,8 @@ Current audit:
 - `docs/phase-7C-official-base-mcp-provider-contract-audit.md`
 - decision: no-go for live wallet authority until official provider metadata,
   non-escalating scope semantics, and exact scope-to-tool mapping are verified.
+- `docs/phase-7C-go-criteria-hard-gate.md`
+- `npm run check:phase-7c-hard-gate`
 
 Required:
 
