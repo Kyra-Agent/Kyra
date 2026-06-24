@@ -363,6 +363,8 @@ Transition lock:
 - `npm run check:phase-7ax`
 - `docs/phase-7AY-owner-authentication-boundary-packet.md`
 - `npm run check:phase-7ay`
+- `docs/phase-7AZ-owner-auth-helper-approval-packet.md`
+- `npm run check:phase-7az`
 
 This gate keeps Phase 7D Base Account connection, official MCP OAuth, token
 storage, tool discovery, prepared actions, signing, and transaction submission
@@ -434,3 +436,10 @@ status, revoke, callback, and token broker, gateway versus function-level auth,
 request ordering, replay, CORS, enumeration, logging, and privacy rules. It
 does not add auth helpers or allow the disabled skeletons to process identity,
 body, query, OAuth, token, wallet, or provider data.
+
+The Phase 7AZ owner-auth helper approval packet defines the future five-file
+helper boundary, dependency-injected APIs, canonical UUID rules, fixed 404
+anti-enumeration policy, sanitized error model, test-first order, rollback
+rules, and strict no-route-integration condition. It does not approve helper
+implementation, route imports, configuration, provider, OAuth, token, wallet,
+deploy, or push work.
