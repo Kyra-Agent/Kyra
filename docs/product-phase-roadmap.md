@@ -429,6 +429,26 @@ Working groups for the supporting packets:
 - Group 4: owner authority and consent blueprints
 - Group 5: disabled route skeleton and auth-helper readiness
 
+Group 3 scope:
+
+- protocol split decision: `docs/phase-7N-official-base-mcp-protocol-decision.md`
+- OAuth and wallet-authority threat model:
+  `docs/phase-7O-official-mcp-oauth-threat-model.md`
+- OAuth client architecture decision:
+  `docs/phase-7P-official-mcp-oauth-client-architecture.md`
+- scope and consent qualification:
+  `docs/phase-7Q-official-mcp-scope-consent-qualification.md`
+- current official Base MCP go/no-go packet:
+  `docs/phase-7AO-official-base-mcp-go-no-go-decision-packet.md`
+
+Group 3 keeps the official hosted Base MCP adapter in NO-GO unless protected
+resource metadata, exact resource/audience, least-privilege scope,
+scope-to-tool mapping, approval-link behavior, token lifecycle, revocation,
+owner consent, and owner approval are all verified. It does not block the
+independent Base Account SDK lane, and it must not enable OAuth, token storage,
+MCP sessions, tool invocation, wallet prompts, signing, or transaction
+submission.
+
 ## Telegram Boundary After Phase 7
 
 Telegram remains unable to sign or submit.

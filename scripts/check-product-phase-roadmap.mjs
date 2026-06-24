@@ -46,6 +46,16 @@ for (
     "Phase 7J controlled live transaction gate is implemented",
     "The product roadmap ends at Phase 7J.",
     "Supporting readiness packets",
+    "Group 1: read-only caller and status surface",
+    "Group 2: controlled smoke preparation and provider qualification",
+    "Group 3: official-provider decisioning and offline go/no-go review",
+    "docs/phase-7N-official-base-mcp-protocol-decision.md",
+    "docs/phase-7O-official-mcp-oauth-threat-model.md",
+    "docs/phase-7P-official-mcp-oauth-client-architecture.md",
+    "docs/phase-7Q-official-mcp-scope-consent-qualification.md",
+    "docs/phase-7AO-official-base-mcp-go-no-go-decision-packet.md",
+    "independent Base Account SDK lane",
+    "MCP sessions, tool invocation",
     "This restriction does not freeze the independent Base Account SDK primary",
   ]
 ) {
@@ -81,6 +91,8 @@ for (
     "result monitoring",
     "Phase 7J",
     "controlled live",
+    "Supporting packet group 3 is the official-provider decisioning",
+    "MCP sessions, tool invocation",
   ]
 ) {
   includes("private context roadmap", privateContext, expected);
