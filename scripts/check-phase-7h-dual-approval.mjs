@@ -149,7 +149,8 @@ for (
     "src/types/dualApprovalExecution.ts",
     "Phase 7H dual approval and freeze boundary is implemented",
     "Phase 7I result monitoring and closeout boundary is implemented",
-    "The current primary work item is Phase 7J:",
+    "Phase 7J controlled live transaction gate is implemented",
+    "The current primary work item is Phase 7K:",
   ]
 ) {
   assertIncludes("roadmap", roadmap, required);

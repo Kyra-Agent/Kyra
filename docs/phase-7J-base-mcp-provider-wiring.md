@@ -1,113 +1,120 @@
-# Phase 7J Base MCP Status Provider Wiring
+# Phase 7J Controlled Live Transaction Gate
 
-Date: 2026-06-19
+Date: 2026-06-25
 
-Status: runtime provider adapter wiring started. This packet wires only the
-read-only Base MCP status adapter behind backend gates. It does not enable
-prepared-action production storage, wallet prompts, signing, transaction
-submission, Telegram execution, approvals, swaps, transfers, or contract calls.
+Status: complete as a local controlled-live gate definition. Phase 7J does not
+enable wallet prompts, signing, transaction submission, provider transaction
+calls, Telegram execution, or transaction hash persistence.
+
+Historical note: this file previously tracked Base MCP status provider wiring.
+That read-only adapter remains default-off and optional. The canonical Phase 7J
+scope is now the controlled live transaction gate described here.
 
 ## Decision
 
-Wire the reviewed Base MCP status provider adapter into runtime dependencies:
+Define the final gate that must be green before Kyra can request a later
+controlled live smoke window:
 
-- adapter: `createBaseMcpStatusCheckAdapter`
-- dependency hook: `prepareBaseMcpAction`
-- action kind: `base_mcp_status_check`
-- chain: `base`
-- mode: `read_only`
-- surface: authenticated owner dashboard path only
-- runtime gate: exact `KYRA_BASE_MCP_PREP_ENABLED=true`
-- endpoint: backend-only `KYRA_BASE_MCP_ENDPOINT`, HTTPS only
-- API key: backend-only `KYRA_BASE_MCP_API_KEY`, optional
-- timeout: capped by `KYRA_BASE_MCP_TIMEOUT_MS`, maximum 5000 ms
+- one owner session
+- one workspace scope
+- one deployed agent scope
+- one owner Base Account connection
+- Base mainnet chain id `8453`
+- exactly one prepared action candidate
+- deterministic allowlist pass
+- low-risk action classification
+- Kyra owner approval and Base Account approval boundaries ready
+- owner-only result monitoring and closeout ready
+- rollback plan ready
+- emergency disablement ready
+- post-transaction audit ready
+- Telegram has no authority
+- public profile visibility is forbidden
+- wallet prompt, signing, and submission runtime switches remain locked in
+  Phase 7J
 
 ## Runtime Boundary
 
-The disabled path remains inert:
+Phase 7J is a gate model only:
 
-- no required env reads
-- no body read
-- no session validation
-- no service-role client creation
-- no ownership lookup
-- no provider request
-- no storage write
+- no wallet prompt is opened
+- no signature is requested
+- no transaction is submitted
+- no transaction hash is persisted
+- no provider transaction endpoint is called
+- no prepared-action production row is created by this phase
+- no Telegram command can approve, sign, submit, swap, transfer, or execute
+- no public profile may show controlled-live transaction state
 
-The enabled path still requires this order:
+If any wallet prompt, signing, or submission runtime switch is enabled during
+Phase 7J, the gate fails closed as
+`runtime_execution_must_remain_locked`.
 
-1. POST and JSON guards.
-2. Exact runtime gate.
-3. Bearer session.
-4. Authenticated Supabase user.
-5. Bounded request body.
-6. Fresh `requestedAt`.
-7. Exact allowed action kind.
-8. Agent ownership lookup.
-9. Workspace match.
-10. HTTPS endpoint configured.
-11. Provider status request.
+## Product Boundary
 
-## Provider Payload Boundary
+The dashboard may show owner-only evidence that the controlled-live gate is:
 
-The provider request may include only:
+- blocked by missing prerequisites
+- ready for explicit live-window approval
+- approved but still runtime locked
 
-- `actionKind`
-- `chain`
-- `mode`
-- `requestId`
-- `requestedAt`
+Even when the gate is approved, Phase 7J returns:
 
-The provider request must not include:
+- `walletPromptAllowed: false`
+- `walletSigningAllowed: false`
+- `transactionSubmissionAllowed: false`
 
-- owner user id
-- workspace id
-- agent id
-- wallet address
-- token amount
-- recipient address
-- calldata
-- transaction hash
-- Telegram token
-- private key
-- seed phrase
-- browser-exposed secret
+The later controlled smoke phase must make the separate enablement decision.
 
-## Storage Boundary
+## Security Boundary
 
-Prepared-action storage remains disabled:
+Controlled-live data must not include:
 
-- `storePreparedActionSummary` is not wired in runtime dependencies.
-- `public.prepared_actions` remains review-only SQL.
-- The dashboard receives only the bounded provider preview response.
-- No production prepared-action row is created by Phase 7J.
+- private keys
+- seed phrases
+- Telegram bot tokens
+- OpenRouter or Supabase secrets
+- raw provider payloads
+- calldata beyond reviewed bounded handoff data
+- unreviewed transaction hashes
+- wallet execution authority from Telegram or public routes
 
-## Telegram Boundary
+The user's wallet remains the final authority. Kyra can prepare and gate only;
+it cannot silently execute.
 
-Telegram remains read-only:
+## Implementation
 
-- no Base MCP function call
-- no prepared-action write
-- no wallet prompt
-- no approval creation
-- no signing
-- no transaction submission
+Current implementation:
 
-Telegram can still explain that wallet and onchain execution are disabled.
+- `src/types/controlledLiveTransactionGate.ts`
+- `scripts/test-controlled-live-transaction-gate.mjs`
+- `scripts/check-phase-7j-base-mcp-provider-wiring.mjs`
+- `src/pages/Dashboard.tsx`
+- `src/styles.css`
+- `npm run check:phase-7j`
+
+The dashboard evidence panel is informational and owner-only. It does not add a
+transaction button, wallet prompt, signing call, provider submission, or storage
+write.
 
 ## Failure Boundary
 
-Allowed user-facing failures stay bounded:
+User-facing failures stay bounded:
 
-- `Base MCP preparation is disabled.`
-- `Base MCP preparation is not configured.`
-- `This Base MCP action is not supported.`
-- `Base MCP preparation timed out.`
-- `No Base MCP action can be prepared right now.`
+- controlled live transaction requires an owner session
+- controlled live transaction requires one workspace scope
+- controlled live transaction requires one deployed agent scope
+- connect one owner Base Account before review
+- controlled live transaction must target Base
+- exactly one prepared action is required
+- the prepared action must pass deterministic allowlist
+- the first live transaction candidate must be low risk
+- rollback, emergency disablement, and post-transaction audit must be ready
+- Telegram cannot authorize or execute controlled live transactions
 
 No failure may expose endpoint URLs, API keys, provider stack traces, raw
-provider bodies, calldata, transaction hashes, wallet data, or Telegram token
-refs.
+provider bodies, private wallet data, Telegram token refs, or unredacted
+transaction payloads.
 
 ## Local Verification
 
@@ -116,53 +123,49 @@ Required before push or deploy:
 ```powershell
 npm run check:phase-7j
 npm run check:phase-7
-deno test --quiet supabase/functions
 npm run build
 git diff --check
 ```
 
 ## Live Smoke Checklist
 
-Before enabling `KYRA_BASE_MCP_PREP_ENABLED=true`:
+Before moving beyond Phase 7J:
 
 - confirm target Supabase project and Netlify site
-- confirm endpoint is HTTPS
-- confirm API key is backend-only
-- confirm no `VITE_` Base MCP secret exists
-- confirm storage hook remains unwired
-- confirm Telegram refuses swap/wallet/onchain/Base MCP requests
+- confirm target owner account is signed in
+- confirm one deployed agent is selected
+- confirm one Base Account is connected on Base
+- confirm the prepared action is allowlisted and low risk
+- confirm Kyra owner approval and Base Account approval boundaries are separate
+- confirm rollback and emergency disablement are ready
+- confirm post-transaction audit fields are ready
+- confirm Telegram still rejects wallet/swap/onchain commands
+- confirm public profile does not show wallet or controlled-live internals
 
-After enabling the gate:
-
-- owner dashboard status request returns `preview_ready` or bounded failure
-- wrong-owner request fails before provider access
-- stale request returns `invalid_request`
-- unsupported action kind returns `base_mcp_unknown_action`
-- provider timeout returns `base_mcp_timeout`
-- provider failure returns `base_mcp_unavailable`
-- response includes no endpoint, API key, owner id, workspace id, agent id,
-  wallet data, calldata, provider payload, or transaction hash
-- disabling the gate returns `base_mcp_disabled`
+Do not enable wallet prompt, signing, or transaction submission during this
+phase.
 
 ## Rollback Plan
 
 Primary rollback:
 
-- set `KYRA_BASE_MCP_PREP_ENABLED` away from exact `true`
-- remove or rotate `KYRA_BASE_MCP_API_KEY` if configured
-- clear or replace `KYRA_BASE_MCP_ENDPOINT`
-- keep `storePreparedActionSummary` unwired
+- keep wallet execution disabled
+- keep wallet signing disabled
+- keep transaction submission disabled
 - keep Telegram execution disabled
+- keep official hosted Base MCP authority disabled unless separately approved
+- remove any accidental live-window approval flag
+- re-run `npm run check:phase-7j`
 - re-run `npm run check:phase-7`
-- smoke that dashboard shows disabled or not-configured copy
 
 ## Done Criteria
 
-- Runtime dependencies wire only the read-only provider adapter.
-- Disabled runtime path remains inert.
-- Ownership lookup stays before provider access.
-- Provider payload remains bounded and excludes owner/workspace/agent/wallet
-  scope.
-- Prepared-action storage remains unwired.
-- Telegram and public routes cannot trigger Base MCP.
-- Automated Phase 7J checker exists and is included in `npm run check:phase-7`.
+- Controlled live transaction gate model exists.
+- Gate requires one owner, one workspace, one deployed agent, one Base Account,
+  one allowlisted low-risk action, rollback, emergency disablement, and
+  post-transaction audit.
+- Gate fails closed if Telegram or public routes gain authority.
+- Gate fails closed if runtime wallet prompt, signing, or transaction
+  submission is enabled in Phase 7J.
+- Dashboard shows owner-only evidence.
+- Automated Phase 7J checker is included in `npm run check:phase-7`.

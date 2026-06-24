@@ -43,7 +43,8 @@ for (
     "Phase 7G prepared-action policy enforcement is implemented",
     "Phase 7H dual approval and freeze boundary is implemented",
     "Phase 7I result monitoring and closeout boundary is implemented",
-    "The current primary work item is Phase 7J:",
+    "Phase 7J controlled live transaction gate is implemented",
+    "The current primary work item is Phase 7K:",
     "This restriction does not freeze the independent Base Account SDK primary",
   ]
 ) {
@@ -77,6 +78,8 @@ for (
     "dual approval",
     "Phase 7I",
     "result monitoring",
+    "Phase 7J",
+    "controlled live",
   ]
 ) {
   includes("private context roadmap", privateContext, expected);

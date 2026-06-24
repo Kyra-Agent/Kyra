@@ -21,18 +21,6 @@ function assertNotIncludes(sourceName, source, text) {
   assert(!source.includes(text), `${sourceName} must not include: ${text}`);
 }
 
-function assertOrder(sourceName, source, first, second) {
-  const firstIndex = source.indexOf(first);
-  const secondIndex = source.indexOf(second);
-
-  assert(firstIndex >= 0, `${sourceName} must include: ${first}`);
-  assert(secondIndex >= 0, `${sourceName} must include: ${second}`);
-  assert(
-    firstIndex < secondIndex,
-    `${sourceName} must order "${first}" before "${second}".`,
-  );
-}
-
 function walkFiles(path) {
   const absolutePath = resolve(root, path);
   const stat = statSync(absolutePath);
@@ -59,94 +47,164 @@ function assertFilesDoNotInclude(paths, forbiddenPattern, message) {
 }
 
 const doc = read("docs/phase-7J-base-mcp-provider-wiring.md");
+const roadmap = read("docs/product-phase-roadmap.md");
 const phase7Audit = read("docs/phase-7-pre-execution-audit.md");
 const packageJson = read("package.json");
-const dependencies = read("supabase/functions/base-mcp-prepare/dependencies.ts");
-const core = read("supabase/functions/base-mcp-prepare/core.ts");
-const runtimeConfig = read("supabase/functions/base-mcp-prepare/runtime-config.ts");
-const providerAdapter = read("supabase/functions/base-mcp-prepare/provider-adapter.ts");
-const indexTest = read("supabase/functions/base-mcp-prepare/index_test.ts");
-const schema = read("supabase/schema.sql");
-const baseMcpReadme = read("supabase/functions/base-mcp-prepare/README.md");
+const gate = read("src/types/controlledLiveTransactionGate.ts");
+const gateTest = read("scripts/test-controlled-live-transaction-gate.mjs");
+const dashboard = read("src/pages/Dashboard.tsx");
+const styles = read("src/styles.css");
 const telegramRuntimeFiles = walkFiles("supabase/functions/telegram-webhook")
   .filter((path) => /\.ts$/u.test(path) && !path.endsWith("_test.ts"));
 const sourceFiles = walkFiles("src").filter((path) =>
   /\.(?:ts|tsx|js|jsx)$/u.test(path)
 );
-const handlerBody = core.slice(
-  core.indexOf("export async function handleBaseMcpPrepareRequest"),
-);
 
 for (
   const required of [
-    "# Phase 7J Base MCP Status Provider Wiring",
-    "Status: runtime provider adapter wiring started.",
+    "# Phase 7J Controlled Live Transaction Gate",
+    "Status: complete as a local controlled-live gate definition.",
     "## Decision",
     "## Runtime Boundary",
-    "## Provider Payload Boundary",
-    "## Storage Boundary",
-    "## Telegram Boundary",
+    "## Product Boundary",
+    "## Security Boundary",
+    "## Implementation",
     "## Failure Boundary",
     "## Local Verification",
     "## Live Smoke Checklist",
     "## Rollback Plan",
     "## Done Criteria",
-    "prepared-action production storage",
-    "wallet prompts",
-    "signing",
-    "transaction submission",
+    "walletPromptAllowed: false",
+    "walletSigningAllowed: false",
+    "transactionSubmissionAllowed: false",
+    "runtime_execution_must_remain_locked",
   ]
 ) {
   assertIncludes("Phase 7J doc", doc, required);
 }
 
 for (
-  const decision of [
-    "adapter: `createBaseMcpStatusCheckAdapter`",
-    "dependency hook: `prepareBaseMcpAction`",
-    "action kind: `base_mcp_status_check`",
-    "chain: `base`",
-    "mode: `read_only`",
-    "runtime gate: exact `KYRA_BASE_MCP_PREP_ENABLED=true`",
-    "endpoint: backend-only `KYRA_BASE_MCP_ENDPOINT`, HTTPS only",
-    "API key: backend-only `KYRA_BASE_MCP_API_KEY`, optional",
+  const required of [
+    "one owner session",
+    "one workspace scope",
+    "one deployed agent scope",
+    "one owner Base Account connection",
+    "Base mainnet chain id `8453`",
+    "exactly one prepared action candidate",
+    "deterministic allowlist pass",
+    "low-risk action classification",
+    "rollback plan ready",
+    "emergency disablement ready",
+    "post-transaction audit ready",
+    "Telegram has no authority",
+    "public profile visibility is forbidden",
   ]
 ) {
-  assertIncludes("Phase 7J decision", doc, decision);
+  assertIncludes("Phase 7J decision", doc, required);
 }
 
 for (
-  const boundary of [
-    "no required env reads",
-    "no body read",
-    "no session validation",
-    "no service-role client creation",
-    "no ownership lookup",
-    "no provider request",
-    "no storage write",
-    "Agent ownership lookup.",
-    "Workspace match.",
-    "HTTPS endpoint configured.",
+  const required of [
+    "export type ControlledLiveTransactionStatus",
+    "export type ControlledLiveTransactionBlockReason",
+    "export interface ControlledLiveTransactionGateInput",
+    "export interface ControlledLiveTransactionGateResult",
+    "evaluateControlledLiveTransactionGate",
+    "owner_scope_required",
+    "workspace_scope_required",
+    "agent_scope_required",
+    "base_account_required",
+    "base_network_required",
+    "single_action_required",
+    "allowlisted_action_required",
+    "low_risk_action_required",
+    "dual_approval_required",
+    "result_monitoring_required",
+    "rollback_required",
+    "emergency_disable_required",
+    "post_transaction_audit_required",
+    "public_visibility_forbidden",
+    "telegram_authority_forbidden",
+    "runtime_execution_must_remain_locked",
+    "walletPromptAllowed: false",
+    "walletSigningAllowed: false",
+    "transactionSubmissionAllowed: false",
   ]
 ) {
-  assertIncludes("Phase 7J runtime boundary", doc, boundary);
+  assertIncludes("controlled live gate", gate, required);
 }
 
 for (
   const forbidden of [
-    "owner user id",
-    "workspace id",
-    "agent id",
-    "wallet address",
-    "token amount",
-    "calldata",
-    "transaction hash",
-    "Telegram token",
-    "private key",
-    "seed phrase",
+    "sendTransaction",
+    "writeContract",
+    "eth_sendTransaction",
+    "signMessage",
+    "signTypedData",
+    "storePreparedActionSummary",
+    "fetch(",
   ]
 ) {
-  assertIncludes("Phase 7J provider boundary", doc, forbidden);
+  assertNotIncludes("controlled live gate", gate, forbidden);
+}
+
+for (
+  const required of [
+    "ready_for_live_window_approval",
+    "live_window_approved_runtime_locked",
+    "single_action_required",
+    "low_risk_action_required",
+    "dual_approval_required",
+    "result_monitoring_required",
+    "telegram_authority_forbidden",
+    "runtime_execution_must_remain_locked",
+    "Controlled live transaction gate checks passed.",
+  ]
+) {
+  assertIncludes("controlled live gate test", gateTest, required);
+}
+
+for (
+  const required of [
+    '"test:controlled-live-transaction-gate"',
+    '"check:phase-7j": "npm run test:controlled-live-transaction-gate && node scripts/check-phase-7j-base-mcp-provider-wiring.mjs"',
+    "npm run check:phase-7j",
+  ]
+) {
+  assertIncludes("package.json", packageJson, required);
+}
+
+for (
+  const required of [
+    "evaluateControlledLiveTransactionGate",
+    "controlledLiveTransactionGate",
+    "Phase 7J controlled live gate",
+    "Gate is ready for explicit live-window approval only",
+    "wallet prompt, signing, and submission",
+  ]
+) {
+  assertIncludes("dashboard", dashboard, required);
+}
+
+for (
+  const required of [
+    ".controlled-live-gate-panel",
+    ".controlled-live-gate-header",
+    ".controlled-live-gate-grid",
+  ]
+) {
+  assertIncludes("styles", styles, required);
+}
+
+for (
+  const required of [
+    "### 7J - Controlled Live Transaction",
+    "Status: complete as a local controlled-live gate definition.",
+    "Phase 7J controlled live transaction gate is implemented",
+    "The current primary work item is Phase 7K:",
+  ]
+) {
+  assertIncludes("roadmap", roadmap, required);
 }
 
 assertIncludes(
@@ -155,77 +213,27 @@ assertIncludes(
   "Audit packet: `docs/phase-7J-base-mcp-provider-wiring.md`.",
 );
 assertIncludes("Phase 7 audit", phase7Audit, "`npm run check:phase-7j`");
-assertIncludes("package.json", packageJson, '"check:phase-7j"');
-assertIncludes("package.json", packageJson, "npm run check:phase-7j");
-
-assertIncludes("dependencies", dependencies, "createBaseMcpStatusCheckAdapter");
-assertIncludes("dependencies", dependencies, "baseMcpProviderTransport?: BaseMcpProviderTransport");
 assertIncludes(
-  "dependencies",
-  dependencies,
-  "if (!baseMcpPrepareRuntimeConfig.enabled)",
+  "Phase 7 audit",
+  phase7Audit,
+  "Wallet prompts, signing, transaction submission, swaps, transfers, approvals,",
 );
-assertOrder(
-  "dependencies",
-  dependencies,
-  "if (!baseMcpPrepareRuntimeConfig.enabled)",
-  "dependencies.prepareBaseMcpAction = createBaseMcpStatusCheckAdapter",
+assertIncludes(
+  "Phase 7 audit",
+  phase7Audit,
+  "and contract calls remain disabled.",
 );
-assertOrder(
-  "dependencies",
-  dependencies,
-  "dependencies.prepareBaseMcpAction = createBaseMcpStatusCheckAdapter",
-  "let serviceClientPromise",
-);
-assertNotIncludes("dependencies", dependencies, "storePreparedActionSummary");
-
-assertIncludes("runtime config", runtimeConfig, 'value === "true"');
-assertIncludes("runtime config", runtimeConfig, 'url.protocol !== "https:"');
-assertIncludes("runtime config", runtimeConfig, "return Math.min(parsed, 5000);");
-
-assertIncludes("core", core, "Base MCP preparation is disabled.");
-assertIncludes("core", core, "Base MCP preparation is not configured.");
-assertIncludes("core", core, 'const baseMcpAllowedActionKinds = ["base_mcp_status_check"] as const;');
-assertIncludes("core", core, 'mode: "read_only";');
-assertOrder("core handler", handlerBody, "if (!runtimeConfig.enabled)", "assertBearerAuthorization");
-assertOrder("core handler", handlerBody, "assertBearerAuthorization", "readJsonObjectBody");
-assertOrder("core handler", handlerBody, "assertFreshRequestedAt", "lookupAgentOwnership");
-assertOrder("core handler", handlerBody, "assertAgentOwnership", "prepareBaseMcpAction");
-assertOrder("core handler", handlerBody, "prepareBaseMcpAction", "storePreparedActionSummary");
-
-assertIncludes("provider adapter", providerAdapter, "baseMcpStatusPath = \"/status-check\"");
-assertIncludes("provider adapter", providerAdapter, "\"x-kyra-action-kind\": \"base_mcp_status_check\"");
-assertIncludes("provider adapter", providerAdapter, "actionKind: input.actionKind");
-assertIncludes("provider adapter", providerAdapter, "chain: input.chain");
-assertIncludes("provider adapter", providerAdapter, "mode: input.mode");
-assertIncludes("provider adapter", providerAdapter, "requestId: input.requestId");
-assertIncludes("provider adapter", providerAdapter, "requestedAt: input.requestedAt");
-assertNotIncludes("provider adapter", providerAdapter, "ownerUserId");
-assertNotIncludes("provider adapter", providerAdapter, "workspaceId: input.workspaceId");
-assertNotIncludes("provider adapter", providerAdapter, "agentId: input.agentId");
-assertNotIncludes("provider adapter", providerAdapter, "walletAddress");
-assertNotIncludes("provider adapter", providerAdapter, "rawCalldata");
-assertIncludes("provider adapter", providerAdapter, "No token spend, no gas request, no calldata.");
-assertIncludes("provider adapter", providerAdapter, "opaquePayloadRef: null");
-
-assertIncludes("index test", indexTest, "baseMcpProviderTransport: async (request)");
-assertIncludes("index test", indexTest, "Provider payload must not include agent id.");
-assertIncludes("index test", indexTest, "Provider payload must not include workspace id.");
-assertIncludes("index test", indexTest, "Provider payload must not include owner id.");
-assertIncludes("index test", indexTest, "assertEquals(dependencies.storePreparedActionSummary, undefined)");
-
-assertNotIncludes("schema", schema, "create table public.prepared_actions");
-assertIncludes("base-mcp README", baseMcpReadme, "Do not call this function from Telegram.");
 
 assertFilesDoNotInclude(
   telegramRuntimeFiles,
-  /base-mcp-prepare|prepareBaseMcpAction|createBaseMcpStatusCheckAdapter|KYRA_BASE_MCP|storePreparedActionSummary/u,
-  "Telegram runtime must not trigger Base MCP provider wiring",
+  /evaluateControlledLiveTransactionGate|controlledLiveTransaction|sendTransaction|writeContract|eth_sendTransaction|storePreparedActionSummary/u,
+  "Telegram runtime must not trigger controlled live transactions",
 );
+
 assertFilesDoNotInclude(
   sourceFiles,
   /VITE_.*(?:BASE_MCP|SERVICE_ROLE|PRIVATE_KEY|BOT_TOKEN|OPENROUTER|AGENT_BRAIN_API_KEY)/u,
   "Frontend must not expose backend secret env keys",
 );
 
-console.log("Phase 7J Base MCP provider wiring checks passed.");
+console.log("Phase 7J controlled live transaction gate checks passed.");

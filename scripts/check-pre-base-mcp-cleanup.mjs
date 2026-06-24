@@ -105,7 +105,12 @@ includes(
 includes(
   "canonical roadmap",
   roadmap,
-  "The current primary work item is Phase 7J",
+  "Phase 7J controlled live transaction gate is implemented",
+);
+includes(
+  "canonical roadmap",
+  roadmap,
+  "The current primary work item is Phase 7K",
 );
 includes(
   "canonical roadmap",

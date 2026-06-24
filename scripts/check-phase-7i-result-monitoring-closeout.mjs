@@ -152,7 +152,8 @@ for (
     "docs/phase-7I-result-monitoring-closeout.md",
     "src/types/resultMonitoringCloseout.ts",
     "Phase 7I result monitoring and closeout boundary is implemented",
-    "The current primary work item is Phase 7J:",
+    "Phase 7J controlled live transaction gate is implemented",
+    "The current primary work item is Phase 7K:",
   ]
 ) {
   includes("roadmap", roadmap, required);

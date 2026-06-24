@@ -377,7 +377,9 @@ Boundary:
 
 ### 7J - Controlled Live Transaction
 
-Status: not started.
+Status: complete as a local controlled-live gate definition. Runtime wallet
+prompt, signing, transaction submission, provider transaction calls, and
+transaction hash persistence remain disabled.
 
 Required:
 
@@ -393,6 +395,23 @@ Required:
 
 Phase 7 closes only after this controlled transaction succeeds safely and the
 post-transaction audit passes.
+
+Current implementation:
+
+- `src/types/controlledLiveTransactionGate.ts`
+- `scripts/test-controlled-live-transaction-gate.mjs`
+- `scripts/check-phase-7j-base-mcp-provider-wiring.mjs`
+- `docs/phase-7J-base-mcp-provider-wiring.md`
+- `npm run check:phase-7j`
+
+Boundary:
+
+- gate requires one owner, one workspace, one deployed agent, one Base Account,
+  and exactly one prepared action
+- first live candidate must be deterministic allowlist pass and low risk
+- rollback, emergency disablement, and post-transaction audit are mandatory
+- Telegram and public routes cannot authorize controlled live transactions
+- wallet prompt, signing, and transaction submission remain false in Phase 7J
 
 ## Telegram Boundary After Phase 7
 
@@ -431,6 +450,8 @@ Current position:
   owner-approval state model with dashboard evidence.
 - Phase 7I result monitoring and closeout boundary is implemented as a local
   owner-only sanitized result model with dashboard evidence.
+- Phase 7J controlled live transaction gate is implemented as a local
+  owner-only go/no-go model with dashboard evidence.
 - Wallet signing, token approval, swaps, transfers, contract calls, transaction
   submission, and transaction hash persistence remain disabled.
 - Phase 7C official Base MCP evidence remains blocked, but blocks only the
@@ -441,14 +462,14 @@ Before implementation resumes, keep the pre-Base MCP cleanup gate green:
 - `docs/phase-7-pre-base-mcp-cleanup-audit.md`
 - `npm run check:pre-base-mcp`
 
-The current primary work item is Phase 7J:
+The current primary work item is Phase 7K:
 
-1. Define the controlled live transaction gate and go/no-go criteria.
-2. Require one owner, one workspace, one deployed agent, one Base Account, and
-   one allowlisted low-risk action.
-3. Keep rollback, emergency disablement, and post-transaction audit mandatory.
-4. Keep wallet prompt, signing, submission, and transaction hash persistence
-   disabled until that gate is explicitly approved.
+1. Reconcile the owner dashboard status caller with the controlled-live gate.
+2. Keep Base MCP status calls read-only and owner-click-only.
+3. Keep wallet prompt, signing, submission, and transaction hash persistence
+   disabled until the later controlled smoke gate is explicitly approved.
+4. Preserve rollback, emergency disablement, and post-transaction audit
+   readiness as mandatory prerequisites.
 
 Do not enable wallet signing or transaction submission merely because the
 connection path exists. Each later gate remains separate.

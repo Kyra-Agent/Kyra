@@ -69,6 +69,7 @@ import { reviewPreparedActionAllowlist } from "../types/preparedAction";
 import { evaluatePreparedActionPolicy } from "../types/preparedActionPolicy";
 import { evaluateDualApprovalExecution } from "../types/dualApprovalExecution";
 import { evaluateResultMonitoringCloseout } from "../types/resultMonitoringCloseout";
+import { evaluateControlledLiveTransactionGate } from "../types/controlledLiveTransactionGate";
 import { baseChainId } from "../types/unsignedTransactionHandoff";
 import type { DataProvider } from "../types/api";
 import type {
@@ -1086,6 +1087,49 @@ export function Dashboard({
       executionResults,
     ],
   );
+  const controlledLiveTransactionGate = useMemo(() => {
+    const liveCandidate = reviewPreparedActionAllowlist({
+      source: "owner_dashboard",
+      walletExecutionEnabled: true,
+      actionKind: "base_reviewed_transaction",
+      chainId: baseChainId,
+      recipient: "0x1111111111111111111111111111111111111111",
+      valueWei: "0",
+      data: "0x",
+      routeSummary: "Controlled low-risk Base transaction candidate.",
+      valueSummary: "No token spend in Phase 7J gate review.",
+    });
+
+    return evaluateControlledLiveTransactionGate({
+      ownerUserId: authSession?.user.id ?? "",
+      workspaceId: dashboardData?.workspace.id ?? "",
+      agentId: agentRecord?.id ?? "",
+      baseAccountConnected: baseAccountConnectionStatus.connected,
+      chainId: baseAccountConnectionStatus.chainId,
+      preparedActionCount: 1,
+      actionAllowlisted: liveCandidate.allowed,
+      actionRisk: liveCandidate.allowed ? "low" : "blocked",
+      dualApproval: dualApprovalReview,
+      resultMonitoring: resultMonitoringCloseout,
+      rollbackReady: true,
+      emergencyDisableReady: true,
+      postTransactionAuditReady: true,
+      liveWindowApproved: false,
+      visibleInPublicProfile: false,
+      telegramCanAuthorize: false,
+      walletPromptRuntimeEnabled: false,
+      walletSigningRuntimeEnabled: false,
+      transactionSubmissionRuntimeEnabled: false,
+    });
+  }, [
+    agentRecord?.id,
+    authSession?.user.id,
+    baseAccountConnectionStatus.chainId,
+    baseAccountConnectionStatus.connected,
+    dashboardData?.workspace.id,
+    dualApprovalReview,
+    resultMonitoringCloseout,
+  ]);
   const backendTables = dashboardData?.backendTables ?? [];
   const hasPublicRoute = Boolean(agentRecord?.publicPath);
   const latestDeployEvent = getLatestEvent(backendEvents, "deploy");
@@ -2494,6 +2538,58 @@ export function Dashboard({
             <div className="panel-title">
               <span>Execution audit trail</span>
               <span>owner-only</span>
+            </div>
+            <div className="controlled-live-gate-panel">
+              <div className="controlled-live-gate-header">
+                <span>Phase 7J controlled live gate</span>
+                <strong>
+                  {controlledLiveTransactionGate.status.replace(/_/g, " ")}
+                </strong>
+              </div>
+              <div className="controlled-live-gate-grid">
+                <span>
+                  Owner scope
+                  <strong>{controlledLiveTransactionGate.ownerOnly ? "owner-only" : "blocked"}</strong>
+                </span>
+                <span>
+                  Live window
+                  <strong>
+                    {controlledLiveTransactionGate.liveWindowApproved
+                      ? "approved"
+                      : "not approved"}
+                  </strong>
+                </span>
+                <span>
+                  Wallet prompt
+                  <strong>
+                    {controlledLiveTransactionGate.walletPromptAllowed
+                      ? "allowed"
+                      : "locked"}
+                  </strong>
+                </span>
+                <span>
+                  Submission
+                  <strong>
+                    {controlledLiveTransactionGate.transactionSubmissionAllowed
+                      ? "allowed"
+                      : "locked"}
+                  </strong>
+                </span>
+              </div>
+              <p>{controlledLiveTransactionGate.message}</p>
+              {controlledLiveTransactionGate.reasons.length
+                ? (
+                  <small>
+                    Blocked by: {controlledLiveTransactionGate.reasons.join(", ")}
+                  </small>
+                )
+                : (
+                  <small>
+                    Gate is ready for explicit live-window approval only. Phase
+                    7J still keeps wallet prompt, signing, and submission
+                    locked.
+                  </small>
+                )}
             </div>
             <div className="result-monitoring-panel">
               <div className="result-monitoring-header">

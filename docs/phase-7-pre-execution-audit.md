@@ -189,16 +189,16 @@ and owner approval are complete:
 - Wallet prompts, signing, transaction submission, prepared-action production
   writes, and Telegram-triggered execution remain disabled.
 
-### 7J - Base MCP Status Provider Wiring
+### 7J - Controlled Live Transaction Gate
 
 - Audit packet: `docs/phase-7J-base-mcp-provider-wiring.md`.
-- Runtime dependencies wire only `createBaseMcpStatusCheckAdapter`.
-- Runtime gate still requires exact `KYRA_BASE_MCP_PREP_ENABLED=true`.
-- Provider endpoint still must be HTTPS and backend-only.
-- Provider payload excludes owner id, workspace id, agent id, wallet data,
-  token amounts, calldata, transaction hashes, and Telegram token refs.
-- Prepared-action storage remains unwired.
-- Telegram and public routes cannot trigger Base MCP.
+- Gate requires one owner, one workspace, one deployed agent, one Base Account,
+  exactly one allowlisted low-risk action, rollback, emergency disablement, and
+  post-transaction audit readiness.
+- Gate is owner-only and cannot be exposed on public profiles.
+- Telegram and public routes cannot authorize controlled live transactions.
+- Phase 7J may approve a live-window decision only as a local model; runtime
+  prompt, signing, and submission switches remain locked.
 - Wallet prompts, signing, transaction submission, swaps, transfers, approvals,
   and contract calls remain disabled.
 
