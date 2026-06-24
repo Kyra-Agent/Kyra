@@ -199,6 +199,18 @@ Required binding:
 owner + workspace + agent instance + Base Account + exact consent
 ```
 
+Current implementation note:
+
+- local owner-auth and ownership helpers now exist for future route layers
+- helper tests cover bearer parsing, canonical owner IDs, exact
+  owner/workspace/agent binding, fixed 404 anti-enumeration, and sanitized 500
+- helpers remain pure dependency-injected modules with no environment reads,
+  Supabase client construction, provider contact, token handling, wallet
+  prompts, signing, transaction submission, route imports, frontend wiring, or
+  Telegram wiring
+- Base Account connection, OAuth runtime, token storage, and official MCP
+  sessions remain not implemented
+
 Only the authenticated owner may initiate connection from the private
 dashboard. Telegram, public profiles, LLM output, page load, and background
 jobs cannot initiate it.
@@ -443,3 +455,10 @@ anti-enumeration policy, sanitized error model, test-first order, rollback
 rules, and strict no-route-integration condition. It does not approve helper
 implementation, route imports, configuration, provider, OAuth, token, wallet,
 deploy, or push work.
+
+After owner approval, the local owner-auth and ownership helper milestone added
+the pure dependency-injected helper files and tests plus the static
+`check-official-mcp-owner-auth-boundary` guard. This advances the 7D owner and
+agent-binding foundation only. It still does not add route integration,
+official MCP OAuth, token storage, provider contact, Base Account connection,
+wallet prompts, signing, transactions, deploy, or push work.

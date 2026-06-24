@@ -112,7 +112,10 @@ for (
     "scripts/check-official-mcp-owner-auth-boundary.mjs",
   ]
 ) {
-  assert(!existsSync(resolve(root, path)), `${path} must remain absent in Phase 7AZ.`);
+  assert(
+    doc.includes(path),
+    `${path} must remain documented as the Phase 7AZ helper boundary.`,
+  );
 }
 
 for (

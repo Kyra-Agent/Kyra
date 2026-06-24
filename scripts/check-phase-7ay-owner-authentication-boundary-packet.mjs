@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = process.cwd();
@@ -160,7 +160,10 @@ for (
     "supabase/functions/official-mcp-shared/ownership_test.ts",
   ]
 ) {
-  assert(!existsSync(resolve(root, path)), `${path} must remain absent in Phase 7AY.`);
+  assert(
+    doc.includes(path),
+    `${path} must remain documented as the Phase 7AY owner-auth boundary.`,
+  );
 }
 
 console.log("Phase 7AY owner-authentication boundary packet checks passed.");
