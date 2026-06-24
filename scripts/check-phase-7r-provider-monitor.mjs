@@ -79,7 +79,7 @@ for (
   ]
 ) includes("provider monitor tests", test, value);
 
-assert(baseline.version === 1, "Baseline version must remain 1.");
+assert(baseline.version === 2, "Baseline version must remain 2.");
 assert(
   baseline.decision === "blocked",
   "Baseline decision must remain blocked.",
@@ -100,6 +100,13 @@ assert(
     baseline.mcpChallenge.resourceMetadata === null &&
     baseline.mcpChallenge.scopes.length === 0,
   "Baseline must preserve the unauthenticated MCP challenge blocker.",
+);
+assert(
+  baseline.documentation.writeToolNamesDocumented === true &&
+    baseline.documentation.authoritativeInputSchemasDocumented === false &&
+    baseline.documentation.approvalLifecycleDocumented === false &&
+    baseline.documentation.oauthTokenLifecycleDocumented === false,
+  "Baseline must distinguish documented tool names from missing authority contracts.",
 );
 
 for (

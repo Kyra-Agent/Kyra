@@ -28,6 +28,10 @@ The latest read-only monitor result remains:
 - advertised scopes: `agent_wallet:transact`, `agent_wallet:escalate`
 - exact scope-to-tool mapping: unverified
 - escalation semantics: unverified
+- authoritative MCP input schemas: unverified
+- approval expiry, cancellation, binding, and replay guarantees: unverified
+- OAuth token expiry, rotation, revocation, disconnect, and incident behavior:
+  unverified
 
 This is enough evidence to continue monitoring. It is not enough evidence to
 request wallet authority.

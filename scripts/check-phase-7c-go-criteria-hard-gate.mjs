@@ -95,6 +95,18 @@ includes("package.json", packageJson, "npm run check:phase-7c-hard-gate");
 includes("app config", appConfig, 'walletExecution: "disabled"');
 
 assert(baseline.decision === "blocked", "Provider baseline must remain blocked.");
+for (
+  const blocker of [
+    "authoritative_input_schemas_unverified",
+    "approval_lifecycle_unverified",
+    "oauth_token_lifecycle_unverified",
+  ]
+) {
+  assert(
+    baseline.blockers.includes(blocker),
+    `Current provider baseline must preserve ${blocker}.`,
+  );
+}
 assert(
   baseline.protectedResources.root.available === false &&
     baseline.protectedResources.mcpPath.available === false,
@@ -112,6 +124,12 @@ for (const scope of ["agent_wallet:transact", "agent_wallet:escalate"]) {
     `Current baseline must still advertise ${scope}.`,
   );
 }
+assert(
+  baseline.documentation.authoritativeInputSchemasDocumented === false &&
+    baseline.documentation.approvalLifecycleDocumented === false &&
+    baseline.documentation.oauthTokenLifecycleDocumented === false,
+  "Current provider documentation must not be treated as a complete authority contract.",
+);
 
 for (
   const [label, source] of [

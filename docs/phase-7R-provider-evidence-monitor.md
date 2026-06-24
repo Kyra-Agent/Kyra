@@ -23,6 +23,7 @@ The monitor can request only:
 - `https://mcp.base.org/.well-known/oauth-protected-resource/mcp`
 - `https://mcp.base.org/mcp`
 - `https://docs.base.org/llms-full.txt`
+- `https://docs.base.org/agents/llms-full.txt`
 
 The URL allowlist is exact. Query strings, fragments, embedded credentials,
 HTTP, arbitrary hosts, and caller-provided URLs are rejected.
@@ -39,8 +40,11 @@ HTTP, arbitrary hosts, and caller-provided URLs are rejected.
   discovery, tool invocation, approval links, wallet APIs, or RPC endpoints.
 - Eight-second timeout per source.
 - 16 KiB limit per metadata response.
-- 1 MiB limit for the public documentation corpus.
-- Exact success content type: JSON for metadata and plain text for docs.
+- 1 MiB limit for the public documentation index corpus.
+- 256 KiB limit for the public agent documentation corpus.
+- Exact allowlisted success content types: JSON for metadata, plain text for
+  the docs index, and the official text/octet-stream response variants for the
+  agent corpus.
 - Non-success bodies are not interpreted as metadata.
 
 The monitor does not persist response cookies, provider bodies, secrets, or
@@ -79,8 +83,12 @@ The tracked baseline records the reviewed public contract:
   `resource_metadata` or scope guidance
 - read and write product guides documented
 - arbitrary calldata through `send_calls` documented
+- reviewed write tool names documented
 - exact scope-to-tool mapping absent
 - escalation semantics absent
+- authoritative MCP input schemas absent
+- complete approval lifecycle contract absent
+- complete OAuth token lifecycle contract absent
 
 The baseline excludes timestamps, raw content, response cookies, and content
 hashes from equality decisions. Hashes remain in live output as supporting
@@ -108,7 +116,7 @@ The monitor must never:
 
 ## Current Live Observation
 
-Latest local observation on 2026-06-20:
+Latest local observation on 2026-06-24:
 
 - baseline match: true
 - decision: blocked
@@ -119,6 +127,8 @@ Latest local observation on 2026-06-20:
   guidance
 - documentation: read and write guides present, but exact scope-to-tool mapping
   and escalation semantics remain unverified
+- authoritative input schemas, approval lifecycle guarantees, and OAuth token
+  lifecycle guarantees remain unverified
 
 This confirms the current Phase 7C no-go decision. No Phase 7D wallet,
 OAuth, token storage, MCP session, or execution implementation may start from

@@ -20,14 +20,18 @@ const authorizationMetadata = {
   scopes_supported: ["agent_wallet:transact", "agent_wallet:escalate"],
 };
 const documentation = [
-  "/ai-agents/guides/check-balance",
-  "/ai-agents/guides/view-history",
-  "/ai-agents/guides/send-tokens",
-  "/ai-agents/guides/swap-tokens",
-  "/ai-agents/guides/sign-messages",
-  "/ai-agents/guides/batch-calls",
-  "/ai-agents/guides/x402-payments",
+  "/agents/guides/check-balance",
+  "/agents/guides/view-history",
+  "/agents/guides/send-tokens",
+  "/agents/guides/swap-tokens",
+  "/agents/guides/sign-messages",
+  "/agents/guides/batch-calls",
+  "/agents/guides/x402-payments",
   "custom plugins produce unsigned calldata and use send_calls",
+].join("\n");
+const agentDocumentation = [
+  "`send` `swap` `sign` `send_calls`",
+  "approvalUrl requestId",
 ].join("\n");
 
 function createResponse(body, init) {
@@ -73,6 +77,12 @@ function createFakeFetch(overrides = {}) {
         headers: { "content-type": "text/plain; charset=utf-8" },
       });
     }
+    if (url === providerEvidenceSources.agentDocumentationCorpus) {
+      return createResponse(agentDocumentation, {
+        status: 200,
+        headers: { "content-type": "application/octet-stream, text/plain" },
+      });
+    }
 
     throw new Error(`Unexpected URL: ${url}`);
   };
@@ -87,7 +97,7 @@ function createFakeFetch(overrides = {}) {
     observedAt: "2026-06-19T00:00:00.000Z",
   });
 
-  assert(calls.length === 5, "Monitor must call exactly five public sources.");
+  assert(calls.length === 6, "Monitor must call exactly six public sources.");
   for (const call of calls) {
     const url = new URL(call.url);
     assert(call.init.method === "GET", "Monitor must use GET only.");
@@ -120,6 +130,16 @@ function createFakeFetch(overrides = {}) {
   assert(
     report.documentation.arbitraryCalldataDocumented,
     "Documentation risk signal must detect arbitrary calldata.",
+  );
+  assert(
+    report.documentation.writeToolNamesDocumented,
+    "Agent documentation must expose the reviewed write tool names.",
+  );
+  assert(
+    report.blockers.includes("authoritative_input_schemas_unverified") &&
+      report.blockers.includes("approval_lifecycle_unverified") &&
+      report.blockers.includes("oauth_token_lifecycle_unverified"),
+    "Missing schema, approval lifecycle, and token lifecycle evidence must block.",
   );
   assert(
     report.mcpChallenge.available && report.mcpChallenge.bearerRealm === "mcp",

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-export const providerEvidenceVersion = 1;
+export const providerEvidenceVersion = 2;
 export const providerEvidenceSources = Object.freeze({
   authorizationMetadata:
     "https://mcp.base.org/.well-known/oauth-authorization-server",
@@ -13,6 +13,7 @@ export const providerEvidenceSources = Object.freeze({
     "https://mcp.base.org/.well-known/oauth-protected-resource/mcp",
   mcpEndpointChallenge: "https://mcp.base.org/mcp",
   documentationCorpus: "https://docs.base.org/llms-full.txt",
+  agentDocumentationCorpus: "https://docs.base.org/agents/llms-full.txt",
 });
 
 const sourcePolicies = Object.freeze({
@@ -39,7 +40,16 @@ const sourcePolicies = Object.freeze({
   documentationCorpus: {
     accept: "text/plain",
     maxBytes: 1024 * 1024,
-    successContentType: "text/plain",
+    successContentTypes: ["text/plain"],
+  },
+  agentDocumentationCorpus: {
+    accept: "text/plain",
+    maxBytes: 256 * 1024,
+    successContentTypes: [
+      "text/plain",
+      "application/octet-stream",
+      "application/octet-stream, text/plain",
+    ],
   },
 });
 
@@ -82,6 +92,7 @@ export async function observeBaseMcpProviderEvidence(options = {}) {
   };
   const documentation = normalizeDocumentationSignals(
     sources.documentationCorpus,
+    sources.agentDocumentationCorpus,
   );
   const mcpChallenge = normalizeMcpEndpointChallenge(
     sources.mcpEndpointChallenge,
@@ -104,6 +115,15 @@ export async function observeBaseMcpProviderEvidence(options = {}) {
   }
   if (!documentation.escalationSemanticsDocumented) {
     blockers.push("escalation_semantics_unverified");
+  }
+  if (!documentation.authoritativeInputSchemasDocumented) {
+    blockers.push("authoritative_input_schemas_unverified");
+  }
+  if (!documentation.approvalLifecycleDocumented) {
+    blockers.push("approval_lifecycle_unverified");
+  }
+  if (!documentation.oauthTokenLifecycleDocumented) {
+    blockers.push("oauth_token_lifecycle_unverified");
   }
   if (!mcpChallenge.resourceMetadata) {
     blockers.push("mcp_challenge_resource_metadata_missing");
@@ -196,7 +216,7 @@ async function readPublicEvidenceSource({
     );
     if (
       response.ok &&
-      contentType !== policy.successContentType
+      !acceptedContentTypes(policy).includes(contentType)
     ) {
       return failedSource(
         url,
@@ -328,11 +348,13 @@ function normalizeProtectedResourceMetadata(source) {
   };
 }
 
-function normalizeDocumentationSignals(source) {
-  const text = source.ok ? source.text : "";
+function normalizeDocumentationSignals(indexSource, agentSource) {
+  const indexText = indexSource.ok ? indexSource.text : "";
+  const agentText = agentSource.ok ? agentSource.text : "";
+  const text = `${indexText}\n${agentText}`;
 
   return {
-    available: source.ok,
+    available: indexSource.ok && agentSource.ok,
     readOnlyGuidesDocumented: [
       "/agents/guides/check-balance",
       "/agents/guides/view-history",
@@ -351,7 +373,35 @@ function normalizeDocumentationSignals(source) {
     escalationSemanticsDocumented:
       /agent_wallet:escalate.{0,500}(?:means|allows|permission|authority)/isu
         .test(text),
+    writeToolNamesDocumented: [
+      "`send`",
+      "`swap`",
+      "`sign`",
+      "`send_calls`",
+    ].every((value) => text.includes(value)),
+    authoritativeInputSchemasDocumented:
+      text.includes("inputSchema") || text.includes("input_schema"),
+    approvalLifecycleDocumented: [
+      "approvalUrl",
+      "requestId",
+      "expiry",
+      "cancel",
+      "replay protection",
+    ].every((value) => text.toLowerCase().includes(value.toLowerCase())),
+    oauthTokenLifecycleDocumented: [
+      "access token",
+      "refresh token",
+      "revoke",
+      "disconnect",
+    ].every((value) => text.toLowerCase().includes(value)),
   };
+}
+
+function acceptedContentTypes(policy) {
+  if (Array.isArray(policy.successContentTypes)) {
+    return policy.successContentTypes;
+  }
+  return [policy.successContentType];
 }
 
 function normalizeMcpEndpointChallenge(source) {

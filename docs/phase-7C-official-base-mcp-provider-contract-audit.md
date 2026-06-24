@@ -35,6 +35,8 @@ Official Base and MCP sources checked on 2026-06-20 and refreshed on
 - `https://docs.base.org/agents/guides/x402-payments`
 - `https://docs.base.org/agents/plugins/custom-plugins`
 - `https://docs.base.org/agents/llms-full.txt`
+- `https://docs.base.org/llms-full.txt`
+- `https://github.com/base/skills/tree/master/skills/base-mcp`
 - `https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization`
 
 ## Current Verified Endpoint Contract
@@ -63,6 +65,36 @@ surface and the same protected-resource metadata blockers. Documentation paths
 have moved from `/ai-agents/...` to `/agents/...`, but the observed product
 surface still includes send, swap, sign, batched contract calls, x402 payments,
 custom plugin `send_calls`, and approval-link based write flows.
+
+The 2026-06-24 exhaustive refresh also reviewed the linked official Base agent
+documentation corpus and the 28 files under the official `base/skills`
+`skills/base-mcp` tree. This verified documented write tool names and guide
+parameters, but found no public mapping from either advertised OAuth scope to
+specific tools, no authoritative MCP `inputSchema` snapshot, and no complete
+provider contract for approval expiry/cancellation/replay or OAuth
+token/revocation/disconnect behavior.
+
+## Evidence Qualification Matrix
+
+| Required evidence | Verified result | Gate |
+| --- | --- | --- |
+| Authorization server metadata | issuer, authorize, token, registration, PKCE S256, and two wallet-authority scopes observed | insufficient alone |
+| Protected resource metadata | standard root and `/mcp` locations return 404 | blocker |
+| MCP bearer challenge | 401 with realm `mcp`; no resource metadata or scope | blocker |
+| Read/write capability docs | read guides and `send`, `swap`, `sign`, `send_calls`, x402 flows documented | informational |
+| Scope-to-tool mapping | not published in reviewed Base docs or official Base skill tree | blocker |
+| Non-escalating scope | not advertised or documented | blocker |
+| Authoritative tool schemas | guide parameters exist; MCP `inputSchema` contract is not published | blocker |
+| Approval lifecycle | approval URL/request ID flow exists; binding, expiry, cancellation, and replay guarantees are incomplete | blocker |
+| OAuth token lifecycle | refresh grant is advertised; expiry, rotation, revocation, disconnect, and incident contract are incomplete | blocker |
+
+Evidence collection is complete for the currently public official sources.
+The provider contract required for a Kyra GO decision is not complete.
+The official Base GitHub organization exposes `base-mcp-legacy`, but no
+publicly identified current `mcp.base.org` server repository or official issue
+in `base/skills` supplied the missing authority contract during this refresh.
+Legacy implementation details are not accepted as evidence for the current
+hosted provider.
 
 ## Official Capability Surface
 
@@ -121,6 +153,10 @@ authorization-server scope list alone.
 ## Kyra Decision
 
 No-go for Phase 7D wallet/Base MCP implementation.
+
+Phase 7C remains NO-GO after the 2026-06-24 exhaustive official-source
+refresh. Do not reinterpret completed evidence collection as completed
+provider evidence: the missing contracts above are external blockers.
 
 Kyra must not:
 

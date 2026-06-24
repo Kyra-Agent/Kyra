@@ -1,10 +1,13 @@
 {
-  "version": 1,
+  "version": 2,
   "decision": "blocked",
   "blockers": [
+    "approval_lifecycle_unverified",
+    "authoritative_input_schemas_unverified",
     "escalation_semantics_unverified",
     "mcp_challenge_resource_metadata_missing",
     "mcp_challenge_scope_missing",
+    "oauth_token_lifecycle_unverified",
     "protected_resource_metadata_unavailable",
     "scope_to_tool_mapping_unverified",
     "wallet_authority_scopes_advertised"
@@ -60,7 +63,11 @@
     "writeGuidesDocumented": true,
     "arbitraryCalldataDocumented": true,
     "scopeToToolMappingDocumented": false,
-    "escalationSemanticsDocumented": false
+    "escalationSemanticsDocumented": false,
+    "writeToolNamesDocumented": true,
+    "authoritativeInputSchemasDocumented": false,
+    "approvalLifecycleDocumented": false,
+    "oauthTokenLifecycleDocumented": false
   },
   "evidence": {
     "authorizationMetadata": {
@@ -96,6 +103,13 @@
       "url": "https://docs.base.org/llms-full.txt",
       "status": 200,
       "contentType": "text/plain",
+      "ok": true,
+      "errorCode": null
+    },
+    "agentDocumentationCorpus": {
+      "url": "https://docs.base.org/agents/llms-full.txt",
+      "status": 200,
+      "contentType": "application/octet-stream, text/plain",
       "ok": true,
       "errorCode": null
     }
