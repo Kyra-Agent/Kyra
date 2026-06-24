@@ -66,6 +66,7 @@ import {
 } from "../services/baseMcpPrepareService";
 import type { BaseMcpPreparedActionSummary } from "../types/baseMcp";
 import { reviewPreparedActionAllowlist } from "../types/preparedAction";
+import { evaluatePreparedActionPolicy } from "../types/preparedActionPolicy";
 import { baseChainId } from "../types/unsignedTransactionHandoff";
 import type { DataProvider } from "../types/api";
 import type {
@@ -1019,6 +1020,26 @@ export function Dashboard({
         valueSummary: "No token spend in Phase 7F.",
       }),
     [],
+  );
+  const preparedActionPolicyReview = useMemo(
+    () =>
+      evaluatePreparedActionPolicy({
+        source: "owner_dashboard",
+        walletExecutionEnabled:
+          appConfig.integrations.walletExecution !== "disabled",
+        ownerSignedIn: Boolean(authSession),
+        selectedAgent: Boolean(agentRecord),
+        preparedActionStorageEnabled: false,
+        ownerApprovalRecorded: false,
+        actionKind: "base_reviewed_transaction",
+        chainId: baseChainId,
+        recipient: "0x1111111111111111111111111111111111111111",
+        valueWei: "0",
+        data: "0x",
+        routeSummary: "Owner reviewed Base transaction preview.",
+        valueSummary: "No token spend in Phase 7G policy review.",
+      }),
+    [agentRecord, authSession],
   );
   const preparedActionTone = getPreparedActionTone(
     preparedActionPreview.status,
@@ -2273,6 +2294,55 @@ export function Dashboard({
                 <small>Untrusted input</small>
                 <strong>Telegram, LLM, provider blocked</strong>
               </article>
+            </div>
+            <div className="prepared-action-policy-panel">
+              <div className="prepared-action-policy-header">
+                <span>Phase 7G policy enforcement</span>
+                <strong>{preparedActionPolicyReview.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="prepared-action-policy-grid">
+                <span>
+                  Storage
+                  <strong>
+                    {preparedActionPolicyReview.allowedForStorage
+                      ? "owner scoped"
+                      : "disabled"}
+                  </strong>
+                </span>
+                <span>
+                  Risk
+                  <strong>
+                    {preparedActionPolicyReview.riskReview?.level ?? "blocked"}
+                  </strong>
+                </span>
+                <span>
+                  Owner approval
+                  <strong>
+                    {preparedActionPolicyReview.reasons.includes(
+                        "owner_approval_required",
+                      )
+                      ? "required"
+                      : "recorded"}
+                  </strong>
+                </span>
+                <span>
+                  Replay
+                  <strong>request id scoped</strong>
+                </span>
+              </div>
+              <p>{preparedActionPolicyReview.message}</p>
+              {preparedActionPolicyReview.reasons.length
+                ? (
+                  <small>
+                    Blocked by: {preparedActionPolicyReview.reasons.join(", ")}
+                  </small>
+                )
+                : (
+                  <small>
+                    Policy review passed. Wallet prompt remains separately
+                    gated.
+                  </small>
+                )}
             </div>
             <div
               className={`prepared-action-card readiness-${preparedActionTone}`}

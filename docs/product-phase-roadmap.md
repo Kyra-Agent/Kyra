@@ -283,15 +283,31 @@ Current implementation:
 
 ### 7G - Prepared Action And Policy Enforcement
 
-Status: contracts modeled; production path not active.
+Status: complete as a policy enforcement boundary. Production storage and
+approval writes remain disabled.
 
-Required:
+Delivered:
 
-- owner-scoped prepared-action persistence
+- owner-scoped prepared-action persistence gate
 - exact agent, chain, action, asset, recipient, value, and expiry policy
 - NYX-05 risk review
 - idempotency and replay protection
 - owner-visible transaction context
+
+Current implementation:
+
+- `src/types/preparedActionPolicy.ts`
+- `scripts/test-prepared-action-policy.mjs`
+- `docs/phase-7G-prepared-action-policy-enforcement.md`
+- `npm run check:phase-7g`
+
+Boundary:
+
+- owner/session/agent binding is required
+- prepared-action storage remains disabled until the explicit storage gate
+- owner approval remains required
+- wallet prompt, signing, submission, and transaction hash persistence remain
+  disabled
 
 ### 7H - Dual Approval Execution
 
@@ -371,6 +387,8 @@ Current position:
   fail-closed guard and dashboard evidence surface.
 - Phase 7F prepared-action adapter allowlist is implemented as a deterministic
   owner-dashboard-only schema boundary.
+- Phase 7G prepared-action policy enforcement is implemented as an
+  owner/session/agent/storage/risk/approval boundary.
 - Wallet signing, token approval, swaps, transfers, contract calls, transaction
   submission, and transaction hash persistence remain disabled.
 - Phase 7C official Base MCP evidence remains blocked, but blocks only the
@@ -381,13 +399,14 @@ Before implementation resumes, keep the pre-Base MCP cleanup gate green:
 - `docs/phase-7-pre-base-mcp-cleanup-audit.md`
 - `npm run check:pre-base-mcp`
 
-The current primary work item is Phase 7G:
+The current primary work item is Phase 7H:
 
-1. Add owner-scoped prepared-action persistence only after storage approval.
-2. Bind the allowlisted prepared action to deterministic policy and NYX-05.
-3. Add idempotency, replay protection, expiry, and owner-visible context.
+1. Add the owner approval state machine without bypassing policy.
+2. Freeze the reviewed prepared action after explicit owner approval.
+3. Keep Base Account prompt eligibility locked until approval and handoff
+   checks pass.
 4. Keep signing, submission, and all official MCP authority disabled until the
-   later approval and execution gates.
+   later execution gate.
 
 Do not enable wallet signing or transaction submission merely because the
 connection path exists. Each later gate remains separate.

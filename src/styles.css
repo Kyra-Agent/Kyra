@@ -3283,6 +3283,64 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.prepared-action-policy-panel {
+  display: grid;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
+  padding: 0.76rem;
+  border: 1px solid rgba(101, 255, 182, 0.2);
+  border-radius: var(--radius);
+  background: rgba(101, 255, 182, 0.045);
+}
+
+.prepared-action-policy-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.prepared-action-policy-header span,
+.prepared-action-policy-panel small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.prepared-action-policy-header strong {
+  color: var(--text);
+  font-size: 0.86rem;
+  text-align: right;
+}
+
+.prepared-action-policy-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.prepared-action-policy-grid span {
+  display: grid;
+  gap: 0.16rem;
+  min-height: 52px;
+  padding: 0.52rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.prepared-action-policy-grid strong {
+  color: var(--text);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.prepared-action-policy-panel p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .prepared-action-header {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -4929,9 +4987,19 @@ h2 {
   .reset-scope-grid,
   .deploy-checklist-grid,
   .prepared-action-allowlist-grid,
+  .prepared-action-policy-grid,
   .execution-result-grid,
   .readiness-grid {
     grid-template-columns: 1fr;
+  }
+
+  .prepared-action-policy-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .prepared-action-policy-header strong {
+    text-align: left;
   }
 
   .base-account-connection-header,

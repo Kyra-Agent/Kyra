@@ -40,7 +40,8 @@ for (
     "Status: complete and live for owner-initiated Base Account connection.",
     "Phase 7E wallet prompt/signing boundary is implemented",
     "Phase 7F prepared-action adapter allowlist is implemented",
-    "The current primary work item is Phase 7G:",
+    "Phase 7G prepared-action policy enforcement is implemented",
+    "The current primary work item is Phase 7H:",
     "This restriction does not freeze the independent Base Account SDK primary",
   ]
 ) {
@@ -68,6 +69,8 @@ for (
     "Phase 7E wallet prompt/signing boundary is implemented",
     "Phase 7F",
     "prepared-action allowlist",
+    "Phase 7G",
+    "policy enforcement",
   ]
 ) {
   includes("private context roadmap", privateContext, expected);
