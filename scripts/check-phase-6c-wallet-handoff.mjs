@@ -75,6 +75,7 @@ const walletProviderPackageImportPattern =
   /(?:import\s+(?:type\s+)?[\s\S]*?\s+from\s+["'](?:wagmi|viem|@base-org\/account|@tanstack\/react-query)["']|await\s+import\(["'](?:wagmi|viem|@base-org\/account|@tanstack\/react-query)["']\))/;
 const walletProviderImportAllowlist = new Set([
   "src/providers/WalletRuntimeProviders.tsx",
+  "src/components/BaseAccountConnectionPanel.tsx",
 ]);
 const approvedWalletDependencyNames = new Set([
   "@base-org/account",
@@ -336,7 +337,7 @@ assertIncludes(
 assertIncludes(
   "dashboard service",
   dashboardService,
-  "Provider dependencies are installed",
+  "Connection is owner-initiated. Signing and transactions remain disabled.",
 );
 for (
   const boundary of [
@@ -344,7 +345,7 @@ for (
     "Suspense",
     "fallback={null}",
     "WalletRuntimeProviders",
-    'appConfig.integrations.walletExecution === "disabled"',
+    "isWalletConnectionEnabled(appConfig.integrations.walletConnection)",
   ]
 ) {
   assertIncludes("WalletProviderBoundary", walletProviderBoundary, boundary);
@@ -357,13 +358,18 @@ for (
   const boundary of [
     "WagmiProvider",
     "QueryClientProvider",
-    "baseAccount()",
-    "coinbaseWallet",
+    "baseAccount(",
+    "chains: [base]",
+    "storage: null",
     "reconnectOnMount={false}",
   ]
 ) {
   assertIncludes("WalletRuntimeProviders", walletRuntimeProviders, boundary);
 }
+assert(
+  !walletRuntimeProviders.includes("coinbaseWallet"),
+  "Wallet runtime providers must remain Base Account-only in Phase 7D.",
+);
 assert(
   !walletRuntimeProviders.includes("window.ethereum"),
   "Wallet runtime providers must not use raw window.ethereum.",

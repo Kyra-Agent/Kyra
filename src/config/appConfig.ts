@@ -73,6 +73,7 @@ export const appConfig = {
     baseMcp: baseMcpPrepareFunctionUrl && supabaseConfigured
       ? "custom read-only bridge"
       : "read-only scaffold",
+    walletConnection: "owner_click_only",
     walletExecution: "disabled",
   },
 } as const;

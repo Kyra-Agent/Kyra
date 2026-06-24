@@ -19,19 +19,23 @@ dashboard actions, Edge Function configuration, custom provider wiring, or
 hidden OAuth routes. Independent Base Account execution remains separately
 disabled until its own gates pass.
 
-This phase does not implement Base Account connection, official MCP OAuth,
+This phase does not implement official MCP OAuth,
 dynamic client registration, token exchange, token storage, MCP session
 initialization, MCP tool discovery, MCP tool invocation, provider approval
 links, wallet prompts, signing, transaction submission, SQL deployment, Netlify
 deployment, or push.
+
+Phase 7D may mount the Base Account-only provider after an explicit authenticated
+owner click. That connection is session-memory-only and cannot sign or submit a
+transaction.
 
 ## Runtime Freeze Invariants
 
 | Layer | Required Freeze |
 | --- | --- |
 | Frontend config | `walletExecution` remains hardcoded `disabled` and is not environment-controlled. |
-| Wallet provider boundary | Wallet runtime providers are bypassed while wallet execution is disabled. |
-| Wallet connectors | Base Account and Coinbase Wallet dependencies may exist but cannot mount while the boundary is disabled. |
+| Wallet provider boundary | Runtime mounts only for the hardcoded owner-click connection mode while wallet execution remains disabled; Wagmi persistence and reconnect remain off. |
+| Wallet connectors | Only the Base Account connector on Base may mount; generic Coinbase fallback is excluded. |
 | Dashboard action | Dashboard may only request `base_mcp_status_check` with `mode: read_only`. |
 | Dashboard copy | Production and local dashboard must say official Base MCP wallet authority is blocked. |
 | Edge Function runtime | `base-mcp-prepare` remains default-off unless the explicit backend gate is exactly `true`. |
@@ -54,7 +58,7 @@ deployment, or push.
 ## What This Blocks
 
 - environment-controlled wallet execution
-- automatic wallet provider mounting
+- automatic wallet prompts or reconnect on page load
 - Base Account prompt from page load, Telegram, public routes, or background jobs
 - functional official Base MCP OAuth start/callback
 - dynamic client registration

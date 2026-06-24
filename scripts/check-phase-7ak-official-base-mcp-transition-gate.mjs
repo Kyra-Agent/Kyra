@@ -95,7 +95,7 @@ for (
     "### 7C - Official Base MCP Provider Contract",
     "Status: blocked by currently verified provider metadata and scope ambiguity.",
     "### 7D - Base Account Connection Per Deployed Agent",
-    "Phase 7D primary Base Account runtime may proceed through its own gates.",
+    "Phase 7D owner-initiated Base Account connection runtime is implemented",
   ]
 ) {
   assertIncludes("canonical roadmap", roadmap, roadmapMarker);

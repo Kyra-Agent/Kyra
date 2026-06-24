@@ -38,8 +38,8 @@ for (
     "CDP Node or another RPC provider may later support",
     "It is not required for the primary Base Account product flow",
     "Phase 7D foundation is clear.",
-    "Phase 7D primary Base Account runtime may proceed through its own gates.",
-    "The next primary work item is Phase 7D:",
+    "Phase 7D owner-initiated Base Account connection runtime is implemented",
+    "The current primary work item is Phase 7D closeout:",
     "This restriction does not freeze the independent Base Account SDK primary",
   ]
 ) {

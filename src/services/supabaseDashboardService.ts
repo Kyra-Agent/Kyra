@@ -344,18 +344,18 @@ function createWalletReadiness(rows: WalletPolicyRow[]): DemoWalletReadiness {
 }
 
 function createWalletProviderStatus(): DemoWalletProviderStatus {
-  const executionDisabled =
-    appConfig.integrations.walletExecution === "disabled";
+  const connectionEnabled =
+    appConfig.integrations.walletConnection === "owner_click_only";
 
   return {
     providerStack: "Wagmi + Viem",
     dependencyStatus: "installed",
-    runtimeGate: executionDisabled ? "disabled" : "enabled",
-    promptAccess: executionDisabled ? "disabled" : "owner_click_only",
-    connectorPriority: ["Base Account", "Coinbase Wallet"],
-    safetyNote: executionDisabled
-      ? "Provider dependencies are installed, but wallet prompts stay disabled until owner-click review."
-      : "Wallet prompts must remain owner-initiated and never Telegram-triggered.",
+    runtimeGate: connectionEnabled ? "enabled" : "disabled",
+    promptAccess: connectionEnabled ? "owner_click_only" : "disabled",
+    connectorPriority: ["Base Account"],
+    safetyNote: connectionEnabled
+      ? "Connection is owner-initiated. Signing and transactions remain disabled."
+      : "Base Account connection is disabled.",
   };
 }
 

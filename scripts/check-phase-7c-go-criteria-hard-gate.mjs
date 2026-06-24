@@ -85,7 +85,7 @@ for (
 }
 
 includes("roadmap", roadmap, "Phase 7D foundation is clear.");
-includes("roadmap", roadmap, "Phase 7D primary Base Account runtime may proceed through its own gates.");
+includes("roadmap", roadmap, "Phase 7D owner-initiated Base Account connection runtime is implemented");
 includes("roadmap", roadmap, "This restriction does not freeze the independent Base Account SDK primary");
 includes("official audit", audit, "No-go for the official hosted Base MCP adapter implementation.");
 includes("readiness", readiness, "Any missing required evidence keeps the result blocked.");

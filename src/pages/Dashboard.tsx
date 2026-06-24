@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { AuthSessionPanel } from "../components/AuthSessionPanel";
+import { BaseAccountConnectionPanel } from "../components/BaseAccountConnectionPanel";
 import type { AgentTemplate } from "../types/agent";
 import { appConfig } from "../config/appConfig";
 import { demoAgentLimits } from "../config/demoLimits";
@@ -200,18 +201,18 @@ function getWalletReadinessTone(state: DemoWalletReadinessState) {
 }
 
 function getWalletProviderStatusFallback(): DemoWalletProviderStatus {
-  const executionDisabled =
-    appConfig.integrations.walletExecution === "disabled";
+  const connectionEnabled =
+    appConfig.integrations.walletConnection === "owner_click_only";
 
   return {
     providerStack: "Wagmi + Viem",
     dependencyStatus: "installed",
-    runtimeGate: executionDisabled ? "disabled" : "enabled",
-    promptAccess: executionDisabled ? "disabled" : "owner_click_only",
-    connectorPriority: ["Base Account", "Coinbase Wallet"],
-    safetyNote: executionDisabled
-      ? "Wallet provider dependencies are installed, but prompts stay disabled."
-      : "Wallet prompts must remain owner-initiated.",
+    runtimeGate: connectionEnabled ? "enabled" : "disabled",
+    promptAccess: connectionEnabled ? "owner_click_only" : "disabled",
+    connectorPriority: ["Base Account"],
+    safetyNote: connectionEnabled
+      ? "Connection is owner-initiated. Signing and transactions remain disabled."
+      : "Base Account connection is disabled.",
   };
 }
 
@@ -1770,6 +1771,13 @@ export function Dashboard({
               <span>Wallet policy</span>
               <span>{walletReadiness.state.replace(/_/g, " ")}</span>
             </div>
+            <BaseAccountConnectionPanel
+              session={authSession}
+              workspaceId={agentRecord?.workspaceId ?? null}
+              agentId={agentRecord?.id ?? null}
+              agentName={agentRecord?.displayName ?? null}
+              onSessionChange={onAuthSessionChange}
+            />
             <div
               className={`wallet-readiness-card readiness-${walletReadinessTone}`}
             >

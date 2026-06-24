@@ -85,7 +85,7 @@ for (
 includes(
   "canonical roadmap",
   roadmap,
-  "The next primary work item is Phase 7D",
+  "The current primary work item is Phase 7D closeout",
 );
 includes(
   "canonical roadmap",

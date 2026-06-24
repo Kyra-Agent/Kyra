@@ -92,8 +92,11 @@ includes(
 );
 includes("wallet boundary", walletBoundary, "return <>{children}</>;");
 includes("wallet boundary", walletBoundary, "lazy(() =>");
-includes("wallet runtime", walletRuntime, "baseAccount()");
-includes("wallet runtime", walletRuntime, "coinbaseWallet({");
+includes("wallet runtime", walletRuntime, "baseAccount(");
+includes("wallet runtime", walletRuntime, "chains: [base]");
+includes("wallet runtime", walletRuntime, "storage: null");
+includes("wallet runtime", walletRuntime, "reconnectOnMount={false}");
+excludes("wallet runtime", walletRuntime, "coinbaseWallet");
 excludes("wallet runtime", walletRuntime, "window.ethereum");
 
 includes("dashboard", dashboard, "Official Base MCP wallet authority is blocked");

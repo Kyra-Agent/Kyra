@@ -14,7 +14,11 @@ const WalletRuntimeProviders = lazy(() =>
 export function WalletProviderBoundary({
   children,
 }: WalletProviderBoundaryProps) {
-  if (appConfig.integrations.walletExecution === "disabled") {
+  const connectionOnlyRuntimeEnabled =
+    isWalletConnectionEnabled(appConfig.integrations.walletConnection) &&
+    appConfig.integrations.walletExecution === "disabled";
+
+  if (!connectionOnlyRuntimeEnabled) {
     return <>{children}</>;
   }
 
@@ -23,4 +27,8 @@ export function WalletProviderBoundary({
       <WalletRuntimeProviders>{children}</WalletRuntimeProviders>
     </Suspense>
   );
+}
+
+function isWalletConnectionEnabled(value: string) {
+  return value === "owner_click_only";
 }

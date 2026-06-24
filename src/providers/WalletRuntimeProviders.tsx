@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { createConfig, http, WagmiProvider } from "wagmi";
 import { base } from "wagmi/chains";
-import { baseAccount, coinbaseWallet } from "wagmi/connectors";
+import { baseAccount } from "wagmi/connectors";
 import { appConfig } from "../config/appConfig";
 
 interface WalletRuntimeProvidersProps {
@@ -13,12 +13,8 @@ const queryClient = new QueryClient();
 
 const walletConfig = createConfig({
   chains: [base],
-  connectors: [
-    baseAccount(),
-    coinbaseWallet({
-      appName: appConfig.appName,
-    }),
-  ],
+  connectors: [baseAccount({ appName: appConfig.appName })],
+  storage: null,
   transports: {
     [base.id]: http(),
   },

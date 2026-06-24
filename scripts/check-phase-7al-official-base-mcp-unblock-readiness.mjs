@@ -115,7 +115,7 @@ for (
 for (
   const roadmapMarker of [
     "Status: blocked by currently verified provider metadata and scope ambiguity.",
-    "Phase 7D primary Base Account runtime may proceed through its own gates.",
+    "Phase 7D owner-initiated Base Account connection runtime is implemented",
     "This gate keeps official MCP OAuth, token storage, authenticated sessions",
   ]
 ) {

@@ -3007,6 +3007,98 @@ h2 {
   background: rgba(255, 255, 255, 0.035);
 }
 
+.base-account-connection {
+  display: grid;
+  gap: 0.72rem;
+  margin-bottom: 0.75rem;
+  padding: 0.82rem;
+  border: 1px solid rgba(77, 145, 255, 0.28);
+  border-radius: var(--radius);
+  background: rgba(77, 145, 255, 0.065);
+}
+
+.base-account-connection.connection-connected {
+  border-color: rgba(138, 230, 177, 0.34);
+  background: rgba(138, 230, 177, 0.065);
+}
+
+.base-account-connection.connection-error {
+  border-color: rgba(255, 111, 111, 0.32);
+  background: rgba(255, 111, 111, 0.06);
+}
+
+.base-account-connection-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.base-account-connection-header small,
+.base-account-connection-header strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.base-account-connection-header small,
+.base-account-connection > p,
+.base-account-actions small {
+  color: var(--muted);
+}
+
+.base-account-state {
+  padding: 0.28rem 0.42rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.base-account-binding-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.base-account-binding-grid span {
+  display: grid;
+  gap: 0.18rem;
+  min-height: 58px;
+  padding: 0.58rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.base-account-binding-grid strong {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.base-account-connection > p {
+  min-height: 2.8em;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.base-account-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding-top: 0.68rem;
+  border-top: 1px solid var(--line);
+}
+
+.base-account-actions .button {
+  flex: 0 0 auto;
+}
+
+.base-account-actions small {
+  line-height: 1.4;
+}
+
 .wallet-readiness-header {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -4733,6 +4825,28 @@ h2 {
   .execution-result-grid,
   .readiness-grid {
     grid-template-columns: 1fr;
+  }
+
+  .base-account-connection-header,
+  .base-account-binding-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .base-account-connection-header .queue-icon {
+    display: none;
+  }
+
+  .base-account-state {
+    width: fit-content;
+  }
+
+  .base-account-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .base-account-actions .button {
+    width: 100%;
   }
 
   .agent-overview-panel,

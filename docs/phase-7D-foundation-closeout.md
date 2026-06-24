@@ -5,6 +5,12 @@ Date: 2026-06-24
 Status: foundation clear. Base Account connection may proceed only through the
 independent primary-lane implementation gates.
 
+Implementation follow-up: the owner-click Base Account connection runtime is
+now implemented locally under `docs/phase-7D-base-account-connection-runtime.md`.
+It is not deployed, does not persist wallet state, and cannot sign or submit a
+transaction. This foundation packet remains the historical gate that preceded
+that implementation.
+
 ## Objective
 
 Close the safe Phase 7D foundation scope without opening Base Account

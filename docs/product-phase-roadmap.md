@@ -345,9 +345,11 @@ official Base MCP adapter and must not be numbered as a primary product phase.
 Current position:
 
 - Phase 7D foundation is clear.
-- Phase 7D primary Base Account runtime may proceed through its own gates.
+- Phase 7D owner-initiated Base Account connection runtime is implemented
+  locally and remains unpushed, undeployed, and non-transactional.
 - Phase 7E Base Account wallet-prompt and signing work may follow only after
-  the Phase 7D connection boundary is implemented and reviewed.
+  Phase 7D passes final build, UI, rollback, and controlled owner connection
+  review.
 - Phase 7C official Base MCP evidence remains blocked, but blocks only the
   optional official hosted adapter.
 
@@ -356,16 +358,15 @@ Before implementation resumes, keep the pre-Base MCP cleanup gate green:
 - `docs/phase-7-pre-base-mcp-cleanup-audit.md`
 - `npm run check:pre-base-mcp`
 
-The next primary work item is Phase 7D:
+The current primary work item is Phase 7D closeout:
 
-1. Implement one owner-initiated Base Account SDK connection from the private
-   dashboard.
-2. Bind the connection to the authenticated owner, workspace, and selected
-   deployed agent.
-3. Keep prepared-action writes, signing, and submission disabled until their
-   own reviewed gates are complete.
-4. Keep official MCP OAuth, token storage, sessions, tools, and provider
-   approval links disabled while Phase 7C is NO-GO.
+1. Verify the owner-initiated Base Account SDK connection from the private
+   dashboard without automatic prompts or reconnect.
+2. Verify exact owner/workspace/agent binding, disconnect, target drift, and
+   Base-chain-only behavior.
+3. Complete production build and responsive local UI review.
+4. Keep prepared-action writes, signing, submission, and all official MCP
+   authority disabled.
 
 Do not enable wallet signing or transaction submission merely because the
 connection path exists. Each later gate remains separate.
