@@ -421,6 +421,14 @@ packets cover the read-only status caller, controlled smoke preparation,
 provider qualification, and official-provider decisioning needed for later
 launch review.
 
+Working groups for the supporting packets:
+
+- Group 1: read-only caller and status surface
+- Group 2: controlled smoke preparation and provider qualification
+- Group 3: official-provider decisioning and offline go/no-go review
+- Group 4: owner authority and consent blueprints
+- Group 5: disabled route skeleton and auth-helper readiness
+
 ## Telegram Boundary After Phase 7
 
 Telegram remains unable to sign or submit.
