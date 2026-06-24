@@ -449,6 +449,25 @@ independent Base Account SDK lane, and it must not enable OAuth, token storage,
 MCP sessions, tool invocation, wallet prompts, signing, or transaction
 submission.
 
+Group 4 scope:
+
+- owner wallet-authority blueprint:
+  `docs/phase-7AQ-owner-wallet-authority-blueprint.md`
+- token lifecycle and revocation blueprint:
+  `docs/phase-7AR-token-lifecycle-and-revocation-blueprint.md`
+- official MCP token schema and RLS blueprint:
+  `docs/phase-7AS-official-mcp-token-schema-rls-blueprint.md`
+- owner consent and disconnect UX blueprint:
+  `docs/phase-7AT-owner-consent-and-disconnect-ux-blueprint.md`
+
+Group 4 keeps future wallet authority bound to one authenticated owner,
+workspace, deployed agent, Base Account, exact resource, exact scope, explicit
+consent packet, backend-only encrypted token reference, revocation path,
+disconnect path, emergency disablement path, and sanitized owner-only audit.
+It is blueprint-only: it must not add executable SQL, RLS changes, OAuth
+routes, token exchange, token storage, consent UI, wallet prompts, signing, or
+transaction submission without a separate owner-approved implementation gate.
+
 ## Telegram Boundary After Phase 7
 
 Telegram remains unable to sign or submit.
