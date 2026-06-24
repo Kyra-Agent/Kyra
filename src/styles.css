@@ -3099,6 +3099,83 @@ h2 {
   line-height: 1.4;
 }
 
+.wallet-signing-boundary {
+  display: grid;
+  gap: 0.72rem;
+  margin-bottom: 0.75rem;
+  padding: 0.82rem;
+  border: 1px solid rgba(248, 198, 111, 0.3);
+  border-radius: var(--radius);
+  background: rgba(248, 198, 111, 0.055);
+}
+
+.wallet-signing-boundary.is-ready {
+  border-color: rgba(138, 230, 177, 0.34);
+  background: rgba(138, 230, 177, 0.065);
+}
+
+.wallet-signing-boundary-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.wallet-signing-boundary-header small,
+.wallet-signing-boundary-header strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.wallet-signing-boundary-header small,
+.wallet-signing-boundary > p,
+.wallet-signing-boundary li {
+  color: var(--muted);
+}
+
+.wallet-signing-boundary-header > span:last-child {
+  padding: 0.28rem 0.42rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.wallet-signing-boundary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.wallet-signing-boundary-grid span {
+  display: grid;
+  gap: 0.18rem;
+  min-height: 58px;
+  padding: 0.58rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.wallet-signing-boundary-grid strong {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.wallet-signing-boundary > p,
+.wallet-signing-boundary ul {
+  margin: 0;
+}
+
+.wallet-signing-boundary ul {
+  display: grid;
+  gap: 0.24rem;
+  padding-left: 1rem;
+  line-height: 1.4;
+}
+
 .wallet-readiness-header {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -4828,15 +4905,19 @@ h2 {
   }
 
   .base-account-connection-header,
-  .base-account-binding-grid {
+  .base-account-binding-grid,
+  .wallet-signing-boundary-header,
+  .wallet-signing-boundary-grid {
     grid-template-columns: 1fr;
   }
 
-  .base-account-connection-header .queue-icon {
+  .base-account-connection-header .queue-icon,
+  .wallet-signing-boundary-header .queue-icon {
     display: none;
   }
 
-  .base-account-state {
+  .base-account-state,
+  .wallet-signing-boundary-header > span:last-child {
     width: fit-content;
   }
 

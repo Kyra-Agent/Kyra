@@ -15,7 +15,10 @@ execution, or transaction submission is enabled.
 Phase 7AK adds a transition gate that blocks official MCP OAuth, token storage,
 tool discovery, and provider approval links while Phase 7C remains no-go.
 Base Account connection is an independent primary lane; prepared actions,
-signing, and submission remain protected by their own gates.
+signing, and submission remain protected by their own gates. Phase 7D
+owner-click Base Account connection is live and non-transactional. Phase 7E
+prompt/signing eligibility is implemented as a fail-closed guard while runtime
+signing remains disabled.
 
 Phase status: security audit and custom read-only infrastructure proof are
 complete. Official Base MCP live execution is not complete.
@@ -138,6 +141,11 @@ and owner approval are complete:
 - User rejection must not create a transaction hash.
 - Network mismatch must fail safely before signing.
 - The connected wallet pays gas.
+- Phase 7E now includes the deterministic
+  `src/types/walletPromptEligibility.ts` guard and dashboard signing-boundary
+  evidence. The guard keeps prompts blocked while wallet execution,
+  prepared-action review, risk review, owner approval, and unsigned handoff
+  gates are incomplete.
 
 ### 7F - Telegram Execution Boundary Audit
 

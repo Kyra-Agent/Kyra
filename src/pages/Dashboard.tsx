@@ -19,7 +19,10 @@ import {
   X,
 } from "lucide-react";
 import { AuthSessionPanel } from "../components/AuthSessionPanel";
-import { BaseAccountConnectionPanel } from "../components/BaseAccountConnectionPanel";
+import {
+  BaseAccountConnectionPanel,
+  type BaseAccountConnectionStatus,
+} from "../components/BaseAccountConnectionPanel";
 import type { AgentTemplate } from "../types/agent";
 import { appConfig } from "../config/appConfig";
 import { demoAgentLimits } from "../config/demoLimits";
@@ -75,6 +78,10 @@ import type {
   DemoWalletReadiness,
   DemoWalletReadinessState,
 } from "../types/backend";
+import {
+  evaluateWalletPromptEligibility,
+  getWalletPromptBlockMessage,
+} from "../types/walletPromptEligibility";
 
 interface DashboardProps {
   selectedTemplate: AgentTemplate;
@@ -650,6 +657,12 @@ export function Dashboard({
   const [baseMcpPreparedSummary, setBaseMcpPreparedSummary] = useState<
     BaseMcpPreparedActionSummary | null
   >(null);
+  const [baseAccountConnectionStatus, setBaseAccountConnectionStatus] =
+    useState<BaseAccountConnectionStatus>({
+      connected: false,
+      chainId: null,
+      connectorId: null,
+    });
   const baseMcpRequestSequenceRef = useRef(0);
   const supabaseStatus = getSupabaseAdapterStatus();
 
@@ -961,6 +974,30 @@ export function Dashboard({
   const walletProviderStatus = dashboardData?.walletProviderStatus ??
     getWalletProviderStatusFallback();
   const walletReadinessTone = getWalletReadinessTone(walletReadiness.state);
+  const walletPromptEligibility = useMemo(
+    () =>
+      evaluateWalletPromptEligibility({
+        walletExecutionEnabled:
+          appConfig.integrations.walletExecution !== "disabled",
+        promptSource: "owner_dashboard_click",
+        ownerSignedIn: Boolean(authSession),
+        privateDashboard: true,
+        selectedAgent: Boolean(agentRecord),
+        baseAccountConnected: baseAccountConnectionStatus.connected,
+        chainId: baseAccountConnectionStatus.chainId,
+        preparedActionReviewed: false,
+        riskReviewReady: false,
+        ownerApprovalRecorded: false,
+        handoffValid: false,
+        handoffExpired: false,
+      }),
+    [
+      agentRecord,
+      authSession,
+      baseAccountConnectionStatus.chainId,
+      baseAccountConnectionStatus.connected,
+    ],
+  );
   const preparedActionPreview = baseMcpPreparedSummary
     ? createBaseMcpPreparedActionPreview(baseMcpPreparedSummary)
     : dashboardData?.preparedActionPreview ??
@@ -1776,8 +1813,61 @@ export function Dashboard({
               workspaceId={agentRecord?.workspaceId ?? null}
               agentId={agentRecord?.id ?? null}
               agentName={agentRecord?.displayName ?? null}
+              onConnectionStateChange={setBaseAccountConnectionStatus}
               onSessionChange={onAuthSessionChange}
             />
+            <div
+              className={`wallet-signing-boundary ${
+                walletPromptEligibility.eligible ? "is-ready" : "is-blocked"
+              }`}
+            >
+              <div className="wallet-signing-boundary-header">
+                <span className="queue-icon">
+                  <ShieldCheck size={16} />
+                </span>
+                <div>
+                  <small>Phase 7E signing boundary</small>
+                  <strong>
+                    {walletPromptEligibility.eligible
+                      ? "Prompt eligible"
+                      : "Prompt locked"}
+                  </strong>
+                </div>
+                <span>
+                  {appConfig.integrations.walletExecution === "disabled"
+                    ? "execution disabled"
+                    : "review required"}
+                </span>
+              </div>
+              <p>{walletPromptEligibility.message}</p>
+              <div className="wallet-signing-boundary-grid">
+                <span>
+                  Source
+                  <strong>Owner dashboard click</strong>
+                </span>
+                <span>
+                  Connection
+                  <strong>
+                    {baseAccountConnectionStatus.connected
+                      ? "Base Account ready"
+                      : "Required"}
+                  </strong>
+                </span>
+                <span>
+                  Prepared action
+                  <strong>Reviewed only</strong>
+                </span>
+                <span>
+                  Telegram
+                  <strong>Blocked</strong>
+                </span>
+              </div>
+              <ul>
+                {walletPromptEligibility.reasons.slice(0, 4).map((reason) => (
+                  <li key={reason}>{getWalletPromptBlockMessage(reason)}</li>
+                ))}
+              </ul>
+            </div>
             <div
               className={`wallet-readiness-card readiness-${walletReadinessTone}`}
             >

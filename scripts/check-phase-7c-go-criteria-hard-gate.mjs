@@ -84,8 +84,8 @@ for (
   excludes("Phase 7C hard gate", doc, forbidden);
 }
 
-includes("roadmap", roadmap, "Phase 7D foundation is clear.");
-includes("roadmap", roadmap, "Phase 7D owner-initiated Base Account connection runtime is implemented");
+includes("roadmap", roadmap, "Status: complete and live for owner-initiated Base Account connection.");
+includes("roadmap", roadmap, "Phase 7E wallet prompt/signing boundary is implemented");
 includes("roadmap", roadmap, "This restriction does not freeze the independent Base Account SDK primary");
 includes("official audit", audit, "No-go for the official hosted Base MCP adapter implementation.");
 includes("readiness", readiness, "Any missing required evidence keeps the result blocked.");

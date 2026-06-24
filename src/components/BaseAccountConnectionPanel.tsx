@@ -31,11 +31,18 @@ interface BaseAccountConnectionPanelProps {
   workspaceId: string | null;
   agentId: string | null;
   agentName: string | null;
+  onConnectionStateChange?: (state: BaseAccountConnectionStatus) => void;
   onSessionChange: (
     session: KyraAuthSession | null,
     status: KyraAuthStatus,
     message: string,
   ) => void;
+}
+
+export interface BaseAccountConnectionStatus {
+  connected: boolean;
+  chainId: number | null;
+  connectorId: string | null;
 }
 
 type ConnectionUiState =
@@ -51,6 +58,7 @@ export function BaseAccountConnectionPanel({
   workspaceId,
   agentId,
   agentName,
+  onConnectionStateChange,
   onSessionChange,
 }: BaseAccountConnectionPanelProps) {
   const connection = useConnection();
@@ -88,6 +96,14 @@ export function BaseAccountConnectionPanel({
       !connectMutation.isPending &&
       !disconnectMutation.isPending,
   );
+
+  useEffect(() => {
+    onConnectionStateChange?.({
+      connected: Boolean(binding),
+      chainId: binding?.chainId ?? null,
+      connectorId: binding?.connectorId ?? null,
+    });
+  }, [binding, onConnectionStateChange]);
 
   useEffect(() => {
     requestSequenceRef.current += 1;

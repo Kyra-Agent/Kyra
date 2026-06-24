@@ -2,7 +2,8 @@
 
 Date: 2026-06-24
 
-Status: local runtime implementation complete. Not deployed and not live.
+Status: production connection clear. Owner-click Base Account connection is
+deployed and owner-smoked. Signing and transaction execution remain disabled.
 
 ## Scope
 
@@ -57,14 +58,18 @@ stores no private key, seed phrase, wallet credential, or signing material.
 - `npm run check:phase-7`
 - `npm run build`
 
-Local verification result:
+Verification result:
 
 - full Phase 7 suite passed
 - production TypeScript and Vite build passed
 - signed-out desktop and 390 px mobile dashboard review passed
 - no page-load wallet dialog or console error was observed
 - no wallet-related browser storage key was created
-- controlled authenticated-owner connection smoke remains pending
+- controlled authenticated-owner connection smoke passed
+- Netlify production deploy for `7f96f16` is ready
+- Netlify secret scan reported no matches
+- production dashboard returned `200 OK`
+- Supabase linked project and remote Edge Functions remained active
 
 ## Done Criteria
 

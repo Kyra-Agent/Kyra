@@ -26,7 +26,7 @@ const packageJson = read("package.json");
 
 for (
   const expected of [
-    "Status: local runtime implementation complete. Not deployed and not live.",
+    "Status: production connection clear.",
     "authenticated owner + workspace + selected deployed agent + Base Account",
     "Only an explicit owner click can call `connectAsync`.",
     "The returned chain must be exactly Base chain ID `8453`.",
@@ -34,6 +34,8 @@ for (
     "wallet signing",
     "transaction submission",
     "official hosted MCP OAuth, tokens, sessions, tools, or approval links",
+    "controlled authenticated-owner connection smoke passed",
+    "Netlify production deploy for `7f96f16` is ready",
   ]
 ) {
   includes("Phase 7D runtime doc", doc, expected);

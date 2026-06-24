@@ -53,10 +53,12 @@ const appConfig = read("src/config/appConfig.ts");
 const app = read("src/App.tsx");
 const walletModal = read("src/components/WalletApprovalModal.tsx");
 const walletSigning = read("src/types/walletSigning.ts");
+const walletPromptEligibility = read("src/types/walletPromptEligibility.ts");
 const unsignedHandoff = read("src/types/unsignedTransactionHandoff.ts");
 const riskReview = read("src/types/riskReview.ts");
 const walletBoundary = read("src/providers/WalletProviderBoundary.tsx");
 const walletRuntime = read("src/providers/WalletRuntimeProviders.tsx");
+const dashboard = read("src/pages/Dashboard.tsx");
 const dashboardService = read("src/services/supabaseDashboardService.ts");
 const publicAgent = read("src/pages/PublicAgent.tsx");
 const telegramRuntimeFiles = walkFiles("supabase/functions/telegram-webhook")
@@ -110,6 +112,7 @@ assertIncludes(
 assertIncludes("Phase 7 audit", phase7Audit, "`npm run check:phase-7e`");
 assertIncludes("package.json", packageJson, '"check:phase-7e"');
 assertIncludes("package.json", packageJson, "npm run check:phase-7e");
+assertIncludes("package.json", packageJson, "test:wallet-prompt-eligibility");
 
 assertIncludes("appConfig", appConfig, 'walletExecution: "disabled"');
 assertNotIncludes("appConfig", appConfig, "VITE_KYRA_ENABLE_WALLET");
@@ -204,6 +207,33 @@ assertIncludes(
 );
 
 for (
+  const promptEligibilityBoundary of [
+    "WalletPromptEligibilityInput",
+    "WalletPromptSource",
+    "owner_dashboard_click",
+    "wallet_execution_disabled",
+    "forbidden_prompt_source",
+    "base_account_connection_required",
+    "preparedActionReviewed",
+    "riskReviewReady",
+    "ownerApprovalRecorded",
+    "handoffValid",
+    "handoffExpired",
+    "evaluateWalletPromptEligibility",
+    "getWalletPromptBlockMessage",
+    "isForbiddenWalletPromptSource",
+    "input.promptSource !== allowedPromptSource",
+    "input.chainId !== baseChainId",
+  ]
+) {
+  assertIncludes(
+    "wallet prompt eligibility",
+    walletPromptEligibility,
+    promptEligibilityBoundary,
+  );
+}
+
+for (
   const handoffBoundary of [
     'walletSignableActionKinds = ["base_reviewed_transaction"] as const',
     'String(handoff.actionKind) === "base_mcp_status_check"',
@@ -251,6 +281,28 @@ assertNotIncludes("App", app, 'event: "confirm"');
 assertNotIncludes("App", app, "sendTransaction");
 assertNotIncludes("App", app, "writeContract");
 assertNotIncludes("App", app, "signMessage");
+
+for (
+  const dashboardBoundary of [
+    "evaluateWalletPromptEligibility",
+    "getWalletPromptBlockMessage",
+    "walletExecutionEnabled",
+    "promptSource: \"owner_dashboard_click\"",
+    "preparedActionReviewed: false",
+    "riskReviewReady: false",
+    "ownerApprovalRecorded: false",
+    "handoffValid: false",
+    "Phase 7E signing boundary",
+    "Prompt locked",
+    "Telegram",
+    "Blocked",
+  ]
+) {
+  assertIncludes("Dashboard", dashboard, dashboardBoundary);
+}
+assertNotIncludes("Dashboard", dashboard, "useSignMessage");
+assertNotIncludes("Dashboard", dashboard, "sendTransaction");
+assertNotIncludes("Dashboard", dashboard, "writeContract");
 
 assertNotIncludes("dashboard service", dashboardService, "prepared_tx");
 assertNotIncludes("dashboard service", dashboardService, "tx_hash");

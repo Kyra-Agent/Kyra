@@ -203,8 +203,8 @@ Boundary:
 
 ### 7D - Base Account Connection Per Deployed Agent
 
-Status: foundation clear; primary Base Account runtime may proceed through its
-own reviewed gates. It does not depend on Phase 7C changing to GO.
+Status: complete and live for owner-initiated Base Account connection. This
+does not enable signing or transaction execution.
 
 Required binding:
 
@@ -214,18 +214,21 @@ owner + workspace + agent instance + Base Account + exact consent
 
 Current implementation note:
 
-- local owner-auth and ownership helpers now exist for future route layers
-- helper tests cover bearer parsing, canonical owner IDs, exact
-  owner/workspace/agent binding, fixed 404 anti-enumeration, and sanitized 500
-- helpers remain pure dependency-injected modules with no environment reads,
-  Supabase client construction, provider contact, token handling, wallet
-  prompts, signing, transaction submission, route imports, frontend wiring, or
-  Telegram wiring
-- Base Account connection remains not implemented
+- local owner-auth and ownership helpers exist for route-layer binding
+- owner-click Base Account connection is implemented in the private dashboard
+- Base Account is the only enabled connector
+- connection is browser-session-only with `storage: null` and no auto reconnect
+- connection binds owner, workspace, selected deployed agent, connector, Base
+  chain, and address in React memory
+- target drift and wallet drift disconnect and fail closed
+- the owner smoke verified Base Account consent and disconnect without
+  transaction signing
 - official MCP OAuth runtime, token storage, and sessions remain separately
   blocked and not implemented
 - foundation closeout is recorded in
   `docs/phase-7D-foundation-closeout.md`
+- connection closeout is recorded in
+  `docs/phase-7D-base-account-connection-runtime.md`
 
 Only the authenticated owner may initiate connection from the private
 dashboard. Telegram, public profiles, LLM output, page load, and background
@@ -233,7 +236,8 @@ jobs cannot initiate it.
 
 ### 7E - Wallet Prompt And Signing Security
 
-Status: architecture modeled; runtime not implemented.
+Status: complete as a signing security boundary. Runtime signing and
+transaction submission remain disabled.
 
 Required:
 
@@ -242,9 +246,17 @@ Required:
 - reviewed prepared action before signing
 - rejection, network mismatch, expiry, cancellation, and replay-safe behavior
 - no Telegram, public page, page-load, background, or LLM-triggered prompt
+- deterministic prompt eligibility guard
+- dashboard evidence for why signing is locked
 
 Official MCP OAuth and token security remain a separate optional-provider gate
 under Phase 7C and its dedicated security packets.
+
+Phase 7E closeout:
+
+- `src/types/walletPromptEligibility.ts`
+- `docs/phase-7E-wallet-prompt-signing-audit.md`
+- `npm run check:phase-7e`
 
 ### 7F - Prepared-Action Adapter Allowlist
 
@@ -344,12 +356,12 @@ official Base MCP adapter and must not be numbered as a primary product phase.
 
 Current position:
 
-- Phase 7D foundation is clear.
-- Phase 7D owner-initiated Base Account connection runtime is implemented
-  locally and remains unpushed, undeployed, and non-transactional.
-- Phase 7E Base Account wallet-prompt and signing work may follow only after
-  Phase 7D passes final build, UI, rollback, and controlled owner connection
-  review.
+- Phase 7D owner-initiated Base Account connection is pushed, deployed, and
+  owner-smoked as a non-transactional connection.
+- Phase 7E wallet prompt/signing boundary is implemented as a deterministic
+  fail-closed guard and dashboard evidence surface.
+- Wallet signing, token approval, swaps, transfers, contract calls, transaction
+  submission, and transaction hash persistence remain disabled.
 - Phase 7C official Base MCP evidence remains blocked, but blocks only the
   optional official hosted adapter.
 
@@ -358,15 +370,14 @@ Before implementation resumes, keep the pre-Base MCP cleanup gate green:
 - `docs/phase-7-pre-base-mcp-cleanup-audit.md`
 - `npm run check:pre-base-mcp`
 
-The current primary work item is Phase 7D closeout:
+The current primary work item is Phase 7F:
 
-1. Verify the owner-initiated Base Account SDK connection from the private
-   dashboard without automatic prompts or reconnect.
-2. Verify exact owner/workspace/agent binding, disconnect, target drift, and
-   Base-chain-only behavior.
-3. Complete production build and responsive local UI review.
-4. Keep prepared-action writes, signing, submission, and all official MCP
-   authority disabled.
+1. Define the first prepared-action adapter allowlist.
+2. Bind exact signable action schemas to deterministic policy and NYX-05.
+3. Keep LLM, provider output, Telegram text, and public pages as untrusted
+   inputs.
+4. Keep signing, submission, and all official MCP authority disabled until the
+   later approval and execution gates.
 
 Do not enable wallet signing or transaction submission merely because the
 connection path exists. Each later gate remains separate.

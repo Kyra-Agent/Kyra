@@ -115,7 +115,8 @@ for (
 for (
   const roadmapMarker of [
     "Status: blocked by currently verified provider metadata and scope ambiguity.",
-    "Phase 7D owner-initiated Base Account connection runtime is implemented",
+    "Status: complete and live for owner-initiated Base Account connection.",
+    "Phase 7E wallet prompt/signing boundary is implemented",
     "This gate keeps official MCP OAuth, token storage, authenticated sessions",
   ]
 ) {

@@ -37,9 +37,9 @@ for (
     "this NO-GO applies only to the official hosted `mcp.base.org` adapter",
     "CDP Node or another RPC provider may later support",
     "It is not required for the primary Base Account product flow",
-    "Phase 7D foundation is clear.",
-    "Phase 7D owner-initiated Base Account connection runtime is implemented",
-    "The current primary work item is Phase 7D closeout:",
+    "Status: complete and live for owner-initiated Base Account connection.",
+    "Phase 7E wallet prompt/signing boundary is implemented",
+    "The current primary work item is Phase 7F:",
     "This restriction does not freeze the independent Base Account SDK primary",
   ]
 ) {
@@ -63,6 +63,8 @@ for (
     "Phase 7C: monitor official Base MCP provider contract until a verified",
     "independent from the official MCP NO-GO.",
     "Coinbase CDP Node or another standalone RPC provider is optional infrastructure",
+    "Phase 7D owner-click Base Account connection is live",
+    "Phase 7E wallet prompt/signing boundary is implemented",
   ]
 ) {
   includes("private context roadmap", privateContext, expected);
