@@ -11,9 +11,9 @@
 
 <p align="center">
   <a href="https://kyraagent.xyz">Website</a>
-  ·
+  &middot;
   <a href="https://x.com/Kyra_Agent">X</a>
-  ·
+  &middot;
   <a href="https://github.com/Kyra-Agent/Kyra">GitHub</a>
 </p>
 
@@ -38,8 +38,8 @@ approval.
 | Public profiles      | Shareable agent identity and capability pages          |
 | Telegram             | Live read-only commands and natural planning chat      |
 | LLM layer            | Backend-only enrichment for eligible read-only replies |
-| Wallet/Base layer    | Phase 6 hardened foundation, execution still gated     |
-| Base MCP             | Read-only status bridge live; runtime gate default-off   |
+| Wallet/Base layer    | Hardened foundation, execution still gated             |
+| Base MCP             | Read-only status bridge live; runtime gate default-off |
 | Onchain transactions | Not live in the current demo                           |
 
 ## What Is Live
@@ -154,62 +154,73 @@ Current boundaries:
 Future execution should remain wallet-approved: Kyra can prepare an action, but
 the user's wallet must remain the final approval gate.
 
-## Phase 6 Status
+## Execution Readiness
 
-Phase 6 focused on the execution foundation without turning execution on:
+Kyra has a hardened execution foundation, but live onchain execution is still
+off. The current product can model wallet readiness, risk review, approval
+states, prepared-action boundaries, signing handoff states, and sanitized
+results without moving funds.
 
-1. Wallet connection model.
-2. Approval policy and signing boundary.
-3. Base MCP preparation boundary.
-4. Prepared transaction review.
-5. User wallet signing handoff model.
-6. Onchain execution result states.
-7. Telegram execution refusal and future gate design.
+Phase 7 starts with pre-execution security audits before wallet prompts,
+prepared-action writes, signing, or submission can be considered.
 
-Phase 6 is foundation-complete, not execution-live.
+The intended execution path remains deliberately narrow:
 
-## Phase 7 Product Target
+1. The owner signs in to Kyra.
+2. The owner selects one deployed agent.
+3. The owner connects their own Base Account.
+4. Kyra prepares one allowlisted action through a bounded adapter.
+5. NYX-05 and deterministic policy produce a risk review.
+6. The owner approves in Kyra.
+7. The owner approves again in Base Account.
+8. The user's Base Account submits.
+9. Kyra records a sanitized owner-only result.
 
-Phase 7 is complete only when one selected deployed agent can:
+Nothing in the current demo skips the owner, wallet, approval, or audit gates.
 
-1. Connect the owner's Base Account.
-2. Prepare one allowlisted action through Kyra's bounded adapter.
-3. Bind it to the owner, workspace, and selected agent.
-4. Pass risk and permission review.
-5. Receive explicit Kyra owner approval.
-6. Receive explicit Base Account approval.
-7. Submit from the user's Base Account.
-8. Record a sanitized confirmed or failed result.
+## Base MCP Boundary
 
-The existing custom read-only status bridge is a completed security and
-infrastructure proof. It is not a transaction adapter and does not complete
-Phase 7.
+Kyra supports a read-only Base status bridge for dashboard readiness checks. It
+does not execute transactions.
 
-Phase 7 starts with pre-execution security audits before any production wallet
-prompt, prepared-action write, transaction signing, or transaction submission is
-enabled. The first execution path uses Kyra's canonical prepared-action
-contract and Base Account SDK so the user's browser wallet remains the signing
-boundary. The official OAuth Base MCP path remains disabled because its
-agent-wallet scopes require separately approved consent, encrypted token
-storage, tool allowlisting, and wallet-authority controls. Its current standard
-Protected Resource Metadata paths are unavailable, so Kyra will not hardcode
-discovery or launch authorization. Current advertised scopes are also rejected:
-transaction authority is not tool-bounded and escalation is undefined. The
-public provider contract is monitored locally for semantic drift with a manual
-response runbook, but changes never enable OAuth automatically. Official hosted
-Base MCP is an optional future adapter and does not block the Base Account SDK
-primary path. The custom bridge smoke remains blocked until a compatible provider and reviewed database
-rate-limit contract are approved; the custom smoke now has an explicit
-go/no-go packet, target Supabase verifier readiness checklist, and provider
-candidate dossier plus redacted smoke approval packet requirement. The final
-pre-smoke decision matrix remains blocked until every provider, SQL, rollback,
-approval, and gate-off condition is satisfied. The pre-provider audit keeps
-provider selection and smoke blocked until the provider candidate intake gate,
-provider candidate scoring worksheet, candidate dossier fill gate,
-SQL/verifier final approval packet, controlled smoke closeout runbook, provider evidence fill review,
-provider candidate submission template, target SQL approval prep, final smoke authorization packet,
-and provider selection sandbox scorecard are completed without rejection rules. See
-`docs/phase-7-pre-execution-audit.md`.
+Official hosted Base MCP remains a future optional adapter. It is not required
+for Kyra's primary Base Account SDK path, and it stays disabled until provider
+metadata, resource/audience, scope semantics, scope-to-tool mapping, consent,
+token lifecycle, revocation, and owner approval are all verified.
+
+The custom bridge smoke remains blocked until a compatible provider and reviewed
+database rate-limit contract are approved. Readiness work is tracked through the
+following audited packets:
+
+- provider candidate intake gate
+- provider candidate scoring worksheet
+- candidate dossier fill gate
+- SQL/verifier final approval packet
+- controlled smoke closeout runbook
+- provider evidence fill review
+- provider candidate submission template
+- target SQL approval prep
+- final smoke authorization packet
+- provider selection sandbox
+- pre-provider audit
+
+## Supporting Readiness Complete
+
+The public-facing product roadmap ends at Phase 7J. Later materials are grouped
+as supporting readiness packets, not extra product phases:
+
+| Group | Scope |
+| ----- | ----- |
+| 1 | Read-only caller and status surface |
+| 2 | Controlled smoke preparation and provider qualification |
+| 3 | Official-provider decisioning and offline go/no-go review |
+| 4 | Owner authority and consent blueprints |
+| 5 | Disabled route skeleton and auth-helper readiness |
+
+The detailed audit source remains
+[`docs/product-phase-roadmap.md`](docs/product-phase-roadmap.md). The compact
+closeout is maintained in
+[`docs/supporting-readiness-closeout.md`](docs/supporting-readiness-closeout.md).
 
 ## Product Principles
 

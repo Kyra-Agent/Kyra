@@ -429,6 +429,10 @@ Working groups for the supporting packets:
 - Group 4: owner authority and consent blueprints
 - Group 5: disabled route skeleton and auth-helper readiness
 
+Compact closeout:
+
+- `docs/supporting-readiness-closeout.md`
+
 Group 3 scope:
 
 - protocol split decision: `docs/phase-7N-official-base-mcp-protocol-decision.md`

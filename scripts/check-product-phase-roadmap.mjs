@@ -18,6 +18,10 @@ const providerSeparation = readFileSync(
   "docs/phase-7-provider-separation-decision.md",
   "utf8",
 );
+const readinessCloseout = readFileSync(
+  "docs/supporting-readiness-closeout.md",
+  "utf8",
+);
 
 for (
   const expected of [
@@ -51,6 +55,7 @@ for (
     "Group 3: official-provider decisioning and offline go/no-go review",
     "Group 4: owner authority and consent blueprints",
     "Group 5: disabled route skeleton and auth-helper readiness",
+    "docs/supporting-readiness-closeout.md",
     "docs/phase-7N-official-base-mcp-protocol-decision.md",
     "docs/phase-7O-official-mcp-oauth-threat-model.md",
     "docs/phase-7P-official-mcp-oauth-client-architecture.md",
@@ -87,6 +92,23 @@ for (const source of [readme, phase5, phase6, phase7]) {
     source,
     "docs/product-phase-roadmap.md",
   );
+}
+
+includes(
+  "README closeout reference",
+  readme,
+  "docs/supporting-readiness-closeout.md",
+);
+
+for (
+  const expected of [
+    "# Supporting Readiness Closeout",
+    "The groups are not additional product phases.",
+    "User wallet authority and user Telegram bot-token privacy remain the top",
+    "owner-only execution candidate selection",
+  ]
+) {
+  includes("supporting readiness closeout", readinessCloseout, expected);
 }
 
 for (
