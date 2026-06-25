@@ -535,6 +535,9 @@ Current position:
   owner-only sanitized result model with dashboard evidence.
 - Phase 7J controlled live transaction gate is implemented as a local
   owner-only go/no-go model with dashboard evidence.
+- Controlled execution launch packet: `docs/controlled-execution-launch-packet.md`
+  binds the completed gate into one owner-only launch decision surface.
+  It does not enable wallet prompt, signing, submission, or official MCP tools.
 - Supporting readiness packets exist for the read-only caller, controlled
   smoke preparation, provider qualification, and official-provider decision.
 - Wallet signing, token approval, swaps, transfers, contract calls, transaction

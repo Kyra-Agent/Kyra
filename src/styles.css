@@ -3457,6 +3457,66 @@ h2 {
   line-height: 1.45;
 }
 
+.execution-launch-panel {
+  display: grid;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
+  padding: 0.76rem;
+  border: 1px solid rgba(94, 162, 255, 0.28);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(94, 162, 255, 0.09), transparent 64%),
+    rgba(94, 162, 255, 0.035);
+}
+
+.execution-launch-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.execution-launch-header span,
+.execution-launch-panel small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.execution-launch-header strong {
+  color: var(--text);
+  font-size: 0.86rem;
+  text-align: right;
+}
+
+.execution-launch-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.execution-launch-grid span {
+  display: grid;
+  gap: 0.16rem;
+  min-height: 52px;
+  padding: 0.52rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.execution-launch-grid strong {
+  color: var(--text);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.execution-launch-panel p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .result-monitoring-panel {
   display: grid;
   gap: 0.65rem;
@@ -5163,6 +5223,7 @@ h2 {
   .prepared-action-allowlist-grid,
   .prepared-action-policy-grid,
   .controlled-live-gate-grid,
+  .execution-launch-grid,
   .dual-approval-steps,
   .result-monitoring-grid,
   .execution-result-grid,
@@ -5172,6 +5233,7 @@ h2 {
 
   .prepared-action-policy-header,
   .controlled-live-gate-header,
+  .execution-launch-header,
   .dual-approval-header,
   .result-monitoring-header {
     align-items: flex-start;

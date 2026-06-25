@@ -70,6 +70,7 @@ import { evaluatePreparedActionPolicy } from "../types/preparedActionPolicy";
 import { evaluateDualApprovalExecution } from "../types/dualApprovalExecution";
 import { evaluateResultMonitoringCloseout } from "../types/resultMonitoringCloseout";
 import { evaluateControlledLiveTransactionGate } from "../types/controlledLiveTransactionGate";
+import { evaluateExecutionLaunchReadiness } from "../types/executionLaunchReadiness";
 import { baseChainId } from "../types/unsignedTransactionHandoff";
 import type { DataProvider } from "../types/api";
 import type {
@@ -1130,6 +1131,35 @@ export function Dashboard({
     dualApprovalReview,
     resultMonitoringCloseout,
   ]);
+  const executionLaunchReadiness = useMemo(
+    () =>
+      evaluateExecutionLaunchReadiness({
+        ownerSignedIn: Boolean(authSession),
+        selectedAgent: Boolean(agentRecord),
+        baseAccountConnected: baseAccountConnectionStatus.connected,
+        controlledGate: controlledLiveTransactionGate,
+        officialMcpAdapter: "no-go",
+        telegramExecutionDisabled: true,
+        publicExecutionHidden: true,
+        walletExecutionRuntime: "disabled",
+        walletSigningRuntime: "disabled",
+        transactionSubmissionRuntime: "disabled",
+        productionDeployHealthy: deployFunctionStatus !== "error",
+        supabaseHealthy: dashboardStatus !== "error",
+        rollbackReady: true,
+        emergencyDisableReady: true,
+        postTransactionAuditReady: true,
+        ownerLaunchDecision: "not_requested",
+      }),
+    [
+      agentRecord,
+      authSession,
+      baseAccountConnectionStatus.connected,
+      controlledLiveTransactionGate,
+      dashboardStatus,
+      deployFunctionStatus,
+    ],
+  );
   const backendTables = dashboardData?.backendTables ?? [];
   const hasPublicRoute = Boolean(agentRecord?.publicPath);
   const latestDeployEvent = getLatestEvent(backendEvents, "deploy");
@@ -2588,6 +2618,60 @@ export function Dashboard({
                     Gate is ready for explicit live-window approval only. Phase
                     7J still keeps wallet prompt, signing, and submission
                     locked.
+                  </small>
+                )}
+            </div>
+            <div className="execution-launch-panel">
+              <div className="execution-launch-header">
+                <span>Execution launch packet</span>
+                <strong>{executionLaunchReadiness.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="execution-launch-grid">
+                <span>
+                  Primary lane
+                  <strong>
+                    {executionLaunchReadiness.baseAccountPrimaryLane
+                      ? "Base Account"
+                      : "blocked"}
+                  </strong>
+                </span>
+                <span>
+                  Official MCP
+                  <strong>
+                    {executionLaunchReadiness.officialMcpRequired
+                      ? "required"
+                      : "optional disabled"}
+                  </strong>
+                </span>
+                <span>
+                  Wallet prompt
+                  <strong>
+                    {executionLaunchReadiness.walletPromptAllowed
+                      ? "allowed"
+                      : "disabled"}
+                  </strong>
+                </span>
+                <span>
+                  Submission
+                  <strong>
+                    {executionLaunchReadiness.transactionSubmissionAllowed
+                      ? "allowed"
+                      : "disabled"}
+                  </strong>
+                </span>
+              </div>
+              <p>{executionLaunchReadiness.message}</p>
+              {executionLaunchReadiness.reasons.length
+                ? (
+                  <small>
+                    Blocked by: {executionLaunchReadiness.reasons.join(", ")}
+                  </small>
+                )
+                : (
+                  <small>
+                    Owner review can be prepared. Runtime wallet prompt,
+                    signing, and submission still require a separate enablement
+                    window.
                   </small>
                 )}
             </div>
