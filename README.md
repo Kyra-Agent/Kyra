@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img alt="Phase 7" src="https://img.shields.io/badge/Phase%207-Read--Only%20Base%20MCP%20Wiring-111827?style=for-the-badge" />
+  <img alt="Roadmap" src="https://img.shields.io/badge/Roadmap-Phase%207%20Complete%20%7C%20Phase%208%20Next-111827?style=for-the-badge" />
   <img alt="Base" src="https://img.shields.io/badge/Base-Native-0052FF?style=for-the-badge" />
   <img alt="Safety" src="https://img.shields.io/badge/Execution-Approval%20First-16A34A?style=for-the-badge" />
 </p>
@@ -38,7 +38,7 @@ approval.
 | Public profiles      | Shareable agent identity and capability pages          |
 | Telegram             | Live read-only commands and natural planning chat      |
 | LLM layer            | Backend-only enrichment for eligible read-only replies |
-| Wallet/Base layer    | Hardened foundation, execution still gated             |
+| Wallet/Base layer    | Base Account readiness complete, execution still gated |
 | Base MCP             | Read-only status bridge live; runtime gate default-off |
 | Onchain transactions | Not live in the current demo                           |
 
@@ -54,6 +54,17 @@ Phase 6 is complete as a hardened foundation: wallet readiness, approval
 policy, prepared-action review, risk review, signing handoff states, execution
 result states, and Telegram execution refusal are modeled without enabling live
 wallet prompts or onchain execution.
+
+Current canonical roadmap status:
+
+| Phase | Status |
+| ----- | ------ |
+| 1-5 | Product, backend, security, deployment, Telegram, and LLM read-only foundations complete |
+| 6 | Wallet and approval foundation complete |
+| 7 | Base Account + execution readiness complete; not live execution |
+| 8 | Next: controlled live transaction |
+| 9 | Pending: public execution hardening |
+| 10 | Pending: product release readiness |
 
 Kyra can currently:
 
@@ -161,8 +172,15 @@ off. The current product can model wallet readiness, risk review, approval
 states, prepared-action boundaries, signing handoff states, and sanitized
 results without moving funds.
 
-Phase 7 starts with pre-execution security audits before wallet prompts,
-prepared-action writes, signing, or submission can be considered.
+Phase 7 is complete as Base Account + execution readiness. It includes the
+owner-click Base Account connection, prompt locks, prepared-action allowlist,
+policy gates, dual approval modeling, result closeout modeling, and the
+production smoke freeze checkpoint.
+
+Phase 8 is the next phase: one controlled live transaction with one owner, one
+deployed agent, one low-risk prepared action, explicit Kyra approval, explicit
+Base Account approval, real submission, rollback readiness, and owner-only
+result recording.
 
 The intended execution path remains deliberately narrow:
 
@@ -204,10 +222,10 @@ following audited packets:
 - provider selection sandbox
 - pre-provider audit
 
-## Supporting Readiness Complete
+## Supporting Readiness
 
-The public-facing product roadmap ends at Phase 7J. Later materials are grouped
-as supporting readiness packets, not extra product phases:
+Older Phase 7A-Z documents are supporting evidence packets under Phase 7. They
+are not extra public product phases and do not replace the 10-phase roadmap:
 
 | Group | Scope |
 | ----- | ----- |

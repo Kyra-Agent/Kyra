@@ -7,6 +7,10 @@ Status: frozen after owner production smoke.
 This checkpoint records the current public-production state after the owner
 verified the existing deployed-agent flow.
 
+Canonical roadmap position: this freezes Phase 7 as complete readiness. It
+does not authorize live execution. Phase 8 is the next phase and must be a
+separate controlled live transaction window.
+
 ## Smoke Result
 
 Owner production smoke passed with an existing deployed agent.
@@ -59,8 +63,8 @@ The following remain locked:
 
 ## Next Work After Freeze
 
-Any later execution work must start from a separate owner-approved enablement
-window and must preserve:
+Any later execution work belongs to Phase 8 and must start from a separate
+owner-approved enablement window. It must preserve:
 
 - one authenticated owner
 - one selected existing deployed agent

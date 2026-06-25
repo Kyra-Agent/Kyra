@@ -140,7 +140,12 @@ assertIncludes(
 assertIncludes(
   "README",
   readme,
-  "Phase 7 starts with pre-execution security audits",
+  "Phase 7 is complete as Base Account + execution readiness.",
+);
+assertIncludes(
+  "README",
+  readme,
+  "Phase 8 is the next phase",
 );
 assertIncludes(
   "Dashboard",

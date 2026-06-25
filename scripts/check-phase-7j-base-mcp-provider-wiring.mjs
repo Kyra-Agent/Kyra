@@ -201,7 +201,7 @@ for (
     "### 7J - Controlled Live Transaction",
     "Status: complete as a local controlled-live gate definition.",
     "Phase 7J controlled live transaction gate is implemented",
-    "The product roadmap ends at Phase 7J.",
+    "Phase 8 is the next phase",
   ]
 ) {
   assertIncludes("roadmap", roadmap, required);

@@ -2,12 +2,13 @@
 
 Date: 2026-06-25
 
-Status: implemented as an owner-only readiness packet. This is not a new product phase and does not enable live execution.
+Status: implemented as an owner-only readiness packet. It sits under Phase 7.
+This is not a new product phase and does not enable live execution.
 
 ## Purpose
 
-This packet is the bridge between the completed Phase 7J controlled-live gate
-and any later owner-approved execution window.
+This packet is the bridge between completed Phase 7 readiness and the future
+Phase 8 controlled live transaction window.
 
 It keeps the working flow compact:
 
@@ -34,7 +35,7 @@ lane.
 - authenticated owner session
 - one selected deployed agent
 - one owner-click Base Account connection
-- Phase 7J controlled-live gate ready
+- Phase 7 controlled-live gate ready
 - official Base MCP not required
 - Telegram execution disabled
 - public execution state hidden
@@ -117,3 +118,4 @@ Production freeze evidence:
 - Telegram and public routes cannot authorize execution.
 - Wallet prompt, signing, and transaction submission remain disabled.
 - Full Phase 7 checker includes the launch readiness guard.
+- Phase 8 remains the next phase before any live transaction can execute.

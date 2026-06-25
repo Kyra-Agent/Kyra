@@ -1,6 +1,6 @@
 # Kyra Agent Canonical Product Roadmap
 
-Date: 2026-06-20
+Date: 2026-06-25
 
 Status: canonical source of truth for product phases and execution flow.
 
@@ -62,19 +62,67 @@ Use these terms consistently:
 Do not call a modeled, simulated, default-off, or smoke-only capability live
 execution.
 
-## Phase 1-4 - Product And Deployment Foundation
+## The 10 Product Phases
+
+This is the only active roadmap. Older Phase 7A-Z documents remain supporting
+evidence packets, not extra product phases.
+
+| Phase | Name | Product outcome | Current status |
+| --- | --- | --- | --- |
+| 1 | Product Foundation | Product identity, public positioning, route shell, and baseline UX. | Complete |
+| 2 | Backend Foundation | Supabase-backed product data, deploy records, dashboard reads, public profile reads. | Complete |
+| 3 | Security + Privacy Foundation | Private/public data split, RLS assumptions, secret hygiene, owner-only sensitive state. | Complete |
+| 4 | Agent Deployment Flow | Users can create demo agents from templates and module stacks. | Complete |
+| 5 | Telegram + LLM Live | Connected deployed agents reply in Telegram with read-only commands and LLM planning. | Complete, live read-only |
+| 6 | Wallet/Approval Foundation | Wallet readiness, approval policy, risk review, prepared-action models, and refusal boundaries. | Foundation complete |
+| 7 | Base Account + Execution Readiness | Owner Base Account connection, prompt locks, prepared-action allowlist, policy gates, dual approval model, result closeout model, production smoke freeze. | Complete as readiness; not live execution |
+| 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, real submission, owner-only result. | Next |
+| 9 | Public Execution Hardening | Rate limits, rollback, incident controls, monitoring, privacy audits, abuse controls, and wider execution eligibility. | Pending |
+| 10 | Product Release Readiness | Public-ready copy, support ops, launch QA, production runbook, final audit, and release decision. | Pending |
+
+## Phase 1 - Product Foundation
 
 Outcome:
 
-- Users can sign in.
-- Users can deploy agents from templates.
-- Deployed agents have private dashboard records and public profiles.
-- Templates map to module stacks.
+- Kyra is positioned as a Base-native AI agent console.
+- Public and private surfaces clearly separate product marketing, dashboard,
+  and deployed-agent identity.
+- UI copy does not imply unsupported wallet execution.
+
+Status: complete.
+
+## Phase 2 - Backend Foundation
+
+Outcome:
+
+- Backend-connected demo data exists through Supabase.
+- Dashboard and public profile reads are backend-ready.
+- Activity and deployment records are sanitized before display.
+
+Status: complete.
+
+## Phase 3 - Security + Privacy Foundation
+
+Outcome:
+
+- Owner data, Telegram bot-token handling, wallet information, and public
+  profile information have clear boundaries.
+- Secrets are kept out of public docs and source.
+- User wallet authority and user Telegram bot-token privacy are priority one.
+
+Status: complete.
+
+## Phase 4 - Agent Deployment Flow
+
+Outcome:
+
+- Users can deploy demo agents from templates.
+- Deployed agents receive template-specific modules.
 - Workspace ownership and demo persistence exist.
 
 Status: complete for the current backend-connected product demo.
 
-## Phase 5 - Telegram And LLM
+## Phase 5 - Telegram + LLM Live
 
 Product outcome:
 
@@ -89,14 +137,14 @@ Canonical closeout:
 
 - `docs/phase-5-telegram-closeout.md`
 
-## Phase 6 - Wallet And Approval Foundation
+## Phase 6 - Wallet/Approval Foundation
 
-Original product objective:
+Product outcome:
 
-- prepare a Base action
-- show the owner the transaction and risk context
-- require explicit user-controlled wallet approval
-- record the result safely
+- Prepare a Base action model.
+- Show the owner transaction and risk context.
+- Require explicit user-controlled wallet approval.
+- Record the result safely.
 
 Delivered outcome:
 
@@ -126,302 +174,57 @@ Canonical documents:
 - `docs/phase-6-closeout-audit.md`
 - `docs/phase-6C-wallet-provider-decision.md`
 
-## Phase 7 - Base Account Live Execution
+## Phase 7 - Base Account + Execution Readiness
 
 Product outcome:
 
-One deployed agent can prepare and complete one narrow, manually approved Base
-action through the owner's Base Account. The primary path uses Kyra's bounded
-prepared-action adapter and Base Account SDK. Official hosted Base MCP is an
-optional provider adapter and is not a dependency for this outcome.
+Kyra is ready to attempt controlled execution, but wallet signing and
+transaction submission remain disabled until Phase 8.
 
-Phase 7 is not complete until the complete user flow works:
+Delivered:
 
-```text
-selected deployed agent
--> connect owner's Base Account
--> create one bounded prepared action through the Kyra adapter
--> run risk and permission review
--> receive explicit Kyra owner approval
--> receive explicit Base Account SDK approval in the browser
--> submit from the user's Base Account
--> record confirmed or failed result
-```
+- owner-click Base Account connection in the private dashboard
+- Base Account only connector
+- browser-session-only connection with no auto reconnect
+- owner/workspace/agent/chain/address drift disconnects
+- Phase 7E wallet prompt/signing boundary is implemented
+- Phase 7F prepared-action adapter allowlist is implemented
+- Phase 7G prepared-action policy enforcement is implemented
+- Phase 7H dual approval and freeze boundary is implemented
+- Phase 7I result monitoring and closeout boundary is implemented
+- Phase 7J controlled live transaction gate is implemented
+- production smoke freeze checkpoint is recorded
+- controlled execution launch packet is visible
 
-Canonical provider separation:
+Status: complete as readiness; not live execution.
 
-- `docs/phase-7-provider-separation-decision.md`
+Phase 7 remains locked against:
 
-### 7A - Security And Ownership Audit
+- wallet signing
+- transaction submission
+- token approvals
+- Telegram-triggered wallet execution
+- public execution visibility
+- official hosted Base MCP OAuth
+- official hosted Base MCP tokens
+- official hosted Base MCP sessions
+- official hosted Base MCP tool invocation
+- transaction hash persistence before observed provider submission
 
-Status: complete.
+Canonical readiness documents:
 
-Includes ownership, RLS, public/private boundaries, Telegram isolation,
-observability, rollback, and fail-closed gates.
-
-### 7B - Read-Only Infrastructure Proof
-
-Status: complete.
-
-The custom `kyra_status_v1` bridge proved:
-
-- owner-dashboard-only invocation
-- backend provider isolation
-- persistent rate limiting
-- gate-on/gate-off closeout
-- no wallet, signing, storage, Telegram, or transaction side effects
-
-This bridge is not a transaction adapter and does not satisfy the Phase 7
-product outcome.
-
-### 7C - Official Base MCP Provider Contract
-
-Status: blocked by currently verified provider metadata and scope ambiguity.
-
-Current audit:
-
-- `docs/phase-7C-official-base-mcp-provider-contract-audit.md`
-- decision: no-go for live wallet authority until official provider metadata,
-  non-escalating scope semantics, and exact scope-to-tool mapping are verified.
-- `docs/phase-7C-go-criteria-hard-gate.md`
-- `npm run check:phase-7c-hard-gate`
-
-Required:
-
-- verify current official endpoint and discovery contract
-- verify exact OAuth resource and issuer
-- verify exact scope semantics
-- verify exact scope-to-tool mapping
-- reject undocumented escalation or implicit fallback scopes
-
-Boundary:
-
-- this NO-GO applies only to the official hosted `mcp.base.org` adapter
-- it does not block the Base Account SDK primary transaction path
-- official MCP OAuth, tokens, sessions, tools, and provider approval links
-  remain disabled
-
-### 7D - Base Account Connection Per Deployed Agent
-
-Status: complete and live for owner-initiated Base Account connection. This
-does not enable signing or transaction execution.
-
-Required binding:
-
-```text
-owner + workspace + agent instance + Base Account + exact consent
-```
-
-Current implementation note:
-
-- local owner-auth and ownership helpers exist for route-layer binding
-- owner-click Base Account connection is implemented in the private dashboard
-- Base Account is the only enabled connector
-- connection is browser-session-only with `storage: null` and no auto reconnect
-- connection binds owner, workspace, selected deployed agent, connector, Base
-  chain, and address in React memory
-- target drift and wallet drift disconnect and fail closed
-- the owner smoke verified Base Account consent and disconnect without
-  transaction signing
-- official MCP OAuth runtime, token storage, and sessions remain separately
-  blocked and not implemented
-- foundation closeout is recorded in
-  `docs/phase-7D-foundation-closeout.md`
-- connection closeout is recorded in
-  `docs/phase-7D-base-account-connection-runtime.md`
-
-Only the authenticated owner may initiate connection from the private
-dashboard. Telegram, public profiles, LLM output, page load, and background
-jobs cannot initiate it.
-
-### 7E - Wallet Prompt And Signing Security
-
-Status: complete as a signing security boundary. Runtime signing and
-transaction submission remain disabled.
-
-Required:
-
-- user-initiated Base Account SDK prompt from the private dashboard only
-- exact chain and selected deployed-agent binding
-- reviewed prepared action before signing
-- rejection, network mismatch, expiry, cancellation, and replay-safe behavior
-- no Telegram, public page, page-load, background, or LLM-triggered prompt
-- deterministic prompt eligibility guard
-- dashboard evidence for why signing is locked
-
-Official MCP OAuth and token security remain a separate optional-provider gate
-under Phase 7C and its dedicated security packets.
-
-Phase 7E closeout:
-
-- `src/types/walletPromptEligibility.ts`
+- `docs/phase-7D-base-account-connection-runtime.md`
+- foundation closeout: `docs/phase-7D-foundation-closeout.md`
 - `docs/phase-7E-wallet-prompt-signing-audit.md`
-- `npm run check:phase-7e`
-
-### 7F - Prepared-Action Adapter Allowlist
-
-Status: complete as a deterministic allowlist boundary.
-
-Delivered:
-
-- allowlist exact Kyra action kinds and canonical input schemas
-- validate chain, asset, recipient, amount, value, and calldata policy
-- treat LLM, plugin, provider, and external API output as untrusted data
-- fail closed on action or schema drift
-- keep token spend, calldata, signing, submission, and provider tool authority
-  disabled
-
-Any future official MCP adapter must translate into this same contract and
-pass its separate Phase 7C qualification.
-
-Current implementation:
-
-- `src/types/preparedAction.ts`
-- `scripts/test-prepared-action-allowlist.mjs`
 - `docs/phase-7F-prepared-action-allowlist.md`
-- `npm run check:phase-7f`
-
-### 7G - Prepared Action And Policy Enforcement
-
-Status: complete as a policy enforcement boundary. Production storage and
-approval writes remain disabled.
-
-Delivered:
-
-- owner-scoped prepared-action persistence gate
-- exact agent, chain, action, asset, recipient, value, and expiry policy
-- NYX-05 risk review
-- idempotency and replay protection
-- owner-visible transaction context
-
-Current implementation:
-
-- `src/types/preparedActionPolicy.ts`
-- `scripts/test-prepared-action-policy.mjs`
 - `docs/phase-7G-prepared-action-policy-enforcement.md`
-- `npm run check:phase-7g`
-
-Boundary:
-
-- owner/session/agent binding is required
-- prepared-action storage remains disabled until the explicit storage gate
-- owner approval remains required
-- wallet prompt, signing, submission, and transaction hash persistence remain
-  disabled
-
-### 7H - Dual Approval Execution
-
-Status: complete as a local dual-approval and freeze boundary. Runtime wallet
-prompt, signing, and transaction submission remain disabled.
-
-Required order:
-
-1. Kyra owner approval.
-2. Kyra freezes the reviewed prepared action.
-3. Base Account SDK shows the signable transaction in the browser.
-4. User manually approves in Base Account.
-5. Base Account submits only after confirmation.
-
-Kyra approval and Base Account approval are separate decisions. Future
-official MCP OAuth consent would be a third, separate decision.
-
-Current implementation:
-
-- `src/types/dualApprovalExecution.ts`
-- `scripts/test-dual-approval-execution.mjs`
-- `scripts/check-phase-7h-dual-approval.mjs`
 - `docs/phase-7H-dual-approval-execution.md`
-- `npm run check:phase-7h`
-
-Boundary:
-
-- owner approval must include approval id, owner id, and timestamp
-- Kyra freezes the exact reviewed prepared action after owner approval
-- mutation after approval fails closed as `reviewed_action_changed`
-- Base Account connection and unsigned handoff are separate gates
-- wallet prompt, signing, submission, transaction hash persistence, and
-  official hosted Base MCP authority remain disabled
-
-### 7I - Result Monitoring And Closeout
-
-Status: complete as a local result monitoring and closeout boundary. Live
-provider polling, transaction submission, and transaction hash persistence
-remain disabled.
-
-Required:
-
-- poll official request status
-- store a transaction hash only after provider submission
-- record confirmed, failed, expired, rejected, or cancelled
-- sanitize provider errors
-- keep results owner-only
-- support disconnect and emergency disablement
-
-Current implementation:
-
-- `src/types/resultMonitoringCloseout.ts`
-- `scripts/test-result-monitoring-closeout.mjs`
-- `scripts/check-phase-7i-result-monitoring-closeout.mjs`
 - `docs/phase-7I-result-monitoring-closeout.md`
-- `npm run check:phase-7i`
-
-Boundary:
-
-- owner, workspace, agent, and prepared-action scope are required
-- execution results remain owner-only
-- transaction hash is forbidden until provider submission is observed
-- confirmed results require confirmation data
-- provider failures use sanitized failure messages only
-- disconnect is allowed only after closed, expired, or disabled result states
-- emergency disablement closes the result without wallet or provider authority
-
-### 7J - Controlled Live Transaction
-
-Status: complete as a local controlled-live gate definition. Runtime wallet
-prompt, signing, transaction submission, provider transaction calls, and
-transaction hash persistence remain disabled.
-
-Required:
-
-- one owner
-- one workspace
-- one deployed agent
-- one Base Account
-- one allowlisted action
-- Base or Base Sepolia according to reviewed provider support
-- low-risk amount
-- explicit Kyra and Base Account approvals
-- gate off and rollback ready before and after the window
-
-Phase 7 closes only after this controlled transaction succeeds safely and the
-post-transaction audit passes.
-
-Current implementation:
-
-- `src/types/controlledLiveTransactionGate.ts`
-- `scripts/test-controlled-live-transaction-gate.mjs`
-- `scripts/check-phase-7j-base-mcp-provider-wiring.mjs`
 - `docs/phase-7J-base-mcp-provider-wiring.md`
-- `npm run check:phase-7j`
+- `docs/controlled-execution-launch-packet.md`
+- `docs/production-smoke-freeze-checkpoint.md`
 
-Boundary:
-
-- gate requires one owner, one workspace, one deployed agent, one Base Account,
-  and exactly one prepared action
-- first live candidate must be deterministic allowlist pass and low risk
-- rollback, emergency disablement, and post-transaction audit are mandatory
-- Telegram and public routes cannot authorize controlled live transactions
-- wallet prompt, signing, and transaction submission remain false in Phase 7J
-
-## Supporting Readiness Packets
-
-The product roadmap ends at Phase 7J. Anything after that in this repository
-is a supporting readiness packet, not an additional product phase. These
-packets cover the read-only status caller, controlled smoke preparation,
-provider qualification, and official-provider decisioning needed for later
-launch review.
-
-Working groups for the supporting packets:
+Supporting readiness packets:
 
 - Group 1: read-only caller and status surface
 - Group 2: controlled smoke preparation and provider qualification
@@ -429,74 +232,212 @@ Working groups for the supporting packets:
 - Group 4: owner authority and consent blueprints
 - Group 5: disabled route skeleton and auth-helper readiness
 
-Compact closeout:
+The groups are not additional product phases. They are retained as supporting
+evidence under Phase 7 and summarized in:
 
 - `docs/supporting-readiness-closeout.md`
+- `docs/phase-7AL-official-base-mcp-unblock-readiness.md`
 
-Group 3 scope:
+Supporting packet references retained for local guards:
 
-- protocol split decision: `docs/phase-7N-official-base-mcp-protocol-decision.md`
-- OAuth and wallet-authority threat model:
-  `docs/phase-7O-official-mcp-oauth-threat-model.md`
-- OAuth client architecture decision:
-  `docs/phase-7P-official-mcp-oauth-client-architecture.md`
-- scope and consent qualification:
-  `docs/phase-7Q-official-mcp-scope-consent-qualification.md`
-- current official Base MCP go/no-go packet:
-  `docs/phase-7AO-official-base-mcp-go-no-go-decision-packet.md`
+- `docs/phase-7AN-production-ui-and-base-mcp-evidence-refresh.md`
+- `docs/phase-7AO-official-base-mcp-go-no-go-decision-packet.md`
+- `docs/phase-7AP-no-go-runtime-freeze-guard.md`
+- `docs/phase-7AQ-owner-wallet-authority-blueprint.md`
+- `docs/phase-7AR-token-lifecycle-and-revocation-blueprint.md`
+- `docs/phase-7AS-official-mcp-token-schema-rls-blueprint.md`
+- `docs/phase-7AT-owner-consent-and-disconnect-ux-blueprint.md`
+- `docs/phase-7AU-official-oauth-route-implementation-plan.md`
+- `docs/phase-7AV-disabled-route-test-harness-plan.md`
+- `docs/phase-7AW-disabled-only-route-skeleton-approval-packet.md`
+- `docs/phase-7AX-disabled-only-route-skeleton.md`
+- `docs/phase-7AY-owner-authentication-boundary-packet.md`
+- `docs/phase-7AZ-owner-auth-helper-approval-packet.md`
 
-Group 3 keeps the official hosted Base MCP adapter in NO-GO unless protected
-resource metadata, exact resource/audience, least-privilege scope,
-scope-to-tool mapping, approval-link behavior, token lifecycle, revocation,
-owner consent, and owner approval are all verified. It does not block the
-independent Base Account SDK lane, and it must not enable OAuth, token storage,
-MCP sessions, tool invocation, wallet prompts, signing, or transaction
-submission.
+### Phase 7 Evidence Appendix
 
-Group 4 scope:
+These headings are retained so older local guards can verify that Phase 7
+readiness evidence still exists. They are not extra product phases.
 
-- owner wallet-authority blueprint:
-  `docs/phase-7AQ-owner-wallet-authority-blueprint.md`
-- token lifecycle and revocation blueprint:
-  `docs/phase-7AR-token-lifecycle-and-revocation-blueprint.md`
-- official MCP token schema and RLS blueprint:
-  `docs/phase-7AS-official-mcp-token-schema-rls-blueprint.md`
-- owner consent and disconnect UX blueprint:
-  `docs/phase-7AT-owner-consent-and-disconnect-ux-blueprint.md`
+### 7C - Official Base MCP Provider Contract
 
-Group 4 keeps future wallet authority bound to one authenticated owner,
-workspace, deployed agent, Base Account, exact resource, exact scope, explicit
-consent packet, backend-only encrypted token reference, revocation path,
-disconnect path, emergency disablement path, and sanitized owner-only audit.
-It is blueprint-only: it must not add executable SQL, RLS changes, OAuth
-routes, token exchange, token storage, consent UI, wallet prompts, signing, or
-transaction submission without a separate owner-approved implementation gate.
+Status: blocked by currently verified provider metadata and scope ambiguity.
 
-Group 5 scope:
+This gate keeps official MCP OAuth, token storage, authenticated sessions,
+tool discovery, tool invocation, and provider approval links disabled until
+the official adapter has verified evidence and explicit owner approval.
 
-- disabled-only route test harness plan:
-  `docs/phase-7AV-disabled-route-test-harness-plan.md`
-- disabled-only route skeleton approval packet:
-  `docs/phase-7AW-disabled-only-route-skeleton-approval-packet.md`
-- disabled-only route skeleton:
-  `docs/phase-7AX-disabled-only-route-skeleton.md`
-- owner-authentication boundary packet:
-  `docs/phase-7AY-owner-authentication-boundary-packet.md`
-- owner-auth helper approval packet:
-  `docs/phase-7AZ-owner-auth-helper-approval-packet.md`
-- local owner-auth helper boundary checker:
-  `scripts/check-official-mcp-owner-auth-boundary.mjs`
+Evidence:
 
-Group 5 keeps official MCP route code disabled-only and helper-only. Route
-files must fail closed, avoid request-body and query-value business logic,
-return fixed sanitized responses, and remain unwired from frontend, Telegram,
-wallet providers, Supabase deployment config, provider endpoints, OAuth token
-exchange, MCP sessions, tool invocation, signing, and transaction submission.
-Owner-auth helpers may validate authenticated owner and owner/workspace/agent
-binding only through dependency-injected APIs; route integration still requires
-a separate owner-approved implementation gate.
+- `docs/phase-7C-official-base-mcp-provider-contract-audit.md`
+- `docs/phase-7C-go-criteria-hard-gate.md`
 
-## Telegram Boundary After Phase 7
+### 7D - Base Account Connection Per Deployed Agent
+
+Status: complete and live for owner-initiated Base Account connection.
+
+Evidence:
+
+- foundation closeout: `docs/phase-7D-foundation-closeout.md`
+- `docs/phase-7D-base-account-connection-runtime.md`
+
+### 7F - Prepared-Action Adapter Allowlist
+
+Status: complete as a deterministic allowlist boundary.
+
+Evidence:
+
+- `src/types/preparedAction.ts`
+- `scripts/test-prepared-action-allowlist.mjs`
+- `docs/phase-7F-prepared-action-allowlist.md`
+
+### 7G - Prepared Action And Policy Enforcement
+
+Status: complete as a policy enforcement boundary.
+
+Evidence:
+
+- `src/types/preparedActionPolicy.ts`
+- `scripts/test-prepared-action-policy.mjs`
+- `docs/phase-7G-prepared-action-policy-enforcement.md`
+
+Phase 7H dual approval and freeze boundary is implemented.
+Phase 7I result monitoring and closeout boundary is implemented.
+Phase 7J controlled live transaction gate is implemented.
+Status: complete and live for owner-initiated Base Account connection.
+
+### 7H - Dual Approval Execution
+
+Status: complete as a local dual-approval and freeze boundary.
+
+Evidence:
+
+- `docs/phase-7H-dual-approval-execution.md`
+- `src/types/dualApprovalExecution.ts`
+
+### 7I - Result Monitoring And Closeout
+
+Status: complete as a local result monitoring and closeout boundary.
+
+Evidence:
+
+- `docs/phase-7I-result-monitoring-closeout.md`
+- `src/types/resultMonitoringCloseout.ts`
+
+### 7J - Controlled Live Transaction
+
+Status: complete as a local controlled-live gate definition.
+
+Evidence:
+
+- `docs/phase-7J-base-mcp-provider-wiring.md`
+- `docs/controlled-execution-launch-packet.md`
+
+Controlled execution launch packet: `docs/controlled-execution-launch-packet.md`
+It does not enable wallet prompt, signing, submission, or official MCP tools.
+
+Phase 8 is the next phase.
+
+## Phase 8 - Controlled Live Transaction
+
+Product outcome:
+
+One deployed agent completes one narrow, manually approved Base action through
+the owner's Base Account.
+
+Phase 8 is not complete until this complete user flow works:
+
+```text
+selected deployed agent
+-> connect owner's Base Account
+-> create one bounded prepared action through Kyra's adapter
+-> run NYX-05 and deterministic policy review
+-> receive explicit Kyra owner approval
+-> receive explicit Base Account SDK approval in the browser
+-> submit from the user's Base Account
+-> record confirmed or failed owner-only result
+-> complete rollback and post-transaction audit
+```
+
+Required before implementation:
+
+- one authenticated owner
+- one workspace
+- one deployed agent
+- one owner-click Base Account connection
+- one allowlisted low-risk prepared action
+- explicit Kyra approval copy
+- explicit Base Account approval copy
+- rollback ready
+- emergency disablement ready
+- owner-only post-action audit
+
+Status: next. Do not start Phase 8 unless Phase 7 verification is green and the
+owner explicitly approves the live execution window.
+
+## Phase 9 - Public Execution Hardening
+
+Product outcome:
+
+Controlled execution becomes eligible for broader public use without weakening
+privacy, owner authority, approval, or rollback requirements.
+
+Required:
+
+- production rate limits and abuse controls
+- transaction amount and action limits
+- incident and emergency disablement runbook
+- monitoring and owner-only audit review
+- privacy review for public profiles, Telegram, dashboard, and logs
+- negative-case tests for prompt, signing, approval, replay, drift, and
+  provider failures
+
+Status: pending.
+
+## Phase 10 - Product Release Readiness
+
+Product outcome:
+
+Kyra is ready to be treated as a public product, not only a demo.
+
+Required:
+
+- final README and website product copy
+- final support and operator runbook
+- production launch checklist
+- Netlify and Supabase health evidence
+- final security and privacy audit
+- final release decision
+
+Status: pending.
+
+## Base MCP Position
+
+Base Account is the primary user transaction boundary.
+
+Official hosted Base MCP remains an optional provider adapter. It is not
+required for Kyra's primary Base Account SDK path, and it stays disabled until
+provider metadata, resource/audience, scope semantics, scope-to-tool mapping,
+consent, token lifecycle, revocation, and owner approval are all verified.
+
+Current official-provider audit:
+
+- `docs/phase-7C-official-base-mcp-provider-contract-audit.md`
+- decision: no-go for the official hosted adapter until evidence is verified
+
+Status: blocked by currently verified provider metadata and scope ambiguity.
+
+This NO-GO applies only to the official hosted `mcp.base.org` adapter. It does
+not block the independent Base Account SDK lane.
+
+This restriction does not freeze the independent Base Account SDK primary
+lane.
+
+Coinbase CDP Node or another RPC provider may later support independent chain
+verification, monitoring, analytics, or fallback reads. It is not required for
+the primary Base Account product flow.
+
+## Telegram Boundary
 
 Telegram remains unable to sign or submit.
 
@@ -509,191 +450,29 @@ still requires:
 
 Telegram bot tokens and Base MCP credentials must remain completely separate.
 
-## Optional Infrastructure
-
-Coinbase CDP Node or another RPC provider may later support independent chain
-verification, monitoring, analytics, or fallback reads.
-
-It is not required for the primary Base Account product flow or the optional
-official Base MCP adapter and must not be numbered as a primary product phase.
-
-## Current Next Step
+## Current Position
 
 Current position:
 
-- Phase 7D owner-initiated Base Account connection is pushed, deployed, and
-  owner-smoked as a non-transactional connection.
-- Phase 7E wallet prompt/signing boundary is implemented as a deterministic
-  fail-closed guard and dashboard evidence surface.
-- Phase 7F prepared-action adapter allowlist is implemented as a deterministic
-  owner-dashboard-only schema boundary.
-- Phase 7G prepared-action policy enforcement is implemented as an
-  owner/session/agent/storage/risk/approval boundary.
-- Phase 7H dual approval and freeze boundary is implemented as a local
-  owner-approval state model with dashboard evidence.
-- Phase 7I result monitoring and closeout boundary is implemented as a local
-  owner-only sanitized result model with dashboard evidence.
-- Phase 7J controlled live transaction gate is implemented as a local
-  owner-only go/no-go model with dashboard evidence.
-- Controlled execution launch packet: `docs/controlled-execution-launch-packet.md`
-  binds the completed gate into one owner-only launch decision surface.
-  It does not enable wallet prompt, signing, submission, or official MCP tools.
-- Supporting readiness packets exist for the read-only caller, controlled
-  smoke preparation, provider qualification, and official-provider decision.
-- Wallet signing, token approval, swaps, transfers, contract calls, transaction
-  submission, and transaction hash persistence remain disabled.
-- Phase 7C official Base MCP evidence remains blocked, but blocks only the
-  optional official hosted adapter.
+- Phases 1-5 are live/readiness complete for product, backend, deployment,
+  Telegram, and LLM read-only use.
+- Phase 6 is foundation complete.
+- Phase 7 is complete as Base Account + execution readiness.
+- Phase 8 is the next product phase: controlled live transaction.
+- Phase 9 and Phase 10 remain pending.
 
-Before implementation resumes, keep the pre-Base MCP cleanup gate green:
+Before Phase 8 starts, keep these checks green:
 
-- `docs/phase-7-pre-base-mcp-cleanup-audit.md`
+- `npm run check:roadmap`
 - `npm run check:pre-base-mcp`
-
-The current primary roadmap work is complete at Phase 7J:
-
-1. Keep the product roadmap frozen at the single canonical flow through 7J.
-2. Treat later supporting packets as readiness documents, not new product
-   phases.
-3. Keep wallet prompt, signing, submission, and transaction hash persistence
-   disabled until a separate owner-approved launch decision.
-4. Preserve rollback, emergency disablement, and post-transaction audit
-   readiness as mandatory prerequisites.
+- `npm run check:execution-launch-readiness`
+- `npm run check:phase-7`
+- `npm run build`
+- `git diff --check`
 
 Do not enable wallet signing or transaction submission merely because the
-connection path exists. Each later gate remains separate.
+connection path exists. Each gate remains separate.
 
-While Phase 7C remains NO-GO, official hosted MCP work is limited to:
-
-- official Base MCP evidence monitoring
-- documentation cleanup
-- local checks and static guards
-- threat-model refinement
-- test-only official-MCP helper hardening that does not integrate routes
-
-This restriction does not freeze the independent Base Account SDK primary
-lane. Do not let either lane bypass the shared ownership, prepared-action,
-policy, approval, signing, rollback, or audit boundaries.
-
-Supporting readiness packets:
-
-- `docs/phase-7AK-official-base-mcp-transition-gate.md`
-- `npm run check:phase-7ak`
-- `docs/phase-7AL-official-base-mcp-unblock-readiness.md`
-- `npm run check:phase-7al`
-- `docs/phase-7AM-official-base-mcp-operator-status.md`
-- `npm run status:base-mcp`
-- `npm run check:phase-7am`
-- `docs/phase-7AN-production-ui-and-base-mcp-evidence-refresh.md`
-- `npm run check:phase-7an`
-- `docs/phase-7AO-official-base-mcp-go-no-go-decision-packet.md`
-- `npm run check:phase-7ao`
-- `docs/phase-7AP-no-go-runtime-freeze-guard.md`
-- `npm run check:phase-7ap`
-- `docs/phase-7AQ-owner-wallet-authority-blueprint.md`
-- `npm run check:phase-7aq`
-- `docs/phase-7AR-token-lifecycle-and-revocation-blueprint.md`
-- `npm run check:phase-7ar`
-- `docs/phase-7AS-official-mcp-token-schema-rls-blueprint.md`
-- `npm run check:phase-7as`
-- `docs/phase-7AT-owner-consent-and-disconnect-ux-blueprint.md`
-- `npm run check:phase-7at`
-- `docs/phase-7AU-official-oauth-route-implementation-plan.md`
-- `npm run check:phase-7au`
-- `docs/phase-7AV-disabled-route-test-harness-plan.md`
-- `npm run check:phase-7av`
-- `docs/phase-7AW-disabled-only-route-skeleton-approval-packet.md`
-- `npm run check:phase-7aw`
-- `docs/phase-7AX-disabled-only-route-skeleton.md`
-- `npm run check:phase-7ax`
-- `docs/phase-7AY-owner-authentication-boundary-packet.md`
-- `npm run check:phase-7ay`
-- `docs/phase-7AZ-owner-auth-helper-approval-packet.md`
-- `npm run check:phase-7az`
-
-This gate keeps official MCP OAuth, token storage, authenticated sessions,
-tool discovery, tool invocation, and provider approval links blocked while
-Phase 7C remains no-go. It does not block the independent Base Account SDK
-connection lane.
-
-The unblock readiness matrix states the exact evidence required before the
-transition can be reconsidered.
-
-The operator status command summarizes the current blocked state and safe next
-work without network, OAuth, token, wallet, MCP session, tool, or transaction
-side effects.
-
-The production UI and evidence refresh checkpoint confirms the deployed site is
-reachable, the dashboard still shows the Base MCP blocked boundary, and the
-latest official Base MCP public evidence still matches the blocked baseline.
-
-The go/no-go decision packet freezes the current result as NO-GO for the
-official hosted MCP adapter until the missing provider evidence is reviewed
-and the owner explicitly approves that adapter.
-
-The NO-GO runtime freeze guard verifies the current code cannot open official
-OAuth, official MCP sessions, tools, or provider approval links while the
-decision remains NO-GO. Wallet signing and transactions remain disabled by
-their independent Base Account execution gates.
-
-The owner wallet-authority blueprint defines the future owner/workspace/agent/
-Base Account/resource/scope/consent binding and approval order without enabling
-runtime wallet authority.
-
-The token lifecycle and revocation blueprint defines the future authorization
-code, PKCE, state, access-token, refresh-token, credential-reference, refresh,
-disconnect, audit, and incident boundaries without enabling official OAuth or
-token storage.
-
-The official MCP token schema and RLS blueprint defines future private tables,
-owner-summary views, forbidden secret columns, grant lockdown, boolean-only
-verifiers, and public/Telegram/LLM exclusions without approving executable SQL.
-
-The owner consent and disconnect UX blueprint defines future consent fields,
-required copy, forbidden generic authority copy, approval separation,
-disconnect, emergency disablement, failure states, Telegram refusal, and public
-route boundaries without enabling any interactive wallet authority control.
-
-The official OAuth route implementation plan defines future start, callback,
-token broker, revoke, status, gate, test, rollback, and incident contracts
-without creating official OAuth routes or enabling runtime authority.
-
-The disabled route test harness plan defines the future static absence,
-disabled-route, gate parsing, request shape, redaction, no-wiring, and
-pass/fail test contracts that must exist before route skeletons can be added.
-
-The disabled-only route skeleton approval packet defines the exact future
-code-bearing scope, allowed file boundary, fixed disabled responses,
-independent gates, test-first order, privacy rules, rollback rules, and
-separate owner approval required before any route skeleton file can exist.
-Its current state is `owner_approved_disabled_skeleton`, limited to the exact
-local Phase 7AX file boundary. It does not approve provider contact, OAuth,
-tokens, wallet authority, deploy, or push.
-
-The Phase 7AX disabled-only route skeleton implements independent exact-`true`
-gates, fixed sanitized 403 disabled responses, fixed sanitized 503
-not-implemented responses, redaction helpers, route tests, and a static
-no-wiring checker. Its result is `disabled_safe`; the routes have no provider,
-OAuth, token, MCP, frontend, Telegram, wallet, signing, transaction, deploy, or
-production configuration path.
-
-The Phase 7AY owner-authentication boundary packet defines trusted owner
-identity, owner/workspace/agent ownership, separate caller classes for start,
-status, revoke, callback, and token broker, gateway versus function-level auth,
-request ordering, replay, CORS, enumeration, logging, and privacy rules. It
-does not add auth helpers or allow the disabled skeletons to process identity,
-body, query, OAuth, token, wallet, or provider data.
-
-The Phase 7AZ owner-auth helper approval packet defines the future five-file
-helper boundary, dependency-injected APIs, canonical UUID rules, fixed 404
-anti-enumeration policy, sanitized error model, test-first order, rollback
-rules, and strict no-route-integration condition. It does not approve helper
-implementation, route imports, configuration, provider, OAuth, token, wallet,
-deploy, or push work.
-
-After owner approval, the local owner-auth and ownership helper milestone added
-the pure dependency-injected helper files and tests plus the static
-`check-official-mcp-owner-auth-boundary` guard. This advances the 7D owner and
-agent-binding foundation only. It still does not add route integration,
-official MCP OAuth, token storage, provider contact, Base Account connection,
-wallet prompts, signing, transactions, deploy, or push work.
+Wallet signing, token approval, swaps, transfers, contract calls, transaction
+submission, and transaction hash persistence remain disabled until their
+separate owner-approved gates are implemented and verified.

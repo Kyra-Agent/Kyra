@@ -27,60 +27,43 @@ for (
   const expected of [
     "canonical source of truth for product phases",
     "Kyra is a platform for deploying user-owned AI agents.",
-    "Phase 5 - Telegram And LLM",
+    "## The 10 Product Phases",
+    "This is the only active roadmap.",
+    "| 1 | Product Foundation |",
+    "| 2 | Backend Foundation |",
+    "| 3 | Security + Privacy Foundation |",
+    "| 4 | Agent Deployment Flow |",
+    "| 5 | Telegram + LLM Live |",
+    "| 6 | Wallet/Approval Foundation |",
+    "| 7 | Base Account + Execution Readiness |",
+    "| 8 | Controlled Live Transaction |",
+    "| 9 | Public Execution Hardening |",
+    "| 10 | Product Release Readiness |",
+    "## Phase 5 - Telegram + LLM Live",
     "Status: complete and live read-only.",
-    "Phase 6 - Wallet And Approval Foundation",
+    "## Phase 6 - Wallet/Approval Foundation",
     "Status: foundation complete, not live execution.",
-    "Phase 7 - Base Account Live Execution",
-    "connect owner's Base Account",
-    "receive explicit Kyra owner approval",
-    "receive explicit Base Account SDK approval",
-    "The custom `kyra_status_v1` bridge",
-    "This bridge is not a transaction adapter",
-    "docs/phase-7C-official-base-mcp-provider-contract-audit.md",
-    "this NO-GO applies only to the official hosted `mcp.base.org` adapter",
-    "CDP Node or another RPC provider may later support",
-    "It is not required for the primary Base Account product flow",
-    "Status: complete and live for owner-initiated Base Account connection.",
+    "## Phase 7 - Base Account + Execution Readiness",
+    "Status: complete as readiness; not live execution.",
     "Phase 7E wallet prompt/signing boundary is implemented",
     "Phase 7F prepared-action adapter allowlist is implemented",
     "Phase 7G prepared-action policy enforcement is implemented",
     "Phase 7H dual approval and freeze boundary is implemented",
     "Phase 7I result monitoring and closeout boundary is implemented",
     "Phase 7J controlled live transaction gate is implemented",
-    "The product roadmap ends at Phase 7J.",
-    "Supporting readiness packets",
-    "Group 1: read-only caller and status surface",
-    "Group 2: controlled smoke preparation and provider qualification",
-    "Group 3: official-provider decisioning and offline go/no-go review",
-    "Group 4: owner authority and consent blueprints",
-    "Group 5: disabled route skeleton and auth-helper readiness",
+    "## Phase 8 - Controlled Live Transaction",
+    "Phase 8 is not complete until this complete user flow works:",
+    "receive explicit Kyra owner approval",
+    "receive explicit Base Account SDK approval",
+    "## Phase 9 - Public Execution Hardening",
+    "## Phase 10 - Product Release Readiness",
+    "## Base MCP Position",
+    "Official hosted Base MCP remains an optional provider adapter.",
+    "This NO-GO applies only to the official hosted `mcp.base.org` adapter.",
+    "Coinbase CDP Node or another RPC provider may later support",
+    "the primary Base Account product flow",
+    "User wallet authority and user Telegram bot-token privacy are priority one.",
     "docs/supporting-readiness-closeout.md",
-    "docs/phase-7N-official-base-mcp-protocol-decision.md",
-    "docs/phase-7O-official-mcp-oauth-threat-model.md",
-    "docs/phase-7P-official-mcp-oauth-client-architecture.md",
-    "docs/phase-7Q-official-mcp-scope-consent-qualification.md",
-    "docs/phase-7AO-official-base-mcp-go-no-go-decision-packet.md",
-    "docs/phase-7AQ-owner-wallet-authority-blueprint.md",
-    "docs/phase-7AR-token-lifecycle-and-revocation-blueprint.md",
-    "docs/phase-7AS-official-mcp-token-schema-rls-blueprint.md",
-    "docs/phase-7AT-owner-consent-and-disconnect-ux-blueprint.md",
-    "docs/phase-7AV-disabled-route-test-harness-plan.md",
-    "docs/phase-7AW-disabled-only-route-skeleton-approval-packet.md",
-    "docs/phase-7AX-disabled-only-route-skeleton.md",
-    "docs/phase-7AY-owner-authentication-boundary-packet.md",
-    "docs/phase-7AZ-owner-auth-helper-approval-packet.md",
-    "scripts/check-official-mcp-owner-auth-boundary.mjs",
-    "backend-only encrypted token reference",
-    "owner-only audit",
-    "must not add executable SQL, RLS changes, OAuth",
-    "Group 5 keeps official MCP route code disabled-only and helper-only.",
-    "fixed sanitized responses",
-    "dependency-injected APIs",
-    "route integration still requires",
-    "independent Base Account SDK lane",
-    "MCP sessions, tool invocation",
-    "This restriction does not freeze the independent Base Account SDK primary",
   ]
 ) {
   includes("canonical roadmap", roadmap, expected);
@@ -94,17 +77,30 @@ for (const source of [readme, phase5, phase6, phase7]) {
   );
 }
 
-includes(
-  "README closeout reference",
-  readme,
-  "docs/supporting-readiness-closeout.md",
-);
+for (
+  const expected of [
+    "Current canonical roadmap status:",
+    "| 7 | Base Account + execution readiness complete; not live execution |",
+    "| 8 | Next: controlled live transaction |",
+    "| 9 | Pending: public execution hardening |",
+    "| 10 | Pending: product release readiness |",
+    "Phase 8 is the next phase: one controlled live transaction",
+    "Older Phase 7A-Z documents are supporting evidence packets under Phase 7.",
+  ]
+) {
+  includes("README roadmap", readme, expected);
+}
 
 for (
   const expected of [
     "# Supporting Readiness Closeout",
+    "They support the 10-phase product roadmap",
     "The groups are not additional product phases.",
     "User wallet authority and user Telegram bot-token privacy remain the top",
+    "Phase 7 is complete as Base Account + execution readiness.",
+    "Phase 8 is next and covers the first controlled live transaction.",
+    "Phase 9 covers public execution hardening.",
+    "Phase 10 covers product release readiness.",
     "owner-only execution candidate selection",
   ]
 ) {
@@ -113,33 +109,15 @@ for (
 
 for (
   const expected of [
-    "Phase 6 is foundation-complete, not execution-live",
-    "Phase 7 is in progress and targets Base Account live execution",
-    "The owner connects their own Base Account to that agent.",
-    "Telegram remains unable to sign or submit.",
-    "Phase 7C: monitor official Base MCP provider contract until a verified",
-    "independent from the official MCP NO-GO.",
-    "Coinbase CDP Node or another standalone RPC provider is optional infrastructure",
-    "Phase 7D owner-click Base Account connection is live",
-    "Phase 7E wallet prompt/signing boundary is implemented",
-    "Phase 7F",
-    "prepared-action allowlist",
-    "Phase 7G",
-    "policy enforcement",
-    "Phase 7H",
-    "dual approval",
-    "Phase 7I",
-    "result monitoring",
-    "Phase 7J",
-    "controlled live",
-    "Supporting packet group 3 is the official-provider decisioning",
-    "MCP sessions, tool invocation",
-    "Supporting packet group 4 is the owner authority and consent blueprint",
-    "backend-only encrypted token reference",
-    "owner-only audit",
-    "Supporting packet group 5 is the disabled route skeleton and auth-helper",
-    "sanitized responses",
-    "dependency-injected APIs",
+    "Canonical 10-phase roadmap",
+    "Phase 7 is complete as Base Account + execution readiness",
+    "Phase 8 is next:",
+    "controlled live transaction",
+    "Phase 9 is pending: public execution hardening",
+    "Phase 10 is pending: product release readiness",
+    "Supporting readiness packets are evidence under Phase 7",
+    "User wallet",
+    "Telegram bot-token privacy are priority one",
   ]
 ) {
   includes("private context roadmap", privateContext, expected);
@@ -184,7 +162,6 @@ for (
 
 for (
   const forbidden of [
-    "# Phase 7AK",
     "CDP Node is required for official Base MCP",
     "must use a platform-owned wallet",
     "Telegram signs and submits",
@@ -196,7 +173,7 @@ for (
 ) {
   excludes(
     "canonical roadmap sources",
-    `${roadmap}\n${optionalCdp}\n${providerSeparation}`,
+    `${roadmap}\n${readme}\n${readinessCloseout}\n${optionalCdp}\n${providerSeparation}`,
     forbidden,
   );
 }

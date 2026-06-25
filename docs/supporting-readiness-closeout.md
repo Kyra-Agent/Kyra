@@ -4,15 +4,17 @@ Date: 2026-06-25
 
 Status: complete for documentation, audit, and static guard readiness.
 
-This closeout summarizes the five supporting readiness groups after the
-canonical product roadmap was frozen through Phase 7J.
+This closeout summarizes the five supporting readiness groups under canonical
+Phase 7. They support the 10-phase product roadmap; they are not extra product
+phases.
 
 Production smoke freeze checkpoint:
 
 - `docs/production-smoke-freeze-checkpoint.md`
 
 The groups are not additional product phases. They keep the next implementation
-work organized without changing the live product claim.
+work organized without changing the live product claim or extending the
+canonical roadmap beyond Phase 10.
 
 ## Current Product Boundary
 
@@ -65,6 +67,13 @@ connect/disconnect worked, the masked address stayed private, no signing prompt
 opened, no transaction submission prompt opened, and wallet execution stayed
 disabled.
 
+Canonical roadmap position:
+
+- Phase 7 is complete as Base Account + execution readiness.
+- Phase 8 is next and covers the first controlled live transaction.
+- Phase 9 covers public execution hardening.
+- Phase 10 covers product release readiness.
+
 ## Verification
 
 Required local verification before any push or release review:
@@ -81,7 +90,7 @@ Required local verification before any push or release review:
 Do not start live execution work until the closeout remains green after
 deployment verification.
 
-The next implementation discussion should start from:
+The next implementation discussion should start from Phase 8:
 
 1. owner-only execution candidate selection
 2. exact low-risk action scope
