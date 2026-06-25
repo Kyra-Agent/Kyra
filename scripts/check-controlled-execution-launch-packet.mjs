@@ -41,6 +41,7 @@ function walkFiles(path) {
 }
 
 const doc = read("docs/controlled-execution-launch-packet.md");
+const freezeCheckpoint = read("docs/production-smoke-freeze-checkpoint.md");
 const roadmap = read("docs/product-phase-roadmap.md");
 const typeModel = read("src/types/executionLaunchReadiness.ts");
 const typeTest = read("scripts/test-execution-launch-readiness.mjs");
@@ -69,6 +70,30 @@ for (
   ]
 ) {
   includes("controlled execution launch packet", doc, required);
+}
+
+includes(
+  "controlled execution launch packet",
+  doc,
+  "docs/production-smoke-freeze-checkpoint.md",
+);
+
+for (
+  const required of [
+    "# Production Smoke Freeze Checkpoint",
+    "Status: frozen after owner production smoke.",
+    "Owner production smoke passed with an existing deployed agent.",
+    "Base Account connection can be initiated by owner click",
+    "Base Account disconnect returns to the clean ready state",
+    "wallet signing prompt did not open",
+    "transaction submission prompt did not open",
+    "token approval prompt did not open",
+    "Execution launch packet remained disabled or blocked",
+    "This freeze does not authorize live execution.",
+    "Do not bypass the frozen boundary just because connect/disconnect works.",
+  ]
+) {
+  includes("production smoke freeze checkpoint", freezeCheckpoint, required);
 }
 
 for (

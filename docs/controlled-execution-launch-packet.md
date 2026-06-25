@@ -104,6 +104,10 @@ npm run build
 git diff --check
 ```
 
+Production freeze evidence:
+
+- `docs/production-smoke-freeze-checkpoint.md`
+
 ## Done Criteria
 
 - Launch readiness model exists.

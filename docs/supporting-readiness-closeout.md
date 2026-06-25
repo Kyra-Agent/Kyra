@@ -7,6 +7,10 @@ Status: complete for documentation, audit, and static guard readiness.
 This closeout summarizes the five supporting readiness groups after the
 canonical product roadmap was frozen through Phase 7J.
 
+Production smoke freeze checkpoint:
+
+- `docs/production-smoke-freeze-checkpoint.md`
+
 The groups are not additional product phases. They keep the next implementation
 work organized without changing the live product claim.
 
@@ -55,6 +59,11 @@ disabled until a separate owner-approved implementation gate.
 
 User wallet authority and user Telegram bot-token privacy remain the top
 security priorities.
+
+Owner production smoke passed with an existing deployed agent: Base Account
+connect/disconnect worked, the masked address stayed private, no signing prompt
+opened, no transaction submission prompt opened, and wallet execution stayed
+disabled.
 
 ## Verification
 
