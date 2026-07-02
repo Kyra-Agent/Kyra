@@ -366,14 +366,23 @@ Required before implementation:
 - one deployed agent
 - one owner-click Base Account connection
 - one allowlisted low-risk prepared action
+- one low-risk prepared action
 - explicit Kyra approval copy
 - explicit Base Account approval copy
+- owner-only result
 - rollback ready
 - emergency disablement ready
 - owner-only post-action audit
 
-Status: next. Do not start Phase 8 unless Phase 7 verification is green and the
-owner explicitly approves the live execution window.
+Batch 1 evidence:
+
+- `docs/phase-8-controlled-live-transaction.md`
+- `src/types/phase8ControlledExecution.ts`
+- `scripts/test-phase-8-controlled-execution.mjs`
+- `scripts/check-phase-8-controlled-execution.mjs`
+
+Status: Batch 1 implementation guard. Runtime execution remains default-off.
+Do not open a live execution window until the owner explicitly approves it.
 
 ## Phase 9 - Public Execution Hardening
 

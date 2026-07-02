@@ -71,6 +71,7 @@ import { evaluateDualApprovalExecution } from "../types/dualApprovalExecution";
 import { evaluateResultMonitoringCloseout } from "../types/resultMonitoringCloseout";
 import { evaluateControlledLiveTransactionGate } from "../types/controlledLiveTransactionGate";
 import { evaluateExecutionLaunchReadiness } from "../types/executionLaunchReadiness";
+import { evaluatePhase8ControlledExecution } from "../types/phase8ControlledExecution";
 import { baseChainId } from "../types/unsignedTransactionHandoff";
 import type { DataProvider } from "../types/api";
 import type {
@@ -1158,6 +1159,35 @@ export function Dashboard({
       controlledLiveTransactionGate,
       dashboardStatus,
       deployFunctionStatus,
+    ],
+  );
+  const phase8ControlledExecution = useMemo(
+    () =>
+      evaluatePhase8ControlledExecution({
+        ownerSignedIn: Boolean(authSession),
+        selectedAgent: Boolean(agentRecord),
+        baseAccountConnected: baseAccountConnectionStatus.connected,
+        executionLaunch: executionLaunchReadiness,
+        runtimeEnablement: String(appConfig.integrations.walletExecution) === "enabled"
+          ? "enabled"
+          : "disabled",
+        ownerClickedExecute: false,
+        frozenAction: dualApprovalReview.frozenAction,
+        baseAccountPromptState: "not_requested",
+        resultMonitoring: resultMonitoringCloseout,
+        rollbackReady: true,
+        emergencyDisableReady: true,
+        postTransactionAuditReady: true,
+        telegramCanAuthorize: false,
+        visibleInPublicProfile: false,
+      }),
+    [
+      agentRecord,
+      authSession,
+      baseAccountConnectionStatus.connected,
+      dualApprovalReview.frozenAction,
+      executionLaunchReadiness,
+      resultMonitoringCloseout,
     ],
   );
   const backendTables = dashboardData?.backendTables ?? [];
@@ -2672,6 +2702,59 @@ export function Dashboard({
                     Owner review can be prepared. Runtime wallet prompt,
                     signing, and submission still require a separate enablement
                     window.
+                  </small>
+                )}
+            </div>
+            <div className="phase-8-execution-panel">
+              <div className="phase-8-execution-header">
+                <span>Phase 8 controlled execution</span>
+                <strong>{phase8ControlledExecution.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="phase-8-execution-grid">
+                <span>
+                  Runtime
+                  <strong>
+                    {String(appConfig.integrations.walletExecution) === "enabled"
+                      ? "enabled"
+                      : "default-off"}
+                  </strong>
+                </span>
+                <span>
+                  Wallet prompt
+                  <strong>
+                    {phase8ControlledExecution.walletPromptAllowed
+                      ? "ready for wallet prompt"
+                      : "locked"}
+                  </strong>
+                </span>
+                <span>
+                  Submission
+                  <strong>
+                    {phase8ControlledExecution.transactionSubmissionAllowed
+                      ? "allowed"
+                      : "locked"}
+                  </strong>
+                </span>
+                <span>
+                  Scope
+                  <strong>
+                    {phase8ControlledExecution.ownerOnly
+                      ? "owner-only"
+                      : "blocked"}
+                  </strong>
+                </span>
+              </div>
+              <p>{phase8ControlledExecution.message}</p>
+              {phase8ControlledExecution.reasons.length
+                ? (
+                  <small>
+                    Blocked by: {phase8ControlledExecution.reasons.join(", ")}
+                  </small>
+                )
+                : (
+                  <small>
+                    Ready for wallet prompt only after an explicit owner live
+                    window. Telegram and public profiles still cannot execute.
                   </small>
                 )}
             </div>
