@@ -72,6 +72,7 @@ import { evaluateResultMonitoringCloseout } from "../types/resultMonitoringClose
 import { evaluateControlledLiveTransactionGate } from "../types/controlledLiveTransactionGate";
 import { evaluateExecutionLaunchReadiness } from "../types/executionLaunchReadiness";
 import { evaluatePhase8ControlledExecution } from "../types/phase8ControlledExecution";
+import { evaluatePhase8LiveWindowPreparation } from "../types/phase8LiveWindowPreparation";
 import { baseChainId } from "../types/unsignedTransactionHandoff";
 import type { DataProvider } from "../types/api";
 import type {
@@ -1188,6 +1189,55 @@ export function Dashboard({
       dualApprovalReview.frozenAction,
       executionLaunchReadiness,
       resultMonitoringCloseout,
+    ],
+  );
+  const phase8LiveWindowPreparation = useMemo(
+    () => {
+      const ownerUserId = authSession?.user.id ?? "";
+      const workspaceId = dashboardData?.workspace.id ?? "";
+      const selectedAgentId = agentRecord?.id ?? "";
+      const nowIso = new Date().toISOString();
+
+      return evaluatePhase8LiveWindowPreparation({
+        ownerUserId,
+        sessionUserId: ownerUserId,
+        workspaceId,
+        selectedWorkspaceId: workspaceId,
+        selectedAgentId,
+        chainId: baseAccountConnectionStatus.chainId,
+        baseAccountConnected: baseAccountConnectionStatus.connected,
+        liveWindow: {
+          status: "not_requested",
+          approvedByUserId: null,
+          workspaceId: null,
+          agentId: null,
+          approvedAt: null,
+          expiresAt: null,
+          revokedAt: null,
+        },
+        executeIntent: {
+          source: "private_dashboard",
+          ownerClickedExecute: false,
+          ownerUserId,
+          workspaceId,
+          agentId: selectedAgentId,
+          requestedAt: null,
+        },
+        frozenAction: dualApprovalReview.frozenAction,
+        baseAccountPromptReadiness: baseAccountConnectionStatus.connected
+          ? "ready"
+          : "not_ready",
+        nowIso,
+        visibleInPublicProfile: false,
+      });
+    },
+    [
+      agentRecord?.id,
+      authSession?.user.id,
+      baseAccountConnectionStatus.chainId,
+      baseAccountConnectionStatus.connected,
+      dashboardData?.workspace.id,
+      dualApprovalReview.frozenAction,
     ],
   );
   const backendTables = dashboardData?.backendTables ?? [];
@@ -2755,6 +2805,66 @@ export function Dashboard({
                   <small>
                     Ready for wallet prompt only after an explicit owner live
                     window. Telegram and public profiles still cannot execute.
+                  </small>
+                )}
+            </div>
+            <div className="phase-8-live-window-panel">
+              <div className="phase-8-live-window-header">
+                <span>Phase 8 live window</span>
+                <strong>{phase8LiveWindowPreparation.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="phase-8-live-window-grid">
+                <span>
+                  owner-approved window
+                  <strong>
+                    {phase8LiveWindowPreparation.reasons.includes(
+                        "live_window_approval_required",
+                      )
+                      ? "required"
+                      : "ready"}
+                  </strong>
+                </span>
+                <span>
+                  private dashboard intent
+                  <strong>
+                    {phase8LiveWindowPreparation.reasons.includes(
+                        "owner_click_required",
+                      )
+                      ? "click required"
+                      : "recorded"}
+                  </strong>
+                </span>
+                <span>
+                  Frozen binding
+                  <strong>
+                    {phase8LiveWindowPreparation.reasons.some((reason) =>
+                        reason.startsWith("frozen_action"),
+                      )
+                      ? "locked"
+                      : "matched"}
+                  </strong>
+                </span>
+                <span>
+                  prompt readiness
+                  <strong>
+                    {phase8LiveWindowPreparation.walletPromptAllowed
+                      ? "ready"
+                      : "blocked"}
+                  </strong>
+                </span>
+              </div>
+              <p>{phase8LiveWindowPreparation.message}</p>
+              {phase8LiveWindowPreparation.reasons.length
+                ? (
+                  <small>
+                    Blocked by: {phase8LiveWindowPreparation.reasons.join(", ")}
+                  </small>
+                )
+                : (
+                  <small>
+                    owner-approved window, private dashboard intent, frozen
+                    action binding, and Base Account prompt readiness are ready.
+                    Transaction submission remains disabled in Batch 2.
                   </small>
                 )}
             </div>

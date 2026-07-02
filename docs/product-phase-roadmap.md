@@ -381,7 +381,18 @@ Batch 1 evidence:
 - `scripts/test-phase-8-controlled-execution.mjs`
 - `scripts/check-phase-8-controlled-execution.mjs`
 
-Status: Batch 1 implementation guard. Runtime execution remains default-off.
+Batch 2 evidence:
+
+- live-window preparation guard
+- owner-approved live window
+- private dashboard execute intent
+- frozen action binding
+- Base Account prompt readiness
+- `src/types/phase8LiveWindowPreparation.ts`
+- `scripts/test-phase-8-live-window-preparation.mjs`
+- `scripts/check-phase-8-live-window-preparation.mjs`
+
+Status: Batch 2 live-window preparation guard. Runtime execution remains default-off.
 Do not open a live execution window until the owner explicitly approves it.
 
 ## Phase 9 - Public Execution Hardening

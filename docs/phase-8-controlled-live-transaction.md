@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 1 implementation guard. Runtime execution remains default-off.
+Status: Batch 2 live-window preparation guard. Runtime execution remains default-off.
 
 ## Purpose
 
@@ -81,3 +81,39 @@ The checker must prove:
 - Public profiles cannot show execution state.
 - User wallet authority and user Telegram bot-token privacy remain priority
   one.
+
+## Batch 2 - Live Window Preparation
+
+Batch 2 adds the owner-approved live window layer before any wallet prompt can
+be considered ready. It still does not submit transactions.
+
+Required Batch 2 controls:
+
+- owner-approved live window scoped to the active owner, workspace, and agent
+- private owner dashboard execute intent only
+- explicit owner click inside that private dashboard intent
+- Frozen action binding across owner, workspace, agent, Base chain, zero value,
+  and no calldata
+- Base Account prompt readiness before any prompt can open
+- Telegram, automation, and public profile sources remain blocked
+- transaction submission remains disabled
+
+Implementation evidence:
+
+- `src/types/phase8LiveWindowPreparation.ts`
+- `scripts/test-phase-8-live-window-preparation.mjs`
+- `scripts/check-phase-8-live-window-preparation.mjs`
+- private dashboard Phase 8 live window panel
+- `npm run check:phase-8-live-window`
+
+The model can return `ready_for_wallet_prompt`, `wallet_prompt_opened`, or
+`wallet_prompt_approved`, but every Batch 2 result keeps
+`transactionSubmissionAllowed: false`. Real submission is reserved for the next
+controlled execution batch after explicit owner approval.
+
+Batch 2 negative cases cover expired live windows, revoked live windows, wrong
+owner, wrong workspace, wrong agent, wrong chain, Telegram intent, public
+profile intent, non-zero value, calldata, and Base Account prompt readiness
+failure.
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
