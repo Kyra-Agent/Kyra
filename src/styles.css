@@ -3633,6 +3633,64 @@ h2 {
   line-height: 1.45;
 }
 
+.phase-8-wallet-prompt-panel {
+  display: grid;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
+  padding: 0.76rem;
+  border: 1px solid rgba(16, 185, 129, 0.26);
+  border-radius: var(--radius);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.phase-8-wallet-prompt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.phase-8-wallet-prompt-header span,
+.phase-8-wallet-prompt-panel small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.phase-8-wallet-prompt-header strong {
+  color: var(--text);
+  font-size: 0.86rem;
+  text-align: right;
+}
+
+.phase-8-wallet-prompt-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.phase-8-wallet-prompt-grid span {
+  display: grid;
+  gap: 0.16rem;
+  min-height: 52px;
+  padding: 0.52rem;
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) - 2px);
+  color: var(--muted);
+  font-size: 0.73rem;
+}
+
+.phase-8-wallet-prompt-grid strong {
+  color: var(--text);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.phase-8-wallet-prompt-panel p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .result-monitoring-panel {
   display: grid;
   gap: 0.65rem;

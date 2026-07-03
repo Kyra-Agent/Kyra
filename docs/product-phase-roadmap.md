@@ -392,7 +392,18 @@ Batch 2 evidence:
 - `scripts/test-phase-8-live-window-preparation.mjs`
 - `scripts/check-phase-8-live-window-preparation.mjs`
 
-Status: Batch 2 live-window preparation guard. Runtime execution remains default-off.
+Batch 3 evidence:
+
+- controlled wallet prompt opening
+- one-time prompt nonce
+- owner-click Base Account prompt
+- owner-only prompt audit
+- transaction submission remains disabled
+- `src/types/phase8WalletPromptOpening.ts`
+- `scripts/test-phase-8-wallet-prompt-opening.mjs`
+- `scripts/check-phase-8-wallet-prompt-opening.mjs`
+
+Status: Batch 3 wallet prompt opening guard. Runtime execution remains default-off.
 Do not open a live execution window until the owner explicitly approves it.
 
 ## Phase 9 - Public Execution Hardening

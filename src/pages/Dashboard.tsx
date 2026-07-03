@@ -73,6 +73,7 @@ import { evaluateControlledLiveTransactionGate } from "../types/controlledLiveTr
 import { evaluateExecutionLaunchReadiness } from "../types/executionLaunchReadiness";
 import { evaluatePhase8ControlledExecution } from "../types/phase8ControlledExecution";
 import { evaluatePhase8LiveWindowPreparation } from "../types/phase8LiveWindowPreparation";
+import { evaluatePhase8WalletPromptOpening } from "../types/phase8WalletPromptOpening";
 import { baseChainId } from "../types/unsignedTransactionHandoff";
 import type { DataProvider } from "../types/api";
 import type {
@@ -1238,6 +1239,42 @@ export function Dashboard({
       baseAccountConnectionStatus.connected,
       dashboardData?.workspace.id,
       dualApprovalReview.frozenAction,
+    ],
+  );
+  const phase8WalletPromptOpening = useMemo(
+    () => {
+      const ownerUserId = authSession?.user.id ?? "";
+      const workspaceId = dashboardData?.workspace.id ?? "";
+      const selectedAgentId = agentRecord?.id ?? "";
+
+      return evaluatePhase8WalletPromptOpening({
+        liveWindowPreparation: phase8LiveWindowPreparation,
+        ownerUserId,
+        workspaceId,
+        selectedAgentId,
+        frozenAction: dualApprovalReview.frozenAction,
+        promptIntent: {
+          source: "private_dashboard",
+          ownerClickedOpenPrompt: false,
+          ownerUserId,
+          workspaceId,
+          agentId: selectedAgentId,
+          frozenActionFreezeKey: dualApprovalReview.frozenAction?.freezeKey ?? null,
+          promptNonce: null,
+          promptNonceUsed: false,
+          requestedAt: null,
+        },
+        promptState: "not_requested",
+        auditEvents: [],
+        visibleInPublicProfile: false,
+      });
+    },
+    [
+      agentRecord?.id,
+      authSession?.user.id,
+      dashboardData?.workspace.id,
+      dualApprovalReview.frozenAction,
+      phase8LiveWindowPreparation,
     ],
   );
   const backendTables = dashboardData?.backendTables ?? [];
@@ -2865,6 +2902,64 @@ export function Dashboard({
                     owner-approved window, private dashboard intent, frozen
                     action binding, and Base Account prompt readiness are ready.
                     Transaction submission remains disabled in Batch 2.
+                  </small>
+                )}
+            </div>
+            <div className="phase-8-wallet-prompt-panel">
+              <div className="phase-8-wallet-prompt-header">
+                <span>Phase 8 wallet prompt opening</span>
+                <strong>{phase8WalletPromptOpening.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="phase-8-wallet-prompt-grid">
+                <span>
+                  one-time nonce
+                  <strong>
+                    {phase8WalletPromptOpening.reasons.includes(
+                        "one_time_prompt_nonce_required",
+                      )
+                      ? "required"
+                      : "bound"}
+                  </strong>
+                </span>
+                <span>
+                  owner-only audit
+                  <strong>
+                    {phase8WalletPromptOpening.reasons.includes(
+                        "owner_only_audit_required",
+                      )
+                      ? "required"
+                      : "ready"}
+                  </strong>
+                </span>
+                <span>
+                  open allowed
+                  <strong>
+                    {phase8WalletPromptOpening.walletPromptOpenAllowed
+                      ? "allowed"
+                      : "locked"}
+                  </strong>
+                </span>
+                <span>
+                  Submission
+                  <strong>
+                    {phase8WalletPromptOpening.transactionSubmissionAllowed
+                      ? "allowed"
+                      : "disabled"}
+                  </strong>
+                </span>
+              </div>
+              <p>{phase8WalletPromptOpening.message}</p>
+              {phase8WalletPromptOpening.reasons.length
+                ? (
+                  <small>
+                    Blocked by: {phase8WalletPromptOpening.reasons.join(", ")}
+                  </small>
+                )
+                : (
+                  <small>
+                    One owner-click Base Account prompt can open under
+                    owner-only audit. Transaction submission remains disabled in
+                    Batch 3.
                   </small>
                 )}
             </div>

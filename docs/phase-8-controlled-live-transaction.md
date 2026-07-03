@@ -2,6 +2,7 @@
 
 Date: 2026-07-03
 
+Status: Batch 3 wallet prompt opening guard. Runtime execution remains default-off.
 Status: Batch 2 live-window preparation guard. Runtime execution remains default-off.
 
 ## Purpose
@@ -115,5 +116,40 @@ Batch 2 negative cases cover expired live windows, revoked live windows, wrong
 owner, wrong workspace, wrong agent, wrong chain, Telegram intent, public
 profile intent, non-zero value, calldata, and Base Account prompt readiness
 failure.
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+
+## Batch 3 - Wallet Prompt Opening
+
+Batch 3 adds controlled wallet prompt opening after Batch 2 live-window
+preparation is ready. It still does not submit transactions.
+
+Required Batch 3 controls:
+
+- controlled wallet prompt opening from the private owner dashboard only
+- one-time prompt nonce bound to the owner, workspace, agent, and frozen action
+- owner-click Base Account prompt opening
+- owner-only prompt audit for opened, approved, rejected, and failed prompt
+  states
+- sanitized audit events only
+- Telegram, automation, and public profile sources remain blocked
+- `transactionSubmissionAllowed: false` for every Batch 3 result
+
+Implementation evidence:
+
+- `src/types/phase8WalletPromptOpening.ts`
+- `scripts/test-phase-8-wallet-prompt-opening.mjs`
+- `scripts/check-phase-8-wallet-prompt-opening.mjs`
+- private dashboard Phase 8 wallet prompt opening panel
+- `npm run check:phase-8-wallet-prompt`
+
+The model can return `ready_to_open_prompt`, `prompt_opened`,
+`prompt_approved`, `prompt_rejected`, or `prompt_failed`. Approval records that
+the wallet prompt accepted the request, but Batch 3 still keeps transaction
+submission disabled. Submission belongs to the next controlled execution batch.
+
+Batch 3 negative cases cover blocked live-window preparation, Telegram prompt
+source, public prompt source, missing nonce, reused nonce, wrong frozen action
+binding, missing audit, unsafe audit, and public visibility.
 
 User wallet authority and user Telegram bot-token privacy remain priority one.
