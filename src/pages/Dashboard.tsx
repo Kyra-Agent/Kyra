@@ -80,7 +80,9 @@ import { evaluatePhase8LiveWindowPreparation } from "../types/phase8LiveWindowPr
 import { evaluatePhase8WalletPromptOpening } from "../types/phase8WalletPromptOpening";
 import { evaluatePhase8ControlledSubmission } from "../types/phase8ControlledSubmission";
 import { evaluatePhase8OwnerLiveWindowActivation } from "../types/phase8OwnerLiveWindowActivation";
+import { createPhase8OwnerActionCandidate } from "../types/phase8OwnerActionCandidate";
 import { baseChainId } from "../types/unsignedTransactionHandoff";
+import { maskBaseAccountAddress } from "../types/baseAccountConnection";
 import type { DataProvider } from "../types/api";
 import type {
   DemoActivityLog,
@@ -686,6 +688,7 @@ export function Dashboard({
   const [baseAccountConnectionStatus, setBaseAccountConnectionStatus] =
     useState<BaseAccountConnectionStatus>({
       connected: false,
+      address: null,
       chainId: null,
       connectorId: null,
     });
@@ -1067,6 +1070,25 @@ export function Dashboard({
       }),
     [agentRecord, authSession],
   );
+  const phase8OwnerActionCandidate = useMemo(
+    () =>
+      createPhase8OwnerActionCandidate({
+        ownerUserId: authSession?.user.id,
+        workspaceId: dashboardData?.workspace.id,
+        agentId: agentRecord?.id,
+        baseAccountConnected: baseAccountConnectionStatus.connected,
+        baseAccountAddress: baseAccountConnectionStatus.address,
+        chainId: baseAccountConnectionStatus.chainId,
+      }),
+    [
+      agentRecord?.id,
+      authSession?.user.id,
+      baseAccountConnectionStatus.address,
+      baseAccountConnectionStatus.chainId,
+      baseAccountConnectionStatus.connected,
+      dashboardData?.workspace.id,
+    ],
+  );
   const dualApprovalReview = useMemo(
     () =>
       evaluateDualApprovalExecution({
@@ -1086,17 +1108,19 @@ export function Dashboard({
     const ownerUserId = authSession?.user.id;
     const workspaceId = dashboardData?.workspace.id;
     const agentId = agentRecord?.id;
-    const canonical = reviewPreparedActionAllowlist({
-      source: "owner_dashboard",
-      walletExecutionEnabled: true,
-      actionKind: "base_reviewed_transaction",
-      chainId: baseChainId,
-      recipient: "0x1111111111111111111111111111111111111111",
-      valueWei: "0",
-      data: "0x",
-      routeSummary: "Phase 8 owner-armed Base transaction candidate.",
-      valueSummary: "No token spend, no calldata, zero-value controlled submit.",
-    }).canonical;
+    const canonical = phase8OwnerActionCandidate.ok
+      ? reviewPreparedActionAllowlist({
+        source: "owner_dashboard",
+        walletExecutionEnabled: true,
+        actionKind: phase8OwnerActionCandidate.candidate.actionKind,
+        chainId: baseChainId,
+        recipient: phase8OwnerActionCandidate.candidate.recipient,
+        valueWei: phase8OwnerActionCandidate.candidate.valueWei,
+        data: phase8OwnerActionCandidate.candidate.data,
+        routeSummary: phase8OwnerActionCandidate.candidate.routeSummary,
+        valueSummary: phase8OwnerActionCandidate.candidate.valueSummary,
+      }).canonical
+      : null;
 
     if (!ownerUserId || !workspaceId || !agentId || !canonical) {
       return null;
@@ -1111,7 +1135,12 @@ export function Dashboard({
       approvedAt: "phase8-owner-live-window",
       canonical,
     });
-  }, [agentRecord?.id, authSession?.user.id, dashboardData?.workspace.id]);
+  }, [
+    agentRecord?.id,
+    authSession?.user.id,
+    dashboardData?.workspace.id,
+    phase8OwnerActionCandidate,
+  ]);
 
   const phase8OwnerArmingCurrent = useMemo(
     () => {
@@ -1198,17 +1227,19 @@ export function Dashboard({
     ],
   );
   const controlledLiveTransactionGate = useMemo(() => {
-    const liveCandidate = reviewPreparedActionAllowlist({
-      source: "owner_dashboard",
-      walletExecutionEnabled: true,
-      actionKind: "base_reviewed_transaction",
-      chainId: baseChainId,
-      recipient: "0x1111111111111111111111111111111111111111",
-      valueWei: "0",
-      data: "0x",
-      routeSummary: "Controlled low-risk Base transaction candidate.",
-      valueSummary: "No token spend in Phase 7J gate review.",
-    });
+    const liveCandidate = phase8OwnerActionCandidate.ok
+      ? reviewPreparedActionAllowlist({
+        source: "owner_dashboard",
+        walletExecutionEnabled: true,
+        actionKind: phase8OwnerActionCandidate.candidate.actionKind,
+        chainId: baseChainId,
+        recipient: phase8OwnerActionCandidate.candidate.recipient,
+        valueWei: phase8OwnerActionCandidate.candidate.valueWei,
+        data: phase8OwnerActionCandidate.candidate.data,
+        routeSummary: phase8OwnerActionCandidate.candidate.routeSummary,
+        valueSummary: phase8OwnerActionCandidate.candidate.valueSummary,
+      })
+      : null;
 
     return evaluateControlledLiveTransactionGate({
       ownerUserId: authSession?.user.id ?? "",
@@ -1216,9 +1247,9 @@ export function Dashboard({
       agentId: agentRecord?.id ?? "",
       baseAccountConnected: baseAccountConnectionStatus.connected,
       chainId: baseAccountConnectionStatus.chainId,
-      preparedActionCount: 1,
-      actionAllowlisted: liveCandidate.allowed,
-      actionRisk: liveCandidate.allowed ? "low" : "blocked",
+      preparedActionCount: phase8OwnerActionCandidate.ok ? 1 : 0,
+      actionAllowlisted: liveCandidate?.allowed ?? false,
+      actionRisk: liveCandidate?.allowed ? "low" : "blocked",
       dualApproval: dualApprovalReview,
       resultMonitoring: resultMonitoringCloseout,
       rollbackReady: true,
@@ -1238,6 +1269,7 @@ export function Dashboard({
     baseAccountConnectionStatus.connected,
     dashboardData?.workspace.id,
     dualApprovalReview,
+    phase8OwnerActionCandidate,
     resultMonitoringCloseout,
   ]);
   const executionLaunchReadiness = useMemo(
@@ -3236,6 +3268,32 @@ export function Dashboard({
                 </span>
               </div>
               <p>{phase8OwnerLiveWindowActivation.message}</p>
+              <div className="phase-8-owner-candidate-panel">
+                <span>
+                  Candidate
+                  <strong>{phase8OwnerActionCandidate.ok ? "owner self-check" : "locked"}</strong>
+                </span>
+                <span>
+                  Recipient
+                  <strong>
+                    {phase8OwnerActionCandidate.ok
+                      ? maskBaseAccountAddress(phase8OwnerActionCandidate.candidate.recipient)
+                      : "Base Account required"}
+                  </strong>
+                </span>
+                <span>
+                  Value
+                  <strong>{phase8OwnerActionCandidate.ok ? "0 ETH" : "blocked"}</strong>
+                </span>
+                <span>
+                  Calldata
+                  <strong>{phase8OwnerActionCandidate.ok ? "none" : "blocked"}</strong>
+                </span>
+              </div>
+              <small>{phase8OwnerActionCandidate.message}</small>
+              {!phase8OwnerActionCandidate.ok && phase8OwnerActionCandidate.reasons.length
+                ? <small>Candidate blocked by: {phase8OwnerActionCandidate.reasons.join(", ")}</small>
+                : null}
               <div className="phase-8-live-window-activation-actions">
                 <button
                   className="button button-primary"

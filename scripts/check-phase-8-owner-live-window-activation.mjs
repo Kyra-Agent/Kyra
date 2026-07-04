@@ -43,8 +43,11 @@ function walkFiles(path) {
 const doc = read("docs/phase-8-controlled-live-transaction.md");
 const roadmap = read("docs/product-phase-roadmap.md");
 const model = read("src/types/phase8OwnerLiveWindowActivation.ts");
+const candidate = read("src/types/phase8OwnerActionCandidate.ts");
 const test = read("scripts/test-phase-8-owner-live-window-activation.mjs");
+const candidateTest = read("scripts/test-phase-8-owner-action-candidate.mjs");
 const submitter = read("src/components/Phase8ControlledSubmitter.tsx");
+const baseAccountPanel = read("src/components/BaseAccountConnectionPanel.tsx");
 const dashboard = read("src/pages/Dashboard.tsx");
 const styles = read("src/styles.css");
 const packageJson = read("package.json");
@@ -54,13 +57,15 @@ const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 7 owner arming UX.",
+  "Status: Batch 8 owner self-check candidate.",
   "Owner Live-Window Activation Lock",
   "Owner Arming UX",
+  "Owner Self-Check Candidate",
   "owner live-window activation result",
   "owner arming control",
   "operator acknowledgement must be recorded",
   "src/types/phase8OwnerLiveWindowActivation.ts",
+  "src/types/phase8OwnerActionCandidate.ts",
   "scripts/test-phase-8-owner-live-window-activation.mjs",
   "User wallet authority and user Telegram bot-token privacy remain priority one",
 ]) {
@@ -68,13 +73,15 @@ for (const expected of [
 }
 
 for (const expected of [
-  "In progress: Batch 7",
-  "Batch 7 evidence",
+  "In progress: Batch 8",
+  "Batch 8 evidence",
   "owner live-window activation lock",
   "owner arming UX",
+  "owner self-check candidate",
   "src/types/phase8OwnerLiveWindowActivation.ts",
+  "src/types/phase8OwnerActionCandidate.ts",
   "scripts/check-phase-8-owner-live-window-activation.mjs",
-  "Status: Batch 7 owner arming UX.",
+  "Status: Batch 8 owner self-check candidate.",
 ]) {
   includes("roadmap", roadmap, expected);
 }
@@ -94,6 +101,15 @@ for (const expected of [
 }
 
 for (const expected of [
+  "createPhase8OwnerActionCandidate",
+  "base_account_address_required",
+  "Owner Base Account self-check controlled transaction.",
+  "Zero ETH, no token spend, no calldata, self-address recipient.",
+]) {
+  includes("owner action candidate", candidate, expected);
+}
+
+for (const expected of [
   "Phase 8 owner live-window activation checks passed.",
   "runtime_window_disabled",
   "controlled_submission_required",
@@ -104,9 +120,24 @@ for (const expected of [
 }
 
 for (const expected of [
+  "Phase 8 owner action candidate checks passed.",
+  "base_account_address_required",
+  "base_chain_required",
+]) {
+  includes("owner action candidate test", candidateTest, expected);
+}
+
+for (const expected of [
+  "address: `0x${string}` | null",
+  "address: binding?.address ?? null",
+]) {
+  includes("base account panel", baseAccountPanel, expected);
+}
+
+for (const expected of [
   "Phase8OwnerLiveWindowActivationResult",
   "activation.transactionSubmissionAllowed",
-  "Phase 8 Batch 7 submitter",
+  "Phase 8 Batch 8 submitter",
   "Window armed",
   "Activation blocked by",
 ]) {
@@ -116,6 +147,9 @@ for (const expected of [
 for (const expected of [
   "evaluatePhase8OwnerLiveWindowActivation",
   "phase8OwnerLiveWindowActivation",
+  "phase8OwnerActionCandidate",
+  "createPhase8OwnerActionCandidate",
+  "baseAccountAddress: baseAccountConnectionStatus.address",
   "phase8OwnerArming",
   "phase8FrozenAction",
   "activePhase8OwnerArming",
@@ -127,6 +161,8 @@ for (const expected of [
   "submissionState: activePhase8OwnerArming ? \"ready\" : \"not_submitted\"",
   "Arm owner live window",
   "Reset window",
+  "phase-8-owner-candidate-panel",
+  "owner self-check",
   "Phase 8 live-window activation",
   "activation={phase8OwnerLiveWindowActivation}",
 ]) {
@@ -137,12 +173,14 @@ for (const expected of [
   ".phase-8-live-window-activation-panel",
   ".phase-8-live-window-activation-grid",
   ".phase-8-live-window-activation-actions",
+  ".phase-8-owner-candidate-panel",
 ]) {
   includes("styles", styles, expected);
 }
 
 for (const expected of [
   '"test:phase-8-owner-live-window-activation"',
+  '"test:phase-8-owner-action-candidate"',
   '"check:phase-8-owner-live-window"',
 ]) {
   includes("package.json", packageJson, expected);
@@ -152,7 +190,7 @@ for (const path of telegramFiles) {
   excludes(
     path,
     read(path),
-    /phase8OwnerLiveWindowActivation|evaluatePhase8OwnerLiveWindowActivation|Phase8ControlledSubmitter|useSendTransaction|sendTransaction|eth_sendTransaction/u,
+    /phase8OwnerLiveWindowActivation|evaluatePhase8OwnerLiveWindowActivation|Phase8ControlledSubmitter|createPhase8OwnerActionCandidate|useSendTransaction|sendTransaction|eth_sendTransaction/u,
     "Phase 8 owner live-window activation Telegram authority",
   );
 }
@@ -161,7 +199,7 @@ for (const path of publicFiles) {
   excludes(
     path,
     read(path),
-    /phase8OwnerLiveWindowActivation|evaluatePhase8OwnerLiveWindowActivation|Phase8ControlledSubmitter|useSendTransaction|sendTransaction|eth_sendTransaction/u,
+    /phase8OwnerLiveWindowActivation|evaluatePhase8OwnerLiveWindowActivation|Phase8ControlledSubmitter|createPhase8OwnerActionCandidate|useSendTransaction|sendTransaction|eth_sendTransaction/u,
     "Phase 8 owner live-window activation public authority",
   );
 }

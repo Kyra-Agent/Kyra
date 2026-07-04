@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 7 owner arming UX. Runtime execution remains default-off. Owner-approved window is required before activation.
+Status: Batch 8 owner self-check candidate. Runtime execution remains default-off. Owner-approved window is required before activation.
 
 ## Purpose
 
@@ -293,5 +293,31 @@ Implementation evidence:
 - `npm run check:phase-8-owner-live-window`
 
 Batch 7 opens the owner-controlled readiness path without weakening the runtime gate. Production transaction submission remains default-off until the owner intentionally enables the controlled live window and completes the Base Account approval flow.
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+
+## Batch 8 - Owner Self-Check Candidate
+
+Batch 8 replaces the placeholder Phase 8 transaction candidate with a deterministic owner self-check candidate. The candidate uses the connected browser-session Base Account address as the recipient, remains zero-value, and carries no calldata.
+
+Required Batch 8 controls:
+
+- candidate can be created only when owner, workspace, selected agent, Base Account connection, Base chain, and browser-session address are present
+- recipient is the connected owner Base Account address, masked in UI
+- value remains `0`
+- calldata remains `0x`
+- candidate summary is bounded and owner-dashboard sourced
+- changing/disconnecting the Base Account invalidates the candidate and active arming state
+- Telegram, public profiles, automation, swaps, token approvals, calldata, and non-zero value remain blocked
+
+Implementation evidence:
+
+- `src/types/phase8OwnerActionCandidate.ts`
+- `scripts/test-phase-8-owner-action-candidate.mjs`
+- Base Account dashboard status includes browser-session address
+- private dashboard owner candidate panel
+- `scripts/check-phase-8-owner-live-window-activation.mjs`
+
+Batch 8 makes the first controlled transaction path safer and easier to review because the owner can see the exact self-check candidate before arming the live window. Runtime submission remains default-off and still requires owner arming, Base Account approval, rollback readiness, emergency disablement readiness, and owner-only audit.
 
 User wallet authority and user Telegram bot-token privacy remain priority one.

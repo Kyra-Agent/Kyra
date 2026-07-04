@@ -41,6 +41,7 @@ interface BaseAccountConnectionPanelProps {
 
 export interface BaseAccountConnectionStatus {
   connected: boolean;
+  address: `0x${string}` | null;
   chainId: number | null;
   connectorId: string | null;
 }
@@ -100,6 +101,7 @@ export function BaseAccountConnectionPanel({
   useEffect(() => {
     onConnectionStateChange?.({
       connected: Boolean(binding),
+      address: binding?.address ?? null,
       chainId: binding?.chainId ?? null,
       connectorId: binding?.connectorId ?? null,
     });

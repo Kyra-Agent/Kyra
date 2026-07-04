@@ -5789,3 +5789,26 @@ h2 {
   justify-content: center;
   min-height: 42px;
 }
+
+.phase-8-owner-candidate-panel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.phase-8-owner-candidate-panel span {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.44);
+  color: var(--muted);
+  display: grid;
+  gap: 5px;
+  min-height: 70px;
+  padding: 10px;
+}
+
+.phase-8-owner-candidate-panel strong {
+  color: var(--text);
+  font-size: 0.82rem;
+}
