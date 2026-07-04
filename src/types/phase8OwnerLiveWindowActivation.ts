@@ -100,7 +100,7 @@ export function evaluatePhase8OwnerLiveWindowActivation(
     transactionSubmissionAllowed: true,
     reasons: [],
     message:
-      "Phase 8 Batch 6 live window is armed for one owner-controlled Base submit.",
+      "Phase 8 Batch 7 live window is armed for one owner-controlled Base submit.",
   };
 }
 

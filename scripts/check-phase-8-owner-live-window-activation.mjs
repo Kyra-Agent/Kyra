@@ -54,9 +54,11 @@ const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 6 owner live-window activation lock.",
+  "Status: Batch 7 owner arming UX.",
   "Owner Live-Window Activation Lock",
+  "Owner Arming UX",
   "owner live-window activation result",
+  "owner arming control",
   "operator acknowledgement must be recorded",
   "src/types/phase8OwnerLiveWindowActivation.ts",
   "scripts/test-phase-8-owner-live-window-activation.mjs",
@@ -66,12 +68,13 @@ for (const expected of [
 }
 
 for (const expected of [
-  "In progress: Batch 6",
-  "Batch 6 evidence",
+  "In progress: Batch 7",
+  "Batch 7 evidence",
   "owner live-window activation lock",
+  "owner arming UX",
   "src/types/phase8OwnerLiveWindowActivation.ts",
   "scripts/check-phase-8-owner-live-window-activation.mjs",
-  "Status: Batch 6 owner live-window activation lock.",
+  "Status: Batch 7 owner arming UX.",
 ]) {
   includes("roadmap", roadmap, expected);
 }
@@ -103,7 +106,7 @@ for (const expected of [
 for (const expected of [
   "Phase8OwnerLiveWindowActivationResult",
   "activation.transactionSubmissionAllowed",
-  "Phase 8 Batch 6 submitter",
+  "Phase 8 Batch 7 submitter",
   "Window armed",
   "Activation blocked by",
 ]) {
@@ -113,7 +116,17 @@ for (const expected of [
 for (const expected of [
   "evaluatePhase8OwnerLiveWindowActivation",
   "phase8OwnerLiveWindowActivation",
-  "operatorAcknowledged: false",
+  "phase8OwnerArming",
+  "phase8FrozenAction",
+  "activePhase8OwnerArming",
+  "armPhase8OwnerLiveWindow",
+  "resetPhase8OwnerLiveWindow",
+  "operatorAcknowledged: Boolean(activePhase8OwnerArming)",
+  "promptNonce: activePhase8OwnerArming?.promptNonce ?? null",
+  "submissionNonce: activePhase8OwnerArming?.submissionNonce ?? null",
+  "submissionState: activePhase8OwnerArming ? \"ready\" : \"not_submitted\"",
+  "Arm owner live window",
+  "Reset window",
   "Phase 8 live-window activation",
   "activation={phase8OwnerLiveWindowActivation}",
 ]) {
@@ -123,6 +136,7 @@ for (const expected of [
 for (const expected of [
   ".phase-8-live-window-activation-panel",
   ".phase-8-live-window-activation-grid",
+  ".phase-8-live-window-activation-actions",
 ]) {
   includes("styles", styles, expected);
 }

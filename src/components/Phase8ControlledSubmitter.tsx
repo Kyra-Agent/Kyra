@@ -59,7 +59,7 @@ export function Phase8ControlledSubmitter({
   async function handleSubmit() {
     if (!runtimeEnabled) {
       setState("locked");
-      setMessage("Phase 8 Batch 6 live-window runtime is disabled for production safety.");
+      setMessage("Phase 8 Batch 7 live-window runtime is disabled for production safety.");
       return;
     }
 
@@ -106,7 +106,7 @@ export function Phase8ControlledSubmitter({
       <div className="phase-8-submit-boundary-header">
         <span className="queue-icon"><ShieldCheck size={16} /></span>
         <div>
-          <small>Phase 8 Batch 6 submitter</small>
+          <small>Phase 8 Batch 7 submitter</small>
           <strong>{activation.transactionSubmissionAllowed ? "Window armed" : "Window locked"}</strong>
         </div>
         <span>{state}</span>

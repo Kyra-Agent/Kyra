@@ -5777,3 +5777,15 @@ h2 {
   color: var(--text);
   font-size: 0.82rem;
 }
+
+.phase-8-live-window-activation-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.phase-8-live-window-activation-actions .button {
+  justify-content: center;
+  min-height: 42px;
+}

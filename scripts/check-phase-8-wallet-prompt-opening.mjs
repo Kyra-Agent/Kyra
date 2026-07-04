@@ -53,7 +53,7 @@ const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 6 owner live-window activation lock.",
+  "Status: Batch 7 owner arming UX.",
   "controlled wallet prompt opening",
   "one-time prompt nonce",
   "owner-click Base Account prompt",

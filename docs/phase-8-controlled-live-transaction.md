@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 6 owner live-window activation lock. Runtime execution remains default-off. Owner-approved window is required before activation.
+Status: Batch 7 owner arming UX. Runtime execution remains default-off. Owner-approved window is required before activation.
 
 ## Purpose
 
@@ -265,5 +265,33 @@ Implementation evidence:
 Batch 6 is intentionally default-locked in production. Operator acknowledgement
 is false until the owner opens a narrow live window for one selected agent and one
 frozen zero-value/no-calldata action.
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+
+## Batch 7 - Owner Arming UX
+
+Batch 7 connects the owner live-window activation model to explicit private-dashboard controls. It still does not make Telegram, public profiles, automation, swaps, token approvals, calldata, or non-zero value eligible for execution.
+
+Required Batch 7 controls:
+
+- owner can arm the selected agent only from the private dashboard
+- arming is browser-session only and stores no wallet key
+- arming binds owner, workspace, agent, frozen action, prompt nonce, and submission nonce
+- changing owner, workspace, agent, or frozen action invalidates the active arming state
+- reset button clears the browser-session arming state
+- wallet prompt and controlled submission models receive nonces only while the owner arming is current
+- activation still requires the explicit runtime flag `VITE_KYRA_PHASE8_CONTROLLED_SUBMISSION=owner_approved_window`
+- isolated submitter remains locked unless runtime, controlled submission, activation, rollback, emergency disablement, and audit gates all pass
+
+Implementation evidence:
+
+- private dashboard owner arming controls
+- `phase8OwnerArming` browser-session state
+- `phase8FrozenAction` binding
+- one-time prompt and submission nonces derived only after owner arming
+- `scripts/check-phase-8-owner-live-window-activation.mjs`
+- `npm run check:phase-8-owner-live-window`
+
+Batch 7 opens the owner-controlled readiness path without weakening the runtime gate. Production transaction submission remains default-off until the owner intentionally enables the controlled live window and completes the Base Account approval flow.
 
 User wallet authority and user Telegram bot-token privacy remain priority one.

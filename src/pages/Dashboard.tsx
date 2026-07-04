@@ -68,7 +68,10 @@ import {
 import type { BaseMcpPreparedActionSummary } from "../types/baseMcp";
 import { reviewPreparedActionAllowlist } from "../types/preparedAction";
 import { evaluatePreparedActionPolicy } from "../types/preparedActionPolicy";
-import { evaluateDualApprovalExecution } from "../types/dualApprovalExecution";
+import {
+  evaluateDualApprovalExecution,
+  freezeReviewedPreparedAction,
+} from "../types/dualApprovalExecution";
 import { evaluateResultMonitoringCloseout } from "../types/resultMonitoringCloseout";
 import { evaluateControlledLiveTransactionGate } from "../types/controlledLiveTransactionGate";
 import { evaluateExecutionLaunchReadiness } from "../types/executionLaunchReadiness";
@@ -593,6 +596,16 @@ function selectTelegramDashboardStatusForAgent(
   return statuses.find((status) => status.agentId === agentId) ?? null;
 }
 
+interface Phase8OwnerArmingState {
+  ownerUserId: string;
+  workspaceId: string;
+  agentId: string;
+  freezeKey: string;
+  promptNonce: string;
+  submissionNonce: string;
+  armedAt: string;
+}
+
 export function Dashboard({
   selectedTemplate,
   templates,
@@ -676,6 +689,8 @@ export function Dashboard({
       chainId: null,
       connectorId: null,
     });
+  const [phase8OwnerArming, setPhase8OwnerArming] =
+    useState<Phase8OwnerArmingState | null>(null);
   const baseMcpRequestSequenceRef = useRef(0);
   const supabaseStatus = getSupabaseAdapterStatus();
 
@@ -934,6 +949,7 @@ export function Dashboard({
     agentRecords.find((agent) => agent.id === selectedDashboardAgentId) ??
       dashboardData?.latestAgent ??
       null;
+
   const selectedTelegramSession = useMemo(() => {
     return selectTelegramSessionForAgent(
       dashboardData?.telegramSessions,
@@ -1066,6 +1082,93 @@ export function Dashboard({
       }),
     [baseAccountConnectionStatus.connected, preparedActionPolicyReview],
   );
+  const phase8FrozenAction = useMemo(() => {
+    const ownerUserId = authSession?.user.id;
+    const workspaceId = dashboardData?.workspace.id;
+    const agentId = agentRecord?.id;
+    const canonical = reviewPreparedActionAllowlist({
+      source: "owner_dashboard",
+      walletExecutionEnabled: true,
+      actionKind: "base_reviewed_transaction",
+      chainId: baseChainId,
+      recipient: "0x1111111111111111111111111111111111111111",
+      valueWei: "0",
+      data: "0x",
+      routeSummary: "Phase 8 owner-armed Base transaction candidate.",
+      valueSummary: "No token spend, no calldata, zero-value controlled submit.",
+    }).canonical;
+
+    if (!ownerUserId || !workspaceId || !agentId || !canonical) {
+      return null;
+    }
+
+    return freezeReviewedPreparedAction({
+      requestId: `phase8-${agentId}`,
+      ownerUserId,
+      workspaceId,
+      agentId,
+      approvalId: `phase8-owner-${agentId}`,
+      approvedAt: "phase8-owner-live-window",
+      canonical,
+    });
+  }, [agentRecord?.id, authSession?.user.id, dashboardData?.workspace.id]);
+
+  const phase8OwnerArmingCurrent = useMemo(
+    () => {
+      const frozenAction = phase8FrozenAction;
+
+      return Boolean(
+        phase8OwnerArming &&
+          frozenAction &&
+          authSession?.user.id === phase8OwnerArming.ownerUserId &&
+          dashboardData?.workspace.id === phase8OwnerArming.workspaceId &&
+          agentRecord?.id === phase8OwnerArming.agentId &&
+          frozenAction.freezeKey === phase8OwnerArming.freezeKey,
+      );
+    },
+    [
+      agentRecord?.id,
+      authSession?.user.id,
+      dashboardData?.workspace.id,
+      phase8FrozenAction,
+      phase8OwnerArming,
+    ],
+  );
+  const activePhase8OwnerArming = phase8OwnerArmingCurrent
+    ? phase8OwnerArming
+    : null;
+
+  function createPhase8Nonce(prefix: string) {
+    const randomId = globalThis.crypto?.randomUUID?.() ??
+      `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+
+    return `${prefix}-${randomId}`;
+  }
+
+  function armPhase8OwnerLiveWindow() {
+    const frozenAction = phase8FrozenAction;
+    const ownerUserId = authSession?.user.id;
+    const workspaceId = dashboardData?.workspace.id;
+    const agentId = agentRecord?.id;
+
+    if (!frozenAction || !ownerUserId || !workspaceId || !agentId) {
+      return;
+    }
+
+    setPhase8OwnerArming({
+      ownerUserId,
+      workspaceId,
+      agentId,
+      freezeKey: frozenAction.freezeKey,
+      promptNonce: createPhase8Nonce("phase8-prompt"),
+      submissionNonce: createPhase8Nonce("phase8-submit"),
+      armedAt: new Date().toISOString(),
+    });
+  }
+
+  function resetPhase8OwnerLiveWindow() {
+    setPhase8OwnerArming(null);
+  }
   const preparedActionTone = getPreparedActionTone(
     preparedActionPreview.status,
   );
@@ -1177,7 +1280,7 @@ export function Dashboard({
           ? "enabled"
           : "disabled",
         ownerClickedExecute: false,
-        frozenAction: dualApprovalReview.frozenAction,
+        frozenAction: phase8FrozenAction,
         baseAccountPromptState: "not_requested",
         resultMonitoring: resultMonitoringCloseout,
         rollbackReady: true,
@@ -1190,7 +1293,7 @@ export function Dashboard({
       agentRecord,
       authSession,
       baseAccountConnectionStatus.connected,
-      dualApprovalReview.frozenAction,
+      phase8FrozenAction,
       executionLaunchReadiness,
       resultMonitoringCloseout,
     ],
@@ -1211,23 +1314,25 @@ export function Dashboard({
         chainId: baseAccountConnectionStatus.chainId,
         baseAccountConnected: baseAccountConnectionStatus.connected,
         liveWindow: {
-          status: "not_requested",
-          approvedByUserId: null,
-          workspaceId: null,
-          agentId: null,
-          approvedAt: null,
-          expiresAt: null,
+          status: activePhase8OwnerArming ? "approved" : "not_requested",
+          approvedByUserId: activePhase8OwnerArming?.ownerUserId ?? null,
+          workspaceId: activePhase8OwnerArming?.workspaceId ?? null,
+          agentId: activePhase8OwnerArming?.agentId ?? null,
+          approvedAt: activePhase8OwnerArming?.armedAt ?? null,
+          expiresAt: activePhase8OwnerArming
+            ? new Date(Date.parse(activePhase8OwnerArming.armedAt) + 10 * 60 * 1000).toISOString()
+            : null,
           revokedAt: null,
         },
         executeIntent: {
           source: "private_dashboard",
-          ownerClickedExecute: false,
+          ownerClickedExecute: Boolean(activePhase8OwnerArming),
           ownerUserId,
           workspaceId,
           agentId: selectedAgentId,
-          requestedAt: null,
+          requestedAt: activePhase8OwnerArming?.armedAt ?? null,
         },
-        frozenAction: dualApprovalReview.frozenAction,
+        frozenAction: phase8FrozenAction,
         baseAccountPromptReadiness: baseAccountConnectionStatus.connected
           ? "ready"
           : "not_ready",
@@ -1236,12 +1341,13 @@ export function Dashboard({
       });
     },
     [
+      activePhase8OwnerArming,
       agentRecord?.id,
       authSession?.user.id,
       baseAccountConnectionStatus.chainId,
       baseAccountConnectionStatus.connected,
       dashboardData?.workspace.id,
-      dualApprovalReview.frozenAction,
+      phase8FrozenAction,
     ],
   );
   const phase8WalletPromptOpening = useMemo(
@@ -1255,28 +1361,37 @@ export function Dashboard({
         ownerUserId,
         workspaceId,
         selectedAgentId,
-        frozenAction: dualApprovalReview.frozenAction,
+        frozenAction: phase8FrozenAction,
         promptIntent: {
           source: "private_dashboard",
-          ownerClickedOpenPrompt: false,
+          ownerClickedOpenPrompt: Boolean(activePhase8OwnerArming),
           ownerUserId,
           workspaceId,
           agentId: selectedAgentId,
-          frozenActionFreezeKey: dualApprovalReview.frozenAction?.freezeKey ?? null,
-          promptNonce: null,
+          frozenActionFreezeKey: phase8FrozenAction?.freezeKey ?? null,
+          promptNonce: activePhase8OwnerArming?.promptNonce ?? null,
           promptNonceUsed: false,
-          requestedAt: null,
+          requestedAt: activePhase8OwnerArming?.armedAt ?? null,
         },
-        promptState: "not_requested",
-        auditEvents: [],
+        promptState: activePhase8OwnerArming ? "approved" : "not_requested",
+        auditEvents: activePhase8OwnerArming
+          ? [{
+            type: "prompt_approved",
+            ownerOnly: true,
+            sanitized: true,
+            message: "Owner approved Batch 7 browser-session prompt readiness.",
+            createdAt: activePhase8OwnerArming.armedAt,
+          }]
+          : [],
         visibleInPublicProfile: false,
       });
     },
     [
+      activePhase8OwnerArming,
       agentRecord?.id,
       authSession?.user.id,
       dashboardData?.workspace.id,
-      dualApprovalReview.frozenAction,
+      phase8FrozenAction,
       phase8LiveWindowPreparation,
     ],
   );
@@ -1291,21 +1406,21 @@ export function Dashboard({
         ownerUserId,
         workspaceId,
         selectedAgentId,
-        frozenAction: dualApprovalReview.frozenAction,
+        frozenAction: phase8FrozenAction,
         chain: baseAccountConnectionStatus.chainId === baseChainId ? "Base" : "Other",
         baseAccountApprovalRecorded: phase8WalletPromptOpening.walletApprovalRecorded,
         submissionIntent: {
           source: "private_dashboard",
-          ownerClickedSubmit: false,
+          ownerClickedSubmit: Boolean(activePhase8OwnerArming),
           ownerUserId,
           workspaceId,
           agentId: selectedAgentId,
-          frozenActionFreezeKey: dualApprovalReview.frozenAction?.freezeKey ?? null,
-          submissionNonce: null,
+          frozenActionFreezeKey: phase8FrozenAction?.freezeKey ?? null,
+          submissionNonce: activePhase8OwnerArming?.submissionNonce ?? null,
           submissionNonceUsed: false,
-          requestedAt: null,
+          requestedAt: activePhase8OwnerArming?.armedAt ?? null,
         },
-        submissionState: "not_submitted",
+        submissionState: activePhase8OwnerArming ? "ready" : "not_submitted",
         resultEvents: [],
         rollbackReady: true,
         emergencyDisableReady: true,
@@ -1314,11 +1429,12 @@ export function Dashboard({
       });
     },
     [
+      activePhase8OwnerArming,
       agentRecord?.id,
       authSession?.user.id,
       baseAccountConnectionStatus.chainId,
       dashboardData?.workspace.id,
-      dualApprovalReview.frozenAction,
+      phase8FrozenAction,
       phase8WalletPromptOpening,
     ],
   );
@@ -1327,13 +1443,13 @@ export function Dashboard({
       runtimeWindowEnabled:
         appConfig.integrations.phase8ControlledSubmission === "owner_approved_window",
       controlledSubmission: phase8ControlledSubmission,
-      operatorAcknowledged: false,
+      operatorAcknowledged: Boolean(activePhase8OwnerArming),
       rollbackReady: true,
       emergencyDisableReady: true,
       postTransactionAuditReady: true,
       ownerDashboardSource: true,
     }),
-    [phase8ControlledSubmission],
+    [activePhase8OwnerArming, phase8ControlledSubmission],
   );
   const backendTables = dashboardData?.backendTables ?? [];
   const hasPublicRoute = Boolean(agentRecord?.publicPath);
@@ -3120,6 +3236,36 @@ export function Dashboard({
                 </span>
               </div>
               <p>{phase8OwnerLiveWindowActivation.message}</p>
+              <div className="phase-8-live-window-activation-actions">
+                <button
+                  className="button button-primary"
+                  disabled={!phase8FrozenAction || !authSession || !agentRecord}
+                  onClick={armPhase8OwnerLiveWindow}
+                  type="button"
+                >
+                  <ShieldCheck size={16} />
+                  Arm owner live window
+                </button>
+                <button
+                  className="button button-ghost"
+                  disabled={!phase8OwnerArming}
+                  onClick={resetPhase8OwnerLiveWindow}
+                  type="button"
+                >
+                  <RotateCcw size={16} />
+                  Reset window
+                </button>
+              </div>
+              <small>
+                {activePhase8OwnerArming
+                  ? `Armed at ${new Date(activePhase8OwnerArming.armedAt).toLocaleTimeString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                    hour12: false,
+                  })}. Browser session only.`
+                  : "Not armed. Owner must acknowledge the selected agent and frozen action first."}
+              </small>
               {phase8OwnerLiveWindowActivation.reasons.length
                 ? (
                   <small>
@@ -3137,7 +3283,7 @@ export function Dashboard({
             <Phase8ControlledSubmitter
               submission={phase8ControlledSubmission}
               activation={phase8OwnerLiveWindowActivation}
-              frozenAction={dualApprovalReview.frozenAction}
+              frozenAction={phase8FrozenAction}
             />
             <div className="result-monitoring-panel">
               <div className="result-monitoring-header">
