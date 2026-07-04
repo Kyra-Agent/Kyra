@@ -42,8 +42,8 @@ function walkFiles(path) {
 
 const doc = read("docs/phase-8-controlled-live-transaction.md");
 const roadmap = read("docs/product-phase-roadmap.md");
-const model = read("src/types/phase8WalletPromptOpening.ts");
-const test = read("scripts/test-phase-8-wallet-prompt-opening.mjs");
+const model = read("src/types/phase8ControlledSubmission.ts");
+const test = read("scripts/test-phase-8-controlled-submission.mjs");
 const dashboard = read("src/pages/Dashboard.tsx");
 const styles = read("src/styles.css");
 const packageJson = read("package.json");
@@ -54,97 +54,92 @@ const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.t
 
 for (const expected of [
   "Status: Batch 4 controlled submission guard.",
-  "controlled wallet prompt opening",
-  "one-time prompt nonce",
-  "owner-click Base Account prompt",
-  "owner-only prompt audit",
-  "ready_to_open_prompt",
-  "prompt_opened",
-  "prompt_approved",
-  "prompt_rejected",
-  "prompt_failed",
-  "transactionSubmissionAllowed: false",
-  "src/types/phase8WalletPromptOpening.ts",
-  "scripts/test-phase-8-wallet-prompt-opening.mjs",
-  "scripts/check-phase-8-wallet-prompt-opening.mjs",
+  "controlled transaction submission",
+  "one-time submission nonce",
+  "sanitized transaction hash reference",
+  "owner-only result closeout",
+  "ready_to_submit",
+  "submitted_pending_confirmation",
+  "closed_confirmed",
+  "closed_failed",
+  "src/types/phase8ControlledSubmission.ts",
+  "scripts/test-phase-8-controlled-submission.mjs",
+  "scripts/check-phase-8-controlled-submission.mjs",
   "User wallet authority and user Telegram bot-token privacy remain priority one",
 ]) {
   includes("Phase 8 doc", doc, expected);
 }
 
 for (const expected of [
-  "Batch 3 evidence",
-  "controlled wallet prompt opening",
-  "one-time prompt nonce",
-  "owner-only prompt audit",
-  "transaction submission remains disabled",
+  "Batch 4 evidence",
+  "controlled transaction submission",
+  "one-time submission nonce",
+  "owner-only result closeout",
+  "sanitized transaction hash reference",
 ]) {
   includes("roadmap", roadmap, expected);
 }
 
 for (const expected of [
-  "export type Phase8WalletPromptOpeningStatus",
-  "export type Phase8WalletPromptState",
-  "export interface Phase8WalletPromptIntent",
-  "export interface Phase8WalletPromptAuditEvent",
-  "evaluatePhase8WalletPromptOpening",
-  "ready_to_open_prompt",
-  "prompt_opened",
-  "prompt_approved",
-  "prompt_rejected",
-  "prompt_failed",
-  "one_time_prompt_nonce_required",
-  "one_time_prompt_nonce_unused_required",
-  "owner_only_audit_required",
-  "sanitized_audit_required",
-  "telegram_authority_forbidden",
-  "public_visibility_forbidden",
-  "transactionSubmissionAllowed: false",
-]) {
-  includes("Phase 8 prompt model", model, expected);
-}
-
-for (const expected of [
-  "Phase 8 wallet prompt opening checks passed.",
-  "ready_to_open_prompt",
-  "prompt_opened",
-  "prompt_approved",
-  "prompt_rejected",
-  "prompt_failed",
-  "one_time_prompt_nonce_required",
-  "one_time_prompt_nonce_unused_required",
-  "frozen_action_binding_required",
-  "owner_only_audit_required",
-  "sanitized_audit_required",
+  "export type Phase8ControlledSubmissionStatus",
+  "export interface Phase8ControlledSubmissionIntent",
+  "export interface Phase8ControlledSubmissionResultEvent",
+  "evaluatePhase8ControlledSubmission",
+  "ready_to_submit",
+  "submitted_pending_confirmation",
+  "closed_confirmed",
+  "closed_failed",
+  "submission_nonce_required",
+  "submission_nonce_unused_required",
+  "base_account_approval_required",
+  "sanitized_tx_hash_required",
+  "owner_only_result_required",
   "telegram_authority_forbidden",
   "public_visibility_forbidden",
 ]) {
-  includes("Phase 8 prompt test", test, expected);
+  includes("Phase 8 submission model", model, expected);
 }
 
 for (const expected of [
-  "evaluatePhase8WalletPromptOpening",
-  "phase8WalletPromptOpening",
-  "Phase 8 wallet prompt opening",
-  "one-time nonce",
-  "owner-only audit",
-  "open allowed",
+  "Phase 8 controlled submission checks passed.",
+  "ready_to_submit",
+  "submitted_pending_confirmation",
+  "closed_confirmed",
+  "closed_failed",
+  "submission_nonce_required",
+  "submission_nonce_unused_required",
+  "base_account_approval_required",
+  "sanitized_tx_hash_required",
+  "owner_only_result_required",
+  "telegram_authority_forbidden",
+  "public_visibility_forbidden",
+]) {
+  includes("Phase 8 submission test", test, expected);
+}
+
+for (const expected of [
+  "evaluatePhase8ControlledSubmission",
+  "phase8ControlledSubmission",
+  "Phase 8 controlled submission",
+  "submission nonce",
+  "result closeout",
+  "submit allowed",
 ]) {
   includes("dashboard", dashboard, expected);
 }
 
 for (const expected of [
-  ".phase-8-wallet-prompt-panel",
-  ".phase-8-wallet-prompt-header",
-  ".phase-8-wallet-prompt-grid",
+  ".phase-8-submission-panel",
+  ".phase-8-submission-header",
+  ".phase-8-submission-grid",
 ]) {
   includes("styles", styles, expected);
 }
 
 for (const expected of [
-  '"test:phase-8-wallet-prompt"',
-  '"check:phase-8-wallet-prompt"',
-  "check-phase-8-wallet-prompt-opening.mjs",
+  '"test:phase-8-submission"',
+  '"check:phase-8-submission"',
+  "check-phase-8-controlled-submission.mjs",
 ]) {
   includes("package.json", packageJson, expected);
 }
@@ -153,8 +148,8 @@ for (const path of telegramFiles) {
   excludes(
     path,
     read(path),
-    /evaluatePhase8WalletPromptOpening|phase8WalletPromptOpening|sendTransaction|writeContract|eth_sendTransaction/u,
-    "Phase 8 wallet prompt Telegram execution authority",
+    /evaluatePhase8ControlledSubmission|phase8ControlledSubmission|sendTransaction|writeContract|eth_sendTransaction/u,
+    "Phase 8 submission Telegram execution authority",
   );
 }
 
@@ -162,8 +157,8 @@ for (const path of publicFiles) {
   excludes(
     path,
     read(path),
-    /evaluatePhase8WalletPromptOpening|phase8WalletPromptOpening|sendTransaction|writeContract|eth_sendTransaction/u,
-    "Phase 8 wallet prompt public execution authority",
+    /evaluatePhase8ControlledSubmission|phase8ControlledSubmission|sendTransaction|writeContract|eth_sendTransaction/u,
+    "Phase 8 submission public execution authority",
   );
 }
 
@@ -182,4 +177,4 @@ for (const path of sourceFiles) {
   );
 }
 
-console.log("Phase 8 wallet prompt opening checks passed.");
+console.log("Phase 8 controlled submission checks passed.");

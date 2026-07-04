@@ -76,7 +76,7 @@ evidence packets, not extra product phases.
 | 5 | Telegram + LLM Live | Connected deployed agents reply in Telegram with read-only commands and LLM planning. | Complete, live read-only |
 | 6 | Wallet/Approval Foundation | Wallet readiness, approval policy, risk review, prepared-action models, and refusal boundaries. | Foundation complete |
 | 7 | Base Account + Execution Readiness | Owner Base Account connection, prompt locks, prepared-action allowlist, policy gates, dual approval model, result closeout model, production smoke freeze. | Complete as readiness; not live execution |
-| 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, real submission, owner-only result. | Next |
+| 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, controlled submission, owner-only result. | In progress: Batch 4 |
 | 9 | Public Execution Hardening | Rate limits, rollback, incident controls, monitoring, privacy audits, abuse controls, and wider execution eligibility. | Pending |
 | 10 | Product Release Readiness | Public-ready copy, support ops, launch QA, production runbook, final audit, and release decision. | Pending |
 
@@ -403,7 +403,19 @@ Batch 3 evidence:
 - `scripts/test-phase-8-wallet-prompt-opening.mjs`
 - `scripts/check-phase-8-wallet-prompt-opening.mjs`
 
-Status: Batch 3 wallet prompt opening guard. Runtime execution remains default-off.
+Batch 4 evidence:
+
+- controlled transaction submission
+- one-time submission nonce
+- Base Account approval recorded before submission
+- sanitized transaction hash reference
+- owner-only result closeout
+- rollback and emergency disablement readiness
+- `src/types/phase8ControlledSubmission.ts`
+- `scripts/test-phase-8-controlled-submission.mjs`
+- `scripts/check-phase-8-controlled-submission.mjs`
+
+Status: Batch 4 controlled submission guard. Runtime execution remains owner-only and narrow.
 Do not open a live execution window until the owner explicitly approves it.
 
 ## Phase 9 - Public Execution Hardening
@@ -504,6 +516,7 @@ Before Phase 8 starts, keep these checks green:
 Do not enable wallet signing or transaction submission merely because the
 connection path exists. Each gate remains separate.
 
-Wallet signing, token approval, swaps, transfers, contract calls, transaction
-submission, and transaction hash persistence remain disabled until their
-separate owner-approved gates are implemented and verified.
+Wallet signing, token approval, swaps, transfers, contract calls, and public
+execution remain disabled until their separate owner-approved gates are
+implemented and verified. Phase 8 Batch 4 models owner-only controlled
+submission and sanitized transaction hash references.

@@ -5602,3 +5602,56 @@ h2 {
     opacity: 0.18;
   }
 }
+.phase-8-submission-panel {
+  border: 1px solid rgba(74, 222, 128, 0.36);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(10, 24, 35, 0.84);
+  box-shadow: 0 16px 42px rgba(4, 12, 20, 0.22);
+}
+
+.phase-8-submission-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.phase-8-submission-header span,
+.phase-8-submission-panel small {
+  color: #9fb2c7;
+  font-family: var(--font-mono);
+}
+
+.phase-8-submission-header strong {
+  color: #f6fbff;
+  text-transform: capitalize;
+}
+
+.phase-8-submission-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.phase-8-submission-grid span {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+  color: #9fb2c7;
+  font-size: 0.78rem;
+}
+
+.phase-8-submission-grid strong {
+  display: block;
+  margin-top: 4px;
+  color: #f6fbff;
+  font-size: 0.86rem;
+}
+
+.phase-8-submission-panel p {
+  margin: 12px 0 8px;
+  color: #d8e7f5;
+}

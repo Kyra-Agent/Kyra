@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 3 wallet prompt opening guard. Runtime execution remains default-off.
+Status: Batch 4 controlled submission guard. Runtime execution remains owner-only and narrow.
 Status: Batch 2 live-window preparation guard. Runtime execution remains default-off.
 
 ## Purpose
@@ -151,5 +151,53 @@ submission disabled. Submission belongs to the next controlled execution batch.
 Batch 3 negative cases cover blocked live-window preparation, Telegram prompt
 source, public prompt source, missing nonce, reused nonce, wrong frozen action
 binding, missing audit, unsafe audit, and public visibility.
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+## Batch 4 - Controlled Transaction Submission
+
+Batch 4 adds the owner-only controlled submission gate after Batch 3 records a
+Base Account approval. This is still not a public execution surface and does not
+enable swaps, token approvals, token spend, arbitrary transfers, contract
+calldata, Telegram execution, or public profile execution.
+
+Required Batch 4 controls:
+
+- controlled transaction submission from the private owner dashboard only
+- one-time submission nonce bound to the owner, workspace, agent, and frozen
+  prepared action
+- Base Account approval recorded before submission
+- Base mainnet only
+- zero-value transaction only
+- no calldata
+- sanitized transaction hash reference only
+- owner-only result closeout for submitted, confirmed, and failed states
+- rollback readiness before submission
+- emergency disablement readiness before submission
+- post-transaction audit readiness before submission
+- Telegram, automation, and public profile sources remain blocked
+
+Implementation evidence:
+
+- `src/types/phase8ControlledSubmission.ts`
+- `scripts/test-phase-8-controlled-submission.mjs`
+- `scripts/check-phase-8-controlled-submission.mjs`
+- private dashboard Phase 8 controlled submission panel
+- `npm run check:phase-8-submission`
+
+The model can return `ready_to_submit` only after the Batch 3 wallet prompt is
+owner-approved, the one-time submission nonce is unused, Base Account approval is
+recorded, the frozen action remains zero-value/no-calldata, and rollback,
+emergency disablement, and post-transaction audit are ready.
+
+After submission, the model moves to `submitted_pending_confirmation`,
+`closed_confirmed`, or `closed_failed` only with owner-only sanitized result
+evidence. Result events must contain only a transaction hash reference, not raw
+wallet payloads, private data, secrets, or Telegram tokens.
+
+Batch 4 negative cases cover missing wallet prompt approval, Telegram submission,
+public profile submission, missing or reused nonce, wrong frozen action binding,
+missing Base Account approval, non-Base chain, non-zero value, calldata, missing
+transaction hash, unsafe result evidence, missing rollback, missing emergency
+disablement, and missing post-transaction audit.
 
 User wallet authority and user Telegram bot-token privacy remain priority one.

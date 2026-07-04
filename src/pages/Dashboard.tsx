@@ -74,6 +74,7 @@ import { evaluateExecutionLaunchReadiness } from "../types/executionLaunchReadin
 import { evaluatePhase8ControlledExecution } from "../types/phase8ControlledExecution";
 import { evaluatePhase8LiveWindowPreparation } from "../types/phase8LiveWindowPreparation";
 import { evaluatePhase8WalletPromptOpening } from "../types/phase8WalletPromptOpening";
+import { evaluatePhase8ControlledSubmission } from "../types/phase8ControlledSubmission";
 import { baseChainId } from "../types/unsignedTransactionHandoff";
 import type { DataProvider } from "../types/api";
 import type {
@@ -1275,6 +1276,48 @@ export function Dashboard({
       dashboardData?.workspace.id,
       dualApprovalReview.frozenAction,
       phase8LiveWindowPreparation,
+    ],
+  );
+  const phase8ControlledSubmission = useMemo(
+    () => {
+      const ownerUserId = authSession?.user.id ?? "";
+      const workspaceId = dashboardData?.workspace.id ?? "";
+      const selectedAgentId = agentRecord?.id ?? "";
+
+      return evaluatePhase8ControlledSubmission({
+        walletPromptOpening: phase8WalletPromptOpening,
+        ownerUserId,
+        workspaceId,
+        selectedAgentId,
+        frozenAction: dualApprovalReview.frozenAction,
+        chain: baseAccountConnectionStatus.chainId === baseChainId ? "Base" : "Other",
+        baseAccountApprovalRecorded: phase8WalletPromptOpening.walletApprovalRecorded,
+        submissionIntent: {
+          source: "private_dashboard",
+          ownerClickedSubmit: false,
+          ownerUserId,
+          workspaceId,
+          agentId: selectedAgentId,
+          frozenActionFreezeKey: dualApprovalReview.frozenAction?.freezeKey ?? null,
+          submissionNonce: null,
+          submissionNonceUsed: false,
+          requestedAt: null,
+        },
+        submissionState: "not_submitted",
+        resultEvents: [],
+        rollbackReady: true,
+        emergencyDisableReady: true,
+        postTransactionAuditReady: true,
+        visibleInPublicProfile: false,
+      });
+    },
+    [
+      agentRecord?.id,
+      authSession?.user.id,
+      baseAccountConnectionStatus.chainId,
+      dashboardData?.workspace.id,
+      dualApprovalReview.frozenAction,
+      phase8WalletPromptOpening,
     ],
   );
   const backendTables = dashboardData?.backendTables ?? [];
@@ -2619,7 +2662,7 @@ export function Dashboard({
                 {dualApprovalReview.transactionSubmissionAllowed
                   ? "allowed"
                   : "disabled"}{" "}
-                · execution gate remains closed
+                - execution gate remains closed
               </small>
             </div>
             <div
@@ -2960,6 +3003,65 @@ export function Dashboard({
                     One owner-click Base Account prompt can open under
                     owner-only audit. Transaction submission remains disabled in
                     Batch 3.
+                  </small>
+                )}
+            </div>
+            <div className="phase-8-submission-panel">
+              <div className="phase-8-submission-header">
+                <span>Phase 8 controlled submission</span>
+                <strong>{phase8ControlledSubmission.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="phase-8-submission-grid">
+                <span>
+                  submission nonce
+                  <strong>
+                    {phase8ControlledSubmission.reasons.includes(
+                        "submission_nonce_required",
+                      )
+                      ? "required"
+                      : "bound"}
+                  </strong>
+                </span>
+                <span>
+                  Base approval
+                  <strong>
+                    {phase8ControlledSubmission.reasons.includes(
+                        "base_account_approval_required",
+                      )
+                      ? "required"
+                      : "recorded"}
+                  </strong>
+                </span>
+                <span>
+                  submit allowed
+                  <strong>
+                    {phase8ControlledSubmission.transactionSubmissionAllowed
+                      ? "owner-only"
+                      : "locked"}
+                  </strong>
+                </span>
+                <span>
+                  result closeout
+                  <strong>
+                    {phase8ControlledSubmission.resultCloseoutRecorded
+                      ? "recorded"
+                      : "pending"}
+                  </strong>
+                </span>
+              </div>
+              <p>{phase8ControlledSubmission.message}</p>
+              {phase8ControlledSubmission.reasons.length
+                ? (
+                  <small>
+                    Blocked by: {phase8ControlledSubmission.reasons.join(", ")}
+                  </small>
+                )
+                : (
+                  <small>
+                    One owner-controlled Base submission can proceed only from
+                    the private dashboard. Telegram, public profiles, token
+                    approvals, swaps, calldata, and non-zero value remain
+                    blocked.
                   </small>
                 )}
             </div>

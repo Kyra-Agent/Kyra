@@ -70,7 +70,7 @@ disabled.
 Canonical roadmap position:
 
 - Phase 7 is complete as Base Account + execution readiness.
-- Phase 8 is next and covers the first controlled live transaction.
+- Phase 8 is in progress and covers the first controlled live transaction.
 - Phase 9 covers public execution hardening.
 - Phase 10 covers product release readiness.
 

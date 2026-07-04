@@ -110,12 +110,12 @@ includes(
 includes(
   "canonical roadmap",
   roadmap,
-  "Phase 8 is the next phase",
+  "In progress: Batch 4",
 );
 includes(
   "canonical roadmap",
   roadmap,
-  "Wallet signing, token approval, swaps, transfers, contract calls, transaction",
+  "Wallet signing, token approval, swaps, transfers, contract calls, and public",
 );
 
 console.log("Pre-Base MCP cleanup checks passed.");
