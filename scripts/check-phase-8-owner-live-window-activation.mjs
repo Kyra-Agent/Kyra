@@ -57,7 +57,7 @@ const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 9 owner-only result closeout bridge.",
+  "Status: Batch 10 runtime enablement preflight.",
   "Owner Live-Window Activation Lock",
   "Owner Arming UX",
   "Owner Self-Check Candidate",
@@ -74,7 +74,7 @@ for (const expected of [
 }
 
 for (const expected of [
-  "In progress: Batch 9",
+  "In progress: Batch 10",
   "Batch 9 evidence",
   "owner live-window activation lock",
   "owner arming UX",
@@ -83,7 +83,7 @@ for (const expected of [
   "src/types/phase8OwnerLiveWindowActivation.ts",
   "src/types/phase8OwnerActionCandidate.ts",
   "scripts/check-phase-8-owner-live-window-activation.mjs",
-  "Status: Batch 9 owner-only result closeout bridge.",
+  "Status: Batch 10 runtime enablement preflight.",
 ]) {
   includes("roadmap", roadmap, expected);
 }
@@ -139,7 +139,7 @@ for (const expected of [
 for (const expected of [
   "Phase8OwnerLiveWindowActivationResult",
   "activation.transactionSubmissionAllowed",
-  "Phase 8 Batch 9 submitter",
+  "Phase 8 Batch 10 submitter",
   "Window armed",
   "onResultCloseout",
   "Submitted with sanitized hash reference.",

@@ -84,6 +84,7 @@ import {
 } from "../types/phase8ControlledSubmission";
 import { evaluatePhase8OwnerLiveWindowActivation } from "../types/phase8OwnerLiveWindowActivation";
 import { createPhase8OwnerActionCandidate } from "../types/phase8OwnerActionCandidate";
+import { evaluatePhase8RuntimeEnablementPreflight } from "../types/phase8RuntimeEnablementPreflight";
 import { baseChainId } from "../types/unsignedTransactionHandoff";
 import { maskBaseAccountAddress } from "../types/baseAccountConnection";
 import type { DataProvider } from "../types/api";
@@ -1502,6 +1503,28 @@ export function Dashboard({
       ownerDashboardSource: true,
     }),
     [activePhase8OwnerArming, phase8ControlledSubmission],
+  );
+  const phase8RuntimeEnablementPreflight = useMemo(
+    () => evaluatePhase8RuntimeEnablementPreflight({
+      runtimeFlagEnabled:
+        appConfig.integrations.phase8ControlledSubmission === "owner_approved_window",
+      ownerSignedIn: Boolean(authSession),
+      selectedAgent: Boolean(agentRecord),
+      baseAccountConnected: baseAccountConnectionStatus.connected,
+      controlledSubmission: phase8ControlledSubmission,
+      liveWindowActivation: phase8OwnerLiveWindowActivation,
+      resultCloseoutRecorded: phase8ControlledSubmission.resultCloseoutRecorded,
+      privateDashboardSource: true,
+      telegramCanAuthorize: false,
+      visibleInPublicProfile: false,
+    }),
+    [
+      agentRecord,
+      authSession,
+      baseAccountConnectionStatus.connected,
+      phase8ControlledSubmission,
+      phase8OwnerLiveWindowActivation,
+    ],
   );
   const backendTables = dashboardData?.backendTables ?? [];
   const hasPublicRoute = Boolean(agentRecord?.publicPath);
@@ -3358,9 +3381,56 @@ export function Dashboard({
                   </small>
                 )}
             </div>
+            <div className="phase-8-submission-panel">
+              <div className="phase-8-submission-header">
+                <span>Phase 8 runtime enablement preflight</span>
+                <strong>{phase8RuntimeEnablementPreflight.status}</strong>
+              </div>
+              <div className="phase-8-submission-grid">
+                <span>
+                  runtime flag
+                  <strong>
+                    {appConfig.integrations.phase8ControlledSubmission === "owner_approved_window"
+                      ? "enabled"
+                      : "disabled"}
+                  </strong>
+                </span>
+                <span>
+                  Base Account
+                  <strong>{baseAccountConnectionStatus.connected ? "connected" : "required"}</strong>
+                </span>
+                <span>
+                  owner window
+                  <strong>{phase8OwnerLiveWindowActivation.transactionSubmissionAllowed ? "armed" : "locked"}</strong>
+                </span>
+                <span>
+                  runtime submitter
+                  <strong>
+                    {phase8RuntimeEnablementPreflight.runtimeSubmitterEnabled
+                      ? "enabled"
+                      : "locked"}
+                  </strong>
+                </span>
+              </div>
+              <p>{phase8RuntimeEnablementPreflight.message}</p>
+              {phase8RuntimeEnablementPreflight.reasons.length
+                ? (
+                  <small>
+                    Blocked by: {phase8RuntimeEnablementPreflight.reasons.join(", ")}
+                  </small>
+                )
+                : (
+                  <small>
+                    Runtime is open only for the private owner dashboard, selected agent,
+                    connected Base Account, and one owner-controlled zero-value submit.
+                    Telegram and public profiles remain blocked.
+                  </small>
+                )}
+            </div>
             <Phase8ControlledSubmitter
               submission={phase8ControlledSubmission}
               activation={phase8OwnerLiveWindowActivation}
+              preflight={phase8RuntimeEnablementPreflight}
               frozenAction={phase8FrozenAction}
               onResultCloseout={setPhase8SubmitterResult}
             />

@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 9 owner-only result closeout bridge. Runtime execution remains default-off. Owner-approved window is required before activation.
+Status: Batch 10 runtime enablement preflight. Runtime execution remains default-off. Explicit owner-approved window flag enablement is required before activation.
 
 ## Purpose
 
@@ -347,3 +347,30 @@ Implementation evidence:
 Batch 9 does not make confirmations automatic. It records only the immediate provider-submitted hash reference after the owner approves a Base Account prompt. Confirmation persistence remains a later production hardening step.
 
 User wallet authority and user Telegram bot-token privacy remain priority one.
+
+## Batch 10 - Runtime Enablement Preflight
+
+Batch 10 adds the final runtime preflight before the owner-dashboard submitter can be considered open. It does not create a Telegram, public profile, automation, swap, token approval, calldata, or non-zero value path.
+
+Required Batch 10 controls:
+
+- explicit runtime flag: `VITE_KYRA_PHASE8_CONTROLLED_SUBMISSION=owner_approved_window`
+- signed-in owner session
+- selected deployed agent
+- connected owner Base Account
+- controlled submission must be `ready_to_submit`
+- owner live-window activation must be ready
+- no existing owner-only result closeout can already be recorded
+- private owner dashboard source only
+- Telegram and public profiles remain blocked
+
+Implementation evidence:
+
+- `src/types/phase8RuntimeEnablementPreflight.ts`
+- `scripts/test-phase-8-runtime-enable-preflight.mjs`
+- `scripts/check-phase-8-runtime-enable-preflight.mjs`
+- dashboard runtime enablement preflight panel
+- `Phase8ControlledSubmitter` requires `preflight.runtimeSubmitterEnabled`
+- `npm run check:phase-8-runtime-preflight`
+
+Batch 10 is the controlled opening checklist. When it passes under the explicit runtime flag, the submitter can request one owner-approved Base Account zero-value/no-calldata transaction for the selected agent. User wallet authority and user Telegram bot-token privacy remain priority one.

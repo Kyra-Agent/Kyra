@@ -8,6 +8,7 @@ import type {
   Phase8ControlledSubmissionResultEvent,
 } from "../types/phase8ControlledSubmission";
 import type { Phase8OwnerLiveWindowActivationResult } from "../types/phase8OwnerLiveWindowActivation";
+import type { Phase8RuntimeEnablementPreflightResult } from "../types/phase8RuntimeEnablementPreflight";
 import {
   createPhase8OwnerSubmitRequest,
   type Phase8OwnerSubmitRequestFailure,
@@ -16,6 +17,7 @@ import {
 interface Phase8ControlledSubmitterProps {
   submission: Phase8ControlledSubmissionResult;
   activation: Phase8OwnerLiveWindowActivationResult;
+  preflight: Phase8RuntimeEnablementPreflightResult;
   frozenAction: FrozenPreparedAction | null;
   onResultCloseout?: (event: Phase8ControlledSubmissionResultEvent) => void;
 }
@@ -33,6 +35,7 @@ const failureCopy: Record<Phase8OwnerSubmitRequestFailure, string> = {
 export function Phase8ControlledSubmitter({
   submission,
   activation,
+  preflight,
   frozenAction,
   onResultCloseout,
 }: Phase8ControlledSubmitterProps) {
@@ -40,7 +43,7 @@ export function Phase8ControlledSubmitter({
   const sendTransaction = useSendTransaction();
   const [state, setState] = useState<SubmitterState>("locked");
   const [message, setMessage] = useState(
-    "Controlled submission is locked until every Phase 8 Batch 1-9 gate passes.",
+    "Controlled submission is locked until every Phase 8 Batch 1-10 gate passes.",
   );
   const [submittedHash, setSubmittedHash] = useState<string | null>(null);
 
@@ -54,6 +57,7 @@ export function Phase8ControlledSubmitter({
   const walletConnected = connection.status === "connected";
   const canSubmit = Boolean(
     runtimeEnabled &&
+      preflight.runtimeSubmitterEnabled &&
       walletConnected &&
       submission.transactionSubmissionAllowed &&
       activation.transactionSubmissionAllowed &&
@@ -64,7 +68,13 @@ export function Phase8ControlledSubmitter({
   async function handleSubmit() {
     if (!runtimeEnabled) {
       setState("locked");
-      setMessage("Phase 8 Batch 9 live-window runtime is disabled for production safety.");
+      setMessage("Phase 8 Batch 10 runtime preflight is disabled for production safety.");
+      return;
+    }
+
+    if (!preflight.runtimeSubmitterEnabled) {
+      setState("locked");
+      setMessage(preflight.message);
       return;
     }
 
@@ -120,7 +130,7 @@ export function Phase8ControlledSubmitter({
       <div className="phase-8-submit-boundary-header">
         <span className="queue-icon"><ShieldCheck size={16} /></span>
         <div>
-          <small>Phase 8 Batch 9 submitter</small>
+          <small>Phase 8 Batch 10 submitter</small>
           <strong>{activation.transactionSubmissionAllowed ? "Window armed" : "Window locked"}</strong>
         </div>
         <span>{state}</span>
@@ -129,7 +139,7 @@ export function Phase8ControlledSubmitter({
       <div className="phase-8-submit-boundary-grid">
         <span>
           Runtime
-          <strong>{runtimeEnabled ? "owner window" : "default-off"}</strong>
+          <strong>{preflight.runtimeSubmitterEnabled ? "preflight ready" : runtimeEnabled ? "preflight locked" : "default-off"}</strong>
         </span>
         <span>
           Wallet
@@ -140,12 +150,13 @@ export function Phase8ControlledSubmitter({
           <strong>{submitRequest.ok ? "zero-value" : submitRequest.reason}</strong>
         </span>
         <span>
-          Activation
-          <strong>{activation.status}</strong>
+          Runtime preflight
+          <strong>{preflight.status}</strong>
         </span>
       </div>
 
       <p aria-live="polite">{activation.transactionSubmissionAllowed ? message : activation.message}</p>
+      {preflight.reasons.length ? <small>Preflight blocked by: {preflight.reasons.join(", ")}</small> : null}
       {activation.reasons.length ? <small>Activation blocked by: {activation.reasons.join(", ")}</small> : null}
       {submittedHash ? <small>Hash: {maskHash(submittedHash)}</small> : null}
 
