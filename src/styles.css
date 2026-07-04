@@ -5728,3 +5728,52 @@ h2 {
   justify-content: center;
   margin: 4px 0 8px;
 }
+
+.phase-8-live-window-activation-panel {
+  border: 1px solid rgba(70, 180, 255, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  background: rgba(8, 20, 34, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+}
+
+.phase-8-live-window-activation-header,
+.phase-8-live-window-activation-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.phase-8-live-window-activation-header {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.phase-8-live-window-activation-header strong {
+  color: var(--text);
+  text-transform: none;
+}
+
+.phase-8-live-window-activation-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+
+.phase-8-live-window-activation-grid span {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.phase-8-live-window-activation-grid strong {
+  color: var(--text);
+  font-size: 0.82rem;
+}

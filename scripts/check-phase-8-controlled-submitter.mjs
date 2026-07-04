@@ -55,7 +55,7 @@ const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 5 owner dashboard submitter wiring.",
+  "Status: Batch 6 owner live-window activation lock.",
   "Owner Dashboard Submitter Wiring",
   "isolated `Phase8ControlledSubmitter` component",
   "zero-value/no-calldata/Base-only request builder",
@@ -73,7 +73,7 @@ for (const expected of [
   "src/types/phase8OwnerSubmitRequest.ts",
   "scripts/test-phase-8-owner-submit-request.mjs",
   "scripts/check-phase-8-controlled-submitter.mjs",
-  "Status: Batch 5 owner dashboard submitter wiring.",
+  "Status: Batch 6 owner live-window activation lock.",
 ]) {
   includes("roadmap", roadmap, expected);
 }

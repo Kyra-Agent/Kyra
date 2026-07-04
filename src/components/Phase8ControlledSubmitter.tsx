@@ -4,6 +4,7 @@ import { useConnection, useSendTransaction } from "wagmi";
 import { appConfig } from "../config/appConfig";
 import type { FrozenPreparedAction } from "../types/dualApprovalExecution";
 import type { Phase8ControlledSubmissionResult } from "../types/phase8ControlledSubmission";
+import type { Phase8OwnerLiveWindowActivationResult } from "../types/phase8OwnerLiveWindowActivation";
 import {
   createPhase8OwnerSubmitRequest,
   type Phase8OwnerSubmitRequestFailure,
@@ -11,6 +12,7 @@ import {
 
 interface Phase8ControlledSubmitterProps {
   submission: Phase8ControlledSubmissionResult;
+  activation: Phase8OwnerLiveWindowActivationResult;
   frozenAction: FrozenPreparedAction | null;
 }
 
@@ -26,13 +28,14 @@ const failureCopy: Record<Phase8OwnerSubmitRequestFailure, string> = {
 
 export function Phase8ControlledSubmitter({
   submission,
+  activation,
   frozenAction,
 }: Phase8ControlledSubmitterProps) {
   const connection = useConnection();
   const sendTransaction = useSendTransaction();
   const [state, setState] = useState<SubmitterState>("locked");
   const [message, setMessage] = useState(
-    "Controlled submission is locked until every Phase 8 Batch 1-5 gate passes.",
+    "Controlled submission is locked until every Phase 8 Batch 1-6 gate passes.",
   );
   const [submittedHash, setSubmittedHash] = useState<string | null>(null);
 
@@ -48,6 +51,7 @@ export function Phase8ControlledSubmitter({
     runtimeEnabled &&
       walletConnected &&
       submission.transactionSubmissionAllowed &&
+      activation.transactionSubmissionAllowed &&
       submitRequest.ok &&
       !sendTransaction.isPending,
   );
@@ -55,7 +59,7 @@ export function Phase8ControlledSubmitter({
   async function handleSubmit() {
     if (!runtimeEnabled) {
       setState("locked");
-      setMessage("Phase 8 Batch 5 runtime is disabled for production safety.");
+      setMessage("Phase 8 Batch 6 live-window runtime is disabled for production safety.");
       return;
     }
 
@@ -68,6 +72,12 @@ export function Phase8ControlledSubmitter({
     if (!submission.transactionSubmissionAllowed) {
       setState("locked");
       setMessage(submission.message);
+      return;
+    }
+
+    if (!activation.transactionSubmissionAllowed) {
+      setState("locked");
+      setMessage(activation.message);
       return;
     }
 
@@ -96,8 +106,8 @@ export function Phase8ControlledSubmitter({
       <div className="phase-8-submit-boundary-header">
         <span className="queue-icon"><ShieldCheck size={16} /></span>
         <div>
-          <small>Phase 8 Batch 5 submitter</small>
-          <strong>{runtimeEnabled ? "Runtime reviewed" : "Runtime locked"}</strong>
+          <small>Phase 8 Batch 6 submitter</small>
+          <strong>{activation.transactionSubmissionAllowed ? "Window armed" : "Window locked"}</strong>
         </div>
         <span>{state}</span>
       </div>
@@ -116,12 +126,13 @@ export function Phase8ControlledSubmitter({
           <strong>{submitRequest.ok ? "zero-value" : submitRequest.reason}</strong>
         </span>
         <span>
-          Source
-          <strong>private dashboard</strong>
+          Activation
+          <strong>{activation.status}</strong>
         </span>
       </div>
 
-      <p aria-live="polite">{message}</p>
+      <p aria-live="polite">{activation.transactionSubmissionAllowed ? message : activation.message}</p>
+      {activation.reasons.length ? <small>Activation blocked by: {activation.reasons.join(", ")}</small> : null}
       {submittedHash ? <small>Hash: {maskHash(submittedHash)}</small> : null}
 
       <button

@@ -76,6 +76,7 @@ import { evaluatePhase8ControlledExecution } from "../types/phase8ControlledExec
 import { evaluatePhase8LiveWindowPreparation } from "../types/phase8LiveWindowPreparation";
 import { evaluatePhase8WalletPromptOpening } from "../types/phase8WalletPromptOpening";
 import { evaluatePhase8ControlledSubmission } from "../types/phase8ControlledSubmission";
+import { evaluatePhase8OwnerLiveWindowActivation } from "../types/phase8OwnerLiveWindowActivation";
 import { baseChainId } from "../types/unsignedTransactionHandoff";
 import type { DataProvider } from "../types/api";
 import type {
@@ -1320,6 +1321,19 @@ export function Dashboard({
       dualApprovalReview.frozenAction,
       phase8WalletPromptOpening,
     ],
+  );
+  const phase8OwnerLiveWindowActivation = useMemo(
+    () => evaluatePhase8OwnerLiveWindowActivation({
+      runtimeWindowEnabled:
+        appConfig.integrations.phase8ControlledSubmission === "owner_approved_window",
+      controlledSubmission: phase8ControlledSubmission,
+      operatorAcknowledged: false,
+      rollbackReady: true,
+      emergencyDisableReady: true,
+      postTransactionAuditReady: true,
+      ownerDashboardSource: true,
+    }),
+    [phase8ControlledSubmission],
   );
   const backendTables = dashboardData?.backendTables ?? [];
   const hasPublicRoute = Boolean(agentRecord?.publicPath);
@@ -3066,8 +3080,63 @@ export function Dashboard({
                   </small>
                 )}
             </div>
+            <div className="phase-8-live-window-activation-panel">
+              <div className="phase-8-live-window-activation-header">
+                <span>Phase 8 live-window activation</span>
+                <strong>{phase8OwnerLiveWindowActivation.status}</strong>
+              </div>
+              <div className="phase-8-live-window-activation-grid">
+                <span>
+                  Runtime window
+                  <strong>
+                    {phase8OwnerLiveWindowActivation.reasons.includes("runtime_window_disabled")
+                      ? "disabled"
+                      : "enabled"}
+                  </strong>
+                </span>
+                <span>
+                  Operator ack
+                  <strong>
+                    {phase8OwnerLiveWindowActivation.reasons.includes("operator_ack_required")
+                      ? "required"
+                      : "recorded"}
+                  </strong>
+                </span>
+                <span>
+                  Rollback
+                  <strong>
+                    {phase8OwnerLiveWindowActivation.reasons.includes("rollback_required")
+                      ? "required"
+                      : "ready"}
+                  </strong>
+                </span>
+                <span>
+                  Submitter
+                  <strong>
+                    {phase8OwnerLiveWindowActivation.transactionSubmissionAllowed
+                      ? "armed"
+                      : "locked"}
+                  </strong>
+                </span>
+              </div>
+              <p>{phase8OwnerLiveWindowActivation.message}</p>
+              {phase8OwnerLiveWindowActivation.reasons.length
+                ? (
+                  <small>
+                    Blocked by: {phase8OwnerLiveWindowActivation.reasons.join(", ")}
+                  </small>
+                )
+                : (
+                  <small>
+                    One owner-controlled submitter window is armed. Telegram, public
+                    profiles, automation, token approvals, swaps, calldata, and
+                    non-zero value remain blocked.
+                  </small>
+                )}
+            </div>
             <Phase8ControlledSubmitter
               submission={phase8ControlledSubmission}
+              activation={phase8OwnerLiveWindowActivation}
               frozenAction={dualApprovalReview.frozenAction}
             />
             <div className="result-monitoring-panel">

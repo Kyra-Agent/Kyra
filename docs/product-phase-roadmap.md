@@ -76,7 +76,7 @@ evidence packets, not extra product phases.
 | 5 | Telegram + LLM Live | Connected deployed agents reply in Telegram with read-only commands and LLM planning. | Complete, live read-only |
 | 6 | Wallet/Approval Foundation | Wallet readiness, approval policy, risk review, prepared-action models, and refusal boundaries. | Foundation complete |
 | 7 | Base Account + Execution Readiness | Owner Base Account connection, prompt locks, prepared-action allowlist, policy gates, dual approval model, result closeout model, production smoke freeze. | Complete as readiness; not live execution |
-| 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, controlled submission, owner-only result. | In progress: Batch 5 |
+| 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, controlled submission, owner-only result. | In progress: Batch 6 |
 | 9 | Public Execution Hardening | Rate limits, rollback, incident controls, monitoring, privacy audits, abuse controls, and wider execution eligibility. | Pending |
 | 10 | Product Release Readiness | Public-ready copy, support ops, launch QA, production runbook, final audit, and release decision. | Pending |
 
@@ -425,7 +425,20 @@ Batch 5 evidence:
 - `scripts/test-phase-8-owner-submit-request.mjs`
 - `scripts/check-phase-8-controlled-submitter.mjs`
 
-Status: Batch 5 owner dashboard submitter wiring. Runtime execution remains default-off. Owner-approved window is required before activation.
+Status: Batch 6 owner live-window activation lock. Runtime execution remains default-off. Owner-approved window is required before activation.
+
+Batch 6 evidence:
+
+- owner live-window activation lock
+- runtime window must be explicitly enabled
+- controlled submission must already be ready
+- operator acknowledgement must be recorded before the submitter can arm
+- rollback, emergency disable, and post-transaction audit readiness remain required
+- `src/types/phase8OwnerLiveWindowActivation.ts`
+- `scripts/test-phase-8-owner-live-window-activation.mjs`
+- `scripts/check-phase-8-owner-live-window-activation.mjs`
+
+Status: Batch 6 owner live-window activation lock. Runtime execution remains default-off. Owner-approved window is required before activation.
 Do not open a live execution window until the owner explicitly approves it.
 
 ## Phase 9 - Public Execution Hardening

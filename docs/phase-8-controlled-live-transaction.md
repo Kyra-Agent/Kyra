@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 5 owner dashboard submitter wiring. Runtime execution remains default-off. Owner-approved window is required before activation.
+Status: Batch 6 owner live-window activation lock. Runtime execution remains default-off. Owner-approved window is required before activation.
 
 ## Purpose
 
@@ -232,5 +232,38 @@ Batch 5 wires the final browser-side handoff point, but does not enable it by
 default. The next operator step is an owner-approved live window using the
 specific runtime flag, one selected agent, one connected owner Base Account, and
 one frozen zero-value/no-calldata prepared action.
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+## Batch 6 - Owner Live-Window Activation Lock
+
+Batch 6 adds the final operator arming layer before the isolated submitter can
+call the Base Account transaction hook. The submitter is no longer gated only by
+the controlled-submission model and runtime flag; it also requires a separate
+owner live-window activation result.
+
+Required Batch 6 controls:
+
+- runtime window must be explicitly enabled by `VITE_KYRA_PHASE8_CONTROLLED_SUBMISSION=owner_approved_window`
+- controlled submission must already be `ready_to_submit`
+- owner operator acknowledgement must be recorded for the exact agent, action,
+  Base Account, and rollback plan
+- rollback readiness must be true
+- emergency disable readiness must be true
+- post-transaction audit readiness must be true
+- activation source must remain the private owner dashboard
+- Telegram, public profile, automation, token approval, swap, calldata, and
+  non-zero value paths remain blocked
+
+Implementation evidence:
+
+- `src/types/phase8OwnerLiveWindowActivation.ts`
+- `scripts/test-phase-8-owner-live-window-activation.mjs`
+- `scripts/check-phase-8-owner-live-window-activation.mjs`
+- dashboard live-window activation panel
+- submitter requires `activation.transactionSubmissionAllowed`
+
+Batch 6 is intentionally default-locked in production. Operator acknowledgement
+is false until the owner opens a narrow live window for one selected agent and one
+frozen zero-value/no-calldata action.
 
 User wallet authority and user Telegram bot-token privacy remain priority one.
