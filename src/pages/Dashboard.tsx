@@ -23,6 +23,7 @@ import {
   BaseAccountConnectionPanel,
   type BaseAccountConnectionStatus,
 } from "../components/BaseAccountConnectionPanel";
+import { Phase8ControlledSubmitter } from "../components/Phase8ControlledSubmitter";
 import type { AgentTemplate } from "../types/agent";
 import { appConfig } from "../config/appConfig";
 import { demoAgentLimits } from "../config/demoLimits";
@@ -3065,6 +3066,10 @@ export function Dashboard({
                   </small>
                 )}
             </div>
+            <Phase8ControlledSubmitter
+              submission={phase8ControlledSubmission}
+              frozenAction={dualApprovalReview.frozenAction}
+            />
             <div className="result-monitoring-panel">
               <div className="result-monitoring-header">
                 <span>Phase 7I result monitoring</span>

@@ -27,6 +27,10 @@ const telegramConnectTokenInputEnabled =
   readEnv("VITE_KYRA_ENABLE_TELEGRAM_CONNECT_TOKEN_INPUT").toLowerCase() === "true";
 const telegramDashboardStatusReadModelEnabled =
   readEnv("VITE_KYRA_ENABLE_TELEGRAM_DASHBOARD_STATUS").toLowerCase() === "true";
+const phase8ControlledSubmissionRuntime =
+  readEnv("VITE_KYRA_PHASE8_CONTROLLED_SUBMISSION").toLowerCase() === "owner_approved_window"
+    ? "owner_approved_window"
+    : "disabled";
 const telegramBackendConfigured = Boolean(
   telegramConnectFunctionUrl && telegramLinkFunctionUrl &&
     telegramDashboardStatusFunctionUrl && supabaseConfigured,
@@ -75,6 +79,7 @@ export const appConfig = {
       : "read-only scaffold",
     walletConnection: "owner_click_only",
     walletExecution: "disabled",
+    phase8ControlledSubmission: phase8ControlledSubmissionRuntime,
   },
 } as const;
 

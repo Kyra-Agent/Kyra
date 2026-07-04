@@ -5655,3 +5655,76 @@ h2 {
   margin: 12px 0 8px;
   color: #d8e7f5;
 }
+
+.phase-8-submit-boundary {
+  border: 1px solid rgba(59, 130, 246, 0.36);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(8, 18, 30, 0.9);
+  box-shadow: 0 16px 42px rgba(4, 12, 20, 0.24);
+}
+
+.phase-8-submit-boundary-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.phase-8-submit-boundary-header > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.phase-8-submit-boundary-header small,
+.phase-8-submit-boundary > small {
+  color: #9fb2c7;
+  font-family: var(--font-mono);
+}
+
+.phase-8-submit-boundary-header strong {
+  display: block;
+  color: #f6fbff;
+}
+
+.phase-8-submit-boundary-header > span:last-child {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 999px;
+  padding: 4px 10px;
+  color: #b9c9db;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.phase-8-submit-boundary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.phase-8-submit-boundary-grid span {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+  color: #9fb2c7;
+  font-size: 0.78rem;
+}
+
+.phase-8-submit-boundary-grid strong {
+  display: block;
+  margin-top: 4px;
+  color: #f6fbff;
+  font-size: 0.86rem;
+}
+
+.phase-8-submit-boundary p {
+  margin: 12px 0;
+  color: #d8e7f5;
+}
+
+.phase-8-submit-boundary .button {
+  width: 100%;
+  justify-content: center;
+  margin: 4px 0 8px;
+}

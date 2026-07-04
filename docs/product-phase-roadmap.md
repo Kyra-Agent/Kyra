@@ -76,7 +76,7 @@ evidence packets, not extra product phases.
 | 5 | Telegram + LLM Live | Connected deployed agents reply in Telegram with read-only commands and LLM planning. | Complete, live read-only |
 | 6 | Wallet/Approval Foundation | Wallet readiness, approval policy, risk review, prepared-action models, and refusal boundaries. | Foundation complete |
 | 7 | Base Account + Execution Readiness | Owner Base Account connection, prompt locks, prepared-action allowlist, policy gates, dual approval model, result closeout model, production smoke freeze. | Complete as readiness; not live execution |
-| 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, controlled submission, owner-only result. | In progress: Batch 4 |
+| 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, controlled submission, owner-only result. | In progress: Batch 5 |
 | 9 | Public Execution Hardening | Rate limits, rollback, incident controls, monitoring, privacy audits, abuse controls, and wider execution eligibility. | Pending |
 | 10 | Product Release Readiness | Public-ready copy, support ops, launch QA, production runbook, final audit, and release decision. | Pending |
 
@@ -415,7 +415,17 @@ Batch 4 evidence:
 - `scripts/test-phase-8-controlled-submission.mjs`
 - `scripts/check-phase-8-controlled-submission.mjs`
 
-Status: Batch 4 controlled submission guard. Runtime execution remains owner-only and narrow.
+Batch 5 evidence:
+
+- isolated owner dashboard submitter boundary
+- `useSendTransaction` only inside `src/components/Phase8ControlledSubmitter.tsx`
+- zero-value/no-calldata/Base-only request builder
+- default-off runtime flag for the owner-approved live window
+- `src/types/phase8OwnerSubmitRequest.ts`
+- `scripts/test-phase-8-owner-submit-request.mjs`
+- `scripts/check-phase-8-controlled-submitter.mjs`
+
+Status: Batch 5 owner dashboard submitter wiring. Runtime execution remains default-off. Owner-approved window is required before activation.
 Do not open a live execution window until the owner explicitly approves it.
 
 ## Phase 9 - Public Execution Hardening

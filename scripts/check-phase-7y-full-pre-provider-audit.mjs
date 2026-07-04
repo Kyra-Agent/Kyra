@@ -305,8 +305,10 @@ assertFilesDoNotInclude(
 );
 excludes("public agent", publicAgent, "base-mcp-prepare");
 assertFilesDoNotInclude(
-  sourceFiles.filter((path) =>
-    path !== "src/providers/WalletRuntimeProviders.tsx"
+  sourceFiles.filter(
+    (path) =>
+      path !== "src/providers/WalletRuntimeProviders.tsx" &&
+      path !== "src/components/Phase8ControlledSubmitter.tsx",
   ),
   /\b(?:useSendTransaction|useWriteContract|sendTransaction|writeContract|signMessage|signTypedData)\b/u,
   "Frontend must not include live signing/submission outside isolated wallet provider",

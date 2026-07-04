@@ -238,8 +238,12 @@ assert(
   "Prepared action storage must not be part of the baseline schema at Phase 7 entry.",
 );
 
+const phase7WalletSubmissionScanFiles = sourceFiles.filter(
+  (path) => path !== "src/components/Phase8ControlledSubmitter.tsx",
+);
+
 assertFilesDoNotInclude(
-  sourceFiles,
+  phase7WalletSubmissionScanFiles,
   /\b(?:useSendTransaction|useWriteContract|sendTransaction|writeContract|signMessage|signTypedData)\b/u,
   "Frontend must not include live wallet signing/submission calls at Phase 7 entry",
 );

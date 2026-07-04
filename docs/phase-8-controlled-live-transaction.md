@@ -2,8 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 4 controlled submission guard. Runtime execution remains owner-only and narrow.
-Status: Batch 2 live-window preparation guard. Runtime execution remains default-off.
+Status: Batch 5 owner dashboard submitter wiring. Runtime execution remains default-off. Owner-approved window is required before activation.
 
 ## Purpose
 
@@ -199,5 +198,39 @@ public profile submission, missing or reused nonce, wrong frozen action binding,
 missing Base Account approval, non-Base chain, non-zero value, calldata, missing
 transaction hash, unsafe result evidence, missing rollback, missing emergency
 disablement, and missing post-transaction audit.
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+## Batch 5 - Owner Dashboard Submitter Wiring
+
+Batch 5 installs the isolated owner-dashboard submitter boundary. It is the only
+frontend component outside the wallet runtime provider that may import the wallet
+transaction hook. The component remains disabled unless all Batch 1-4 model gates
+pass and the explicit Phase 8 controlled submission runtime window is enabled.
+
+Required Batch 5 controls:
+
+- isolated `Phase8ControlledSubmitter` component
+- `useSendTransaction` allowed only inside that submitter boundary
+- zero-value/no-calldata/Base-only request builder
+- explicit runtime flag: `VITE_KYRA_PHASE8_CONTROLLED_SUBMISSION=owner_approved_window`
+- default production state remains `disabled`
+- private owner dashboard source only
+- no Telegram, public profile, automation, swap, token approval, non-zero value,
+  or calldata path
+- safe failure copy for rejected or failed wallet prompts
+- sanitized hash display only after wallet submission returns a hash
+
+Implementation evidence:
+
+- `src/components/Phase8ControlledSubmitter.tsx`
+- `src/types/phase8OwnerSubmitRequest.ts`
+- `scripts/test-phase-8-owner-submit-request.mjs`
+- `scripts/check-phase-8-controlled-submitter.mjs`
+- `npm run check:phase-8-submitter`
+
+Batch 5 wires the final browser-side handoff point, but does not enable it by
+default. The next operator step is an owner-approved live window using the
+specific runtime flag, one selected agent, one connected owner Base Account, and
+one frozen zero-value/no-calldata prepared action.
 
 User wallet authority and user Telegram bot-token privacy remain priority one.

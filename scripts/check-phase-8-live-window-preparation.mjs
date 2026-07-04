@@ -53,7 +53,7 @@ const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 2 live-window preparation guard.",
+  "Status: Batch 5 owner dashboard submitter wiring.",
   "owner-approved live window",
   "private owner dashboard",
   "execute intent",
@@ -170,7 +170,7 @@ for (const path of publicFiles) {
 for (const path of sourceFiles) {
   const source = read(path);
 
-  if (path === "src/providers/WalletRuntimeProviders.tsx") {
+  if (path === "src/providers/WalletRuntimeProviders.tsx" || path === "src/components/Phase8ControlledSubmitter.tsx") {
     continue;
   }
 
