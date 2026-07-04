@@ -3,7 +3,10 @@ import { LoaderCircle, Send, ShieldCheck } from "lucide-react";
 import { useConnection, useSendTransaction } from "wagmi";
 import { appConfig } from "../config/appConfig";
 import type { FrozenPreparedAction } from "../types/dualApprovalExecution";
-import type { Phase8ControlledSubmissionResult } from "../types/phase8ControlledSubmission";
+import type {
+  Phase8ControlledSubmissionResult,
+  Phase8ControlledSubmissionResultEvent,
+} from "../types/phase8ControlledSubmission";
 import type { Phase8OwnerLiveWindowActivationResult } from "../types/phase8OwnerLiveWindowActivation";
 import {
   createPhase8OwnerSubmitRequest,
@@ -14,6 +17,7 @@ interface Phase8ControlledSubmitterProps {
   submission: Phase8ControlledSubmissionResult;
   activation: Phase8OwnerLiveWindowActivationResult;
   frozenAction: FrozenPreparedAction | null;
+  onResultCloseout?: (event: Phase8ControlledSubmissionResultEvent) => void;
 }
 
 type SubmitterState = "locked" | "ready" | "submitting" | "submitted" | "failed";
@@ -30,12 +34,13 @@ export function Phase8ControlledSubmitter({
   submission,
   activation,
   frozenAction,
+  onResultCloseout,
 }: Phase8ControlledSubmitterProps) {
   const connection = useConnection();
   const sendTransaction = useSendTransaction();
   const [state, setState] = useState<SubmitterState>("locked");
   const [message, setMessage] = useState(
-    "Controlled submission is locked until every Phase 8 Batch 1-6 gate passes.",
+    "Controlled submission is locked until every Phase 8 Batch 1-9 gate passes.",
   );
   const [submittedHash, setSubmittedHash] = useState<string | null>(null);
 
@@ -59,7 +64,7 @@ export function Phase8ControlledSubmitter({
   async function handleSubmit() {
     if (!runtimeEnabled) {
       setState("locked");
-      setMessage("Phase 8 Batch 8 live-window runtime is disabled for production safety.");
+      setMessage("Phase 8 Batch 9 live-window runtime is disabled for production safety.");
       return;
     }
 
@@ -91,7 +96,16 @@ export function Phase8ControlledSubmitter({
       setState("submitting");
       setMessage("Opening Base Account for one owner-controlled zero-value submit...");
       const hash = await sendTransaction.sendTransactionAsync(submitRequest.request);
+      const closeoutEvent: Phase8ControlledSubmissionResultEvent = {
+        state: "submitted",
+        ownerOnly: true,
+        sanitized: true,
+        txHash: hash,
+        message: "Submitted with sanitized hash reference.",
+        createdAt: new Date().toISOString(),
+      };
       setSubmittedHash(hash);
+      onResultCloseout?.(closeoutEvent);
       setState("submitted");
       setMessage("Submitted. Owner-only result closeout should record the sanitized hash reference.");
     } catch (error) {
@@ -106,7 +120,7 @@ export function Phase8ControlledSubmitter({
       <div className="phase-8-submit-boundary-header">
         <span className="queue-icon"><ShieldCheck size={16} /></span>
         <div>
-          <small>Phase 8 Batch 8 submitter</small>
+          <small>Phase 8 Batch 9 submitter</small>
           <strong>{activation.transactionSubmissionAllowed ? "Window armed" : "Window locked"}</strong>
         </div>
         <span>{state}</span>

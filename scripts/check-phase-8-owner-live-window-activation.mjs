@@ -57,10 +57,11 @@ const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 8 owner self-check candidate.",
+  "Status: Batch 9 owner-only result closeout bridge.",
   "Owner Live-Window Activation Lock",
   "Owner Arming UX",
   "Owner Self-Check Candidate",
+  "Owner-Only Result Closeout Bridge",
   "owner live-window activation result",
   "owner arming control",
   "operator acknowledgement must be recorded",
@@ -73,15 +74,16 @@ for (const expected of [
 }
 
 for (const expected of [
-  "In progress: Batch 8",
-  "Batch 8 evidence",
+  "In progress: Batch 9",
+  "Batch 9 evidence",
   "owner live-window activation lock",
   "owner arming UX",
   "owner self-check candidate",
+  "owner-only result closeout bridge",
   "src/types/phase8OwnerLiveWindowActivation.ts",
   "src/types/phase8OwnerActionCandidate.ts",
   "scripts/check-phase-8-owner-live-window-activation.mjs",
-  "Status: Batch 8 owner self-check candidate.",
+  "Status: Batch 9 owner-only result closeout bridge.",
 ]) {
   includes("roadmap", roadmap, expected);
 }
@@ -137,8 +139,10 @@ for (const expected of [
 for (const expected of [
   "Phase8OwnerLiveWindowActivationResult",
   "activation.transactionSubmissionAllowed",
-  "Phase 8 Batch 8 submitter",
+  "Phase 8 Batch 9 submitter",
   "Window armed",
+  "onResultCloseout",
+  "Submitted with sanitized hash reference.",
   "Activation blocked by",
 ]) {
   includes("submitter", submitter, expected);
@@ -148,8 +152,13 @@ for (const expected of [
   "evaluatePhase8OwnerLiveWindowActivation",
   "phase8OwnerLiveWindowActivation",
   "phase8OwnerActionCandidate",
+  "phase8SubmitterResult",
   "createPhase8OwnerActionCandidate",
   "baseAccountAddress: baseAccountConnectionStatus.address",
+  "providerStatus: phase8SubmitterResult ? \"provider_submitted\" : \"not_started\"",
+  "txHash: phase8SubmitterResult?.txHash ?? null",
+  "resultEvents: phase8SubmitterResult ? [phase8SubmitterResult] : []",
+  "onResultCloseout={setPhase8SubmitterResult}",
   "phase8OwnerArming",
   "phase8FrozenAction",
   "activePhase8OwnerArming",
@@ -158,7 +167,8 @@ for (const expected of [
   "operatorAcknowledged: Boolean(activePhase8OwnerArming)",
   "promptNonce: activePhase8OwnerArming?.promptNonce ?? null",
   "submissionNonce: activePhase8OwnerArming?.submissionNonce ?? null",
-  "submissionState: activePhase8OwnerArming ? \"ready\" : \"not_submitted\"",
+  "submissionState: phase8SubmitterResult",
+  "? phase8SubmitterResult.state",
   "Arm owner live window",
   "Reset window",
   "phase-8-owner-candidate-panel",

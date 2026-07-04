@@ -78,7 +78,10 @@ import { evaluateExecutionLaunchReadiness } from "../types/executionLaunchReadin
 import { evaluatePhase8ControlledExecution } from "../types/phase8ControlledExecution";
 import { evaluatePhase8LiveWindowPreparation } from "../types/phase8LiveWindowPreparation";
 import { evaluatePhase8WalletPromptOpening } from "../types/phase8WalletPromptOpening";
-import { evaluatePhase8ControlledSubmission } from "../types/phase8ControlledSubmission";
+import {
+  evaluatePhase8ControlledSubmission,
+  type Phase8ControlledSubmissionResultEvent,
+} from "../types/phase8ControlledSubmission";
 import { evaluatePhase8OwnerLiveWindowActivation } from "../types/phase8OwnerLiveWindowActivation";
 import { createPhase8OwnerActionCandidate } from "../types/phase8OwnerActionCandidate";
 import { baseChainId } from "../types/unsignedTransactionHandoff";
@@ -694,6 +697,8 @@ export function Dashboard({
     });
   const [phase8OwnerArming, setPhase8OwnerArming] =
     useState<Phase8OwnerArmingState | null>(null);
+  const [phase8SubmitterResult, setPhase8SubmitterResult] =
+    useState<Phase8ControlledSubmissionResultEvent | null>(null);
   const baseMcpRequestSequenceRef = useRef(0);
   const supabaseStatus = getSupabaseAdapterStatus();
 
@@ -1167,6 +1172,12 @@ export function Dashboard({
     ? phase8OwnerArming
     : null;
 
+  useEffect(() => {
+    if (!activePhase8OwnerArming && phase8SubmitterResult) {
+      setPhase8SubmitterResult(null);
+    }
+  }, [activePhase8OwnerArming, phase8SubmitterResult]);
+
   function createPhase8Nonce(prefix: string) {
     const randomId = globalThis.crypto?.randomUUID?.() ??
       `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
@@ -1184,6 +1195,7 @@ export function Dashboard({
       return;
     }
 
+    setPhase8SubmitterResult(null);
     setPhase8OwnerArming({
       ownerUserId,
       workspaceId,
@@ -1196,6 +1208,7 @@ export function Dashboard({
   }
 
   function resetPhase8OwnerLiveWindow() {
+    setPhase8SubmitterResult(null);
     setPhase8OwnerArming(null);
   }
   const preparedActionTone = getPreparedActionTone(
@@ -1210,9 +1223,9 @@ export function Dashboard({
         ownerUserId: authSession?.user.id ?? "",
         workspaceId: dashboardData?.workspace.id ?? "",
         agentId: agentRecord?.id ?? "",
-        preparedActionId: executionResults[0]?.preparedActionId ?? "",
-        providerStatus: "not_started",
-        txHash: null,
+        preparedActionId: phase8FrozenAction?.requestId ?? executionResults[0]?.preparedActionId ?? "",
+        providerStatus: phase8SubmitterResult ? "provider_submitted" : "not_started",
+        txHash: phase8SubmitterResult?.txHash ?? null,
         confirmationId: null,
         failureCode: null,
         disconnectRequested: false,
@@ -1224,6 +1237,8 @@ export function Dashboard({
       authSession?.user.id,
       dashboardData?.workspace.id,
       executionResults,
+      phase8FrozenAction?.requestId,
+      phase8SubmitterResult,
     ],
   );
   const controlledLiveTransactionGate = useMemo(() => {
@@ -1452,8 +1467,12 @@ export function Dashboard({
           submissionNonceUsed: false,
           requestedAt: activePhase8OwnerArming?.armedAt ?? null,
         },
-        submissionState: activePhase8OwnerArming ? "ready" : "not_submitted",
-        resultEvents: [],
+        submissionState: phase8SubmitterResult
+          ? phase8SubmitterResult.state
+          : activePhase8OwnerArming
+          ? "ready"
+          : "not_submitted",
+        resultEvents: phase8SubmitterResult ? [phase8SubmitterResult] : [],
         rollbackReady: true,
         emergencyDisableReady: true,
         postTransactionAuditReady: true,
@@ -1467,6 +1486,7 @@ export function Dashboard({
       baseAccountConnectionStatus.chainId,
       dashboardData?.workspace.id,
       phase8FrozenAction,
+      phase8SubmitterResult,
       phase8WalletPromptOpening,
     ],
   );
@@ -3342,6 +3362,7 @@ export function Dashboard({
               submission={phase8ControlledSubmission}
               activation={phase8OwnerLiveWindowActivation}
               frozenAction={phase8FrozenAction}
+              onResultCloseout={setPhase8SubmitterResult}
             />
             <div className="result-monitoring-panel">
               <div className="result-monitoring-header">

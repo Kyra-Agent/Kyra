@@ -62,7 +62,7 @@ Current canonical roadmap status:
 | 1-5 | Product, backend, security, deployment, Telegram, and LLM read-only foundations complete |
 | 6 | Wallet and approval foundation complete |
 | 7 | Base Account + execution readiness complete; not live execution |
-| 8 | In progress: controlled live transaction Batch 8 |
+| 8 | In progress: controlled live transaction Batch 9 |
 | 9 | Pending: public execution hardening |
 | 10 | Pending: product release readiness |
 

@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 8 owner self-check candidate. Runtime execution remains default-off. Owner-approved window is required before activation.
+Status: Batch 9 owner-only result closeout bridge. Runtime execution remains default-off. Owner-approved window is required before activation.
 
 ## Purpose
 
@@ -319,5 +319,31 @@ Implementation evidence:
 - `scripts/check-phase-8-owner-live-window-activation.mjs`
 
 Batch 8 makes the first controlled transaction path safer and easier to review because the owner can see the exact self-check candidate before arming the live window. Runtime submission remains default-off and still requires owner arming, Base Account approval, rollback readiness, emergency disablement readiness, and owner-only audit.
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+## Batch 9 - Owner-Only Result Closeout Bridge
+
+Batch 9 connects the isolated submitter result back into the private dashboard models. A successful submit produces only an owner-only sanitized hash reference and moves the dashboard into submitted-pending-confirmation monitoring.
+
+Required Batch 9 controls:
+
+- submitter emits only a sanitized transaction hash event after provider submission
+- event state is owner-only and never public
+- dashboard stores the event in browser state only
+- result closeout is cleared when the owner resets, disconnects, changes agent, or invalidates the active arming state
+- `phase8ControlledSubmission` consumes the submitted event as owner-only closeout evidence
+- `resultMonitoringCloseout` observes provider-submitted status only after the sanitized hash exists
+- rejected or failed prompts do not create fake transaction hashes
+- Telegram, public profiles, automation, swaps, token approvals, calldata, and non-zero value remain blocked
+
+Implementation evidence:
+
+- `onResultCloseout` bridge in `src/components/Phase8ControlledSubmitter.tsx`
+- `phase8SubmitterResult` owner-only dashboard state
+- `phase8ControlledSubmission` submitted-state result event binding
+- `resultMonitoringCloseout` provider-submitted hash observation
+- `scripts/check-phase-8-owner-live-window-activation.mjs`
+
+Batch 9 does not make confirmations automatic. It records only the immediate provider-submitted hash reference after the owner approves a Base Account prompt. Confirmation persistence remains a later production hardening step.
 
 User wallet authority and user Telegram bot-token privacy remain priority one.

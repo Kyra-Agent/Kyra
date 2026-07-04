@@ -153,7 +153,7 @@ for (
     "src/types/resultMonitoringCloseout.ts",
     "Phase 7I result monitoring and closeout boundary is implemented",
     "Phase 7J controlled live transaction gate is implemented",
-    "In progress: Batch 8",
+    "In progress: Batch 9",
   ]
 ) {
   includes("roadmap", roadmap, required);
