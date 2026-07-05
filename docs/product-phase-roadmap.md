@@ -77,7 +77,7 @@ evidence packets, not extra product phases.
 | 6 | Wallet/Approval Foundation | Wallet readiness, approval policy, risk review, prepared-action models, and refusal boundaries. | Foundation complete |
 | 7 | Base Account + Execution Readiness | Owner Base Account connection, prompt locks, prepared-action allowlist, policy gates, dual approval model, result closeout model, production smoke freeze. | Complete as readiness; not live execution |
 | 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, controlled submission, owner-only result. | Complete: controlled live transaction implementation closeout |
-| 9 | Public Execution Hardening | Rate limits, rollback, incident controls, monitoring, privacy audits, abuse controls, and wider execution eligibility. | Pending |
+| 9 | Public Execution Hardening | Rate limits, rollback, incident controls, monitoring, privacy audits, abuse controls, and wider execution eligibility. | Structurally complete; runtime default-off |
 | 10 | Product Release Readiness | Public-ready copy, support ops, launch QA, production runbook, final audit, and release decision. | Pending |
 
 ## Phase 1 - Product Foundation
@@ -582,7 +582,7 @@ Current position:
 - Phase 6 is foundation complete.
 - Phase 7 is complete as Base Account + execution readiness.
 - Phase 8 implementation is closed for the controlled live transaction path.
-- Phase 9 and Phase 10 remain pending.
+- Phase 9 public execution hardening is structurally complete; Phase 10 release readiness can start.
 
 After Phase 8 closeout, keep these checks green before Phase 9 public hardening:
 

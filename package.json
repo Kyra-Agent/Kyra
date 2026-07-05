@@ -162,7 +162,9 @@
     "test:phase-9d-monitoring-support": "node scripts/test-phase-9d-monitoring-support.mjs",
     "check:phase-9d": "npm run test:phase-9d-monitoring-support && node scripts/check-phase-9d-monitoring-support.mjs",
     "test:phase-9e-public-privacy-release": "node scripts/test-phase-9e-public-privacy-release.mjs",
-    "check:phase-9e": "npm run test:phase-9e-public-privacy-release && node scripts/check-phase-9e-public-privacy-release.mjs"
+    "check:phase-9e": "npm run test:phase-9e-public-privacy-release && node scripts/check-phase-9e-public-privacy-release.mjs",
+    "test:phase-9-closeout": "node scripts/test-phase-9-closeout.mjs",
+    "check:phase-9-closeout": "npm run test:phase-9-closeout && node scripts/check-phase-9-closeout.mjs"
   },
   "dependencies": {
     "@base-org/account": "^2.5.6",

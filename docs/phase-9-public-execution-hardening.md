@@ -1,6 +1,6 @@
 # Phase 9 Public Execution Hardening
 
-Status: Batch 9A in progress. Public execution runtime remains default-off.
+Status: structurally complete. Public execution runtime remains default-off.
 
 Phase 9 hardens the path from owner-only controlled execution into a public-ready product lane. It does not weaken owner wallet authority, Kyra approval, Base Account approval, receipt verification, owner-only closeout, or Telegram token privacy.
 
@@ -175,5 +175,28 @@ Batch 9E closeout rule:
 
 - Batch 9E can close when public surfaces, logs, docs, Edge Function errors, sensitive-data hiding, and release decision evidence are modeled and checked.
 - Phase 9 can close after 9E passes structurally; Phase 10 owns final launch QA and product release readiness.
+
+
+## Phase 9 Closeout
+
+Phase 9 public execution hardening is structurally complete after Batch 9A through Batch 9E. This closeout confirms the hardening path is ready for Phase 10 release readiness, but public execution runtime remains disabled until explicit Phase 10 release approval.
+
+Closeout evidence:
+
+- Batch 9A execution eligibility hardening is modeled and checked.
+- Batch 9B abuse, rate-limit, replay, duplicate-submit, provider-backoff, and value-limit enforcement is modeled and checked.
+- Batch 9C incident, rollback, emergency disable, failure handling, and stuck receipt handling is modeled and checked.
+- Batch 9D monitoring, support, owner evidence, and privacy-preserving analytics is modeled and checked.
+- Batch 9E public privacy and release gate is modeled and checked.
+- `src/types/phase9Closeout.ts`
+- `scripts/test-phase-9-closeout.mjs`
+- `scripts/check-phase-9-closeout.mjs`
+- `npm run check:phase-9-closeout`
+
+Closeout rule:
+
+- Phase 9 public execution hardening is structurally complete when 9A, 9B, 9C, 9D, and 9E all pass.
+- Phase 10 release readiness can start after this closeout.
+- Public execution runtime remains disabled until Phase 10 explicitly records launch QA, production runbook, final audit, and release approval.
 
 User wallet authority and user Telegram bot-token privacy remain priority one.

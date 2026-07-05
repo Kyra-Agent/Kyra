@@ -96,6 +96,7 @@ import { evaluatePhase9AbuseRateLimit } from "../types/phase9AbuseRateLimit";
 import { evaluatePhase9IncidentControls } from "../types/phase9IncidentControls";
 import { evaluatePhase9MonitoringSupport } from "../types/phase9MonitoringSupport";
 import { evaluatePhase9PublicPrivacyRelease } from "../types/phase9PublicPrivacyRelease";
+import { evaluatePhase9Closeout } from "../types/phase9Closeout";
 import { evaluatePhase8UserExecutionFlow } from "../types/phase8UserExecutionFlow";
 import { evaluatePhase8UserSafeTransactionPolicy } from "../types/phase8UserSafeTransactionPolicy";
 import { formatPhase8BaseEth } from "../types/phase8FundingReadiness";
@@ -1728,6 +1729,24 @@ export function Dashboard({
       releaseDecisionRecorded: true,
     }),
     [phase9MonitoringSupport.canProceedToPrivacyGate],
+  );
+
+  const phase9Closeout = useMemo(
+    () => evaluatePhase9Closeout({
+      executionEligibilityReady: phase9ExecutionEligibility.canProceedToAbuseHardening,
+      abuseRateLimitReady: phase9AbuseRateLimit.canProceedToIncidentControls,
+      incidentControlsReady: phase9IncidentControls.canProceedToMonitoring,
+      monitoringSupportReady: phase9MonitoringSupport.canProceedToPrivacyGate,
+      publicPrivacyReleaseReady: phase9PublicPrivacyRelease.phase9CanClose,
+      phase10ReadinessStarted: false,
+    }),
+    [
+      phase9ExecutionEligibility.canProceedToAbuseHardening,
+      phase9AbuseRateLimit.canProceedToIncidentControls,
+      phase9IncidentControls.canProceedToMonitoring,
+      phase9MonitoringSupport.canProceedToPrivacyGate,
+      phase9PublicPrivacyRelease.phase9CanClose,
+    ],
   );
 
   const controlledLiveTransactionGate = useMemo(() => {
@@ -4265,6 +4284,25 @@ export function Dashboard({
               {phase9PublicPrivacyRelease.reasons.length
                 ? <small>Blocked by: {phase9PublicPrivacyRelease.reasons.join(", ")}</small>
                 : <small>Phase 9 public privacy can close only inside the explicit release gate.</small>}
+            </div>
+            <div className="phase-9-closeout-panel">
+              <div className="result-monitoring-header">
+                <span>Phase 9 closeout</span>
+                <strong>{phase9Closeout.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="phase-9-closeout-grid">
+                {phase9Closeout.controls.map((item) => (
+                  <span className={`closeout-${item.status}`} key={item.label}>
+                    {item.label}
+                    <strong>{item.status}</strong>
+                    <small>{item.detail}</small>
+                  </span>
+                ))}
+              </div>
+              <p>{phase9Closeout.message}</p>
+              {phase9Closeout.reasons.length
+                ? <small>Open items: {phase9Closeout.reasons.join(", ")}</small>
+                : <small>Phase 9 is structurally complete. Runtime remains disabled until Phase 10 release approval.</small>}
             </div>
             <div className="phase-8-smoke-closeout-panel">
               <div className="result-monitoring-header">
