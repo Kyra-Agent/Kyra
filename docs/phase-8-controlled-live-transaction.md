@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 11 gas readiness guard. Runtime execution remains default-off. Explicit owner-approved window flag enablement is required before activation.
+Status: Batch 12 submitter closeout hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 
 ## Purpose
 
@@ -393,5 +393,27 @@ Implementation evidence:
 - submitter requires `gasReady` before `sendTransactionAsync`
 - `getGasReadiness` blocks `wallet_required`, `address_required`, `checking`, `unavailable`, and `empty` states
 - `npm run check:phase-8-runtime-preflight`
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+## Batch 12 - Submitter Closeout Hardening
+
+Batch 12 hardens the owner-only closeout after a provider returns a transaction hash. It does not add token approval, swap, calldata, non-zero value, Telegram, public profile, or automation execution authority.
+
+Required Batch 12 controls:
+
+- successful provider submission is converted through `createPhase8SubmittedCloseoutEvent`
+- owner, workspace, agent, prepared action, and submission nonce scope are required before closeout is recorded
+- transaction hash must be a valid `0x` transaction hash before the event is accepted
+- closeout event remains owner-only and sanitized
+- Dashboard passes the active owner-window submission nonce into the isolated submitter
+- failure copy remains safe and does not expose provider payloads, calldata, secrets, or wallet internals
+
+Implementation evidence:
+
+- `src/types/phase8SubmitterCloseout.ts`
+- `scripts/test-phase-8-submitter-closeout.mjs`
+- `src/components/Phase8ControlledSubmitter.tsx`
+- `src/pages/Dashboard.tsx`
+- `npm run check:phase-8-submitter`
 
 User wallet authority and user Telegram bot-token privacy remain priority one.

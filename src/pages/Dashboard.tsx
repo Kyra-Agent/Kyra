@@ -3432,6 +3432,7 @@ export function Dashboard({
               activation={phase8OwnerLiveWindowActivation}
               preflight={phase8RuntimeEnablementPreflight}
               baseAccountAddress={baseAccountConnectionStatus.address}
+              submissionNonce={activePhase8OwnerArming?.submissionNonce ?? null}
               frozenAction={phase8FrozenAction}
               onResultCloseout={setPhase8SubmitterResult}
             />

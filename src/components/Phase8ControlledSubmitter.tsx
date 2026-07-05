@@ -14,12 +14,17 @@ import {
   createPhase8OwnerSubmitRequest,
   type Phase8OwnerSubmitRequestFailure,
 } from "../types/phase8OwnerSubmitRequest";
+import {
+  createPhase8SubmittedCloseoutEvent,
+  getPhase8SubmitterCloseoutFailureMessage,
+} from "../types/phase8SubmitterCloseout";
 
 interface Phase8ControlledSubmitterProps {
   submission: Phase8ControlledSubmissionResult;
   activation: Phase8OwnerLiveWindowActivationResult;
   preflight: Phase8RuntimeEnablementPreflightResult;
   baseAccountAddress: `0x${string}` | null;
+  submissionNonce: string | null;
   frozenAction: FrozenPreparedAction | null;
   onResultCloseout?: (event: Phase8ControlledSubmissionResultEvent) => void;
 }
@@ -39,6 +44,7 @@ export function Phase8ControlledSubmitter({
   activation,
   preflight,
   baseAccountAddress,
+  submissionNonce,
   frozenAction,
   onResultCloseout,
 }: Phase8ControlledSubmitterProps) {
@@ -126,22 +132,37 @@ export function Phase8ControlledSubmitter({
       return;
     }
 
+    if (!frozenAction) {
+      setState("locked");
+      setMessage(failureCopy.frozen_action_required);
+      return;
+    }
+
     try {
       setState("submitting");
       setMessage("Opening Base Account for one owner-controlled zero-value submit...");
       const hash = await sendTransaction.sendTransactionAsync(submitRequest.request);
-      const closeoutEvent: Phase8ControlledSubmissionResultEvent = {
-        state: "submitted",
-        ownerOnly: true,
-        sanitized: true,
+      const closeout = createPhase8SubmittedCloseoutEvent({
+        ownerUserId: frozenAction.ownerUserId,
+        workspaceId: frozenAction.workspaceId,
+        agentId: frozenAction.agentId,
+        preparedActionId: frozenAction.requestId,
+        submissionNonce: submissionNonce ?? "",
         txHash: hash,
-        message: "Submitted with sanitized hash reference.",
         createdAt: new Date().toISOString(),
-      };
+      });
+
+      if (!closeout.ok || !closeout.event) {
+        setSubmittedHash(null);
+        setState("failed");
+        setMessage(getPhase8SubmitterCloseoutFailureMessage(closeout.reason ?? "transaction_hash_required"));
+        return;
+      }
+
       setSubmittedHash(hash);
-      onResultCloseout?.(closeoutEvent);
+      onResultCloseout?.(closeout.event);
       setState("submitted");
-      setMessage("Submitted. Owner-only result closeout should record the sanitized hash reference.");
+      setMessage("Submitted with sanitized hash reference. Owner-only result closeout recorded.");
     } catch (error) {
       setSubmittedHash(null);
       setState("failed");

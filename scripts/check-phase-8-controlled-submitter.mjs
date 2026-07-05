@@ -55,7 +55,7 @@ const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 11 gas readiness guard.",
+  "Status: Batch 12 submitter closeout hardening.",
   "Owner Dashboard Submitter Wiring",
   "isolated `Phase8ControlledSubmitter` component",
   "zero-value/no-calldata/Base-only request builder",
@@ -73,7 +73,7 @@ for (const expected of [
   "src/types/phase8OwnerSubmitRequest.ts",
   "scripts/test-phase-8-owner-submit-request.mjs",
   "scripts/check-phase-8-controlled-submitter.mjs",
-  "Status: Batch 11 gas readiness guard.",
+  "Status: Batch 12 submitter closeout hardening.",
 ]) {
   includes("roadmap", roadmap, expected);
 }
@@ -99,6 +99,9 @@ for (const expected of [
   "Base ETH gas",
   "getGasReadiness",
   "zero-value, but gas still requires ETH",
+  "createPhase8SubmittedCloseoutEvent",
+  "getPhase8SubmitterCloseoutFailureMessage",
+  "submissionNonce",
 ]) {
   includes("submitter", submitter, expected);
 }
@@ -128,6 +131,7 @@ for (const expected of [
   "Phase8ControlledSubmitter",
   "phase8ControlledSubmission",
   "baseAccountAddress={baseAccountConnectionStatus.address}",
+  "submissionNonce={activePhase8OwnerArming?.submissionNonce ?? null}",
 ]) {
   includes("dashboard", dashboard, expected);
 }
@@ -141,6 +145,7 @@ for (const expected of [
 
 for (const expected of [
   '"test:phase-8-owner-submit-request"',
+  '"test:phase-8-submitter-closeout"',
   '"check:phase-8-submitter"',
 ]) {
   includes("package.json", packageJson, expected);
