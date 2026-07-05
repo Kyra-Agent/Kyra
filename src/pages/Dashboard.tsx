@@ -87,6 +87,7 @@ import { createPhase8OwnerActionCandidate } from "../types/phase8OwnerActionCand
 import { evaluatePhase8RuntimeEnablementPreflight } from "../types/phase8RuntimeEnablementPreflight";
 import { evaluatePhase8SmokeCloseout } from "../types/phase8SmokeCloseout";
 import { evaluatePhase8UserSafeTransactionPolicy } from "../types/phase8UserSafeTransactionPolicy";
+import { evaluatePhase8LowValueTransactionReadiness } from "../types/phase8LowValueTransactionReadiness";
 import {
   createPhase8PersistedExecutionResult,
   getPhase8ResultPersistenceFailureMessage,
@@ -1360,6 +1361,34 @@ export function Dashboard({
       baseAccountConnectionStatus.connected,
       phase8FrozenAction?.requestId,
       phase8OwnerActionCandidate,
+    ],
+  );
+  const phase8LowValueTransactionReadiness = useMemo(
+    () =>
+      evaluatePhase8LowValueTransactionReadiness({
+        ownerSignedIn: Boolean(authSession),
+        privateDashboard: true,
+        selectedAgent: Boolean(agentRecord),
+        baseAccountConnected: baseAccountConnectionStatus.connected,
+        chainId: baseAccountConnectionStatus.chainId,
+        preparedActionId: phase8FrozenAction?.requestId ?? "",
+        ownerApprovalRecorded: Boolean(activePhase8OwnerArming),
+        requestedValueWei: "100000000000000",
+        estimatedGasFeeWei: "10000000000000",
+        availableGasBalanceWei: null,
+        data: "0x",
+        includesTokenApproval: false,
+        includesSwap: false,
+        requestedFromTelegram: false,
+        visibleInPublicProfile: false,
+      }),
+    [
+      activePhase8OwnerArming,
+      agentRecord,
+      authSession,
+      baseAccountConnectionStatus.chainId,
+      baseAccountConnectionStatus.connected,
+      phase8FrozenAction?.requestId,
     ],
   );
   const controlledLiveTransactionGate = useMemo(() => {
@@ -3632,6 +3661,33 @@ export function Dashboard({
               {phase8UserSafeTransactionPolicy.reasons.length
                 ? <small>Blocked by: {phase8UserSafeTransactionPolicy.reasons.join(", ")}</small>
                 : <small>User-safe policy is private-dashboard only. Non-zero value, calldata, swaps, and token approvals remain locked.</small>}
+            </div>            <div className="phase-8-low-value-panel">
+              <div className="result-monitoring-header">
+                <span>Phase 8 low-value readiness</span>
+                <strong>{phase8LowValueTransactionReadiness.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="phase-8-low-value-grid">
+                <span>
+                  Value cap
+                  <strong>{phase8LowValueTransactionReadiness.maxValueLabel}</strong>
+                </span>
+                <span>
+                  Required balance
+                  <strong>{phase8LowValueTransactionReadiness.requiredBalanceWei} wei</strong>
+                </span>
+                <span>
+                  Calldata
+                  <strong>blocked</strong>
+                </span>
+                <span>
+                  Swaps/approvals
+                  <strong>blocked</strong>
+                </span>
+              </div>
+              <p>{phase8LowValueTransactionReadiness.message}</p>
+              {phase8LowValueTransactionReadiness.reasons.length
+                ? <small>Blocked by: {phase8LowValueTransactionReadiness.reasons.join(", ")}</small>
+                : <small>Low-value review is owner-dashboard only. Execution still requires a separate submit gate.</small>}
             </div>            <div className="phase-8-smoke-closeout-panel">
               <div className="result-monitoring-header">
                 <span>Phase 8 smoke closeout</span>

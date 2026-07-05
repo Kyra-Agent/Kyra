@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 16 user-safe transaction policy hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 17 low-value transaction readiness hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 
 ## Purpose
 
@@ -515,5 +515,29 @@ Implementation evidence:
 - `src/pages/Dashboard.tsx`
 - `src/styles.css`
 - `npm run check:phase-8-user-safe-policy`
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+## Batch 17 - Low-Value Transaction Readiness
+
+Batch 17 adds the readiness gate for the first low-value owner transaction without opening broader execution. The current submitter remains separate and conservative while Kyra verifies value cap, gas requirements, owner approval, Base-only execution, and private-dashboard-only authority before any low-value submit path can be promoted.
+
+Required Batch 17 controls:
+
+- low-value review requires signed-in owner, private dashboard, selected agent, connected Base Account, Base chain, prepared action, and recorded owner approval
+- max low-value cap is `0.0001 ETH` (`100000000000000` wei)
+- required balance is modeled as requested value plus estimated Base gas fee
+- missing gas estimate or insufficient Base ETH blocks review
+- calldata, token approvals, swaps, Telegram requests, and public profile triggers remain blocked
+- Batch 17 is readiness only; it does not replace the current zero-value controlled submitter
+- public agent profiles and Telegram webhook code cannot access Phase 8 low-value readiness authority
+
+Implementation evidence:
+
+- `src/types/phase8LowValueTransactionReadiness.ts`
+- `scripts/test-phase-8-low-value-transaction-readiness.mjs`
+- `scripts/check-phase-8-low-value-transaction-readiness.mjs`
+- `src/pages/Dashboard.tsx`
+- `src/styles.css`
+- `npm run check:phase-8-low-value-readiness`
 
 User wallet authority and user Telegram bot-token privacy remain priority one.
