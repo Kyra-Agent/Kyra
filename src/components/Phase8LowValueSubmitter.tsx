@@ -15,6 +15,8 @@ interface Phase8LowValueSubmitterProps {
   submitRequest: Phase8LowValueSubmitRequestResult;
   ownerWindowArmed: boolean;
   resultAlreadyRecorded: boolean;
+  securityCanOpenSubmitter: boolean;
+  securityBlockReasons: string[];
   closeoutScope: {
     ownerUserId: string;
     workspaceId: string;
@@ -32,6 +34,8 @@ export function Phase8LowValueSubmitter({
   submitRequest,
   ownerWindowArmed,
   resultAlreadyRecorded,
+  securityCanOpenSubmitter,
+  securityBlockReasons,
   closeoutScope,
   onResultCloseout,
 }: Phase8LowValueSubmitterProps) {
@@ -58,6 +62,7 @@ export function Phase8LowValueSubmitter({
       walletConnected &&
       ownerWindowArmed &&
       !resultAlreadyRecorded &&
+      securityCanOpenSubmitter &&
       hasCloseoutScope &&
       readiness.canEnterLowValueReview &&
       submitRequest.ok &&
@@ -86,6 +91,12 @@ export function Phase8LowValueSubmitter({
     if (resultAlreadyRecorded) {
       setState("locked");
       setMessage("Low-value submitter is locked after an owner-only result is recorded.");
+      return;
+    }
+
+    if (!securityCanOpenSubmitter) {
+      setState("locked");
+      setMessage("Security hardening blocked this submitter window.");
       return;
     }
 
@@ -169,6 +180,10 @@ export function Phase8LowValueSubmitter({
           <strong>{submitRequest.ok ? "low-value capped" : "blocked"}</strong>
         </span>
         <span>
+          Security
+          <strong>{securityCanOpenSubmitter ? "hardened" : "blocked"}</strong>
+        </span>
+        <span>
           Closeout scope
           <strong>{hasCloseoutScope ? "complete" : "required"}</strong>
         </span>
@@ -180,6 +195,9 @@ export function Phase8LowValueSubmitter({
         : null}
       {!submitRequest.ok
         ? <small>Request blocked by: {submitRequest.reasons.join(", ")}</small>
+        : null}
+      {securityBlockReasons.length
+        ? <small>Security blocked by: {securityBlockReasons.join(", ")}</small>
         : null}
       {!hasCloseoutScope
         ? <small>Closeout blocked by: owner/workspace/agent/action/nonce scope required.</small>

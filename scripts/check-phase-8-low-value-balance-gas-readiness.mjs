@@ -46,7 +46,7 @@ const publicFiles = walkFiles("src")
   .filter((path) => /\.(?:ts|tsx)$/u.test(path) && /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 23 user-facing execution flow.",
+  "Status: Batch 24 security and abuse hardening.",
   "Batch 20 - Live Balance And Gas Readiness",
   "Batch 20 wires live Base ETH balance into the low-value readiness gate",
 ]) {
@@ -54,7 +54,7 @@ for (const expected of [
 }
 
 for (const expected of [
-  "In progress: Batch 23",
+  "In progress: Batch 24",
   "Batch 20 evidence",
   "live Base ETH balance",
   "Phase 8 closeout path after Batch 20 used this working peg",
@@ -63,7 +63,7 @@ for (const expected of [
 }
 
 for (const expected of [
-  "| 8 | In progress: controlled live transaction Batch 23 |",
+  "| 8 | In progress: controlled live transaction Batch 24 |",
   "live balance and gas readiness",
 ]) {
   includes("README", readme, expected);

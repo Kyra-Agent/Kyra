@@ -76,7 +76,7 @@ evidence packets, not extra product phases.
 | 5 | Telegram + LLM Live | Connected deployed agents reply in Telegram with read-only commands and LLM planning. | Complete, live read-only |
 | 6 | Wallet/Approval Foundation | Wallet readiness, approval policy, risk review, prepared-action models, and refusal boundaries. | Foundation complete |
 | 7 | Base Account + Execution Readiness | Owner Base Account connection, prompt locks, prepared-action allowlist, policy gates, dual approval model, result closeout model, production smoke freeze. | Complete as readiness; not live execution |
-| 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, controlled submission, owner-only result. | In progress: Batch 23 |
+| 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, controlled submission, owner-only result. | In progress: Batch 24 |
 | 9 | Public Execution Hardening | Rate limits, rollback, incident controls, monitoring, privacy audits, abuse controls, and wider execution eligibility. | Pending |
 | 10 | Product Release Readiness | Public-ready copy, support ops, launch QA, production runbook, final audit, and release decision. | Pending |
 
@@ -425,7 +425,7 @@ Batch 5 evidence:
 - `scripts/test-phase-8-owner-submit-request.mjs`
 - `scripts/check-phase-8-controlled-submitter.mjs`
 
-Status: Batch 23 user-facing execution flow. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 24 security and abuse hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 
 Batch 6 evidence:
 
@@ -472,7 +472,7 @@ Batch 9 evidence:
 - result monitoring observes provider-submitted status only after sanitized hash exists
 - rejected or failed prompts do not create fake transaction hashes
 - Telegram, public profiles, automation, swaps, token approvals, calldata, and non-zero value remain blocked
-Status: Batch 23 user-facing execution flow. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 24 security and abuse hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 Do not open a live execution window until the owner explicitly approves it.
 
 ## Phase 9 - Public Execution Hardening
@@ -747,7 +747,23 @@ Batch 23 evidence:
 - `src/styles.css`
 - `npm run check:phase-8-user-execution-flow`
 
+Batch 24 evidence:
+
+- security and abuse hardening model added around the controlled low-value submitter
+- replay and double-submit attempts are blocked by used nonce or recorded result state
+- owner scope, runtime enablement, Kyra approval, low-value request readiness, and sanitized failure handling are explicit controls
+- transaction shape remains low-value ETH only with no calldata, token approval, or swap path
+- private dashboard shows the owner-only hardening panel before the submitter
+- submitter requires the hardening guard before opening Base Account
+- Telegram and public surfaces are checked to exclude security hardening authority
+- `src/types/phase8SecurityAbuseHardening.ts`
+- `scripts/test-phase-8-security-abuse-hardening.mjs`
+- `scripts/check-phase-8-security-abuse-hardening.mjs`
+- `src/pages/Dashboard.tsx`
+- `src/components/Phase8LowValueSubmitter.tsx`
+- `src/styles.css`
+- `npm run check:phase-8-security-abuse-hardening`
+
 Remaining Phase 8 closeout path:
 
-- Batch 24 - security and abuse hardening
 - Batch 25 - Phase 8 production closeout

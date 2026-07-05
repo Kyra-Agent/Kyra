@@ -43,11 +43,11 @@ function walkFiles(path) {
 const doc = read("docs/phase-8-controlled-live-transaction.md");
 const roadmap = read("docs/product-phase-roadmap.md");
 const readme = read("README.md");
-const context = read("docs/kyra-agent-context.md");
-const model = read("src/types/phase8LowValueSubmitRequest.ts");
+const model = read("src/types/phase8SecurityAbuseHardening.ts");
 const dashboard = read("src/pages/Dashboard.tsx");
+const submitter = read("src/components/Phase8LowValueSubmitter.tsx");
 const styles = read("src/styles.css");
-const test = read("scripts/test-phase-8-low-value-submit-request.mjs");
+const test = read("scripts/test-phase-8-security-abuse-hardening.mjs");
 const packageJson = read("package.json");
 const sourceFiles = walkFiles("src").filter((path) => /\.(?:ts|tsx)$/u.test(path));
 const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
@@ -56,7 +56,7 @@ const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.t
 
 for (const expected of [
   "Status: Batch 24 security and abuse hardening.",
-  "Batch 18 - Low-Value Submit Request Skeleton",
+  "Batch 24 - Security And Abuse Hardening",
   "User wallet authority and user Telegram bot-token privacy remain priority one",
 ]) {
   includes("Phase 8 doc", doc, expected);
@@ -64,63 +64,70 @@ for (const expected of [
 
 for (const expected of [
   "In progress: Batch 24",
-  "Batch 18 evidence",
-  "src/types/phase8LowValueSubmitRequest.ts",
-  "scripts/test-phase-8-low-value-submit-request.mjs",
-  "scripts/check-phase-8-low-value-submit-request.mjs",
+  "Batch 24 evidence",
+  "src/types/phase8SecurityAbuseHardening.ts",
+  "scripts/test-phase-8-security-abuse-hardening.mjs",
+  "scripts/check-phase-8-security-abuse-hardening.mjs",
 ]) {
   includes("roadmap", roadmap, expected);
 }
 
 for (const expected of [
   "| 8 | In progress: controlled live transaction Batch 24 |",
-  "live balance and gas readiness",
+  "security and abuse hardening",
 ]) {
   includes("README", readme, expected);
 }
 
-includes("context", context, "Controlled Live Transaction - in progress through Batch 24 security and abuse hardening.");
-
 for (const expected of [
-  "createPhase8LowValueSubmitRequest",
-  "maxValueWei: \"100000000000000\"",
-  "ownerOnly: true",
-  "value_cap_exceeded",
-  "no_calldata_required",
-  "token_approval_forbidden",
-  "telegram_forbidden",
-  "public_profile_forbidden",
+  "evaluatePhase8SecurityAbuseHardening",
+  "canOpenSubmitter",
+  "replay_nonce_detected",
+  "result_already_recorded",
+  "telegram_execution_forbidden",
+  "public_visibility_forbidden",
+  "unsanitized_failure_forbidden",
 ]) {
-  includes("low-value submit request model", model, expected);
+  includes("security hardening model", model, expected);
 }
 
 for (const expected of [
-  "createPhase8LowValueSubmitRequest",
-  "phase8LowValueSubmitRequest",
-  "Phase 8 low-value request",
-  "phase-8-low-value-request-panel",
+  "evaluatePhase8SecurityAbuseHardening",
+  "phase8SecurityAbuseHardening",
+  "Phase 8 security hardening",
+  "phase-8-security-hardening-panel",
 ]) {
   includes("dashboard", dashboard, expected);
 }
 
 for (const expected of [
-  ".phase-8-low-value-request-panel",
-  ".phase-8-low-value-request-grid",
+  "securityCanOpenSubmitter",
+  "securityBlockReasons",
+  "Security hardening blocked this submitter window.",
+]) {
+  includes("submitter", submitter, expected);
+}
+
+for (const expected of [
+  ".phase-8-security-hardening-panel",
+  ".phase-8-security-hardening-grid",
+  ".security-blocked",
 ]) {
   includes("styles", styles, expected);
 }
 
 for (const expected of [
-  "Phase 8 low-value submit request checks passed.",
-  "value_cap_exceeded",
-  "telegram_forbidden",
+  "Phase 8 security and abuse hardening checks passed.",
+  "replay_nonce_detected",
+  "unsanitized_failure_forbidden",
+  "failed_safe",
 ]) {
-  includes("low-value submit request test", test, expected);
+  includes("security hardening test", test, expected);
 }
 
 for (const expected of [
-  '"test:phase-8-low-value-submit-request"',
-  '"check:phase-8-low-value-submit-request"',
+  '"test:phase-8-security-abuse-hardening"',
+  '"check:phase-8-security-abuse-hardening"',
 ]) {
   includes("package.json", packageJson, expected);
 }
@@ -129,8 +136,8 @@ for (const path of telegramFiles) {
   excludes(
     path,
     read(path),
-    /createPhase8LowValueSubmitRequest|phase8LowValueSubmitRequest|phase-8-low-value-request/u,
-    "Phase 8 low-value submit request in Telegram authority",
+    /evaluatePhase8SecurityAbuseHardening|phase8SecurityAbuseHardening|security hardening/u,
+    "Phase 8 security hardening in Telegram authority",
   );
 }
 
@@ -138,9 +145,9 @@ for (const path of publicFiles) {
   excludes(
     path,
     read(path),
-    /createPhase8LowValueSubmitRequest|phase8LowValueSubmitRequest|phase-8-low-value-request/u,
-    "Phase 8 low-value submit request in public surfaces",
+    /evaluatePhase8SecurityAbuseHardening|phase8SecurityAbuseHardening|security hardening/u,
+    "Phase 8 security hardening in public surfaces",
   );
 }
 
-console.log("Phase 8 low-value submit request checks passed.");
+console.log("Phase 8 security and abuse hardening checks passed.");

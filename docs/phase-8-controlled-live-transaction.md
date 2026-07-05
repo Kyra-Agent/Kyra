@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 23 user-facing execution flow. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 24 security and abuse hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 
 ## Purpose
 
@@ -679,5 +679,32 @@ Implementation evidence:
 - `src/pages/Dashboard.tsx` renders the owner-only execution flow panel
 - `src/styles.css`
 - `npm run check:phase-8-user-execution-flow`
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+
+## Batch 24 - Security And Abuse Hardening
+
+Batch 24 formalizes the security layer around the controlled low-value submitter. It does not add new transaction authority. It makes replay prevention, double-submit prevention, public/Telegram isolation, transaction-shape checks, and sanitized failure handling explicit before the submitter can open.
+
+Required Batch 24 controls:
+
+- owner/workspace/agent/prepared-action/submission nonce scope is required before submitter opening
+- a used nonce or recorded result blocks replay and double-submit attempts
+- only one pending submitter window may exist at a time
+- low-value ETH transfer shape remains capped and calldata-free
+- token approvals, swaps, arbitrary calldata, Telegram execution, and public profile execution stay blocked
+- failure evidence must be sanitized before it can appear in the owner dashboard
+- receipt verification remains required after any provider handoff
+- public agent profiles and Telegram webhook code cannot access Phase 8 security hardening authority
+
+Implementation evidence:
+
+- `src/types/phase8SecurityAbuseHardening.ts`
+- `scripts/test-phase-8-security-abuse-hardening.mjs`
+- `scripts/check-phase-8-security-abuse-hardening.mjs`
+- `src/pages/Dashboard.tsx` renders the owner-only security hardening panel
+- `src/components/Phase8LowValueSubmitter.tsx` requires the security hardening guard before submit
+- `src/styles.css`
+- `npm run check:phase-8-security-abuse-hardening`
 
 User wallet authority and user Telegram bot-token privacy remain priority one.

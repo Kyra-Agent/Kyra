@@ -89,6 +89,7 @@ import { createPhase8OwnerActionCandidate } from "../types/phase8OwnerActionCand
 import { evaluatePhase8RuntimeEnablementPreflight } from "../types/phase8RuntimeEnablementPreflight";
 import { evaluatePhase8SmokeCloseout } from "../types/phase8SmokeCloseout";
 import { evaluatePhase8TransactionVerification } from "../types/phase8TransactionVerification";
+import { evaluatePhase8SecurityAbuseHardening } from "../types/phase8SecurityAbuseHardening";
 import { evaluatePhase8UserExecutionFlow } from "../types/phase8UserExecutionFlow";
 import { evaluatePhase8UserSafeTransactionPolicy } from "../types/phase8UserSafeTransactionPolicy";
 import { formatPhase8BaseEth } from "../types/phase8FundingReadiness";
@@ -1486,6 +1487,47 @@ export function Dashboard({
       dashboardData?.workspace.id,
       phase8FrozenAction?.requestId,
       phase8OwnerActionCandidate,
+    ],
+  );
+  const phase8SecurityAbuseHardening = useMemo(
+    () =>
+      evaluatePhase8SecurityAbuseHardening({
+        ownerUserId: authSession?.user.id ?? "",
+        workspaceId: dashboardData?.workspace.id ?? "",
+        agentId: agentRecord?.id ?? "",
+        preparedActionId: phase8FrozenAction?.requestId ?? "",
+        submissionNonce: activePhase8OwnerArming?.submissionNonce ?? "",
+        runtimeEnabled: appConfig.integrations.phase8LowValueSubmission === "owner_low_value_window",
+        ownerApprovalRecorded: Boolean(activePhase8OwnerArming),
+        lowValueRequestReady: phase8LowValueSubmitRequest.ok,
+        submitterPending: false,
+        resultAlreadyRecorded: Boolean(phase8SubmitterResult),
+        nonceAlreadyUsed: Boolean(phase8SubmitterResult),
+        requestedValueWei: phase8LowValueSubmitRequest.ok
+          ? phase8LowValueSubmitRequest.request.value.toString()
+          : null,
+        maxValueWei: "100000000000000",
+        calldata: phase8LowValueSubmitRequest.ok
+          ? phase8LowValueSubmitRequest.request.data ?? "0x"
+          : null,
+        includesTokenApproval: false,
+        includesSwap: false,
+        visibleInPublicProfile: false,
+        telegramRequestedExecution: false,
+        failureMessage: phase8TransactionVerification.sanitizedFailureReason,
+        failureSanitized: true,
+        verificationStatus: phase8TransactionVerification.status,
+      }),
+    [
+      activePhase8OwnerArming,
+      agentRecord?.id,
+      authSession?.user.id,
+      dashboardData?.workspace.id,
+      phase8FrozenAction?.requestId,
+      phase8LowValueSubmitRequest,
+      phase8SubmitterResult,
+      phase8TransactionVerification.sanitizedFailureReason,
+      phase8TransactionVerification.status,
     ],
   );
   const phase8UserExecutionFlow = useMemo(
@@ -3817,6 +3859,25 @@ export function Dashboard({
                 ? <small>Blocked by: {phase8UserExecutionFlow.reasons.join(", ")}</small>
                 : <small>Owner-only flow map. Telegram and public profiles cannot start, inspect, or complete execution.</small>}
             </div>
+            <div className="phase-8-security-hardening-panel">
+              <div className="result-monitoring-header">
+                <span>Phase 8 security hardening</span>
+                <strong>{phase8SecurityAbuseHardening.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="phase-8-security-hardening-grid">
+                {phase8SecurityAbuseHardening.controls.map((control) => (
+                  <span className={`security-${control.status}`} key={control.label}>
+                    {control.label}
+                    <strong>{control.status}</strong>
+                    <small>{control.detail}</small>
+                  </span>
+                ))}
+              </div>
+              <p>{phase8SecurityAbuseHardening.message}</p>
+              {phase8SecurityAbuseHardening.reasons.length
+                ? <small>Blocked by: {phase8SecurityAbuseHardening.reasons.join(", ")}</small>
+                : <small>Replay, double-submit, public, Telegram, calldata, swap, token approval, and unsanitized failure boundaries are hardened.</small>}
+            </div>
             <div className="phase-8-low-value-panel">
               <div className="result-monitoring-header">
                 <span>Phase 8 low-value readiness</span>
@@ -3886,6 +3947,8 @@ export function Dashboard({
               submitRequest={phase8LowValueSubmitRequest}
               ownerWindowArmed={Boolean(activePhase8OwnerArming)}
               resultAlreadyRecorded={Boolean(phase8SubmitterResult)}
+              securityCanOpenSubmitter={phase8SecurityAbuseHardening.canOpenSubmitter}
+              securityBlockReasons={phase8SecurityAbuseHardening.reasons}
               closeoutScope={{
                 ownerUserId: authSession?.user.id ?? "",
                 workspaceId: dashboardData?.workspace.id ?? "",
