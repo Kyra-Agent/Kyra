@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 17 low-value transaction readiness hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 18 low-value submit request skeleton. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 
 ## Purpose
 
@@ -539,5 +539,29 @@ Implementation evidence:
 - `src/pages/Dashboard.tsx`
 - `src/styles.css`
 - `npm run check:phase-8-low-value-readiness`
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+## Batch 18 - Low-Value Submit Request Skeleton
+
+Batch 18 adds the owner-only low-value submit request skeleton. This prepares the request object for the first value-bearing owner transaction without exposing a public, Telegram, swap, token approval, or arbitrary calldata execution path.
+
+Required Batch 18 controls:
+
+- submit request requires owner, workspace, selected agent, private dashboard, connected Base Account, Base chain, reviewed prepared action, and explicit owner approval
+- recipient must be a valid EVM address
+- value must be positive and less than or equal to `0.0001 ETH` (`100000000000000` wei)
+- request uses Base mainnet, owner-only result scope, and `0x` calldata only
+- token approvals, swaps, Telegram requests, and public profile triggers remain blocked
+- Batch 18 is a request skeleton only; the separate low-value submitter UI remains gated for the next batch
+- public agent profiles and Telegram webhook code cannot access Phase 8 low-value submit request authority
+
+Implementation evidence:
+
+- `src/types/phase8LowValueSubmitRequest.ts`
+- `scripts/test-phase-8-low-value-submit-request.mjs`
+- `scripts/check-phase-8-low-value-submit-request.mjs`
+- `src/pages/Dashboard.tsx`
+- `src/styles.css`
+- `npm run check:phase-8-low-value-submit-request`
 
 User wallet authority and user Telegram bot-token privacy remain priority one.

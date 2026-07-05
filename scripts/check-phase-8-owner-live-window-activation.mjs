@@ -57,7 +57,7 @@ const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 17 low-value transaction readiness hardening.",
+  "Status: Batch 18 low-value submit request skeleton.",
   "Owner Live-Window Activation Lock",
   "Owner Arming UX",
   "Owner Self-Check Candidate",
@@ -74,7 +74,7 @@ for (const expected of [
 }
 
 for (const expected of [
-  "In progress: Batch 17",
+  "In progress: Batch 18",
   "Batch 9 evidence",
   "owner live-window activation lock",
   "owner arming UX",
@@ -83,7 +83,7 @@ for (const expected of [
   "src/types/phase8OwnerLiveWindowActivation.ts",
   "src/types/phase8OwnerActionCandidate.ts",
   "scripts/check-phase-8-owner-live-window-activation.mjs",
-  "Status: Batch 17 low-value transaction readiness hardening.",
+  "Status: Batch 18 low-value submit request skeleton.",
 ]) {
   includes("roadmap", roadmap, expected);
 }

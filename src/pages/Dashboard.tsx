@@ -88,6 +88,7 @@ import { evaluatePhase8RuntimeEnablementPreflight } from "../types/phase8Runtime
 import { evaluatePhase8SmokeCloseout } from "../types/phase8SmokeCloseout";
 import { evaluatePhase8UserSafeTransactionPolicy } from "../types/phase8UserSafeTransactionPolicy";
 import { evaluatePhase8LowValueTransactionReadiness } from "../types/phase8LowValueTransactionReadiness";
+import { createPhase8LowValueSubmitRequest } from "../types/phase8LowValueSubmitRequest";
 import {
   createPhase8PersistedExecutionResult,
   getPhase8ResultPersistenceFailureMessage,
@@ -1389,6 +1390,38 @@ export function Dashboard({
       baseAccountConnectionStatus.chainId,
       baseAccountConnectionStatus.connected,
       phase8FrozenAction?.requestId,
+    ],
+  );
+  const phase8LowValueSubmitRequest = useMemo(
+    () =>
+      createPhase8LowValueSubmitRequest({
+        ownerUserId: authSession?.user.id ?? "",
+        workspaceId: dashboardData?.workspace.id ?? "",
+        agentId: agentRecord?.id ?? "",
+        privateDashboard: true,
+        baseAccountConnected: baseAccountConnectionStatus.connected,
+        chainId: baseAccountConnectionStatus.chainId,
+        preparedActionId: phase8FrozenAction?.requestId ?? "",
+        ownerApprovalRecorded: Boolean(activePhase8OwnerArming),
+        recipient: phase8OwnerActionCandidate.ok
+          ? phase8OwnerActionCandidate.candidate.recipient
+          : null,
+        valueWei: "100000000000000",
+        data: "0x",
+        includesTokenApproval: false,
+        includesSwap: false,
+        requestedFromTelegram: false,
+        visibleInPublicProfile: false,
+      }),
+    [
+      activePhase8OwnerArming,
+      agentRecord?.id,
+      authSession?.user.id,
+      baseAccountConnectionStatus.chainId,
+      baseAccountConnectionStatus.connected,
+      dashboardData?.workspace.id,
+      phase8FrozenAction?.requestId,
+      phase8OwnerActionCandidate,
     ],
   );
   const controlledLiveTransactionGate = useMemo(() => {
@@ -3688,6 +3721,33 @@ export function Dashboard({
               {phase8LowValueTransactionReadiness.reasons.length
                 ? <small>Blocked by: {phase8LowValueTransactionReadiness.reasons.join(", ")}</small>
                 : <small>Low-value review is owner-dashboard only. Execution still requires a separate submit gate.</small>}
+            </div>            <div className="phase-8-low-value-request-panel">
+              <div className="result-monitoring-header">
+                <span>Phase 8 low-value request</span>
+                <strong>{phase8LowValueSubmitRequest.ok ? "skeleton ready" : "blocked"}</strong>
+              </div>
+              <div className="phase-8-low-value-request-grid">
+                <span>
+                  Value
+                  <strong>{phase8LowValueSubmitRequest.ok ? `${phase8LowValueSubmitRequest.request.value.toString()} wei` : "blocked"}</strong>
+                </span>
+                <span>
+                  Chain
+                  <strong>{phase8LowValueSubmitRequest.ok ? "Base" : "required"}</strong>
+                </span>
+                <span>
+                  Owner only
+                  <strong>{phase8LowValueSubmitRequest.ok ? "true" : "locked"}</strong>
+                </span>
+                <span>
+                  Calldata
+                  <strong>blocked</strong>
+                </span>
+              </div>
+              <p>{phase8LowValueSubmitRequest.message}</p>
+              {phase8LowValueSubmitRequest.ok
+                ? <small>Skeleton only. The real low-value submitter remains separately gated and is not exposed to Telegram or public profiles.</small>
+                : <small>Blocked by: {phase8LowValueSubmitRequest.reasons.join(", ")}</small>}
             </div>            <div className="phase-8-smoke-closeout-panel">
               <div className="result-monitoring-header">
                 <span>Phase 8 smoke closeout</span>
