@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 18 low-value submit request skeleton. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 19 isolated low-value submitter gate. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 
 ## Purpose
 
@@ -543,7 +543,7 @@ Implementation evidence:
 User wallet authority and user Telegram bot-token privacy remain priority one.
 ## Batch 18 - Low-Value Submit Request Skeleton
 
-Batch 18 adds the owner-only low-value submit request skeleton. This prepares the request object for the first value-bearing owner transaction without exposing a public, Telegram, swap, token approval, or arbitrary calldata execution path.
+Batch 18 adds the owner-only isolated low-value submitter gate. This prepares the request object for the first value-bearing owner transaction without exposing a public, Telegram, swap, token approval, or arbitrary calldata execution path.
 
 Required Batch 18 controls:
 
@@ -563,5 +563,30 @@ Implementation evidence:
 - `src/pages/Dashboard.tsx`
 - `src/styles.css`
 - `npm run check:phase-8-low-value-submit-request`
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+## Batch 19 - Isolated Low-Value Submitter Gate
+
+Batch 19 adds the isolated owner-dashboard low-value submitter gate. The gate uses the Batch 18 request skeleton, stays behind a separate default-off runtime flag, and records successful provider handoff through the owner-only closeout path.
+
+Required Batch 19 controls:
+
+- low-value submitter is a separate component from the zero-value controlled submitter
+- runtime flag is `VITE_KYRA_PHASE8_LOW_VALUE_SUBMISSION=owner_low_value_window`
+- default runtime state is disabled
+- submit button requires connected owner wallet, armed owner window, no prior result, low-value readiness, and valid low-value request skeleton
+- successful provider handoff records owner-only closeout evidence through the existing sanitized result path
+- Telegram, public profiles, token approvals, swaps, arbitrary calldata, seed phrases, and private keys remain blocked
+- public agent profiles and Telegram webhook code cannot access Phase 8 low-value submitter authority
+
+Implementation evidence:
+
+- `src/components/Phase8LowValueSubmitter.tsx`
+- `src/config/appConfig.ts`
+- `scripts/test-phase-8-low-value-submitter-gate.mjs`
+- `scripts/check-phase-8-low-value-submitter-gate.mjs`
+- `src/pages/Dashboard.tsx`
+- `src/styles.css`
+- `npm run check:phase-8-low-value-submitter`
 
 User wallet authority and user Telegram bot-token privacy remain priority one.

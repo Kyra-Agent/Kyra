@@ -76,7 +76,7 @@ evidence packets, not extra product phases.
 | 5 | Telegram + LLM Live | Connected deployed agents reply in Telegram with read-only commands and LLM planning. | Complete, live read-only |
 | 6 | Wallet/Approval Foundation | Wallet readiness, approval policy, risk review, prepared-action models, and refusal boundaries. | Foundation complete |
 | 7 | Base Account + Execution Readiness | Owner Base Account connection, prompt locks, prepared-action allowlist, policy gates, dual approval model, result closeout model, production smoke freeze. | Complete as readiness; not live execution |
-| 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, controlled submission, owner-only result. | In progress: Batch 18 |
+| 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, controlled submission, owner-only result. | In progress: Batch 19 |
 | 9 | Public Execution Hardening | Rate limits, rollback, incident controls, monitoring, privacy audits, abuse controls, and wider execution eligibility. | Pending |
 | 10 | Product Release Readiness | Public-ready copy, support ops, launch QA, production runbook, final audit, and release decision. | Pending |
 
@@ -425,7 +425,7 @@ Batch 5 evidence:
 - `scripts/test-phase-8-owner-submit-request.mjs`
 - `scripts/check-phase-8-controlled-submitter.mjs`
 
-Status: Batch 18 low-value submit request skeleton. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 19 isolated low-value submitter gate. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 
 Batch 6 evidence:
 
@@ -472,7 +472,7 @@ Batch 9 evidence:
 - result monitoring observes provider-submitted status only after sanitized hash exists
 - rejected or failed prompts do not create fake transaction hashes
 - Telegram, public profiles, automation, swaps, token approvals, calldata, and non-zero value remain blocked
-Status: Batch 18 low-value submit request skeleton. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 19 isolated low-value submitter gate. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 Do not open a live execution window until the owner explicitly approves it.
 
 ## Phase 9 - Public Execution Hardening
@@ -665,7 +665,7 @@ Batch 17 evidence:
 - `scripts/check-phase-8-low-value-transaction-readiness.mjs`
 Batch 18 evidence:
 
-- owner-only low-value submit request skeleton added for first value-bearing transaction preparation
+- owner-only isolated low-value submitter gate added for first value-bearing transaction preparation
 - request requires owner scope, private dashboard, Base Account, Base chain, prepared action, and explicit owner approval
 - value must be positive and capped at `0.0001 ETH` (`100000000000000` wei)
 - request uses `0x` calldata only and remains owner-only
@@ -675,3 +675,14 @@ Batch 18 evidence:
 - `src/types/phase8LowValueSubmitRequest.ts`
 - `scripts/test-phase-8-low-value-submit-request.mjs`
 - `scripts/check-phase-8-low-value-submit-request.mjs`
+Batch 19 evidence:
+
+- isolated low-value submitter component added separately from the zero-value controlled submitter
+- dedicated runtime flag `VITE_KYRA_PHASE8_LOW_VALUE_SUBMISSION=owner_low_value_window` defaults disabled
+- submit gate requires owner wallet connection, armed owner window, no prior result, low-value readiness, and valid low-value request skeleton
+- successful provider handoff records owner-only closeout evidence through the existing sanitized result path
+- Telegram, public profiles, token approvals, swaps, arbitrary calldata, seed phrases, and private keys remain blocked
+- public surfaces and Telegram webhook code are checked to exclude low-value submitter authority
+- `src/components/Phase8LowValueSubmitter.tsx`
+- `scripts/test-phase-8-low-value-submitter-gate.mjs`
+- `scripts/check-phase-8-low-value-submitter-gate.mjs`

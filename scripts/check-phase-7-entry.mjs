@@ -239,7 +239,7 @@ assert(
 );
 
 const phase7WalletSubmissionScanFiles = sourceFiles.filter(
-  (path) => path !== "src/components/Phase8ControlledSubmitter.tsx",
+  (path) => path !== "src/components/Phase8ControlledSubmitter.tsx" && path !== "src/components/Phase8LowValueSubmitter.tsx",
 );
 
 assertFilesDoNotInclude(

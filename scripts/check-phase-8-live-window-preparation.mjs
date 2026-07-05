@@ -53,7 +53,7 @@ const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 18 low-value submit request skeleton.",
+  "Status: Batch 19 isolated low-value submitter gate.",
   "owner-approved live window",
   "private owner dashboard",
   "execute intent",
@@ -170,7 +170,7 @@ for (const path of publicFiles) {
 for (const path of sourceFiles) {
   const source = read(path);
 
-  if (path === "src/providers/WalletRuntimeProviders.tsx" || path === "src/components/Phase8ControlledSubmitter.tsx") {
+  if (path === "src/providers/WalletRuntimeProviders.tsx" || path === "src/components/Phase8ControlledSubmitter.tsx" || path === "src/components/Phase8LowValueSubmitter.tsx") {
     continue;
   }
 

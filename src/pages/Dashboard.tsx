@@ -24,6 +24,7 @@ import {
   type BaseAccountConnectionStatus,
 } from "../components/BaseAccountConnectionPanel";
 import { Phase8ControlledSubmitter } from "../components/Phase8ControlledSubmitter";
+import { Phase8LowValueSubmitter } from "../components/Phase8LowValueSubmitter";
 import type { AgentTemplate } from "../types/agent";
 import { appConfig } from "../config/appConfig";
 import { demoAgentLimits } from "../config/demoLimits";
@@ -3721,7 +3722,8 @@ export function Dashboard({
               {phase8LowValueTransactionReadiness.reasons.length
                 ? <small>Blocked by: {phase8LowValueTransactionReadiness.reasons.join(", ")}</small>
                 : <small>Low-value review is owner-dashboard only. Execution still requires a separate submit gate.</small>}
-            </div>            <div className="phase-8-low-value-request-panel">
+            </div>
+            <div className="phase-8-low-value-request-panel">
               <div className="result-monitoring-header">
                 <span>Phase 8 low-value request</span>
                 <strong>{phase8LowValueSubmitRequest.ok ? "skeleton ready" : "blocked"}</strong>
@@ -3748,7 +3750,22 @@ export function Dashboard({
               {phase8LowValueSubmitRequest.ok
                 ? <small>Skeleton only. The real low-value submitter remains separately gated and is not exposed to Telegram or public profiles.</small>
                 : <small>Blocked by: {phase8LowValueSubmitRequest.reasons.join(", ")}</small>}
-            </div>            <div className="phase-8-smoke-closeout-panel">
+            </div>
+            <Phase8LowValueSubmitter
+              readiness={phase8LowValueTransactionReadiness}
+              submitRequest={phase8LowValueSubmitRequest}
+              ownerWindowArmed={Boolean(activePhase8OwnerArming)}
+              resultAlreadyRecorded={Boolean(phase8SubmitterResult)}
+              closeoutScope={{
+                ownerUserId: authSession?.user.id ?? "",
+                workspaceId: dashboardData?.workspace.id ?? "",
+                agentId: agentRecord?.id ?? "",
+                preparedActionId: phase8FrozenAction?.requestId ?? "",
+                submissionNonce: activePhase8OwnerArming?.submissionNonce ?? "",
+              }}
+              onResultCloseout={handlePhase8ResultCloseout}
+            />
+            <div className="phase-8-smoke-closeout-panel">
               <div className="result-monitoring-header">
                 <span>Phase 8 smoke closeout</span>
                 <strong>{phase8SmokeCloseout.status.replace(/_/g, " ")}</strong>

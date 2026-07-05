@@ -183,7 +183,7 @@ for (const path of publicFiles) {
 for (const path of sourceFiles) {
   const source = read(path);
 
-  if (path === "src/providers/WalletRuntimeProviders.tsx" || path === "src/components/Phase8ControlledSubmitter.tsx") {
+  if (path === "src/providers/WalletRuntimeProviders.tsx" || path === "src/components/Phase8ControlledSubmitter.tsx" || path === "src/components/Phase8LowValueSubmitter.tsx") {
     continue;
   }
 

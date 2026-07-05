@@ -44,10 +44,11 @@ const doc = read("docs/phase-8-controlled-live-transaction.md");
 const roadmap = read("docs/product-phase-roadmap.md");
 const readme = read("README.md");
 const context = read("docs/kyra-agent-context.md");
-const model = read("src/types/phase8LowValueSubmitRequest.ts");
+const component = read("src/components/Phase8LowValueSubmitter.tsx");
+const config = read("src/config/appConfig.ts");
 const dashboard = read("src/pages/Dashboard.tsx");
 const styles = read("src/styles.css");
-const test = read("scripts/test-phase-8-low-value-submit-request.mjs");
+const test = read("scripts/test-phase-8-low-value-submitter-gate.mjs");
 const packageJson = read("package.json");
 const sourceFiles = walkFiles("src").filter((path) => /\.(?:ts|tsx)$/u.test(path));
 const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
@@ -56,7 +57,7 @@ const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.t
 
 for (const expected of [
   "Status: Batch 19 isolated low-value submitter gate.",
-  "Batch 18 - Low-Value Submit Request Skeleton",
+  "Batch 19 - Isolated Low-Value Submitter Gate",
   "User wallet authority and user Telegram bot-token privacy remain priority one",
 ]) {
   includes("Phase 8 doc", doc, expected);
@@ -64,10 +65,10 @@ for (const expected of [
 
 for (const expected of [
   "In progress: Batch 19",
-  "Batch 18 evidence",
-  "src/types/phase8LowValueSubmitRequest.ts",
-  "scripts/test-phase-8-low-value-submit-request.mjs",
-  "scripts/check-phase-8-low-value-submit-request.mjs",
+  "Batch 19 evidence",
+  "src/components/Phase8LowValueSubmitter.tsx",
+  "scripts/test-phase-8-low-value-submitter-gate.mjs",
+  "scripts/check-phase-8-low-value-submitter-gate.mjs",
 ]) {
   includes("roadmap", roadmap, expected);
 }
@@ -82,45 +83,48 @@ for (const expected of [
 includes("context", context, "Controlled Live Transaction - in progress through Batch 19 isolated low-value submitter gate.");
 
 for (const expected of [
-  "createPhase8LowValueSubmitRequest",
-  "maxValueWei: \"100000000000000\"",
-  "ownerOnly: true",
-  "value_cap_exceeded",
-  "no_calldata_required",
-  "token_approval_forbidden",
-  "telegram_forbidden",
-  "public_profile_forbidden",
+  "Phase8LowValueSubmitter",
+  "phase8LowValueSubmission === \"owner_low_value_window\"",
+  "sendTransaction.sendTransactionAsync(submitRequest.request)",
+  "createPhase8SubmittedCloseoutEvent",
+  "onResultCloseout?.(closeout.event)",
 ]) {
-  includes("low-value submit request model", model, expected);
+  includes("low-value submitter component", component, expected);
 }
 
 for (const expected of [
-  "createPhase8LowValueSubmitRequest",
+  "VITE_KYRA_PHASE8_LOW_VALUE_SUBMISSION",
+  "phase8LowValueSubmission: phase8LowValueSubmissionRuntime",
+]) {
+  includes("appConfig", config, expected);
+}
+
+for (const expected of [
+  "Phase8LowValueSubmitter",
   "phase8LowValueSubmitRequest",
-  "Phase 8 low-value request",
-  "phase-8-low-value-request-panel",
+  "phase8LowValueTransactionReadiness",
+  "onResultCloseout={handlePhase8ResultCloseout}",
 ]) {
   includes("dashboard", dashboard, expected);
 }
 
 for (const expected of [
-  ".phase-8-low-value-request-panel",
-  ".phase-8-low-value-request-grid",
+  ".phase-8-low-value-submitter",
+  ".phase-8-low-value-submitter-grid",
 ]) {
   includes("styles", styles, expected);
 }
 
 for (const expected of [
-  "Phase 8 low-value submit request checks passed.",
-  "value_cap_exceeded",
-  "telegram_forbidden",
+  "Phase 8 low-value submitter gate checks passed.",
+  "owner_low_value_window",
 ]) {
-  includes("low-value submit request test", test, expected);
+  includes("low-value submitter test", test, expected);
 }
 
 for (const expected of [
-  '"test:phase-8-low-value-submit-request"',
-  '"check:phase-8-low-value-submit-request"',
+  '"test:phase-8-low-value-submitter"',
+  '"check:phase-8-low-value-submitter"',
 ]) {
   includes("package.json", packageJson, expected);
 }
@@ -129,8 +133,8 @@ for (const path of telegramFiles) {
   excludes(
     path,
     read(path),
-    /createPhase8LowValueSubmitRequest|phase8LowValueSubmitRequest|phase-8-low-value-request/u,
-    "Phase 8 low-value submit request in Telegram authority",
+    /Phase8LowValueSubmitter|phase8LowValueSubmission|owner_low_value_window|phase-8-low-value-submitter/u,
+    "Phase 8 low-value submitter in Telegram authority",
   );
 }
 
@@ -138,9 +142,9 @@ for (const path of publicFiles) {
   excludes(
     path,
     read(path),
-    /createPhase8LowValueSubmitRequest|phase8LowValueSubmitRequest|phase-8-low-value-request/u,
-    "Phase 8 low-value submit request in public surfaces",
+    /Phase8LowValueSubmitter|phase8LowValueSubmission|owner_low_value_window|phase-8-low-value-submitter/u,
+    "Phase 8 low-value submitter in public surfaces",
   );
 }
 
-console.log("Phase 8 low-value submit request checks passed.");
+console.log("Phase 8 low-value submitter gate checks passed.");

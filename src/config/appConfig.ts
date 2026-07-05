@@ -31,6 +31,10 @@ const phase8ControlledSubmissionRuntime =
   readEnv("VITE_KYRA_PHASE8_CONTROLLED_SUBMISSION").toLowerCase() === "owner_approved_window"
     ? "owner_approved_window"
     : "disabled";
+const phase8LowValueSubmissionRuntime =
+  readEnv("VITE_KYRA_PHASE8_LOW_VALUE_SUBMISSION").toLowerCase() === "owner_low_value_window"
+    ? "owner_low_value_window"
+    : "disabled";
 const telegramBackendConfigured = Boolean(
   telegramConnectFunctionUrl && telegramLinkFunctionUrl &&
     telegramDashboardStatusFunctionUrl && supabaseConfigured,
@@ -80,6 +84,7 @@ export const appConfig = {
     walletConnection: "owner_click_only",
     walletExecution: "disabled",
     phase8ControlledSubmission: phase8ControlledSubmissionRuntime,
+    phase8LowValueSubmission: phase8LowValueSubmissionRuntime,
   },
 } as const;
 
