@@ -41,15 +41,24 @@ export function Phase8LowValueSubmitter({
   const [message, setMessage] = useState(
     "Low-value submitter is isolated and default-off until the owner low-value runtime flag is enabled.",
   );
+  const [submittedHash, setSubmittedHash] = useState<string | null>(null);
 
   const runtimeEnabled =
     appConfig.integrations.phase8LowValueSubmission === "owner_low_value_window";
   const walletConnected = connection.status === "connected";
+  const hasCloseoutScope = Boolean(
+    closeoutScope.ownerUserId.trim() &&
+      closeoutScope.workspaceId.trim() &&
+      closeoutScope.agentId.trim() &&
+      closeoutScope.preparedActionId.trim() &&
+      closeoutScope.submissionNonce.trim(),
+  );
   const canSubmit = Boolean(
     runtimeEnabled &&
       walletConnected &&
       ownerWindowArmed &&
       !resultAlreadyRecorded &&
+      hasCloseoutScope &&
       readiness.canEnterLowValueReview &&
       submitRequest.ok &&
       !sendTransaction.isPending,
@@ -80,6 +89,12 @@ export function Phase8LowValueSubmitter({
       return;
     }
 
+    if (!hasCloseoutScope) {
+      setState("locked");
+      setMessage("Owner closeout scope must be complete before low-value submit.");
+      return;
+    }
+
     if (!readiness.canEnterLowValueReview) {
       setState("locked");
       setMessage(readiness.message);
@@ -93,6 +108,7 @@ export function Phase8LowValueSubmitter({
     }
 
     try {
+      setSubmittedHash(null);
       setState("submitting");
       setMessage("Opening Base Account for one owner-controlled low-value submit...");
       const hash = await sendTransaction.sendTransactionAsync(submitRequest.request);
@@ -107,15 +123,18 @@ export function Phase8LowValueSubmitter({
       });
 
       if (!closeout.ok || !closeout.event) {
+        setSubmittedHash(null);
         setState("failed");
         setMessage(getPhase8SubmitterCloseoutFailureMessage(closeout.reason ?? "transaction_hash_required"));
         return;
       }
 
+      setSubmittedHash(hash);
       onResultCloseout?.(closeout.event);
       setState("submitted");
       setMessage("Low-value submit request sent and owner-only closeout recorded.");
     } catch (error) {
+      setSubmittedHash(null);
       setState("failed");
       setMessage(classifySubmitError(error));
     }
@@ -126,7 +145,7 @@ export function Phase8LowValueSubmitter({
       <div className="phase-8-submit-boundary-header">
         <span className="queue-icon"><ShieldCheck size={16} /></span>
         <div>
-          <small>Phase 8 Batch 19 low-value submitter</small>
+          <small>Phase 8 Batch 21 low-value live run</small>
           <strong>{runtimeEnabled ? "runtime flag enabled" : "runtime flag disabled"}</strong>
         </div>
         <span>{state}</span>
@@ -149,6 +168,10 @@ export function Phase8LowValueSubmitter({
           Request
           <strong>{submitRequest.ok ? "low-value capped" : "blocked"}</strong>
         </span>
+        <span>
+          Closeout scope
+          <strong>{hasCloseoutScope ? "complete" : "required"}</strong>
+        </span>
       </div>
 
       <p aria-live="polite">{message}</p>
@@ -158,6 +181,10 @@ export function Phase8LowValueSubmitter({
       {!submitRequest.ok
         ? <small>Request blocked by: {submitRequest.reasons.join(", ")}</small>
         : null}
+      {!hasCloseoutScope
+        ? <small>Closeout blocked by: owner/workspace/agent/action/nonce scope required.</small>
+        : null}
+      {submittedHash ? <small>Hash: {maskHash(submittedHash)}</small> : null}
 
       <button
         className="button button-primary"
@@ -199,4 +226,8 @@ function classifySubmitError(error: unknown) {
   }
 
   return "Low-value submit failed safely inside the isolated gate.";
+}
+
+function maskHash(hash: string) {
+  return hash.length > 18 ? `${hash.slice(0, 10)}...${hash.slice(-8)}` : hash;
 }

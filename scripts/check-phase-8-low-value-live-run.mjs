@@ -8,9 +8,7 @@ function read(path) {
 }
 
 function assert(condition, message) {
-  if (!condition) {
-    throw new Error(message);
-  }
+  if (!condition) throw new Error(message);
 }
 
 function includes(label, source, expected) {
@@ -24,9 +22,7 @@ function excludes(label, source, pattern, description) {
 function walkFiles(path) {
   const absolutePath = resolve(root, path);
   const stat = statSync(absolutePath);
-
   if (stat.isFile()) return [path];
-
   return readdirSync(absolutePath, { withFileTypes: true }).flatMap((entry) => {
     const childPath = `${path}/${entry.name}`;
     if (entry.isDirectory()) return walkFiles(childPath);
@@ -37,9 +33,9 @@ function walkFiles(path) {
 const doc = read("docs/phase-8-controlled-live-transaction.md");
 const roadmap = read("docs/product-phase-roadmap.md");
 const readme = read("README.md");
+const component = read("src/components/Phase8LowValueSubmitter.tsx");
 const dashboard = read("src/pages/Dashboard.tsx");
-const sixC = read("scripts/check-phase-6c-wallet-handoff.mjs");
-const sevenE = read("scripts/check-phase-7e-wallet-signing-boundary.mjs");
+const packageJson = read("package.json");
 const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
   .filter((path) => /\.ts$/u.test(path) && !path.endsWith("_test.ts"));
 const publicFiles = walkFiles("src")
@@ -47,60 +43,65 @@ const publicFiles = walkFiles("src")
 
 for (const expected of [
   "Status: Batch 21 first controlled low-value live run.",
-  "Batch 20 - Live Balance And Gas Readiness",
-  "Batch 20 wires live Base ETH balance into the low-value readiness gate",
+  "Batch 21 - First Controlled Low-Value Live Run",
+  "Batch 21 finalizes the first controlled low-value live-run UI boundary",
 ]) {
   includes("Phase 8 doc", doc, expected);
 }
 
 for (const expected of [
   "In progress: Batch 21",
-  "Batch 20 evidence",
-  "live Base ETH balance",
-  "five remaining Batch 21-25 closeout path",
+  "Batch 21 evidence",
+  "first controlled low-value live run",
 ]) {
   includes("roadmap", roadmap, expected);
 }
 
 for (const expected of [
   "| 8 | In progress: controlled live transaction Batch 21 |",
-  "live balance and gas readiness",
+  "first controlled low-value live run",
 ]) {
   includes("README", readme, expected);
 }
 
 for (const expected of [
-  "useBalance",
-  "phase8LowValueBaseBalance",
-  "availableGasBalanceWei: phase8LowValueBaseBalance.data?.value.toString() ?? null",
-  "formatPhase8BaseEth",
-  "Live Base balance",
-  "Gas/value source",
+  "Phase 8 Batch 21 low-value live run",
+  "hasCloseoutScope",
+  "closeoutScope.ownerUserId.trim()",
+  "closeoutScope.workspaceId.trim()",
+  "closeoutScope.agentId.trim()",
+  "closeoutScope.preparedActionId.trim()",
+  "closeoutScope.submissionNonce.trim()",
+  "Owner closeout scope must be complete before low-value submit.",
+  "setSubmittedHash(hash)",
+  "Hash: {maskHash(submittedHash)}",
+  "function maskHash",
+  "sendTransaction.sendTransactionAsync(submitRequest.request)",
+  "createPhase8SubmittedCloseoutEvent",
+]) {
+  includes("low-value submitter component", component, expected);
+}
+
+for (const expected of [
+  "Low-value request is ready for the isolated owner-dashboard submitter.",
+  "closeoutScope={{",
+  "onResultCloseout={handlePhase8ResultCloseout}",
 ]) {
   includes("Dashboard", dashboard, expected);
 }
 
-excludes(
-  "Dashboard low-value readiness",
-  dashboard,
-  /availableGasBalanceWei:\s*null/u,
-  "null low-value balance source",
-);
-
 for (const expected of [
-  "src/pages/Dashboard.tsx",
-  "src/components/Phase8LowValueSubmitter.tsx",
+  '"check:phase-8-low-value-live-run"',
 ]) {
-  includes("Phase 6C allowlist", sixC, expected);
-  includes("Phase 7E allowlist", sevenE, expected);
+  includes("package.json", packageJson, expected);
 }
 
 for (const path of telegramFiles) {
   excludes(
     path,
     read(path),
-    /phase8LowValueBaseBalance|VITE_KYRA_PHASE8_LOW_VALUE_SUBMISSION|useBalance/u,
-    "Batch 20 low-value balance authority in Telegram",
+    /Phase8LowValueSubmitter|phase8LowValueSubmission|owner_low_value_window|low-value live run|sendTransaction/u,
+    "Batch 21 low-value live-run authority in Telegram",
   );
 }
 
@@ -108,9 +109,9 @@ for (const path of publicFiles) {
   excludes(
     path,
     read(path),
-    /phase8LowValueBaseBalance|VITE_KYRA_PHASE8_LOW_VALUE_SUBMISSION|useBalance/u,
-    "Batch 20 low-value balance authority in public surfaces",
+    /Phase8LowValueSubmitter|phase8LowValueSubmission|owner_low_value_window|low-value live run|sendTransaction/u,
+    "Batch 21 low-value live-run authority in public surfaces",
   );
 }
 
-console.log("Phase 8 Batch 20 low-value balance and gas readiness checks passed.");
+console.log("Phase 8 Batch 21 first controlled low-value live run checks passed.");

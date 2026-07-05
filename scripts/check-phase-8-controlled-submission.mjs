@@ -53,7 +53,7 @@ const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 20 live balance and gas readiness.",
+  "Status: Batch 21 first controlled low-value live run.",
   "controlled transaction submission",
   "one-time submission nonce",
   "sanitized transaction hash reference",

@@ -3768,7 +3768,7 @@ export function Dashboard({
               </div>
               <p>{phase8LowValueSubmitRequest.message}</p>
               {phase8LowValueSubmitRequest.ok
-                ? <small>Skeleton only. The real low-value submitter remains separately gated and is not exposed to Telegram or public profiles.</small>
+                ? <small>Low-value request is ready for the isolated owner-dashboard submitter. Telegram and public profiles remain blocked.</small>
                 : <small>Blocked by: {phase8LowValueSubmitRequest.reasons.join(", ")}</small>}
             </div>
             <Phase8LowValueSubmitter

@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 20 live balance and gas readiness. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 21 first controlled low-value live run. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 
 ## Purpose
 
@@ -608,5 +608,27 @@ Implementation evidence:
 - `src/pages/Dashboard.tsx` displays live Base balance and gas/value source in the owner-only dashboard
 - `scripts/check-phase-8-low-value-balance-gas-readiness.mjs`
 - `npm run check:phase-8-low-value-balance-gas`
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+
+## Batch 21 - First Controlled Low-Value Live Run
+
+Batch 21 finalizes the first controlled low-value live-run UI boundary. The low-value submitter can only open after the runtime flag is enabled, the owner wallet is connected, the owner live window is armed, low-value readiness is green, a valid request exists, and complete closeout scope is available.
+
+Required Batch 21 controls:
+
+- first low-value submit requires complete owner/workspace/agent/prepared-action/submission nonce scope
+- submitter clears stale hash state before each attempt
+- successful provider handoff stores a sanitized hash reference in owner-only closeout state
+- submitted hash is masked in the private dashboard
+- rejected or failed prompts do not create fake transaction hashes
+- Telegram, public profiles, token approvals, swaps, arbitrary calldata, seed phrases, and private keys remain blocked
+
+Implementation evidence:
+
+- `src/components/Phase8LowValueSubmitter.tsx`
+- `src/pages/Dashboard.tsx`
+- `scripts/check-phase-8-low-value-live-run.mjs`
+- `npm run check:phase-8-low-value-live-run`
 
 User wallet authority and user Telegram bot-token privacy remain priority one.

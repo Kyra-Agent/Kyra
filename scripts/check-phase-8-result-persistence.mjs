@@ -52,7 +52,7 @@ const sourceFiles = walkFiles("src").filter((path) => /\.(?:ts|tsx)$/u.test(path
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 20 live balance and gas readiness.",
+  "Status: Batch 21 first controlled low-value live run.",
   "Batch 13 - Owner-Only Result Persistence",
   "User wallet authority and user Telegram bot-token privacy remain priority one",
 ]) {
@@ -61,7 +61,7 @@ for (const expected of [
 
 for (const expected of [
   "| 8 | Controlled Live Transaction",
-  "In progress: Batch 20",
+  "In progress: Batch 21",
   "Batch 13 evidence",
   "src/types/phase8ResultPersistence.ts",
   "src/services/phase8ResultPersistenceStore.ts",
@@ -71,7 +71,7 @@ for (const expected of [
 }
 
 for (const expected of [
-  "| 8 | In progress: controlled live transaction Batch 20 |",
+  "| 8 | In progress: controlled live transaction Batch 21 |",
   "result persistence hardening",
 ]) {
   includes("README", readme, expected);
