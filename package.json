@@ -156,7 +156,9 @@
     "test:phase-9a-execution-eligibility": "node scripts/test-phase-9a-execution-eligibility.mjs",
     "check:phase-9a": "npm run test:phase-9a-execution-eligibility && node scripts/check-phase-9a-execution-eligibility.mjs",
     "test:phase-9b-abuse-rate-limit": "node scripts/test-phase-9b-abuse-rate-limit.mjs",
-    "check:phase-9b": "npm run test:phase-9b-abuse-rate-limit && node scripts/check-phase-9b-abuse-rate-limit.mjs"
+    "check:phase-9b": "npm run test:phase-9b-abuse-rate-limit && node scripts/check-phase-9b-abuse-rate-limit.mjs",
+    "test:phase-9c-incident-controls": "node scripts/test-phase-9c-incident-controls.mjs",
+    "check:phase-9c": "npm run test:phase-9c-incident-controls && node scripts/check-phase-9c-incident-controls.mjs"
   },
   "dependencies": {
     "@base-org/account": "^2.5.6",

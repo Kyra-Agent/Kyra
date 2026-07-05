@@ -93,6 +93,7 @@ import { evaluatePhase8SecurityAbuseHardening } from "../types/phase8SecurityAbu
 import { evaluatePhase8ProductionCloseout } from "../types/phase8ProductionCloseout";
 import { evaluatePhase9ExecutionEligibility } from "../types/phase9ExecutionEligibility";
 import { evaluatePhase9AbuseRateLimit } from "../types/phase9AbuseRateLimit";
+import { evaluatePhase9IncidentControls } from "../types/phase9IncidentControls";
 import { evaluatePhase8UserExecutionFlow } from "../types/phase8UserExecutionFlow";
 import { evaluatePhase8UserSafeTransactionPolicy } from "../types/phase8UserSafeTransactionPolicy";
 import { formatPhase8BaseEth } from "../types/phase8FundingReadiness";
@@ -1657,6 +1658,30 @@ export function Dashboard({
       phase8TransactionVerification.status,
       phase9ExecutionEligibility.canProceedToAbuseHardening,
     ],
+  );
+  const phase9IncidentControls = useMemo(
+    () => evaluatePhase9IncidentControls({
+      abuseCanProceed: phase9AbuseRateLimit.canProceedToIncidentControls,
+      phase9RuntimeEnabled: false,
+      emergencyDisableReady: true,
+      rollbackRunbookReady: true,
+      manualRecoveryReady: true,
+      goNoGoRulesReady: true,
+      rejectedPromptHandled: true,
+      insufficientGasHandled: true,
+      revertedTransactionHandled: true,
+      providerOutageHandled: true,
+      chainMismatchHandled: true,
+      staleApprovalHandled: true,
+      staleActionHandled: true,
+      stuckReceiptHandled: true,
+      postIncidentAuditReady: true,
+      ownerOnlyAudit: true,
+      sanitizedIncidentEvidence: true,
+      visibleInPublicProfile: false,
+      telegramCanControlIncident: false,
+    }),
+    [phase9AbuseRateLimit.canProceedToIncidentControls],
   );
   const controlledLiveTransactionGate = useMemo(() => {
     const liveCandidate = phase8OwnerActionCandidate.ok
@@ -4136,7 +4161,27 @@ export function Dashboard({
               {phase9AbuseRateLimit.reasons.length
                 ? <small>Blocked by: {phase9AbuseRateLimit.reasons.join(", ")}</small>
                 : <small>Abuse and rate-limit enforcement is approved only inside the explicit Phase 9 runtime lane.</small>}
-            </div>            <div className="phase-8-smoke-closeout-panel">
+            </div>
+            <div className="phase-9-incident-controls-panel">
+              <div className="result-monitoring-header">
+                <span>Phase 9C incident controls</span>
+                <strong>{phase9IncidentControls.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="phase-9-incident-controls-grid">
+                {phase9IncidentControls.controls.map((item) => (
+                  <span className={`closeout-${item.status}`} key={item.label}>
+                    {item.label}
+                    <strong>{item.status}</strong>
+                    <small>{item.detail}</small>
+                  </span>
+                ))}
+              </div>
+              <p>{phase9IncidentControls.message}</p>
+              {phase9IncidentControls.reasons.length
+                ? <small>Blocked by: {phase9IncidentControls.reasons.join(", ")}</small>
+                : <small>Incident controls are armed only inside the explicit Phase 9 runtime lane.</small>}
+            </div>
+            <div className="phase-8-smoke-closeout-panel">
               <div className="result-monitoring-header">
                 <span>Phase 8 smoke closeout</span>
                 <strong>{phase8SmokeCloseout.status.replace(/_/g, " ")}</strong>

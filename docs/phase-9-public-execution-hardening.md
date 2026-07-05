@@ -71,4 +71,42 @@ Batch 9B closeout rule:
 - Batch 9B can close when the model, dashboard evidence, docs, and checks prove that public execution stays blocked by rate-limit, cooldown, replay, duplicate-submit, provider-backoff, value-cap, and sanitized-evidence controls.
 - Batch 9C may start after 9B passes because incident and rollback controls can be built on top of the hardened eligibility and abuse gates.
 
+
+## Batch 9C - Incident, Rollback, and Emergency Controls
+
+Batch 9C adds the operational controls required before public execution can be treated as a product lane. It still does not add a public submit button, Telegram execution, public profile execution, automation execution, token approvals, swaps, arbitrary calldata, private-key input, or seed-phrase input.
+
+Required controls:
+
+- Batch 9B abuse and rate-limit hardening must be clean before incident controls can pass.
+- Operator-facing emergency disable switch must be ready.
+- Rollback runbook must be ready; the rollback runbook must stay owner-only and sanitized.
+- Manual recovery notes must be ready.
+- Go/no-go rules must be ready.
+- Rejected prompt handling must fail closed.
+- Insufficient gas handling must fail closed.
+- Reverted transaction handling must fail closed.
+- Provider outage handling must fail closed.
+- Chain mismatch handling must fail closed.
+- Stale approval handling must fail closed.
+- Stale prepared action handling must fail closed.
+- Stuck receipt verification handling must fail closed; stuck receipt verification must never mark execution complete without owner-only confirmation.
+- Post-incident owner-only audit must be available; the post-incident owner-only audit must never expose public wallet or Telegram-token details.
+- Incident evidence must be sanitized.
+- Public profiles and Telegram cannot control incident state.
+
+Implementation evidence:
+
+- `src/types/phase9IncidentControls.ts`
+- `scripts/test-phase-9c-incident-controls.mjs`
+- `scripts/check-phase-9c-incident-controls.mjs`
+- `src/pages/Dashboard.tsx` renders an owner dashboard incident-control panel.
+- `src/styles.css`
+- `npm run check:phase-9c`
+
+Batch 9C closeout rule:
+
+- Batch 9C can close when emergency disable, rollback, manual recovery, go/no-go, failure handling, stuck receipt handling, and owner-only post-incident audit are modeled and checked.
+- Batch 9D may start after 9C passes because monitoring and support can be built on top of the incident-control boundary.
+
 User wallet authority and user Telegram bot-token privacy remain priority one.
