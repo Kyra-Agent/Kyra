@@ -532,7 +532,7 @@ Required:
 - final security and privacy audit
 - final release decision
 
-Status: active; Batch 10A product copy and UX final in progress.
+Status: active; Batch 10B support operations and operator runbook in progress.
 
 Phase 10 batches:
 
