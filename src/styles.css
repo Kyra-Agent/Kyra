@@ -5876,3 +5876,43 @@ h2 {
   color: #9fb2c7;
   font-family: var(--font-mono);
 }
+
+.phase-8-user-policy-panel {
+  border: 1px solid rgba(96, 165, 250, 0.34);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(8, 22, 40, 0.8);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.024);
+}
+
+.phase-8-user-policy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.phase-8-user-policy-grid span {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+  color: #9fb2c7;
+  font-size: 0.78rem;
+}
+
+.phase-8-user-policy-grid strong {
+  display: block;
+  margin-top: 4px;
+  color: #f6fbff;
+  font-size: 0.86rem;
+}
+
+.phase-8-user-policy-panel p {
+  margin: 12px 0 8px;
+  color: #d8e7f5;
+}
+
+.phase-8-user-policy-panel small {
+  color: #9fb2c7;
+  font-family: var(--font-mono);
+}

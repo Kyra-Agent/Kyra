@@ -86,6 +86,7 @@ import { evaluatePhase8OwnerLiveWindowActivation } from "../types/phase8OwnerLiv
 import { createPhase8OwnerActionCandidate } from "../types/phase8OwnerActionCandidate";
 import { evaluatePhase8RuntimeEnablementPreflight } from "../types/phase8RuntimeEnablementPreflight";
 import { evaluatePhase8SmokeCloseout } from "../types/phase8SmokeCloseout";
+import { evaluatePhase8UserSafeTransactionPolicy } from "../types/phase8UserSafeTransactionPolicy";
 import {
   createPhase8PersistedExecutionResult,
   getPhase8ResultPersistenceFailureMessage,
@@ -1327,6 +1328,38 @@ export function Dashboard({
       phase8FrozenAction?.requestId,
       phase8SubmitterResult,
       resultMonitoringCloseout,
+    ],
+  );
+  const phase8UserSafeTransactionPolicy = useMemo(
+    () =>
+      evaluatePhase8UserSafeTransactionPolicy({
+        ownerSignedIn: Boolean(authSession),
+        privateDashboard: true,
+        selectedAgent: Boolean(agentRecord),
+        baseAccountConnected: baseAccountConnectionStatus.connected,
+        chainId: baseChainId,
+        preparedActionId: phase8FrozenAction?.requestId ?? "",
+        actionKind: phase8OwnerActionCandidate.ok
+          ? phase8OwnerActionCandidate.candidate.actionKind
+          : null,
+        valueWei: phase8OwnerActionCandidate.ok
+          ? phase8OwnerActionCandidate.candidate.valueWei
+          : null,
+        data: phase8OwnerActionCandidate.ok
+          ? phase8OwnerActionCandidate.candidate.data
+          : null,
+        includesTokenApproval: false,
+        includesSwap: false,
+        requestedFromTelegram: false,
+        visibleInPublicProfile: false,
+        cooldownSatisfied: true,
+      }),
+    [
+      agentRecord,
+      authSession,
+      baseAccountConnectionStatus.connected,
+      phase8FrozenAction?.requestId,
+      phase8OwnerActionCandidate,
     ],
   );
   const controlledLiveTransactionGate = useMemo(() => {
@@ -3572,7 +3605,34 @@ export function Dashboard({
                   </small>
                 )}
             </div>
-            <div className="phase-8-smoke-closeout-panel">
+            <div className="phase-8-user-policy-panel">
+              <div className="result-monitoring-header">
+                <span>Phase 8 user-safe policy</span>
+                <strong>{phase8UserSafeTransactionPolicy.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="phase-8-user-policy-grid">
+                <span>
+                  Value cap
+                  <strong>{phase8UserSafeTransactionPolicy.maxValueWei} wei</strong>
+                </span>
+                <span>
+                  Action kind
+                  <strong>{phase8UserSafeTransactionPolicy.allowedActionKinds.join(", ")}</strong>
+                </span>
+                <span>
+                  Telegram
+                  <strong>blocked</strong>
+                </span>
+                <span>
+                  Public profile
+                  <strong>blocked</strong>
+                </span>
+              </div>
+              <p>{phase8UserSafeTransactionPolicy.message}</p>
+              {phase8UserSafeTransactionPolicy.reasons.length
+                ? <small>Blocked by: {phase8UserSafeTransactionPolicy.reasons.join(", ")}</small>
+                : <small>User-safe policy is private-dashboard only. Non-zero value, calldata, swaps, and token approvals remain locked.</small>}
+            </div>            <div className="phase-8-smoke-closeout-panel">
               <div className="result-monitoring-header">
                 <span>Phase 8 smoke closeout</span>
                 <strong>{phase8SmokeCloseout.status.replace(/_/g, " ")}</strong>

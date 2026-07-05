@@ -81,7 +81,7 @@ for (
   const expected of [
     "Current canonical roadmap status:",
     "| 7 | Base Account + execution readiness complete; not live execution |",
-    "| 8 | In progress: controlled live transaction Batch 15 |",
+    "| 8 | In progress: controlled live transaction Batch 16 |",
     "| 9 | Pending: public execution hardening |",
     "| 10 | Pending: product release readiness |",
     "Phase 8 is in progress: one controlled live transaction",

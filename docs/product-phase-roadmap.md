@@ -76,7 +76,7 @@ evidence packets, not extra product phases.
 | 5 | Telegram + LLM Live | Connected deployed agents reply in Telegram with read-only commands and LLM planning. | Complete, live read-only |
 | 6 | Wallet/Approval Foundation | Wallet readiness, approval policy, risk review, prepared-action models, and refusal boundaries. | Foundation complete |
 | 7 | Base Account + Execution Readiness | Owner Base Account connection, prompt locks, prepared-action allowlist, policy gates, dual approval model, result closeout model, production smoke freeze. | Complete as readiness; not live execution |
-| 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, controlled submission, owner-only result. | In progress: Batch 15 |
+| 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, controlled submission, owner-only result. | In progress: Batch 16 |
 | 9 | Public Execution Hardening | Rate limits, rollback, incident controls, monitoring, privacy audits, abuse controls, and wider execution eligibility. | Pending |
 | 10 | Product Release Readiness | Public-ready copy, support ops, launch QA, production runbook, final audit, and release decision. | Pending |
 
@@ -425,7 +425,7 @@ Batch 5 evidence:
 - `scripts/test-phase-8-owner-submit-request.mjs`
 - `scripts/check-phase-8-controlled-submitter.mjs`
 
-Status: Batch 15 controlled smoke closeout hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 16 user-safe transaction policy hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 
 Batch 6 evidence:
 
@@ -472,7 +472,7 @@ Batch 9 evidence:
 - result monitoring observes provider-submitted status only after sanitized hash exists
 - rejected or failed prompts do not create fake transaction hashes
 - Telegram, public profiles, automation, swaps, token approvals, calldata, and non-zero value remain blocked
-Status: Batch 15 controlled smoke closeout hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 16 user-safe transaction policy hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 Do not open a live execution window until the owner explicitly approves it.
 
 ## Phase 9 - Public Execution Hardening
@@ -640,3 +640,14 @@ Batch 15 evidence:
 - `src/types/phase8SmokeCloseout.ts`
 - `scripts/test-phase-8-smoke-closeout.mjs`
 - `scripts/check-phase-8-smoke-closeout.mjs`
+Batch 16 evidence:
+
+- owner-only user-safe transaction policy added for controlled live transaction expansion
+- policy requires signed-in owner, private dashboard, selected agent, Base Account, Base chain, and prepared action scope
+- max transaction value remains `0` wei until the next explicit expansion gate
+- calldata, token approvals, swaps, Telegram requests, and public profile triggers remain blocked
+- dashboard shows policy status before broader transaction rollout
+- public surfaces and Telegram webhook code are checked to exclude user-safe transaction policy authority
+- `src/types/phase8UserSafeTransactionPolicy.ts`
+- `scripts/test-phase-8-user-safe-transaction-policy.mjs`
+- `scripts/check-phase-8-user-safe-transaction-policy.mjs`

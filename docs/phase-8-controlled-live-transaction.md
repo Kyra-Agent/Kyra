@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 15 controlled smoke closeout hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 16 user-safe transaction policy hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 
 ## Purpose
 
@@ -491,5 +491,29 @@ Implementation evidence:
 - `src/pages/Dashboard.tsx`
 - `src/styles.css`
 - `npm run check:phase-8-smoke-closeout`
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+## Batch 16 - User-Safe Transaction Policy
+
+Batch 16 adds an owner-only user-safe transaction policy above the controlled smoke path. The policy keeps the current live transaction surface conservative while documenting the exact gates required before user transactions can expand beyond the zero-value, no-calldata owner smoke.
+
+Required Batch 16 controls:
+
+- policy review requires signed-in owner, private dashboard, selected agent, connected Base Account, and Base chain
+- a reviewed prepared action is required before owner review can continue
+- allowed action kind remains `base_reviewed_transaction`
+- max value remains `0` wei until the next explicit expansion gate
+- calldata, token approvals, swaps, Telegram requests, and public profile triggers remain blocked
+- owner cooldown state is modeled before broader transaction rollout
+- public agent profiles and Telegram webhook code cannot access Phase 8 user-safe policy authority
+
+Implementation evidence:
+
+- `src/types/phase8UserSafeTransactionPolicy.ts`
+- `scripts/test-phase-8-user-safe-transaction-policy.mjs`
+- `scripts/check-phase-8-user-safe-transaction-policy.mjs`
+- `src/pages/Dashboard.tsx`
+- `src/styles.css`
+- `npm run check:phase-8-user-safe-policy`
 
 User wallet authority and user Telegram bot-token privacy remain priority one.
