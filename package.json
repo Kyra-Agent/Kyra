@@ -158,7 +158,9 @@
     "test:phase-9b-abuse-rate-limit": "node scripts/test-phase-9b-abuse-rate-limit.mjs",
     "check:phase-9b": "npm run test:phase-9b-abuse-rate-limit && node scripts/check-phase-9b-abuse-rate-limit.mjs",
     "test:phase-9c-incident-controls": "node scripts/test-phase-9c-incident-controls.mjs",
-    "check:phase-9c": "npm run test:phase-9c-incident-controls && node scripts/check-phase-9c-incident-controls.mjs"
+    "check:phase-9c": "npm run test:phase-9c-incident-controls && node scripts/check-phase-9c-incident-controls.mjs",
+    "test:phase-9d-monitoring-support": "node scripts/test-phase-9d-monitoring-support.mjs",
+    "check:phase-9d": "npm run test:phase-9d-monitoring-support && node scripts/check-phase-9d-monitoring-support.mjs"
   },
   "dependencies": {
     "@base-org/account": "^2.5.6",

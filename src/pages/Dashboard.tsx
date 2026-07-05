@@ -94,6 +94,7 @@ import { evaluatePhase8ProductionCloseout } from "../types/phase8ProductionClose
 import { evaluatePhase9ExecutionEligibility } from "../types/phase9ExecutionEligibility";
 import { evaluatePhase9AbuseRateLimit } from "../types/phase9AbuseRateLimit";
 import { evaluatePhase9IncidentControls } from "../types/phase9IncidentControls";
+import { evaluatePhase9MonitoringSupport } from "../types/phase9MonitoringSupport";
 import { evaluatePhase8UserExecutionFlow } from "../types/phase8UserExecutionFlow";
 import { evaluatePhase8UserSafeTransactionPolicy } from "../types/phase8UserSafeTransactionPolicy";
 import { formatPhase8BaseEth } from "../types/phase8FundingReadiness";
@@ -1683,6 +1684,28 @@ export function Dashboard({
     }),
     [phase9AbuseRateLimit.canProceedToIncidentControls],
   );
+  const phase9MonitoringSupport = useMemo(
+    () => evaluatePhase9MonitoringSupport({
+      incidentControlsCanProceed: phase9IncidentControls.canProceedToMonitoring,
+      phase9RuntimeEnabled: false,
+      netlifyHealthReady: true,
+      supabaseHealthReady: true,
+      edgeFunctionHealthReady: true,
+      transactionVerificationHealthReady: true,
+      publicExecutionGateHealthReady: true,
+      ownerSupportCopyReady: true,
+      sanitizedDebugStates: true,
+      aggregatedAnalyticsReady: true,
+      rawWalletInternalsHidden: true,
+      telegramTokensHidden: true,
+      providerPayloadsHidden: true,
+      secretsHidden: true,
+      ownerEvidenceReady: true,
+      publicAnalyticsPrivacyPreserving: true,
+    }),
+    [phase9IncidentControls.canProceedToMonitoring],
+  );
+
   const controlledLiveTransactionGate = useMemo(() => {
     const liveCandidate = phase8OwnerActionCandidate.ok
       ? reviewPreparedActionAllowlist({
@@ -4180,6 +4203,25 @@ export function Dashboard({
               {phase9IncidentControls.reasons.length
                 ? <small>Blocked by: {phase9IncidentControls.reasons.join(", ")}</small>
                 : <small>Incident controls are armed only inside the explicit Phase 9 runtime lane.</small>}
+            </div>
+            <div className="phase-9-monitoring-support-panel">
+              <div className="result-monitoring-header">
+                <span>Phase 9D monitoring support</span>
+                <strong>{phase9MonitoringSupport.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="phase-9-monitoring-support-grid">
+                {phase9MonitoringSupport.controls.map((item) => (
+                  <span className={`closeout-${item.status}`} key={item.label}>
+                    {item.label}
+                    <strong>{item.status}</strong>
+                    <small>{item.detail}</small>
+                  </span>
+                ))}
+              </div>
+              <p>{phase9MonitoringSupport.message}</p>
+              {phase9MonitoringSupport.reasons.length
+                ? <small>Blocked by: {phase9MonitoringSupport.reasons.join(", ")}</small>
+                : <small>Monitoring and support evidence is observable only inside the explicit Phase 9 runtime lane.</small>}
             </div>
             <div className="phase-8-smoke-closeout-panel">
               <div className="result-monitoring-header">

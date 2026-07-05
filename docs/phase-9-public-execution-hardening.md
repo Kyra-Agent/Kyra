@@ -109,4 +109,37 @@ Batch 9C closeout rule:
 - Batch 9C can close when emergency disable, rollback, manual recovery, go/no-go, failure handling, stuck receipt handling, and owner-only post-incident audit are modeled and checked.
 - Batch 9D may start after 9C passes because monitoring and support can be built on top of the incident-control boundary.
 
+
+## Batch 9D - Monitoring, Support, and Owner Evidence
+
+Batch 9D adds the monitoring and owner-support evidence required before public execution can move toward final privacy and release gating. It still does not add a public submit button, Telegram execution, public profile execution, automation execution, token approvals, swaps, arbitrary calldata, private-key input, or seed-phrase input.
+
+Required controls:
+
+- Batch 9C incident controls must be clean before monitoring and support can pass.
+- Netlify health must be visible to the owner dashboard.
+- Supabase health must be visible to the owner dashboard.
+- Edge Functions health must be visible to the owner dashboard.
+- Transaction verification health must be visible to the owner dashboard.
+- Public execution gate health must be visible without enabling public execution.
+- Owner-safe support copy must explain blocked and failed states; owner-safe support copy cannot expose raw internals.
+- Debugging states must be sanitized.
+- Aggregated analytics must be ready; aggregated analytics cannot expose individual wallet or Telegram token data.
+- Privacy-preserving public analytics must hide wallet internals, Telegram token references, provider payloads, and secrets; privacy-preserving public analytics is required before release gating.
+- Owner evidence must remain owner-only.
+
+Implementation evidence:
+
+- `src/types/phase9MonitoringSupport.ts`
+- `scripts/test-phase-9d-monitoring-support.mjs`
+- `scripts/check-phase-9d-monitoring-support.mjs`
+- `src/pages/Dashboard.tsx` renders an owner dashboard monitoring-support panel.
+- `src/styles.css`
+- `npm run check:phase-9d`
+
+Batch 9D closeout rule:
+
+- Batch 9D can close when production health, support copy, sanitized debugging, aggregated analytics, owner evidence, and public privacy boundaries are modeled and checked.
+- Batch 9E may start after 9D passes because public privacy and release gating can be built on top of monitoring-support evidence.
+
 User wallet authority and user Telegram bot-token privacy remain priority one.
