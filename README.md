@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img alt="Roadmap" src="https://img.shields.io/badge/Roadmap-Phase%207%20Complete%20%7C%20Phase%208%20Next-111827?style=for-the-badge" />
+  <img alt="Roadmap" src="https://img.shields.io/badge/Roadmap-Phase%209%20Complete%20%7C%20Phase%2010%20Active-111827?style=for-the-badge" />
   <img alt="Base" src="https://img.shields.io/badge/Base-Native-0052FF?style=for-the-badge" />
   <img alt="Safety" src="https://img.shields.io/badge/Execution-Approval%20First-16A34A?style=for-the-badge" />
 </p>
@@ -27,9 +27,7 @@
 
 ## Product Snapshot
 
-Kyra Agent is a backend-connected product demo for creating AI agents that
-operate through Telegram and prepare Base-native workflows behind explicit user
-approval.
+Kyra Agent is a Base-native AI agent console for creating user-owned agents that operate through Telegram, prepare bounded onchain workflows, and keep execution behind explicit owner and wallet approval.
 
 | Area                 | Current Status                                         |
 | -------------------- | ------------------------------------------------------ |
@@ -38,9 +36,9 @@ approval.
 | Public profiles      | Shareable agent identity and capability pages          |
 | Telegram             | Live read-only commands and natural planning chat      |
 | LLM layer            | Backend-only enrichment for eligible read-only replies |
-| Wallet/Base layer    | Base Account readiness complete, execution still gated |
-| Base MCP             | Read-only status bridge live; runtime gate default-off |
-| Onchain transactions | Not live in the current demo                           |
+| Wallet/Base layer    | Base Account execution readiness and hardening complete |
+| Base MCP             | Optional provider adapter; primary path uses Base Account |
+| Onchain transactions | Controlled owner path modeled; public runtime default-off |
 
 ## What Is Live
 
@@ -63,8 +61,8 @@ Current canonical roadmap status:
 | 6 | Wallet and approval foundation complete |
 | 7 | Base Account + execution readiness complete; not live execution |
 | 8 | Complete: controlled live transaction implementation closeout |
-| 9 | Pending: public execution hardening |
-| 10 | Pending: product release readiness |
+| 9 | Structurally complete: public execution hardening; runtime default-off |
+| 10 | Active: product release readiness |
 
 Kyra can currently:
 
@@ -194,7 +192,7 @@ The intended execution path remains deliberately narrow:
 8. The user's Base Account submits.
 9. Kyra records a sanitized owner-only result.
 
-Nothing in the current demo skips the owner, wallet, approval, or audit gates. Phase 8 implementation is closed, and public execution stays Phase 9.
+Nothing in the current demo skips the owner, wallet, approval, or audit gates. Phase 8 implementation is closed, Phase 9 hardening is structurally complete, and Phase 10 owns final product release readiness.
 
 ## Base MCP Boundary
 
@@ -239,6 +237,20 @@ The detailed audit source remains
 [`docs/product-phase-roadmap.md`](docs/product-phase-roadmap.md). The compact
 closeout is maintained in
 [`docs/supporting-readiness-closeout.md`](docs/supporting-readiness-closeout.md).
+
+## Phase 10 Release Readiness
+
+Phase 10 is the final public product-readiness pass. It keeps runtime execution gated while Kyra finishes public copy, support operations, launch QA, production health evidence, final privacy/security audit, and release decisioning.
+
+| Batch | Scope |
+| ----- | ----- |
+| 10A | Public product copy and UX final |
+| 10B | Support operations and operator runbook |
+| 10C | Launch QA and production health evidence |
+| 10D | Final security and privacy audit |
+| 10E | Release decision and closeout |
+
+Phase 10 does not bypass owner approval, Base Account approval, receipt verification, rollback, privacy, or audit gates.
 
 ## Product Principles
 

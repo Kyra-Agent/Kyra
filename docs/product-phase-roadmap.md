@@ -78,7 +78,7 @@ evidence packets, not extra product phases.
 | 7 | Base Account + Execution Readiness | Owner Base Account connection, prompt locks, prepared-action allowlist, policy gates, dual approval model, result closeout model, production smoke freeze. | Complete as readiness; not live execution |
 | 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, controlled submission, owner-only result. | Complete: controlled live transaction implementation closeout |
 | 9 | Public Execution Hardening | Rate limits, rollback, incident controls, monitoring, privacy audits, abuse controls, and wider execution eligibility. | Structurally complete; runtime default-off |
-| 10 | Product Release Readiness | Public-ready copy, support ops, launch QA, production runbook, final audit, and release decision. | Pending |
+| 10 | Product Release Readiness | Public-ready copy, support ops, launch QA, production runbook, final audit, and release decision. | Active: Batch 10A product copy and UX final |
 
 ## Phase 1 - Product Foundation
 
@@ -515,7 +515,7 @@ Phase 9 working groups:
    - Confirm no public surface can display wallet addresses beyond owner-approved display, token refs, session ids, internal ids, provider payload refs, transaction intent internals, or raw error details.
    - Phase 9 can close only after the public execution hardening checks pass and Phase 10 release readiness can start.
 
-Status: pending.
+Status: structurally complete; runtime default-off. Phase 10 release readiness can start.
 
 ## Phase 10 - Product Release Readiness
 
@@ -532,7 +532,15 @@ Required:
 - final security and privacy audit
 - final release decision
 
-Status: pending.
+Status: active; Batch 10A product copy and UX final in progress.
+
+Phase 10 batches:
+
+- 10A - Public product copy and UX final
+- 10B - Support operations and operator runbook
+- 10C - Launch QA and production health evidence
+- 10D - Final security and privacy audit
+- 10E - Release decision and closeout
 
 ## Base MCP Position
 

@@ -164,7 +164,8 @@
     "test:phase-9e-public-privacy-release": "node scripts/test-phase-9e-public-privacy-release.mjs",
     "check:phase-9e": "npm run test:phase-9e-public-privacy-release && node scripts/check-phase-9e-public-privacy-release.mjs",
     "test:phase-9-closeout": "node scripts/test-phase-9-closeout.mjs",
-    "check:phase-9-closeout": "npm run test:phase-9-closeout && node scripts/check-phase-9-closeout.mjs"
+    "check:phase-9-closeout": "npm run test:phase-9-closeout && node scripts/check-phase-9-closeout.mjs",
+    "check:phase-10a": "node scripts/check-phase-10a-product-copy.mjs"
   },
   "dependencies": {
     "@base-org/account": "^2.5.6",
