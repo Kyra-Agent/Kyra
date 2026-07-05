@@ -92,6 +92,7 @@ import { evaluatePhase8TransactionVerification } from "../types/phase8Transactio
 import { evaluatePhase8SecurityAbuseHardening } from "../types/phase8SecurityAbuseHardening";
 import { evaluatePhase8ProductionCloseout } from "../types/phase8ProductionCloseout";
 import { evaluatePhase9ExecutionEligibility } from "../types/phase9ExecutionEligibility";
+import { evaluatePhase9AbuseRateLimit } from "../types/phase9AbuseRateLimit";
 import { evaluatePhase8UserExecutionFlow } from "../types/phase8UserExecutionFlow";
 import { evaluatePhase8UserSafeTransactionPolicy } from "../types/phase8UserSafeTransactionPolicy";
 import { formatPhase8BaseEth } from "../types/phase8FundingReadiness";
@@ -1624,6 +1625,37 @@ export function Dashboard({
       phase8ProductionCloseout.canContinueToPhase9,
       phase8SmokeCloseout.canContinueToPublicHardening,
       phase8TransactionVerification.status,
+    ],
+  );
+  const phase9AbuseRateLimit = useMemo(
+    () => evaluatePhase9AbuseRateLimit({
+      eligibilityCanProceed: phase9ExecutionEligibility.canProceedToAbuseHardening,
+      phase9RuntimeEnabled: false,
+      owner: { used: phase8SubmitterResult ? 1 : 0, limit: 3 },
+      agent: { used: phase8SubmitterResult ? 1 : 0, limit: 3 },
+      workspace: { used: executionResults.length, limit: 12 },
+      route: { used: phase8SubmitterResult ? 1 : 0, limit: 5 },
+      wallet: { used: baseAccountConnectionStatus.connected ? 1 : 0, limit: 3 },
+      cooldownActive: false,
+      nonceAlreadyUsed: Boolean(phase8SubmitterResult),
+      duplicateSubmitDetected: Boolean(phase8SubmitterResult),
+      providerBackoffActive: phase8TransactionVerification.status === "failed",
+      requestedValueWei: phase8LowValueSubmitRequest.ok
+        ? phase8LowValueSubmitRequest.request.value.toString()
+        : "100000000000000",
+      maxValueWei: "100000000000000",
+      sanitizedDecision: true,
+      exposesRawWalletData: false,
+      exposesTelegramTokenRef: false,
+      exposesProviderPayloadRef: false,
+    }),
+    [
+      baseAccountConnectionStatus.connected,
+      executionResults.length,
+      phase8LowValueSubmitRequest,
+      phase8SubmitterResult,
+      phase8TransactionVerification.status,
+      phase9ExecutionEligibility.canProceedToAbuseHardening,
     ],
   );
   const controlledLiveTransactionGate = useMemo(() => {
@@ -4086,7 +4118,25 @@ export function Dashboard({
                 ? <small>Blocked by: {phase9ExecutionEligibility.reasons.join(", ")}</small>
                 : <small>Public execution eligibility is approved only inside the explicit Phase 9 runtime lane.</small>}
             </div>
-            <div className="phase-8-smoke-closeout-panel">
+            <div className="phase-9-abuse-rate-limit-panel">
+              <div className="result-monitoring-header">
+                <span>Phase 9B abuse and rate limit</span>
+                <strong>{phase9AbuseRateLimit.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="phase-9-abuse-rate-limit-grid">
+                {phase9AbuseRateLimit.controls.map((item) => (
+                  <span className={`closeout-${item.status}`} key={item.label}>
+                    {item.label}
+                    <strong>{item.status}</strong>
+                    <small>{item.detail}</small>
+                  </span>
+                ))}
+              </div>
+              <p>{phase9AbuseRateLimit.message}</p>
+              {phase9AbuseRateLimit.reasons.length
+                ? <small>Blocked by: {phase9AbuseRateLimit.reasons.join(", ")}</small>
+                : <small>Abuse and rate-limit enforcement is approved only inside the explicit Phase 9 runtime lane.</small>}
+            </div>            <div className="phase-8-smoke-closeout-panel">
               <div className="result-monitoring-header">
                 <span>Phase 8 smoke closeout</span>
                 <strong>{phase8SmokeCloseout.status.replace(/_/g, " ")}</strong>
