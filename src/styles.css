@@ -5940,6 +5940,69 @@ h2 {
   font-family: var(--font-mono);
 }
 
+.phase-9-execution-eligibility-panel {
+  border: 1px solid rgba(99, 102, 241, 0.36);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.82);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.024);
+}
+
+.phase-9-execution-eligibility-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.phase-9-execution-eligibility-grid span {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+  color: #9fb2c7;
+  font-size: 0.78rem;
+}
+
+.phase-9-execution-eligibility-grid span.closeout-pass {
+  border-color: rgba(34, 197, 94, 0.34);
+  background: rgba(8, 35, 24, 0.42);
+}
+
+.phase-9-execution-eligibility-grid span.closeout-pending {
+  border-color: rgba(99, 102, 241, 0.42);
+  background: rgba(30, 27, 75, 0.42);
+}
+
+.phase-9-execution-eligibility-grid span.closeout-blocked {
+  border-color: rgba(248, 113, 113, 0.42);
+  background: rgba(52, 16, 16, 0.46);
+}
+
+.phase-9-execution-eligibility-grid strong,
+.phase-9-execution-eligibility-grid small {
+  display: block;
+  margin-top: 4px;
+}
+
+.phase-9-execution-eligibility-grid strong {
+  color: #f6fbff;
+  font-size: 0.86rem;
+}
+
+.phase-9-execution-eligibility-grid small {
+  color: #9fb2c7;
+  line-height: 1.35;
+}
+
+.phase-9-execution-eligibility-panel p {
+  margin: 12px 0 8px;
+  color: #d8e7f5;
+}
+
+.phase-9-execution-eligibility-panel > small {
+  color: #9fb2c7;
+  font-family: var(--font-mono);
+}
 @media (max-width: 760px) {
   .phase-8-production-closeout-grid {
     grid-template-columns: 1fr;

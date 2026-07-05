@@ -91,6 +91,7 @@ import { evaluatePhase8SmokeCloseout } from "../types/phase8SmokeCloseout";
 import { evaluatePhase8TransactionVerification } from "../types/phase8TransactionVerification";
 import { evaluatePhase8SecurityAbuseHardening } from "../types/phase8SecurityAbuseHardening";
 import { evaluatePhase8ProductionCloseout } from "../types/phase8ProductionCloseout";
+import { evaluatePhase9ExecutionEligibility } from "../types/phase9ExecutionEligibility";
 import { evaluatePhase8UserExecutionFlow } from "../types/phase8UserExecutionFlow";
 import { evaluatePhase8UserSafeTransactionPolicy } from "../types/phase8UserSafeTransactionPolicy";
 import { formatPhase8BaseEth } from "../types/phase8FundingReadiness";
@@ -1584,6 +1585,45 @@ export function Dashboard({
       phase8SmokeCloseout.canContinueToPublicHardening,
       phase8TransactionVerification.status,
       phase8UserExecutionFlow.status,
+    ],
+  );
+  const phase9ExecutionEligibility = useMemo(
+    () => evaluatePhase9ExecutionEligibility({
+      phase8CanContinueToPhase9: phase8ProductionCloseout.canContinueToPhase9,
+      phase9RuntimeEnabled: false,
+      ownerSignedIn: Boolean(authSession),
+      selectedAgent: Boolean(agentRecord),
+      deployedAgent: Boolean(agentRecord?.publicPath),
+      baseAccountConnected: baseAccountConnectionStatus.connected,
+      chainId: baseAccountConnectionStatus.chainId,
+      actionKind: "eth_transfer",
+      valueWei: phase8LowValueSubmitRequest.ok
+        ? phase8LowValueSubmitRequest.request.value.toString()
+        : "100000000000000",
+      maxValueWei: "100000000000000",
+      kyraApprovalRecorded: Boolean(activePhase8OwnerArming),
+      baseAccountApprovalRecorded: baseAccountConnectionStatus.connected,
+      receiptVerificationReady: phase8TransactionVerification.status === "confirmed" || phase8ProductionCloseout.canContinueToPhase9,
+      ownerCloseoutReady: phase8SmokeCloseout.canContinueToPublicHardening || phase8ProductionCloseout.canContinueToPhase9,
+      requestedFromTelegram: false,
+      visibleInPublicProfile: false,
+      requestedFromAutomation: false,
+      includesSwap: false,
+      includesTokenApproval: false,
+      calldata: "0x",
+      privateKeyRequested: false,
+      seedPhraseRequested: false,
+    }),
+    [
+      activePhase8OwnerArming,
+      agentRecord,
+      authSession,
+      baseAccountConnectionStatus.chainId,
+      baseAccountConnectionStatus.connected,
+      phase8LowValueSubmitRequest,
+      phase8ProductionCloseout.canContinueToPhase9,
+      phase8SmokeCloseout.canContinueToPublicHardening,
+      phase8TransactionVerification.status,
     ],
   );
   const controlledLiveTransactionGate = useMemo(() => {
@@ -4026,6 +4066,25 @@ export function Dashboard({
               {phase8ProductionCloseout.reasons.length
                 ? <small>Blocked by: {phase8ProductionCloseout.reasons.join(", ")}</small>
                 : <small>Phase 8 closeout is owner-only. Phase 9 owns public execution hardening and wider eligibility.</small>}
+            </div>
+            <div className="phase-9-execution-eligibility-panel">
+              <div className="result-monitoring-header">
+                <span>Phase 9A execution eligibility</span>
+                <strong>{phase9ExecutionEligibility.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="phase-9-execution-eligibility-grid">
+                {phase9ExecutionEligibility.controls.map((item) => (
+                  <span className={`closeout-${item.status}`} key={item.label}>
+                    {item.label}
+                    <strong>{item.status}</strong>
+                    <small>{item.detail}</small>
+                  </span>
+                ))}
+              </div>
+              <p>{phase9ExecutionEligibility.message}</p>
+              {phase9ExecutionEligibility.reasons.length
+                ? <small>Blocked by: {phase9ExecutionEligibility.reasons.join(", ")}</small>
+                : <small>Public execution eligibility is approved only inside the explicit Phase 9 runtime lane.</small>}
             </div>
             <div className="phase-8-smoke-closeout-panel">
               <div className="result-monitoring-header">
