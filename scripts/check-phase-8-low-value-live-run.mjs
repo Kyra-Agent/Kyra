@@ -42,7 +42,7 @@ const publicFiles = walkFiles("src")
   .filter((path) => /\.(?:ts|tsx)$/u.test(path) && /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 24 security and abuse hardening.",
+  "Status: Batch 25 production closeout.",
   "Batch 21 - First Controlled Low-Value Live Run",
   "Batch 21 finalizes the first controlled low-value live-run UI boundary",
 ]) {
@@ -50,7 +50,7 @@ for (const expected of [
 }
 
 for (const expected of [
-  "In progress: Batch 24",
+  "Complete: controlled live transaction implementation closeout",
   "Batch 21 evidence",
   "first controlled low-value live run",
 ]) {
@@ -58,7 +58,7 @@ for (const expected of [
 }
 
 for (const expected of [
-  "| 8 | In progress: controlled live transaction Batch 24 |",
+  "| 8 | Complete: controlled live transaction implementation closeout |",
   "first controlled low-value live run",
 ]) {
   includes("README", readme, expected);

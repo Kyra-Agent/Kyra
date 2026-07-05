@@ -110,7 +110,7 @@ includes(
 includes(
   "canonical roadmap",
   roadmap,
-  "In progress: Batch 24",
+  "Complete: controlled live transaction implementation closeout",
 );
 includes(
   "canonical roadmap",

@@ -150,7 +150,7 @@ for (
     "Phase 7H dual approval and freeze boundary is implemented",
     "Phase 7I result monitoring and closeout boundary is implemented",
     "Phase 7J controlled live transaction gate is implemented",
-    "In progress: Batch 24",
+    "Complete: controlled live transaction implementation closeout",
   ]
 ) {
   assertIncludes("roadmap", roadmap, required);

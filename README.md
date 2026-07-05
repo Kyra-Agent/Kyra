@@ -62,7 +62,7 @@ Current canonical roadmap status:
 | 1-5 | Product, backend, security, deployment, Telegram, and LLM read-only foundations complete |
 | 6 | Wallet and approval foundation complete |
 | 7 | Base Account + execution readiness complete; not live execution |
-| 8 | In progress: controlled live transaction Batch 24 |
+| 8 | Complete: controlled live transaction implementation closeout |
 | 9 | Pending: public execution hardening |
 | 10 | Pending: product release readiness |
 
@@ -177,7 +177,7 @@ owner-click Base Account connection, prompt locks, prepared-action allowlist,
 policy gates, dual approval modeling, result closeout modeling, and the
 production smoke freeze checkpoint.
 
-Phase 8 is in progress: one controlled live transaction with one owner, one
+Phase 8 implementation is closed: one controlled live transaction path with one owner, one
 deployed agent, one low-risk prepared action, explicit Kyra approval, explicit
 Base Account approval, controlled submitter wiring, owner live-window activation lock, runtime enablement preflight, Base ETH gas readiness guard, result persistence hardening, funding UX hardening, live balance and gas readiness, first controlled low-value live run, transaction result verification, user-facing execution flow, security and abuse hardening, rollback readiness, and owner-only
 result recording.
@@ -194,7 +194,7 @@ The intended execution path remains deliberately narrow:
 8. The user's Base Account submits.
 9. Kyra records a sanitized owner-only result.
 
-Nothing in the current demo skips the owner, wallet, approval, or audit gates.
+Nothing in the current demo skips the owner, wallet, approval, or audit gates. Phase 8 implementation is closed, and public execution stays Phase 9.
 
 ## Base MCP Boundary
 

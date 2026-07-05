@@ -90,6 +90,7 @@ import { evaluatePhase8RuntimeEnablementPreflight } from "../types/phase8Runtime
 import { evaluatePhase8SmokeCloseout } from "../types/phase8SmokeCloseout";
 import { evaluatePhase8TransactionVerification } from "../types/phase8TransactionVerification";
 import { evaluatePhase8SecurityAbuseHardening } from "../types/phase8SecurityAbuseHardening";
+import { evaluatePhase8ProductionCloseout } from "../types/phase8ProductionCloseout";
 import { evaluatePhase8UserExecutionFlow } from "../types/phase8UserExecutionFlow";
 import { evaluatePhase8UserSafeTransactionPolicy } from "../types/phase8UserSafeTransactionPolicy";
 import { formatPhase8BaseEth } from "../types/phase8FundingReadiness";
@@ -1562,6 +1563,27 @@ export function Dashboard({
       phase8SmokeCloseout.canContinueToPublicHardening,
       phase8SubmitterResult,
       phase8TransactionVerification.status,
+    ],
+  );
+  const phase8ProductionCloseout = useMemo(
+    () =>
+      evaluatePhase8ProductionCloseout({
+        userFlowStatus: phase8UserExecutionFlow.status,
+        securityStatus: phase8SecurityAbuseHardening.status,
+        lowValueReadinessReady: phase8LowValueTransactionReadiness.canEnterLowValueReview,
+        submitRequestReady: phase8LowValueSubmitRequest.ok,
+        transactionVerificationStatus: phase8TransactionVerification.status,
+        ownerCloseoutReady: phase8SmokeCloseout.canContinueToPublicHardening,
+        publicExecutionEnabled: false,
+        telegramExecutionEnabled: false,
+      }),
+    [
+      phase8LowValueSubmitRequest.ok,
+      phase8LowValueTransactionReadiness.canEnterLowValueReview,
+      phase8SecurityAbuseHardening.status,
+      phase8SmokeCloseout.canContinueToPublicHardening,
+      phase8TransactionVerification.status,
+      phase8UserExecutionFlow.status,
     ],
   );
   const controlledLiveTransactionGate = useMemo(() => {
@@ -3985,6 +4007,25 @@ export function Dashboard({
               {phase8TransactionVerification.reasons.length
                 ? <small>Blocked by: {phase8TransactionVerification.reasons.join(", ")}</small>
                 : <small>Receipt verification is owner-only. Telegram and public profiles cannot read or expose this state.</small>}
+            </div>
+            <div className="phase-8-production-closeout-panel">
+              <div className="result-monitoring-header">
+                <span>Phase 8 production closeout</span>
+                <strong>{phase8ProductionCloseout.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="phase-8-production-closeout-grid">
+                {phase8ProductionCloseout.checklist.map((item) => (
+                  <span className={`closeout-${item.status}`} key={item.label}>
+                    {item.label}
+                    <strong>{item.status}</strong>
+                    <small>{item.detail}</small>
+                  </span>
+                ))}
+              </div>
+              <p>{phase8ProductionCloseout.message}</p>
+              {phase8ProductionCloseout.reasons.length
+                ? <small>Blocked by: {phase8ProductionCloseout.reasons.join(", ")}</small>
+                : <small>Phase 8 closeout is owner-only. Phase 9 owns public execution hardening and wider eligibility.</small>}
             </div>
             <div className="phase-8-smoke-closeout-panel">
               <div className="result-monitoring-header">

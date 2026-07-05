@@ -70,7 +70,7 @@ disabled.
 Canonical roadmap position:
 
 - Phase 7 is complete as Base Account + execution readiness.
-- Phase 8 is in progress and covers the first controlled live transaction.
+- Phase 8 implementation is closed for the first controlled live transaction path.
 - Phase 9 covers public execution hardening.
 - Phase 10 covers product release readiness.
 
@@ -90,10 +90,10 @@ Required local verification before any push or release review:
 Do not start live execution work until the closeout remains green after
 deployment verification.
 
-The next implementation discussion should start from Phase 8:
+The next implementation discussion should start from Phase 9:
 
-1. owner-only execution candidate selection
-2. exact low-risk action scope
-3. rollback and emergency disablement
-4. private dashboard approval copy
-5. post-action owner-only audit trail
+1. public execution eligibility rules
+2. abuse and rate-limit enforcement
+3. incident rollback and emergency disablement
+4. production monitoring and support workflow
+5. privacy audit for wider execution surfaces

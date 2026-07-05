@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 24 security and abuse hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 25 production closeout. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 
 ## Purpose
 
@@ -706,5 +706,35 @@ Implementation evidence:
 - `src/components/Phase8LowValueSubmitter.tsx` requires the security hardening guard before submit
 - `src/styles.css`
 - `npm run check:phase-8-security-abuse-hardening`
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+
+## Batch 25 - Phase 8 Production Closeout
+
+Batch 25 closes the Phase 8 implementation path. It does not widen execution eligibility. It confirms that Kyra has a private owner-only path for one controlled low-value Base transaction while public execution, Telegram execution, arbitrary calldata, swaps, token approvals, and wider automation remain Phase 9 scope.
+
+Required Batch 25 controls:
+
+- production closeout model distinguishes implementation readiness from a confirmed transaction receipt
+- ready-for-owner-run state is allowed only after owner flow, security hardening, low-value readiness, and submit request gates pass
+- confirmed complete state requires Base receipt verification and owner-only closeout
+- failed or pending receipt states do not create fake completion
+- Phase 9 owns public execution hardening and wider eligibility
+- public agent profiles and Telegram webhook code cannot access Phase 8 production closeout authority
+
+Implementation evidence:
+
+- `src/types/phase8ProductionCloseout.ts`
+- `scripts/test-phase-8-production-closeout.mjs`
+- `scripts/check-phase-8-production-closeout.mjs`
+- `src/pages/Dashboard.tsx` renders the owner-only production closeout panel
+- `src/styles.css`
+- `npm run check:phase-8-production-closeout`
+
+Closeout decision:
+
+- Phase 8 implementation is closed for the controlled owner-only transaction path.
+- A funded owner wallet can run the controlled low-value path under the existing owner, Kyra approval, Base Account approval, receipt verification, and owner-only closeout gates.
+- Public execution, multi-user execution eligibility, incident controls, abuse controls, and wider transaction classes remain Phase 9.
 
 User wallet authority and user Telegram bot-token privacy remain priority one.

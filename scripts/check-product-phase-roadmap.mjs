@@ -81,10 +81,10 @@ for (
   const expected of [
     "Current canonical roadmap status:",
     "| 7 | Base Account + execution readiness complete; not live execution |",
-    "| 8 | In progress: controlled live transaction Batch 24 |",
+    "| 8 | Complete: controlled live transaction implementation closeout |",
     "| 9 | Pending: public execution hardening |",
     "| 10 | Pending: product release readiness |",
-    "Phase 8 is in progress: one controlled live transaction",
+    "Phase 8 implementation is closed: one controlled live transaction path",
     "Older Phase 7A-Z documents are supporting evidence packets under Phase 7.",
   ]
 ) {
@@ -98,10 +98,10 @@ for (
     "The groups are not additional product phases.",
     "User wallet authority and user Telegram bot-token privacy remain the top",
     "Phase 7 is complete as Base Account + execution readiness.",
-    "Phase 8 is in progress and covers the first controlled live transaction.",
+    "Phase 8 implementation is closed for the first controlled live transaction path.",
     "Phase 9 covers public execution hardening.",
     "Phase 10 covers product release readiness.",
-    "owner-only execution candidate selection",
+    "public execution eligibility rules",
   ]
 ) {
   includes("supporting readiness closeout", readinessCloseout, expected);
@@ -111,7 +111,7 @@ for (
   const expected of [
     "Canonical 10-phase roadmap",
     "Phase 7 is complete as Base Account + execution readiness",
-    "Phase 8 is in progress:",
+    "Phase 8 implementation is closed:",
     "controlled live transaction",
     "Phase 9 is pending: public execution hardening",
     "Phase 10 is pending: product release readiness",

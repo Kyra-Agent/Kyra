@@ -145,7 +145,7 @@ assertIncludes(
 assertIncludes(
   "README",
   readme,
-  "Phase 8 is in progress",
+  "Phase 8 implementation is closed",
 );
 assertIncludes(
   "Dashboard",
