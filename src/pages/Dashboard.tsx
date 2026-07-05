@@ -18,7 +18,7 @@ import {
   WalletCards,
   X,
 } from "lucide-react";
-import { useBalance } from "wagmi";
+import { useBalance, useWaitForTransactionReceipt } from "wagmi";
 import { AuthSessionPanel } from "../components/AuthSessionPanel";
 import {
   BaseAccountConnectionPanel,
@@ -88,6 +88,7 @@ import { evaluatePhase8OwnerLiveWindowActivation } from "../types/phase8OwnerLiv
 import { createPhase8OwnerActionCandidate } from "../types/phase8OwnerActionCandidate";
 import { evaluatePhase8RuntimeEnablementPreflight } from "../types/phase8RuntimeEnablementPreflight";
 import { evaluatePhase8SmokeCloseout } from "../types/phase8SmokeCloseout";
+import { evaluatePhase8TransactionVerification } from "../types/phase8TransactionVerification";
 import { evaluatePhase8UserSafeTransactionPolicy } from "../types/phase8UserSafeTransactionPolicy";
 import { formatPhase8BaseEth } from "../types/phase8FundingReadiness";
 import { evaluatePhase8LowValueTransactionReadiness } from "../types/phase8LowValueTransactionReadiness";
@@ -121,6 +122,7 @@ import {
   evaluateWalletPromptEligibility,
   getWalletPromptBlockMessage,
 } from "../types/walletPromptEligibility";
+import { isTransactionHash } from "../types/walletSigning";
 
 interface DashboardProps {
   selectedTemplate: AgentTemplate;
@@ -730,6 +732,17 @@ export function Dashboard({
       refetchInterval: 15_000,
     },
   });
+  const phase8SubmittedTxHash = isTransactionHash(phase8SubmitterResult?.txHash)
+    ? phase8SubmitterResult.txHash
+    : null;
+  const phase8TransactionReceipt = useWaitForTransactionReceipt({
+    hash: phase8SubmittedTxHash ?? undefined,
+    chainId: baseChainId,
+    query: {
+      enabled: Boolean(phase8SubmittedTxHash),
+      refetchInterval: 15_000,
+    },
+  });
 
   useEffect(() => {
     return subscribeBackendEvents(() => setBackendEvents(getBackendEvents()));
@@ -1289,6 +1302,32 @@ export function Dashboard({
       ...baseExecutionResults,
     ]
     : baseExecutionResults;
+  const phase8TransactionVerification = useMemo(
+    () =>
+      evaluatePhase8TransactionVerification({
+        ownerUserId: authSession?.user.id ?? "",
+        workspaceId: dashboardData?.workspace.id ?? "",
+        agentId: agentRecord?.id ?? "",
+        preparedActionId: phase8FrozenAction?.requestId ?? executionResults[0]?.preparedActionId ?? "",
+        txHash: phase8SubmitterResult?.txHash ?? null,
+        receiptStatus: phase8TransactionReceipt.data?.status ?? null,
+        receiptLoading: phase8TransactionReceipt.isLoading || phase8TransactionReceipt.isFetching,
+        receiptError: phase8TransactionReceipt.isError,
+        visibleInPublicProfile: false,
+      }),
+    [
+      agentRecord?.id,
+      authSession?.user.id,
+      dashboardData?.workspace.id,
+      executionResults,
+      phase8FrozenAction?.requestId,
+      phase8SubmitterResult?.txHash,
+      phase8TransactionReceipt.data?.status,
+      phase8TransactionReceipt.isError,
+      phase8TransactionReceipt.isFetching,
+      phase8TransactionReceipt.isLoading,
+    ],
+  );
   const resultMonitoringCloseout = useMemo(
     () =>
       evaluateResultMonitoringCloseout({
@@ -1296,10 +1335,16 @@ export function Dashboard({
         workspaceId: dashboardData?.workspace.id ?? "",
         agentId: agentRecord?.id ?? "",
         preparedActionId: phase8FrozenAction?.requestId ?? executionResults[0]?.preparedActionId ?? "",
-        providerStatus: phase8SubmitterResult ? "provider_submitted" : "not_started",
-        txHash: phase8SubmitterResult?.txHash ?? null,
-        confirmationId: null,
-        failureCode: null,
+        providerStatus: phase8TransactionVerification.status === "confirmed"
+          ? "confirmed"
+          : phase8TransactionVerification.status === "failed"
+          ? "provider_failed"
+          : phase8SubmitterResult
+          ? "provider_submitted"
+          : "not_started",
+        txHash: phase8TransactionVerification.txHash ?? phase8SubmitterResult?.txHash ?? null,
+        confirmationId: phase8TransactionVerification.confirmationId,
+        failureCode: phase8TransactionVerification.status === "failed" ? "submission_failed" : null,
         disconnectRequested: false,
         emergencyDisabled: false,
         visibleInPublicProfile: false,
@@ -1311,6 +1356,7 @@ export function Dashboard({
       executionResults,
       phase8FrozenAction?.requestId,
       phase8SubmitterResult,
+      phase8TransactionVerification,
     ],
   );
   const phase8SmokeCloseout = useMemo(
@@ -1320,7 +1366,11 @@ export function Dashboard({
         workspaceId: dashboardData?.workspace.id ?? "",
         agentId: agentRecord?.id ?? "",
         preparedActionId: phase8FrozenAction?.requestId ?? executionResults[0]?.preparedActionId ?? "",
-        status: phase8SubmitterResult?.state === "submitted"
+        status: phase8TransactionVerification.status === "confirmed"
+          ? "confirmed"
+          : phase8TransactionVerification.status === "failed"
+          ? "failed"
+          : phase8SubmitterResult?.state === "submitted"
           ? "submitted"
           : phase8SubmitterResult?.state === "confirmed"
           ? "confirmed"
@@ -1328,9 +1378,9 @@ export function Dashboard({
           ? "failed"
           : "not_started",
         ownerOnly: resultMonitoringCloseout.ownerOnly,
-        txHash: phase8SubmitterResult?.txHash ?? resultMonitoringCloseout.txHash,
-        confirmationId: resultMonitoringCloseout.confirmationId,
-        sanitizedFailureReason: resultMonitoringCloseout.sanitizedFailureReason,
+        txHash: phase8TransactionVerification.txHash ?? phase8SubmitterResult?.txHash ?? resultMonitoringCloseout.txHash,
+        confirmationId: phase8TransactionVerification.confirmationId ?? resultMonitoringCloseout.confirmationId,
+        sanitizedFailureReason: phase8TransactionVerification.sanitizedFailureReason ?? resultMonitoringCloseout.sanitizedFailureReason,
         visibleInPublicProfile: false,
       }),
     [
@@ -1340,6 +1390,7 @@ export function Dashboard({
       executionResults,
       phase8FrozenAction?.requestId,
       phase8SubmitterResult,
+      phase8TransactionVerification,
       resultMonitoringCloseout,
     ],
   );
@@ -3785,6 +3836,34 @@ export function Dashboard({
               }}
               onResultCloseout={handlePhase8ResultCloseout}
             />
+            <div className="phase-8-transaction-verification-panel">
+              <div className="result-monitoring-header">
+                <span>Phase 8 transaction verification</span>
+                <strong>{phase8TransactionVerification.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="phase-8-transaction-verification-grid">
+                <span>
+                  Tx hash
+                  <strong>{phase8TransactionVerification.txHashLabel}</strong>
+                </span>
+                <span>
+                  Receipt
+                  <strong>{phase8TransactionVerification.canPromoteToConfirmed ? "verified" : phase8TransactionVerification.status === "pending_receipt" ? "pending" : "locked"}</strong>
+                </span>
+                <span>
+                  Confirmation
+                  <strong>{phase8TransactionVerification.confirmationId ? "recorded" : "not recorded"}</strong>
+                </span>
+                <span>
+                  Visibility
+                  <strong>{phase8TransactionVerification.ownerOnly ? "owner-only" : "blocked"}</strong>
+                </span>
+              </div>
+              <p>{phase8TransactionVerification.message}</p>
+              {phase8TransactionVerification.reasons.length
+                ? <small>Blocked by: {phase8TransactionVerification.reasons.join(", ")}</small>
+                : <small>Receipt verification is owner-only. Telegram and public profiles cannot read or expose this state.</small>}
+            </div>
             <div className="phase-8-smoke-closeout-panel">
               <div className="result-monitoring-header">
                 <span>Phase 8 smoke closeout</span>
@@ -3812,7 +3891,8 @@ export function Dashboard({
               {phase8SmokeCloseout.reasons.length
                 ? <small>Blocked by: {phase8SmokeCloseout.reasons.join(", ")}</small>
                 : <small>Smoke closeout is owner-only. Public profiles and Telegram cannot expose or submit this state.</small>}
-            </div>            <div className="execution-result-list">
+            </div>
+            <div className="execution-result-list">
               {executionResults.map((result) => (
                 <article
                   className={`execution-result-card readiness-${

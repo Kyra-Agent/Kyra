@@ -57,7 +57,7 @@ const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 21 first controlled low-value live run.",
+  "Status: Batch 22 transaction result verification.",
   "Owner Live-Window Activation Lock",
   "Owner Arming UX",
   "Owner Self-Check Candidate",
@@ -74,7 +74,7 @@ for (const expected of [
 }
 
 for (const expected of [
-  "In progress: Batch 21",
+  "In progress: Batch 22",
   "Batch 9 evidence",
   "owner live-window activation lock",
   "owner arming UX",
@@ -83,7 +83,7 @@ for (const expected of [
   "src/types/phase8OwnerLiveWindowActivation.ts",
   "src/types/phase8OwnerActionCandidate.ts",
   "scripts/check-phase-8-owner-live-window-activation.mjs",
-  "Status: Batch 21 first controlled low-value live run.",
+  "Status: Batch 22 transaction result verification.",
 ]) {
   includes("roadmap", roadmap, expected);
 }
@@ -153,10 +153,11 @@ for (const expected of [
   "phase8OwnerLiveWindowActivation",
   "phase8OwnerActionCandidate",
   "phase8SubmitterResult",
+  "phase8TransactionVerification",
   "createPhase8OwnerActionCandidate",
   "baseAccountAddress: baseAccountConnectionStatus.address",
-  "providerStatus: phase8SubmitterResult ? \"provider_submitted\" : \"not_started\"",
-  "txHash: phase8SubmitterResult?.txHash ?? null",
+  "providerStatus: phase8TransactionVerification.status === \"confirmed\"",
+  "txHash: phase8TransactionVerification.txHash ?? phase8SubmitterResult?.txHash ?? null",
   "resultEvents: phase8SubmitterResult ? [phase8SubmitterResult] : []",
   "onResultCloseout={handlePhase8ResultCloseout}",
   "phase8OwnerArming",

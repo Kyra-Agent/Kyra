@@ -43,10 +43,10 @@ function walkFiles(path) {
 const doc = read("docs/phase-8-controlled-live-transaction.md");
 const roadmap = read("docs/product-phase-roadmap.md");
 const readme = read("README.md");
-const model = read("src/types/phase8FundingReadiness.ts");
-const submitter = read("src/components/Phase8ControlledSubmitter.tsx");
+const model = read("src/types/phase8TransactionVerification.ts");
+const dashboard = read("src/pages/Dashboard.tsx");
 const styles = read("src/styles.css");
-const test = read("scripts/test-phase-8-funding-readiness.mjs");
+const test = read("scripts/test-phase-8-transaction-verification.mjs");
 const packageJson = read("package.json");
 const sourceFiles = walkFiles("src").filter((path) => /\.(?:ts|tsx)$/u.test(path));
 const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
@@ -55,7 +55,7 @@ const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.t
 
 for (const expected of [
   "Status: Batch 22 transaction result verification.",
-  "Batch 14 - Funding and Gas UX",
+  "Batch 22 - Transaction Result Verification",
   "User wallet authority and user Telegram bot-token privacy remain priority one",
 ]) {
   includes("Phase 8 doc", doc, expected);
@@ -63,61 +63,62 @@ for (const expected of [
 
 for (const expected of [
   "In progress: Batch 22",
-  "Batch 14 evidence",
-  "src/types/phase8FundingReadiness.ts",
-  "scripts/test-phase-8-funding-readiness.mjs",
-  "scripts/check-phase-8-funding-readiness.mjs",
+  "Batch 22 evidence",
+  "src/types/phase8TransactionVerification.ts",
+  "scripts/test-phase-8-transaction-verification.mjs",
+  "scripts/check-phase-8-transaction-verification.mjs",
 ]) {
   includes("roadmap", roadmap, expected);
 }
 
 for (const expected of [
   "| 8 | In progress: controlled live transaction Batch 22 |",
-  "funding UX hardening",
+  "transaction result verification",
 ]) {
   includes("README", readme, expected);
 }
 
 for (const expected of [
-  "evaluatePhase8FundingReadiness",
-  "canOpenSubmitter",
-  "privacyBoundary",
-  "never stores private keys",
-  "never asks Telegram or public profiles",
-  "formatPhase8BaseEth",
+  "evaluatePhase8TransactionVerification",
+  "receipt_pending",
+  "receipt_reverted",
+  "receipt_unavailable",
+  "canPromoteToConfirmed",
+  "confirmationId",
 ]) {
-  includes("funding model", model, expected);
+  includes("transaction verification model", model, expected);
 }
 
 for (const expected of [
-  "evaluatePhase8FundingReadiness",
-  "fundingReadiness.canOpenSubmitter",
-  "phase-8-funding-guide",
-  "Funding required",
-  "No Telegram, public profile, token approval, swap, calldata, non-zero value, seed phrase, or private-key path is allowed here.",
+  "useWaitForTransactionReceipt",
+  "phase8TransactionVerification",
+  "Phase 8 transaction verification",
+  "providerStatus: phase8TransactionVerification.status === \"confirmed\"",
+  "confirmationId: phase8TransactionVerification.confirmationId",
+  "phase-8-transaction-verification-panel",
 ]) {
-  includes("submitter", submitter, expected);
+  includes("dashboard", dashboard, expected);
 }
 
 for (const expected of [
-  ".phase-8-funding-guide",
-  "rgba(245, 158, 11",
+  ".phase-8-transaction-verification-panel",
+  ".phase-8-transaction-verification-grid",
 ]) {
   includes("styles", styles, expected);
 }
 
 for (const expected of [
-  "Phase 8 funding readiness checks passed.",
-  "zero-value",
-  "Base ETH",
-  "wallet_required",
+  "Phase 8 transaction verification checks passed.",
+  "receipt_pending",
+  "receipt_reverted",
+  "receipt_unavailable",
 ]) {
-  includes("funding test", test, expected);
+  includes("transaction verification test", test, expected);
 }
 
 for (const expected of [
-  '"test:phase-8-funding-readiness"',
-  '"check:phase-8-funding-readiness"',
+  '"test:phase-8-transaction-verification"',
+  '"check:phase-8-transaction-verification"',
 ]) {
   includes("package.json", packageJson, expected);
 }
@@ -126,8 +127,8 @@ for (const path of telegramFiles) {
   excludes(
     path,
     read(path),
-    /evaluatePhase8FundingReadiness|phase8FundingReadiness|phase-8-funding-guide|fundingReadiness/u,
-    "Phase 8 funding UX in Telegram authority",
+    /evaluatePhase8TransactionVerification|phase8TransactionVerification|useWaitForTransactionReceipt|transaction verification/u,
+    "Phase 8 transaction verification in Telegram authority",
   );
 }
 
@@ -135,9 +136,9 @@ for (const path of publicFiles) {
   excludes(
     path,
     read(path),
-    /evaluatePhase8FundingReadiness|phase8FundingReadiness|phase-8-funding-guide|fundingReadiness/u,
-    "Phase 8 funding UX in public surfaces",
+    /evaluatePhase8TransactionVerification|phase8TransactionVerification|useWaitForTransactionReceipt|transaction verification/u,
+    "Phase 8 transaction verification in public surfaces",
   );
 }
 
-console.log("Phase 8 funding readiness checks passed.");
+console.log("Phase 8 transaction verification checks passed.");

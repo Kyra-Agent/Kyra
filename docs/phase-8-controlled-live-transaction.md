@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 21 first controlled low-value live run. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 22 transaction result verification. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 
 ## Purpose
 
@@ -630,5 +630,30 @@ Implementation evidence:
 - `src/pages/Dashboard.tsx`
 - `scripts/check-phase-8-low-value-live-run.mjs`
 - `npm run check:phase-8-low-value-live-run`
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+
+## Batch 22 - Transaction Result Verification
+
+Batch 22 adds owner-only Base receipt verification after the first controlled low-value provider handoff. Kyra no longer treats a wallet-returned transaction hash as final execution proof. The owner dashboard waits for the Base transaction receipt, promotes the result to confirmed only after a successful receipt, and records sanitized failure evidence for reverted or unavailable receipts.
+
+Required Batch 22 controls:
+
+- transaction verification reads only the submitted transaction hash from owner-only closeout state
+- receipt monitoring is active only after a valid Base transaction hash exists
+- confirmed status requires a successful Base transaction receipt
+- reverted or unavailable receipts close with sanitized owner-only failure evidence
+- confirmation id is derived from the receipt path and stays owner-dashboard scoped
+- Telegram, public profiles, token approvals, swaps, arbitrary calldata, seed phrases, and private keys remain blocked
+- public agent profiles and Telegram webhook code cannot access Phase 8 transaction verification authority
+
+Implementation evidence:
+
+- `src/types/phase8TransactionVerification.ts`
+- `scripts/test-phase-8-transaction-verification.mjs`
+- `scripts/check-phase-8-transaction-verification.mjs`
+- `src/pages/Dashboard.tsx` uses `useWaitForTransactionReceipt` for owner-only receipt monitoring
+- `src/styles.css`
+- `npm run check:phase-8-transaction-verification`
 
 User wallet authority and user Telegram bot-token privacy remain priority one.

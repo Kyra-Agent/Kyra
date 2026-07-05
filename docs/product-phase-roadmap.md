@@ -76,7 +76,7 @@ evidence packets, not extra product phases.
 | 5 | Telegram + LLM Live | Connected deployed agents reply in Telegram with read-only commands and LLM planning. | Complete, live read-only |
 | 6 | Wallet/Approval Foundation | Wallet readiness, approval policy, risk review, prepared-action models, and refusal boundaries. | Foundation complete |
 | 7 | Base Account + Execution Readiness | Owner Base Account connection, prompt locks, prepared-action allowlist, policy gates, dual approval model, result closeout model, production smoke freeze. | Complete as readiness; not live execution |
-| 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, controlled submission, owner-only result. | In progress: Batch 21 |
+| 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, controlled submission, owner-only result. | In progress: Batch 22 |
 | 9 | Public Execution Hardening | Rate limits, rollback, incident controls, monitoring, privacy audits, abuse controls, and wider execution eligibility. | Pending |
 | 10 | Product Release Readiness | Public-ready copy, support ops, launch QA, production runbook, final audit, and release decision. | Pending |
 
@@ -425,7 +425,7 @@ Batch 5 evidence:
 - `scripts/test-phase-8-owner-submit-request.mjs`
 - `scripts/check-phase-8-controlled-submitter.mjs`
 
-Status: Batch 21 first controlled low-value live run. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 22 transaction result verification. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 
 Batch 6 evidence:
 
@@ -472,7 +472,7 @@ Batch 9 evidence:
 - result monitoring observes provider-submitted status only after sanitized hash exists
 - rejected or failed prompts do not create fake transaction hashes
 - Telegram, public profiles, automation, swaps, token approvals, calldata, and non-zero value remain blocked
-Status: Batch 21 first controlled low-value live run. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 22 transaction result verification. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 Do not open a live execution window until the owner explicitly approves it.
 
 ## Phase 9 - Public Execution Hardening
@@ -697,7 +697,7 @@ Batch 20 evidence:
 - `scripts/check-phase-8-low-value-balance-gas-readiness.mjs`
 - `npm run check:phase-8-low-value-balance-gas`
 
-Phase 8 closeout path now uses a five remaining Batch 21-25 closeout path as the working peg:
+Phase 8 closeout path after Batch 20 used this working peg:
 
 - Batch 20 - live balance and gas readiness
 - Batch 21 - first controlled low-value live run
@@ -719,10 +719,22 @@ Batch 21 evidence:
 - `scripts/check-phase-8-low-value-live-run.mjs`
 - `npm run check:phase-8-low-value-live-run`
 
-Phase 8 closeout path remains:
+Batch 22 evidence:
 
-- Batch 21 - first controlled low-value live run
-- Batch 22 - transaction result verification
+- owner-only transaction verification model added after low-value provider handoff
+- dashboard waits for the Base transaction receipt before confirming the result
+- reverted or unavailable receipts close with sanitized owner-only failure evidence
+- result monitoring and smoke closeout now promote confirmed status from verified receipt state
+- Telegram and public surfaces are checked to exclude transaction verification authority
+- `src/types/phase8TransactionVerification.ts`
+- `scripts/test-phase-8-transaction-verification.mjs`
+- `scripts/check-phase-8-transaction-verification.mjs`
+- `src/pages/Dashboard.tsx`
+- `src/styles.css`
+- `npm run check:phase-8-transaction-verification`
+
+Remaining Phase 8 closeout path:
+
 - Batch 23 - user-facing execution flow
 - Batch 24 - security and abuse hardening
 - Batch 25 - Phase 8 production closeout
