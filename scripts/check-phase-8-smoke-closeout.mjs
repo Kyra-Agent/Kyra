@@ -43,96 +43,101 @@ function walkFiles(path) {
 const doc = read("docs/phase-8-controlled-live-transaction.md");
 const roadmap = read("docs/product-phase-roadmap.md");
 const readme = read("README.md");
-const model = read("src/types/phase8ResultPersistence.ts");
-const store = read("src/services/phase8ResultPersistenceStore.ts");
+const model = read("src/types/phase8SmokeCloseout.ts");
 const dashboard = read("src/pages/Dashboard.tsx");
-const test = read("scripts/test-phase-8-result-persistence.mjs");
+const styles = read("src/styles.css");
+const test = read("scripts/test-phase-8-smoke-closeout.mjs");
 const packageJson = read("package.json");
 const sourceFiles = walkFiles("src").filter((path) => /\.(?:ts|tsx)$/u.test(path));
+const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
+  .filter((path) => /\.ts$/u.test(path) && !path.endsWith("_test.ts"));
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
   "Status: Batch 15 controlled smoke closeout hardening.",
-  "Batch 13 - Owner-Only Result Persistence",
+  "Batch 15 - Controlled Smoke Closeout",
   "User wallet authority and user Telegram bot-token privacy remain priority one",
 ]) {
   includes("Phase 8 doc", doc, expected);
 }
 
 for (const expected of [
-  "| 8 | Controlled Live Transaction",
   "In progress: Batch 15",
-  "Batch 13 evidence",
-  "src/types/phase8ResultPersistence.ts",
-  "src/services/phase8ResultPersistenceStore.ts",
-  "scripts/test-phase-8-result-persistence.mjs",
+  "Batch 15 evidence",
+  "src/types/phase8SmokeCloseout.ts",
+  "scripts/test-phase-8-smoke-closeout.mjs",
+  "scripts/check-phase-8-smoke-closeout.mjs",
 ]) {
   includes("roadmap", roadmap, expected);
 }
 
 for (const expected of [
   "| 8 | In progress: controlled live transaction Batch 15 |",
-  "result persistence hardening",
+  "controlled smoke closeout hardening",
 ]) {
   includes("README", readme, expected);
 }
 
 for (const expected of [
-  "createPhase8PersistedExecutionResult",
-  "owner_scope_required",
-  "owner_only_required",
-  "sanitized_event_required",
-  "transaction_hash_required",
-  "mapPhase8PersistedResultToDemoExecutionResult",
-  "visibility: \"owner-only\"",
+  "evaluatePhase8SmokeCloseout",
+  "canContinueToPublicHardening",
+  "public_visibility_forbidden",
+  "confirmation_required",
+  "sanitized_failure_required",
+  "ownerOnly: true",
 ]) {
-  includes("result persistence model", model, expected);
+  includes("smoke closeout model", model, expected);
 }
 
 for (const expected of [
-  "sessionStorage",
-  "kyra.phase8.ownerExecutionResults.v1",
-  "visibility === \"owner-only\"",
-  "maxStoredResults",
-]) {
-  includes("result persistence store", store, expected);
-}
-
-for (const expected of [
-  "phase8PersistedResults",
-  "handlePhase8ResultCloseout",
-  "createPhase8PersistedExecutionResult",
-  "savePhase8PersistedExecutionResult",
-  "mapPhase8PersistedResultToDemoExecutionResult",
-  "onResultCloseout={handlePhase8ResultCloseout}",
+  "evaluatePhase8SmokeCloseout",
+  "phase8SmokeCloseout",
+  "Phase 8 smoke closeout",
+  "canContinueToPublicHardening",
+  "phase-8-smoke-closeout-panel",
 ]) {
   includes("dashboard", dashboard, expected);
 }
 
 for (const expected of [
-  "Phase 8 result persistence checks passed.",
-  "owner_only_required",
-  "sanitized_event_required",
-  "unsupported_state",
-  "transaction_hash_required",
+  ".phase-8-smoke-closeout-panel",
+  ".phase-8-smoke-closeout-grid",
 ]) {
-  includes("result persistence test", test, expected);
+  includes("styles", styles, expected);
 }
 
 for (const expected of [
-  '"test:phase-8-result-persistence"',
-  '"check:phase-8-result-persistence"',
+  "Phase 8 smoke closeout checks passed.",
+  "closed_confirmed",
+  "closed_aborted",
+  "public_visibility_forbidden",
+]) {
+  includes("smoke closeout test", test, expected);
+}
+
+for (const expected of [
+  '"test:phase-8-smoke-closeout"',
+  '"check:phase-8-smoke-closeout"',
 ]) {
   includes("package.json", packageJson, expected);
+}
+
+for (const path of telegramFiles) {
+  excludes(
+    path,
+    read(path),
+    /evaluatePhase8SmokeCloseout|phase8SmokeCloseout|phase-8-smoke-closeout/u,
+    "Phase 8 smoke closeout in Telegram authority",
+  );
 }
 
 for (const path of publicFiles) {
   excludes(
     path,
     read(path),
-    /phase8PersistedResults|Phase8PersistedExecutionResult|savePhase8PersistedExecutionResult|kyra\.phase8\.ownerExecutionResults/u,
-    "Phase 8 owner result persistence in public surfaces",
+    /evaluatePhase8SmokeCloseout|phase8SmokeCloseout|phase-8-smoke-closeout/u,
+    "Phase 8 smoke closeout in public surfaces",
   );
 }
 
-console.log("Phase 8 result persistence checks passed.");
+console.log("Phase 8 smoke closeout checks passed.");

@@ -85,6 +85,7 @@ import {
 import { evaluatePhase8OwnerLiveWindowActivation } from "../types/phase8OwnerLiveWindowActivation";
 import { createPhase8OwnerActionCandidate } from "../types/phase8OwnerActionCandidate";
 import { evaluatePhase8RuntimeEnablementPreflight } from "../types/phase8RuntimeEnablementPreflight";
+import { evaluatePhase8SmokeCloseout } from "../types/phase8SmokeCloseout";
 import {
   createPhase8PersistedExecutionResult,
   getPhase8ResultPersistenceFailureMessage,
@@ -1296,6 +1297,36 @@ export function Dashboard({
       executionResults,
       phase8FrozenAction?.requestId,
       phase8SubmitterResult,
+    ],
+  );
+  const phase8SmokeCloseout = useMemo(
+    () =>
+      evaluatePhase8SmokeCloseout({
+        ownerUserId: authSession?.user.id ?? "",
+        workspaceId: dashboardData?.workspace.id ?? "",
+        agentId: agentRecord?.id ?? "",
+        preparedActionId: phase8FrozenAction?.requestId ?? executionResults[0]?.preparedActionId ?? "",
+        status: phase8SubmitterResult?.state === "submitted"
+          ? "submitted"
+          : phase8SubmitterResult?.state === "confirmed"
+          ? "confirmed"
+          : phase8SubmitterResult?.state === "failed"
+          ? "failed"
+          : "not_started",
+        ownerOnly: resultMonitoringCloseout.ownerOnly,
+        txHash: phase8SubmitterResult?.txHash ?? resultMonitoringCloseout.txHash,
+        confirmationId: resultMonitoringCloseout.confirmationId,
+        sanitizedFailureReason: resultMonitoringCloseout.sanitizedFailureReason,
+        visibleInPublicProfile: false,
+      }),
+    [
+      agentRecord?.id,
+      authSession?.user.id,
+      dashboardData?.workspace.id,
+      executionResults,
+      phase8FrozenAction?.requestId,
+      phase8SubmitterResult,
+      resultMonitoringCloseout,
     ],
   );
   const controlledLiveTransactionGate = useMemo(() => {
@@ -3541,7 +3572,34 @@ export function Dashboard({
                   </small>
                 )}
             </div>
-            <div className="execution-result-list">
+            <div className="phase-8-smoke-closeout-panel">
+              <div className="result-monitoring-header">
+                <span>Phase 8 smoke closeout</span>
+                <strong>{phase8SmokeCloseout.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="phase-8-smoke-closeout-grid">
+                <span>
+                  Scope
+                  <strong>{phase8SmokeCloseout.ownerOnly ? "owner-only" : "blocked"}</strong>
+                </span>
+                <span>
+                  Tx hash
+                  <strong>{phase8SmokeCloseout.txHashLabel}</strong>
+                </span>
+                <span>
+                  Confirmation
+                  <strong>{phase8SmokeCloseout.confirmationLabel}</strong>
+                </span>
+                <span>
+                  Next gate
+                  <strong>{phase8SmokeCloseout.canContinueToPublicHardening ? "ready" : "locked"}</strong>
+                </span>
+              </div>
+              <p>{phase8SmokeCloseout.message}</p>
+              {phase8SmokeCloseout.reasons.length
+                ? <small>Blocked by: {phase8SmokeCloseout.reasons.join(", ")}</small>
+                : <small>Smoke closeout is owner-only. Public profiles and Telegram cannot expose or submit this state.</small>}
+            </div>            <div className="execution-result-list">
               {executionResults.map((result) => (
                 <article
                   className={`execution-result-card readiness-${

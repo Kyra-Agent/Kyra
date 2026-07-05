@@ -62,7 +62,7 @@ Current canonical roadmap status:
 | 1-5 | Product, backend, security, deployment, Telegram, and LLM read-only foundations complete |
 | 6 | Wallet and approval foundation complete |
 | 7 | Base Account + execution readiness complete; not live execution |
-| 8 | In progress: controlled live transaction Batch 14 |
+| 8 | In progress: controlled live transaction Batch 15 |
 | 9 | Pending: public execution hardening |
 | 10 | Pending: product release readiness |
 
@@ -179,7 +179,7 @@ production smoke freeze checkpoint.
 
 Phase 8 is in progress: one controlled live transaction with one owner, one
 deployed agent, one low-risk prepared action, explicit Kyra approval, explicit
-Base Account approval, controlled submitter wiring, owner live-window activation lock, runtime enablement preflight, Base ETH gas readiness guard, result persistence hardening, funding UX hardening, rollback readiness, and owner-only
+Base Account approval, controlled submitter wiring, owner live-window activation lock, runtime enablement preflight, Base ETH gas readiness guard, result persistence hardening, funding UX hardening, controlled smoke closeout hardening, rollback readiness, and owner-only
 result recording.
 
 The intended execution path remains deliberately narrow:

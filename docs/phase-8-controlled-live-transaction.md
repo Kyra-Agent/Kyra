@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 14 funding UX hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 15 controlled smoke closeout hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 
 ## Purpose
 
@@ -466,5 +466,30 @@ Implementation evidence:
 - `scripts/check-phase-8-funding-readiness.mjs`
 - `src/styles.css`
 - `npm run check:phase-8-funding-readiness`
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+
+## Batch 15 - Controlled Smoke Closeout
+
+Batch 15 adds an owner-only controlled smoke closeout model after the first live submit path. The closeout distinguishes not started, submitted pending confirmation, confirmed, failed, and aborted states without exposing wallet internals, provider payloads, Telegram authority, public profile authority, token approvals, swaps, calldata, or non-zero value execution.
+
+Required Batch 15 controls:
+
+- controlled smoke closeout requires owner, workspace, selected agent, and prepared action scope
+- submitted, confirmed, and failed closeouts require a valid transaction hash
+- confirmed closeout requires provider confirmation data
+- failed closeout requires a sanitized failure reason
+- aborted closeout can close safely without a transaction hash
+- closeout remains owner-only and hidden from public profiles and Telegram
+- public hardening can continue only after confirmed, failed, or aborted closeout
+
+Implementation evidence:
+
+- `src/types/phase8SmokeCloseout.ts`
+- `scripts/test-phase-8-smoke-closeout.mjs`
+- `scripts/check-phase-8-smoke-closeout.mjs`
+- `src/pages/Dashboard.tsx`
+- `src/styles.css`
+- `npm run check:phase-8-smoke-closeout`
 
 User wallet authority and user Telegram bot-token privacy remain priority one.

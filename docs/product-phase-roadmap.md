@@ -76,7 +76,7 @@ evidence packets, not extra product phases.
 | 5 | Telegram + LLM Live | Connected deployed agents reply in Telegram with read-only commands and LLM planning. | Complete, live read-only |
 | 6 | Wallet/Approval Foundation | Wallet readiness, approval policy, risk review, prepared-action models, and refusal boundaries. | Foundation complete |
 | 7 | Base Account + Execution Readiness | Owner Base Account connection, prompt locks, prepared-action allowlist, policy gates, dual approval model, result closeout model, production smoke freeze. | Complete as readiness; not live execution |
-| 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, controlled submission, owner-only result. | In progress: Batch 14 |
+| 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, controlled submission, owner-only result. | In progress: Batch 15 |
 | 9 | Public Execution Hardening | Rate limits, rollback, incident controls, monitoring, privacy audits, abuse controls, and wider execution eligibility. | Pending |
 | 10 | Product Release Readiness | Public-ready copy, support ops, launch QA, production runbook, final audit, and release decision. | Pending |
 
@@ -425,7 +425,7 @@ Batch 5 evidence:
 - `scripts/test-phase-8-owner-submit-request.mjs`
 - `scripts/check-phase-8-controlled-submitter.mjs`
 
-Status: Batch 14 funding UX hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 15 controlled smoke closeout hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 
 Batch 6 evidence:
 
@@ -472,7 +472,7 @@ Batch 9 evidence:
 - result monitoring observes provider-submitted status only after sanitized hash exists
 - rejected or failed prompts do not create fake transaction hashes
 - Telegram, public profiles, automation, swaps, token approvals, calldata, and non-zero value remain blocked
-Status: Batch 14 funding UX hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 15 controlled smoke closeout hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 Do not open a live execution window until the owner explicitly approves it.
 
 ## Phase 9 - Public Execution Hardening
@@ -627,3 +627,16 @@ Batch 14 evidence:
 - `src/types/phase8FundingReadiness.ts`
 - `scripts/test-phase-8-funding-readiness.mjs`
 - `scripts/check-phase-8-funding-readiness.mjs`
+
+Batch 15 evidence:
+
+- owner-only controlled smoke closeout model added for not started, submitted, confirmed, failed, and aborted states
+- submitted, confirmed, and failed states require valid transaction hash evidence
+- confirmed closeout requires provider confirmation data
+- failed closeout requires sanitized failure reason
+- aborted closeout can safely close before provider submission
+- dashboard shows owner-only smoke closeout status and next-gate readiness
+- public surfaces and Telegram webhook code are checked to exclude smoke closeout authority
+- `src/types/phase8SmokeCloseout.ts`
+- `scripts/test-phase-8-smoke-closeout.mjs`
+- `scripts/check-phase-8-smoke-closeout.mjs`
