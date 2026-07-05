@@ -122,7 +122,7 @@
     "test:phase-8-runtime-preflight": "node scripts/test-phase-8-runtime-enable-preflight.mjs",
     "check:phase-8-owner-live-window": "npm run test:phase-8-owner-live-window-activation && node scripts/check-phase-8-owner-live-window-activation.mjs",
     "check:phase-8-runtime-preflight": "npm run test:phase-8-runtime-preflight && node scripts/check-phase-8-runtime-enable-preflight.mjs",
-    "check:phase-8-all": "npm run test:phase-8-owner-action-candidate && npm run check:phase-8 && npm run check:phase-8-live-window && npm run check:phase-8-wallet-prompt && npm run check:phase-8-submission && npm run check:phase-8-submitter && npm run check:phase-8-result-persistence && npm run check:phase-8-funding-readiness && npm run check:phase-8-smoke-closeout && npm run check:phase-8-user-safe-policy && npm run check:phase-8-low-value-readiness && npm run check:phase-8-low-value-submit-request && npm run check:phase-8-low-value-submitter && npm run check:phase-8-low-value-balance-gas && npm run check:phase-8-low-value-live-run && npm run check:phase-8-transaction-verification && npm run check:phase-8-owner-live-window && npm run check:phase-8-runtime-preflight",
+    "check:phase-8-all": "npm run test:phase-8-owner-action-candidate && npm run check:phase-8 && npm run check:phase-8-live-window && npm run check:phase-8-wallet-prompt && npm run check:phase-8-submission && npm run check:phase-8-submitter && npm run check:phase-8-result-persistence && npm run check:phase-8-funding-readiness && npm run check:phase-8-smoke-closeout && npm run check:phase-8-user-safe-policy && npm run check:phase-8-low-value-readiness && npm run check:phase-8-low-value-submit-request && npm run check:phase-8-low-value-submitter && npm run check:phase-8-low-value-balance-gas && npm run check:phase-8-low-value-live-run && npm run check:phase-8-transaction-verification && npm run check:phase-8-user-execution-flow && npm run check:phase-8-owner-live-window && npm run check:phase-8-runtime-preflight",
     "check:roadmap": "node scripts/check-product-phase-roadmap.mjs",
     "check:optional-cdp": "node scripts/check-optional-cdp-node.mjs",
     "check:pre-base-mcp": "node scripts/check-pre-base-mcp-cleanup.mjs",
@@ -146,7 +146,9 @@
     "check:phase-8-low-value-balance-gas": "node scripts/check-phase-8-low-value-balance-gas-readiness.mjs",
     "check:phase-8-low-value-live-run": "node scripts/check-phase-8-low-value-live-run.mjs",
     "test:phase-8-transaction-verification": "node scripts/test-phase-8-transaction-verification.mjs",
-    "check:phase-8-transaction-verification": "npm run test:phase-8-transaction-verification && node scripts/check-phase-8-transaction-verification.mjs"
+    "check:phase-8-transaction-verification": "npm run test:phase-8-transaction-verification && node scripts/check-phase-8-transaction-verification.mjs",
+    "test:phase-8-user-execution-flow": "node scripts/test-phase-8-user-execution-flow.mjs",
+    "check:phase-8-user-execution-flow": "npm run test:phase-8-user-execution-flow && node scripts/check-phase-8-user-execution-flow.mjs"
   },
   "dependencies": {
     "@base-org/account": "^2.5.6",

@@ -89,6 +89,7 @@ import { createPhase8OwnerActionCandidate } from "../types/phase8OwnerActionCand
 import { evaluatePhase8RuntimeEnablementPreflight } from "../types/phase8RuntimeEnablementPreflight";
 import { evaluatePhase8SmokeCloseout } from "../types/phase8SmokeCloseout";
 import { evaluatePhase8TransactionVerification } from "../types/phase8TransactionVerification";
+import { evaluatePhase8UserExecutionFlow } from "../types/phase8UserExecutionFlow";
 import { evaluatePhase8UserSafeTransactionPolicy } from "../types/phase8UserSafeTransactionPolicy";
 import { formatPhase8BaseEth } from "../types/phase8FundingReadiness";
 import { evaluatePhase8LowValueTransactionReadiness } from "../types/phase8LowValueTransactionReadiness";
@@ -1485,6 +1486,40 @@ export function Dashboard({
       dashboardData?.workspace.id,
       phase8FrozenAction?.requestId,
       phase8OwnerActionCandidate,
+    ],
+  );
+  const phase8UserExecutionFlow = useMemo(
+    () =>
+      evaluatePhase8UserExecutionFlow({
+        ownerSignedIn: Boolean(authSession),
+        selectedAgent: Boolean(agentRecord),
+        baseAccountConnected: baseAccountConnectionStatus.connected,
+        baseChainReady: baseAccountConnectionStatus.chainId === baseChainId,
+        preparedActionReady: Boolean(phase8FrozenAction),
+        ownerApprovalRecorded: Boolean(activePhase8OwnerArming),
+        runtimeEnabled: appConfig.integrations.phase8LowValueSubmission === "owner_low_value_window",
+        lowValueRequestReady: phase8LowValueSubmitRequest.ok,
+        submitterState: phase8SubmitterResult
+          ? phase8SubmitterResult.state
+          : activePhase8OwnerArming
+          ? "ready"
+          : "not_submitted",
+        verificationStatus: phase8TransactionVerification.status,
+        closeoutReady: phase8SmokeCloseout.canContinueToPublicHardening,
+        visibleInPublicProfile: false,
+        telegramRequestedExecution: false,
+      }),
+    [
+      activePhase8OwnerArming,
+      agentRecord,
+      authSession,
+      baseAccountConnectionStatus.chainId,
+      baseAccountConnectionStatus.connected,
+      phase8FrozenAction,
+      phase8LowValueSubmitRequest,
+      phase8SmokeCloseout.canContinueToPublicHardening,
+      phase8SubmitterResult,
+      phase8TransactionVerification.status,
     ],
   );
   const controlledLiveTransactionGate = useMemo(() => {
@@ -3757,6 +3792,30 @@ export function Dashboard({
               {phase8UserSafeTransactionPolicy.reasons.length
                 ? <small>Blocked by: {phase8UserSafeTransactionPolicy.reasons.join(", ")}</small>
                 : <small>User-safe policy is private-dashboard only. Non-zero value, calldata, swaps, and token approvals remain locked.</small>}
+            </div>
+            <div className="phase-8-user-flow-panel">
+              <div className="result-monitoring-header">
+                <span>Phase 8 user execution flow</span>
+                <strong>{phase8UserExecutionFlow.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="phase-8-user-flow-track">
+                {phase8UserExecutionFlow.steps.map((step, index) => (
+                  <div
+                    className={`phase-8-user-flow-step step-${step.status}`}
+                    key={step.key}
+                  >
+                    <span>{String(index + 1).padStart(2, "0")}</span>
+                    <div>
+                      <strong>{step.label}</strong>
+                      <small>{step.detail}</small>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p>{phase8UserExecutionFlow.message}</p>
+              {phase8UserExecutionFlow.reasons.length
+                ? <small>Blocked by: {phase8UserExecutionFlow.reasons.join(", ")}</small>
+                : <small>Owner-only flow map. Telegram and public profiles cannot start, inspect, or complete execution.</small>}
             </div>
             <div className="phase-8-low-value-panel">
               <div className="result-monitoring-header">

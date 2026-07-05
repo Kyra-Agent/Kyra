@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 22 transaction result verification. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 23 user-facing execution flow. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 
 ## Purpose
 
@@ -655,5 +655,29 @@ Implementation evidence:
 - `src/pages/Dashboard.tsx` uses `useWaitForTransactionReceipt` for owner-only receipt monitoring
 - `src/styles.css`
 - `npm run check:phase-8-transaction-verification`
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+
+## Batch 23 - User-Facing Execution Flow
+
+Batch 23 adds the owner-facing execution flow map that connects the existing private dashboard gates into one readable product journey. It does not open new execution authority. It makes the path from owner session, selected agent, Base Account, prepared action, owner approval, submitter, receipt verification, and owner closeout visible as a bounded owner-only flow.
+
+Required Batch 23 controls:
+
+- flow state is derived from existing owner-only gates and does not create new transaction authority
+- active step highlights the next required owner action
+- failed or blocked states show sanitized reasons only
+- receipt verification and closeout remain owner-dashboard scoped
+- Telegram, public profiles, token approvals, swaps, arbitrary calldata, seed phrases, and private keys remain blocked
+- public agent profiles and Telegram webhook code cannot access Phase 8 user execution flow authority
+
+Implementation evidence:
+
+- `src/types/phase8UserExecutionFlow.ts`
+- `scripts/test-phase-8-user-execution-flow.mjs`
+- `scripts/check-phase-8-user-execution-flow.mjs`
+- `src/pages/Dashboard.tsx` renders the owner-only execution flow panel
+- `src/styles.css`
+- `npm run check:phase-8-user-execution-flow`
 
 User wallet authority and user Telegram bot-token privacy remain priority one.

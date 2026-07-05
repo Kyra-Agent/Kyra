@@ -54,7 +54,7 @@ const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 22 transaction result verification.",
+  "Status: Batch 23 user-facing execution flow.",
   "Batch 22 - Transaction Result Verification",
   "User wallet authority and user Telegram bot-token privacy remain priority one",
 ]) {
@@ -62,7 +62,7 @@ for (const expected of [
 }
 
 for (const expected of [
-  "In progress: Batch 22",
+  "In progress: Batch 23",
   "Batch 22 evidence",
   "src/types/phase8TransactionVerification.ts",
   "scripts/test-phase-8-transaction-verification.mjs",
@@ -72,7 +72,7 @@ for (const expected of [
 }
 
 for (const expected of [
-  "| 8 | In progress: controlled live transaction Batch 22 |",
+  "| 8 | In progress: controlled live transaction Batch 23 |",
   "transaction result verification",
 ]) {
   includes("README", readme, expected);

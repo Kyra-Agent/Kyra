@@ -5955,6 +5955,105 @@ h2 {
   color: #9fb2c7;
   font-family: var(--font-mono);
 }
+.phase-8-user-flow-panel {
+  border: 1px solid rgba(14, 165, 233, 0.34);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(5, 24, 38, 0.82);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.024);
+}
+
+.phase-8-user-flow-track {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.phase-8-user-flow-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  min-width: 0;
+  min-height: 74px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.phase-8-user-flow-step > span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.12);
+  color: #a9bdd6;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.phase-8-user-flow-step strong {
+  display: block;
+  color: #f6fbff;
+  font-size: 0.85rem;
+}
+
+.phase-8-user-flow-step small {
+  display: block;
+  margin-top: 4px;
+  color: #9fb2c7;
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.phase-8-user-flow-step.step-complete {
+  border-color: rgba(34, 197, 94, 0.34);
+  background: rgba(8, 35, 24, 0.56);
+}
+
+.phase-8-user-flow-step.step-current {
+  border-color: rgba(59, 130, 246, 0.42);
+  background: rgba(8, 30, 55, 0.62);
+}
+
+.phase-8-user-flow-step.step-failed {
+  border-color: rgba(248, 113, 113, 0.42);
+  background: rgba(52, 16, 16, 0.58);
+}
+
+.phase-8-user-flow-step.step-complete > span {
+  background: rgba(34, 197, 94, 0.18);
+  color: #86efac;
+}
+
+.phase-8-user-flow-step.step-current > span {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+}
+
+.phase-8-user-flow-step.step-failed > span {
+  background: rgba(248, 113, 113, 0.18);
+  color: #fca5a5;
+}
+
+.phase-8-user-flow-panel p {
+  margin: 12px 0 8px;
+  color: #d8e7f5;
+}
+
+.phase-8-user-flow-panel small {
+  color: #9fb2c7;
+  font-family: var(--font-mono);
+}
+
+@media (max-width: 760px) {
+  .phase-8-user-flow-track {
+    grid-template-columns: 1fr;
+  }
+}
 .phase-8-low-value-panel {
   border: 1px solid rgba(16, 185, 129, 0.34);
   border-radius: 8px;
