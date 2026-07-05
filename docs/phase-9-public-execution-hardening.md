@@ -142,4 +142,38 @@ Batch 9D closeout rule:
 - Batch 9D can close when production health, support copy, sanitized debugging, aggregated analytics, owner evidence, and public privacy boundaries are modeled and checked.
 - Batch 9E may start after 9D passes because public privacy and release gating can be built on top of monitoring-support evidence.
 
+
+## Batch 9E - Public Privacy and Release Gate
+
+Batch 9E adds the final Phase 9 public privacy and release gate. It still does not add a public submit button, Telegram execution, public profile execution, automation execution, token approvals, swaps, arbitrary calldata, private-key input, or seed-phrase input.
+
+Required controls:
+
+- Batch 9D monitoring and support must be clean before public privacy release can pass.
+- Landing page audit must confirm product copy does not expose unsupported execution or private state; landing page audit is required before release gating.
+- Public agent profile audit must confirm owner-only wallet details stay private; public agent profile audit is required before release gating.
+- Telegram response audit must confirm Telegram cannot sign, submit, or expose wallet/token internals; Telegram response audit is required before release gating.
+- Dashboard copy audit must confirm owner-only state remains clearly scoped.
+- Log audit must confirm no token refs, session ids, internal ids, provider payload refs, or raw errors are exposed.
+- Docs audit must confirm public docs do not contain secrets or misleading execution claims.
+- Edge Function error audit must confirm raw error details stay sanitized; Edge Function error audit is required before release gating.
+- Wallet address exposure is forbidden beyond owner-approved display; wallet address exposure is blocked unless owner-approved.
+- Transaction intent internals must not appear on public surfaces; transaction intent internals stay owner-only.
+- Raw error details must stay hidden from public surfaces; raw error details stay sanitized.
+- Release decision must be recorded before Phase 10 readiness starts.
+
+Implementation evidence:
+
+- `src/types/phase9PublicPrivacyRelease.ts`
+- `scripts/test-phase-9e-public-privacy-release.mjs`
+- `scripts/check-phase-9e-public-privacy-release.mjs`
+- `src/pages/Dashboard.tsx` renders an owner dashboard public-privacy gate panel.
+- `src/styles.css`
+- `npm run check:phase-9e`
+
+Batch 9E closeout rule:
+
+- Batch 9E can close when public surfaces, logs, docs, Edge Function errors, sensitive-data hiding, and release decision evidence are modeled and checked.
+- Phase 9 can close after 9E passes structurally; Phase 10 owns final launch QA and product release readiness.
+
 User wallet authority and user Telegram bot-token privacy remain priority one.

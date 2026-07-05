@@ -6195,12 +6195,77 @@ h2 {
   color: #9fb2c7;
   font-family: var(--font-mono);
 }
+
+.phase-9-public-privacy-panel {
+  border: 1px solid rgba(168, 85, 247, 0.36);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(35, 18, 58, 0.74);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.024);
+}
+
+.phase-9-public-privacy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.phase-9-public-privacy-grid span {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+  color: #9fb2c7;
+  font-size: 0.78rem;
+}
+
+.phase-9-public-privacy-grid span.closeout-pass {
+  border-color: rgba(34, 197, 94, 0.34);
+  background: rgba(8, 35, 24, 0.42);
+}
+
+.phase-9-public-privacy-grid span.closeout-pending {
+  border-color: rgba(168, 85, 247, 0.42);
+  background: rgba(59, 7, 100, 0.34);
+}
+
+.phase-9-public-privacy-grid span.closeout-blocked {
+  border-color: rgba(248, 113, 113, 0.42);
+  background: rgba(52, 16, 16, 0.46);
+}
+
+.phase-9-public-privacy-grid strong,
+.phase-9-public-privacy-grid small {
+  display: block;
+  margin-top: 4px;
+}
+
+.phase-9-public-privacy-grid strong {
+  color: #f6fbff;
+  font-size: 0.86rem;
+}
+
+.phase-9-public-privacy-grid small {
+  color: #9fb2c7;
+  line-height: 1.35;
+}
+
+.phase-9-public-privacy-panel p {
+  margin: 12px 0 8px;
+  color: #d8e7f5;
+}
+
+.phase-9-public-privacy-panel > small {
+  color: #9fb2c7;
+  font-family: var(--font-mono);
+}
 @media (max-width: 760px) {
   .phase-8-production-closeout-grid,
   .phase-9-execution-eligibility-grid,
   .phase-9-abuse-rate-limit-grid,
   .phase-9-incident-controls-grid,
-  .phase-9-monitoring-support-grid {
+  .phase-9-monitoring-support-grid,
+  .phase-9-public-privacy-grid {
     grid-template-columns: 1fr;
   }
 }

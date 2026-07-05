@@ -95,6 +95,7 @@ import { evaluatePhase9ExecutionEligibility } from "../types/phase9ExecutionElig
 import { evaluatePhase9AbuseRateLimit } from "../types/phase9AbuseRateLimit";
 import { evaluatePhase9IncidentControls } from "../types/phase9IncidentControls";
 import { evaluatePhase9MonitoringSupport } from "../types/phase9MonitoringSupport";
+import { evaluatePhase9PublicPrivacyRelease } from "../types/phase9PublicPrivacyRelease";
 import { evaluatePhase8UserExecutionFlow } from "../types/phase8UserExecutionFlow";
 import { evaluatePhase8UserSafeTransactionPolicy } from "../types/phase8UserSafeTransactionPolicy";
 import { formatPhase8BaseEth } from "../types/phase8FundingReadiness";
@@ -1704,6 +1705,29 @@ export function Dashboard({
       publicAnalyticsPrivacyPreserving: true,
     }),
     [phase9IncidentControls.canProceedToMonitoring],
+  );
+
+  const phase9PublicPrivacyRelease = useMemo(
+    () => evaluatePhase9PublicPrivacyRelease({
+      monitoringSupportCanProceed: phase9MonitoringSupport.canProceedToPrivacyGate,
+      phase9RuntimeEnabled: false,
+      landingPageAudited: true,
+      publicAgentProfilesAudited: true,
+      telegramResponsesAudited: true,
+      dashboardCopyAudited: true,
+      logsAudited: true,
+      docsAudited: true,
+      edgeFunctionErrorsAudited: true,
+      walletAddressesHiddenUnlessOwnerApproved: true,
+      tokenRefsHidden: true,
+      sessionIdsHidden: true,
+      internalIdsHidden: true,
+      providerPayloadRefsHidden: true,
+      transactionIntentInternalsHidden: true,
+      rawErrorDetailsHidden: true,
+      releaseDecisionRecorded: true,
+    }),
+    [phase9MonitoringSupport.canProceedToPrivacyGate],
   );
 
   const controlledLiveTransactionGate = useMemo(() => {
@@ -4222,6 +4246,25 @@ export function Dashboard({
               {phase9MonitoringSupport.reasons.length
                 ? <small>Blocked by: {phase9MonitoringSupport.reasons.join(", ")}</small>
                 : <small>Monitoring and support evidence is observable only inside the explicit Phase 9 runtime lane.</small>}
+            </div>
+            <div className="phase-9-public-privacy-panel">
+              <div className="result-monitoring-header">
+                <span>Phase 9E public privacy gate</span>
+                <strong>{phase9PublicPrivacyRelease.status.replace(/_/g, " ")}</strong>
+              </div>
+              <div className="phase-9-public-privacy-grid">
+                {phase9PublicPrivacyRelease.controls.map((item) => (
+                  <span className={`closeout-${item.status}`} key={item.label}>
+                    {item.label}
+                    <strong>{item.status}</strong>
+                    <small>{item.detail}</small>
+                  </span>
+                ))}
+              </div>
+              <p>{phase9PublicPrivacyRelease.message}</p>
+              {phase9PublicPrivacyRelease.reasons.length
+                ? <small>Blocked by: {phase9PublicPrivacyRelease.reasons.join(", ")}</small>
+                : <small>Phase 9 public privacy can close only inside the explicit release gate.</small>}
             </div>
             <div className="phase-8-smoke-closeout-panel">
               <div className="result-monitoring-header">
