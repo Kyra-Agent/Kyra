@@ -492,6 +492,29 @@ Required:
 - negative-case tests for prompt, signing, approval, replay, drift, and
   provider failures
 
+Phase 9 working groups:
+
+1. Execution eligibility hardening
+   - Define exactly which users, agents, templates, chains, action kinds, and value caps can access public execution.
+   - Keep Telegram, public profiles, automation, swaps, token approvals, arbitrary calldata, private keys, and seed phrases blocked until explicitly approved.
+   - Require owner sign-in, selected deployed agent, Base Account connection, Kyra approval, Base Account approval, receipt verification, and owner-only closeout for every transaction.
+2. Abuse, rate limit, and value-limit enforcement
+   - Add per-owner, per-agent, per-workspace, per-route, and per-wallet rate limits.
+   - Enforce low-value caps, cooldowns, replay locks, nonce locks, duplicate-submit prevention, and provider failure backoff.
+   - Keep all abuse decisions sanitized so user wallet data and Telegram token refs never leak to public surfaces.
+3. Incident, rollback, and emergency controls
+   - Ship operator-facing disable switches, rollback steps, manual recovery notes, and go/no-go rules.
+   - Add failure-mode handling for rejected prompts, insufficient gas, reverted transactions, provider outage, chain mismatch, stale approval, stale prepared action, and stuck receipt verification.
+   - Require a post-incident owner-only audit record before any affected execution lane can be re-enabled.
+4. Monitoring, support, and owner evidence
+   - Add production health panels for Netlify, Supabase, Edge Functions, transaction verification, and public execution gates.
+   - Add owner-safe support copy and debugging states without exposing raw wallet internals, Telegram tokens, provider payloads, or secrets.
+   - Keep public analytics aggregated and privacy-preserving.
+5. Public privacy and release gate
+   - Audit landing page, public agent profiles, Telegram responses, dashboard copy, logs, docs, and Edge Function errors.
+   - Confirm no public surface can display wallet addresses beyond owner-approved display, token refs, session ids, internal ids, provider payload refs, transaction intent internals, or raw error details.
+   - Phase 9 can close only after the public execution hardening checks pass and Phase 10 release readiness can start.
+
 Status: pending.
 
 ## Phase 10 - Product Release Readiness
@@ -783,5 +806,10 @@ Batch 25 evidence:
 Phase 8 closeout decision:
 
 - Phase 8 implementation is closed for the controlled owner-only transaction path.
+- GitHub `main` has been pushed with the Phase 8 closeout commits.
+- Netlify production is live at `https://kyraagent.xyz`; `/` and `/dashboard` returned `200 OK`.
+- Supabase project `Kyra Agent` is `ACTIVE_HEALTHY`, and the deployment, Telegram, and Base MCP preparation/status Edge Functions are active.
+- Owner manual smoke test was completed after deploy: website navigation, dashboard, Base Account connect/disconnect, existing deployed-agent flow, and Telegram read-only refusal were reported safe.
 - A funded owner wallet can run the controlled low-value path under the existing owner, Kyra approval, Base Account approval, receipt verification, and owner-only closeout gates.
+- Low-value live transaction receipt proof remains pending until the owner wallet is funded and the owner intentionally runs the controlled low-value path.
 - Public execution, multi-user execution eligibility, incident controls, abuse controls, and wider transaction classes remain Phase 9.

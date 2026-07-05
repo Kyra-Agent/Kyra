@@ -737,4 +737,14 @@ Closeout decision:
 - A funded owner wallet can run the controlled low-value path under the existing owner, Kyra approval, Base Account approval, receipt verification, and owner-only closeout gates.
 - Public execution, multi-user execution eligibility, incident controls, abuse controls, and wider transaction classes remain Phase 9.
 
+Live closeout evidence:
+
+- GitHub `main` was pushed with the Phase 8 closeout commits.
+- Netlify production is live at `https://kyraagent.xyz`; `/` and `/dashboard` returned `200 OK`.
+- Netlify CLI identity is `Kyra Agent`, team `Kyra-Agent`, project `kyra-agent`.
+- Supabase project `Kyra Agent` (`lvgqtxbygrazkolhdwnh`) is `ACTIVE_HEALTHY`.
+- Supabase Edge Functions for deployment, Telegram, and Base MCP preparation/status are active.
+- Owner manual smoke test was completed after deploy: website navigation, dashboard, Base Account connect/disconnect, existing deployed-agent flow, and Telegram read-only refusal were reported safe.
+- Low-value live transaction receipt proof remains pending until the owner wallet is funded and the owner intentionally runs the controlled low-value path.
+
 User wallet authority and user Telegram bot-token privacy remain priority one.
