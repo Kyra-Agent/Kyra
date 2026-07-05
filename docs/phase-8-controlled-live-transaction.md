@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 10 runtime enablement preflight. Runtime execution remains default-off. Explicit owner-approved window flag enablement is required before activation.
+Status: Batch 11 gas readiness guard. Runtime execution remains default-off. Explicit owner-approved window flag enablement is required before activation.
 
 ## Purpose
 
@@ -374,3 +374,24 @@ Implementation evidence:
 - `npm run check:phase-8-runtime-preflight`
 
 Batch 10 is the controlled opening checklist. When it passes under the explicit runtime flag, the submitter can request one owner-approved Base Account zero-value/no-calldata transaction for the selected agent. User wallet authority and user Telegram bot-token privacy remain priority one.
+## Batch 11 - Base ETH Gas Readiness Guard
+
+Batch 11 adds a native ETH gas readiness guard after the first live Base Account prompt showed that a zero-value transaction still needs Base ETH for gas. It does not create token approval, swap, calldata, non-zero value, Telegram, public profile, or automation execution authority.
+
+Required Batch 11 controls:
+
+- read the connected owner Base Account native ETH balance on Base only
+- disable the controlled submit button when the Base ETH balance is unavailable or zero
+- show owner-facing copy that the transaction is zero-value but gas still requires ETH
+- keep the runtime preflight, owner live-window, selected agent, and controlled submission gates unchanged
+- keep Telegram and public profiles blocked from balance-gated submit authority
+
+Implementation evidence:
+
+- `Phase8ControlledSubmitter` uses `useBalance` for native Base ETH gas readiness
+- `baseAccountAddress={baseAccountConnectionStatus.address}` is passed from the private dashboard only
+- submitter requires `gasReady` before `sendTransactionAsync`
+- `getGasReadiness` blocks `wallet_required`, `address_required`, `checking`, `unavailable`, and `empty` states
+- `npm run check:phase-8-runtime-preflight`
+
+User wallet authority and user Telegram bot-token privacy remain priority one.

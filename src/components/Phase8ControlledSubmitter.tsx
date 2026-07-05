@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { LoaderCircle, Send, ShieldCheck } from "lucide-react";
-import { useConnection, useSendTransaction } from "wagmi";
+import { useBalance, useConnection, useSendTransaction } from "wagmi";
 import { appConfig } from "../config/appConfig";
 import type { FrozenPreparedAction } from "../types/dualApprovalExecution";
 import type {
@@ -9,6 +9,7 @@ import type {
 } from "../types/phase8ControlledSubmission";
 import type { Phase8OwnerLiveWindowActivationResult } from "../types/phase8OwnerLiveWindowActivation";
 import type { Phase8RuntimeEnablementPreflightResult } from "../types/phase8RuntimeEnablementPreflight";
+import { baseChainId } from "../types/unsignedTransactionHandoff";
 import {
   createPhase8OwnerSubmitRequest,
   type Phase8OwnerSubmitRequestFailure,
@@ -18,6 +19,7 @@ interface Phase8ControlledSubmitterProps {
   submission: Phase8ControlledSubmissionResult;
   activation: Phase8OwnerLiveWindowActivationResult;
   preflight: Phase8RuntimeEnablementPreflightResult;
+  baseAccountAddress: `0x${string}` | null;
   frozenAction: FrozenPreparedAction | null;
   onResultCloseout?: (event: Phase8ControlledSubmissionResultEvent) => void;
 }
@@ -36,11 +38,20 @@ export function Phase8ControlledSubmitter({
   submission,
   activation,
   preflight,
+  baseAccountAddress,
   frozenAction,
   onResultCloseout,
 }: Phase8ControlledSubmitterProps) {
   const connection = useConnection();
   const sendTransaction = useSendTransaction();
+  const baseGasBalance = useBalance({
+    address: baseAccountAddress ?? undefined,
+    chainId: baseChainId,
+    query: {
+      enabled: connection.status === "connected" && Boolean(baseAccountAddress),
+      refetchInterval: 15_000,
+    },
+  });
   const [state, setState] = useState<SubmitterState>("locked");
   const [message, setMessage] = useState(
     "Controlled submission is locked until every Phase 8 Batch 1-10 gate passes.",
@@ -55,10 +66,19 @@ export function Phase8ControlledSubmitter({
   const runtimeEnabled =
     appConfig.integrations.phase8ControlledSubmission === "owner_approved_window";
   const walletConnected = connection.status === "connected";
+  const gasReadiness = getGasReadiness({
+    walletConnected,
+    baseAccountAddress,
+    isLoading: baseGasBalance.isLoading,
+    isError: baseGasBalance.isError,
+    value: baseGasBalance.data?.value ?? null,
+  });
+  const gasReady = gasReadiness.status === "funded";
   const canSubmit = Boolean(
     runtimeEnabled &&
       preflight.runtimeSubmitterEnabled &&
       walletConnected &&
+      gasReady &&
       submission.transactionSubmissionAllowed &&
       activation.transactionSubmissionAllowed &&
       submitRequest.ok &&
@@ -68,7 +88,7 @@ export function Phase8ControlledSubmitter({
   async function handleSubmit() {
     if (!runtimeEnabled) {
       setState("locked");
-      setMessage("Phase 8 Batch 10 runtime preflight is disabled for production safety.");
+      setMessage("Phase 8 Batch 11 gas readiness is disabled for production safety.");
       return;
     }
 
@@ -83,7 +103,11 @@ export function Phase8ControlledSubmitter({
       setMessage("Connect the owner Base Account before controlled submit.");
       return;
     }
-
+    if (!gasReady) {
+      setState("locked");
+      setMessage(gasReadiness.message);
+      return;
+    }
     if (!submission.transactionSubmissionAllowed) {
       setState("locked");
       setMessage(submission.message);
@@ -130,7 +154,7 @@ export function Phase8ControlledSubmitter({
       <div className="phase-8-submit-boundary-header">
         <span className="queue-icon"><ShieldCheck size={16} /></span>
         <div>
-          <small>Phase 8 Batch 10 submitter</small>
+          <small>Phase 8 Batch 11 submitter</small>
           <strong>{activation.transactionSubmissionAllowed ? "Window armed" : "Window locked"}</strong>
         </div>
         <span>{state}</span>
@@ -153,11 +177,16 @@ export function Phase8ControlledSubmitter({
           Runtime preflight
           <strong>{preflight.status}</strong>
         </span>
+        <span>
+          Base ETH gas
+          <strong>{gasReadiness.label}</strong>
+        </span>
       </div>
 
       <p aria-live="polite">{activation.transactionSubmissionAllowed ? message : activation.message}</p>
       {preflight.reasons.length ? <small>Preflight blocked by: {preflight.reasons.join(", ")}</small> : null}
       {activation.reasons.length ? <small>Activation blocked by: {activation.reasons.join(", ")}</small> : null}
+      {gasReadiness.status !== "funded" ? <small>{gasReadiness.message}</small> : <small>Gas balance: {formatBaseEth(baseGasBalance.data?.value ?? 0n)} ETH on Base.</small>}
       {submittedHash ? <small>Hash: {maskHash(submittedHash)}</small> : null}
 
       <button
@@ -203,4 +232,67 @@ function classifySubmitError(error: unknown) {
 
 function maskHash(hash: string) {
   return hash.length > 18 ? `${hash.slice(0, 10)}...${hash.slice(-8)}` : hash;
+}
+
+type GasReadinessStatus = "wallet_required" | "address_required" | "checking" | "unavailable" | "empty" | "funded";
+
+function getGasReadiness(input: {
+  walletConnected: boolean;
+  baseAccountAddress: `0x${string}` | null;
+  isLoading: boolean;
+  isError: boolean;
+  value: bigint | null;
+}): { status: GasReadinessStatus; label: string; message: string } {
+  if (!input.walletConnected) {
+    return {
+      status: "wallet_required",
+      label: "wallet required",
+      message: "Connect the owner Base Account before checking gas readiness.",
+    };
+  }
+
+  if (!input.baseAccountAddress) {
+    return {
+      status: "address_required",
+      label: "address required",
+      message: "Kyra needs the owner Base Account address before checking gas readiness.",
+    };
+  }
+
+  if (input.isLoading) {
+    return {
+      status: "checking",
+      label: "checking",
+      message: "Checking native ETH gas balance on Base before opening the submit prompt.",
+    };
+  }
+
+  if (input.isError || input.value === null) {
+    return {
+      status: "unavailable",
+      label: "check failed",
+      message: "Kyra could not verify Base ETH gas readiness. Retry after the wallet connection refreshes.",
+    };
+  }
+
+  if (input.value <= 0n) {
+    return {
+      status: "empty",
+      label: "0 ETH",
+      message: "Add a small amount of ETH on Base to this Base Account before submitting. The transaction is zero-value, but gas still requires ETH.",
+    };
+  }
+
+  return {
+    status: "funded",
+    label: `${formatBaseEth(input.value)} ETH`,
+    message: "Base ETH gas balance is present for the owner-controlled submit.",
+  };
+}
+
+function formatBaseEth(value: bigint) {
+  const whole = value / 1_000_000_000_000_000_000n;
+  const fractional = value % 1_000_000_000_000_000_000n;
+  const fractionText = fractional.toString().padStart(18, "0").slice(0, 6).replace(/0+$/u, "");
+  return fractionText ? `${whole}.${fractionText}` : whole.toString();
 }

@@ -133,7 +133,7 @@ export function evaluatePhase8RuntimeEnablementPreflight(
     runtimeSubmitterEnabled: true,
     reasons: [],
     message:
-      "Phase 8 Batch 10 runtime preflight is ready for one owner-controlled Base submit.",
+      "Phase 8 Batch 11 gas readiness is ready for one owner-controlled Base submit.",
   };
 }
 

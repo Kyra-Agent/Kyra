@@ -53,7 +53,7 @@ const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 10 runtime enablement preflight.",
+  "Status: Batch 11 gas readiness guard.",
   "Batch 10 - Runtime Enablement Preflight",
   "runtime flag",
   "owner session",
@@ -61,17 +61,21 @@ for (const expected of [
   "connected owner Base Account",
   "owner live-window activation",
   "Telegram and public profiles remain blocked",
+  "Batch 11 - Base ETH Gas Readiness Guard",
+  "zero-value transaction still needs Base ETH for gas",
 ]) {
   includes("Phase 8 doc", doc, expected);
 }
 
 for (const expected of [
-  "In progress: Batch 10",
+  "In progress: Batch 11",
   "Batch 10 evidence",
   "runtime enablement preflight",
   "src/types/phase8RuntimeEnablementPreflight.ts",
   "scripts/test-phase-8-runtime-enable-preflight.mjs",
   "scripts/check-phase-8-runtime-enable-preflight.mjs",
+  "Batch 11 evidence",
+  "Base ETH gas readiness guard",
 ]) {
   includes("roadmap", roadmap, expected);
 }
@@ -109,6 +113,7 @@ for (const expected of [
   "runtimeSubmitterEnabled",
   "phase8ControlledSubmission.resultCloseoutRecorded",
   "baseAccountConnectionStatus.connected",
+  "baseAccountAddress={baseAccountConnectionStatus.address}",
 ]) {
   includes("dashboard", dashboard, expected);
 }
@@ -116,8 +121,14 @@ for (const expected of [
 for (const expected of [
   "preflight: Phase8RuntimeEnablementPreflightResult",
   "preflight.runtimeSubmitterEnabled",
-  "Phase 8 Batch 10 submitter",
+  "Phase 8 Batch 11 submitter",
   "Runtime preflight",
+  "useBalance",
+  "baseAccountAddress: `0x${string}` | null",
+  "gasReady",
+  "Base ETH gas",
+  "getGasReadiness",
+  "zero-value, but gas still requires ETH",
 ]) {
   includes("submitter", submitter, expected);
 }
@@ -134,7 +145,7 @@ for (const path of telegramFiles) {
   excludes(
     path,
     read(path),
-    /phase8RuntimeEnablementPreflight|evaluatePhase8RuntimeEnablementPreflight|runtimeSubmitterEnabled|useSendTransaction|sendTransaction|eth_sendTransaction/u,
+    /phase8RuntimeEnablementPreflight|evaluatePhase8RuntimeEnablementPreflight|runtimeSubmitterEnabled|useBalance|baseGasBalance|gasReady|useSendTransaction|sendTransaction|eth_sendTransaction/u,
     "Phase 8 runtime enablement Telegram authority",
   );
 }
@@ -143,7 +154,7 @@ for (const path of publicFiles) {
   excludes(
     path,
     read(path),
-    /phase8RuntimeEnablementPreflight|evaluatePhase8RuntimeEnablementPreflight|runtimeSubmitterEnabled|useSendTransaction|sendTransaction|eth_sendTransaction/u,
+    /phase8RuntimeEnablementPreflight|evaluatePhase8RuntimeEnablementPreflight|runtimeSubmitterEnabled|useBalance|baseGasBalance|gasReady|useSendTransaction|sendTransaction|eth_sendTransaction/u,
     "Phase 8 runtime enablement public authority",
   );
 }

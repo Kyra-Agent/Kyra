@@ -3431,6 +3431,7 @@ export function Dashboard({
               submission={phase8ControlledSubmission}
               activation={phase8OwnerLiveWindowActivation}
               preflight={phase8RuntimeEnablementPreflight}
+              baseAccountAddress={baseAccountConnectionStatus.address}
               frozenAction={phase8FrozenAction}
               onResultCloseout={setPhase8SubmitterResult}
             />

@@ -55,7 +55,7 @@ const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 10 runtime enablement preflight.",
+  "Status: Batch 11 gas readiness guard.",
   "Owner Dashboard Submitter Wiring",
   "isolated `Phase8ControlledSubmitter` component",
   "zero-value/no-calldata/Base-only request builder",
@@ -73,7 +73,7 @@ for (const expected of [
   "src/types/phase8OwnerSubmitRequest.ts",
   "scripts/test-phase-8-owner-submit-request.mjs",
   "scripts/check-phase-8-controlled-submitter.mjs",
-  "Status: Batch 10 runtime enablement preflight.",
+  "Status: Batch 11 gas readiness guard.",
 ]) {
   includes("roadmap", roadmap, expected);
 }
@@ -93,6 +93,12 @@ for (const expected of [
   "phase8ControlledSubmission === \"owner_approved_window\"",
   "submission.transactionSubmissionAllowed",
   "No Telegram, public profile, token approval, swap, calldata, or non-zero value path is allowed here.",
+  "useBalance",
+  "baseAccountAddress: `0x${string}` | null",
+  "gasReady",
+  "Base ETH gas",
+  "getGasReadiness",
+  "zero-value, but gas still requires ETH",
 ]) {
   includes("submitter", submitter, expected);
 }
@@ -121,6 +127,7 @@ for (const expected of [
 for (const expected of [
   "Phase8ControlledSubmitter",
   "phase8ControlledSubmission",
+  "baseAccountAddress={baseAccountConnectionStatus.address}",
 ]) {
   includes("dashboard", dashboard, expected);
 }
