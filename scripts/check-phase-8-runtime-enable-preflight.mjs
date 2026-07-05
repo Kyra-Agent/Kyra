@@ -53,7 +53,7 @@ const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 19 isolated low-value submitter gate.",
+  "Status: Batch 20 live balance and gas readiness.",
   "Batch 10 - Runtime Enablement Preflight",
   "runtime flag",
   "owner session",
@@ -68,7 +68,7 @@ for (const expected of [
 }
 
 for (const expected of [
-  "In progress: Batch 19",
+  "In progress: Batch 20",
   "Batch 10 evidence",
   "runtime enablement preflight",
   "src/types/phase8RuntimeEnablementPreflight.ts",

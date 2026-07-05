@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 19 isolated low-value submitter gate. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 20 live balance and gas readiness. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 
 ## Purpose
 
@@ -543,7 +543,7 @@ Implementation evidence:
 User wallet authority and user Telegram bot-token privacy remain priority one.
 ## Batch 18 - Low-Value Submit Request Skeleton
 
-Batch 18 adds the owner-only isolated low-value submitter gate. This prepares the request object for the first value-bearing owner transaction without exposing a public, Telegram, swap, token approval, or arbitrary calldata execution path.
+Batch 18 adds the owner-only low-value submit request skeleton. This prepares the request object for the first value-bearing owner transaction without exposing a public, Telegram, swap, token approval, or arbitrary calldata execution path.
 
 Required Batch 18 controls:
 
@@ -588,5 +588,25 @@ Implementation evidence:
 - `src/pages/Dashboard.tsx`
 - `src/styles.css`
 - `npm run check:phase-8-low-value-submitter`
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+## Batch 20 - Live Balance And Gas Readiness
+
+Batch 20 wires live Base ETH balance into the low-value readiness gate before any value-bearing submit can become available. The owner dashboard now reads the connected Base Account balance through the browser wallet provider and feeds that value into the Phase 8 low-value readiness model.
+
+Required Batch 20 controls:
+
+- live Base ETH balance is read only from the connected owner Base Account
+- balance is browser-session scoped and is not stored in Supabase or public profiles
+- readiness remains blocked when balance is missing, loading, unavailable, or below value plus gas
+- low-value submitter remains behind `VITE_KYRA_PHASE8_LOW_VALUE_SUBMISSION=owner_low_value_window`
+- Telegram, public profiles, token approvals, swaps, arbitrary calldata, seed phrases, and private keys remain blocked
+
+Implementation evidence:
+
+- `src/pages/Dashboard.tsx` uses `useBalance` for the owner Base Account and passes the result into `evaluatePhase8LowValueTransactionReadiness`
+- `src/pages/Dashboard.tsx` displays live Base balance and gas/value source in the owner-only dashboard
+- `scripts/check-phase-8-low-value-balance-gas-readiness.mjs`
+- `npm run check:phase-8-low-value-balance-gas`
 
 User wallet authority and user Telegram bot-token privacy remain priority one.

@@ -18,6 +18,7 @@ import {
   WalletCards,
   X,
 } from "lucide-react";
+import { useBalance } from "wagmi";
 import { AuthSessionPanel } from "../components/AuthSessionPanel";
 import {
   BaseAccountConnectionPanel,
@@ -88,6 +89,7 @@ import { createPhase8OwnerActionCandidate } from "../types/phase8OwnerActionCand
 import { evaluatePhase8RuntimeEnablementPreflight } from "../types/phase8RuntimeEnablementPreflight";
 import { evaluatePhase8SmokeCloseout } from "../types/phase8SmokeCloseout";
 import { evaluatePhase8UserSafeTransactionPolicy } from "../types/phase8UserSafeTransactionPolicy";
+import { formatPhase8BaseEth } from "../types/phase8FundingReadiness";
 import { evaluatePhase8LowValueTransactionReadiness } from "../types/phase8LowValueTransactionReadiness";
 import { createPhase8LowValueSubmitRequest } from "../types/phase8LowValueSubmitRequest";
 import {
@@ -720,6 +722,14 @@ export function Dashboard({
   >([]);
   const baseMcpRequestSequenceRef = useRef(0);
   const supabaseStatus = getSupabaseAdapterStatus();
+  const phase8LowValueBaseBalance = useBalance({
+    address: baseAccountConnectionStatus.address ?? undefined,
+    chainId: baseChainId,
+    query: {
+      enabled: baseAccountConnectionStatus.connected && Boolean(baseAccountConnectionStatus.address),
+      refetchInterval: 15_000,
+    },
+  });
 
   useEffect(() => {
     return subscribeBackendEvents(() => setBackendEvents(getBackendEvents()));
@@ -1377,7 +1387,7 @@ export function Dashboard({
         ownerApprovalRecorded: Boolean(activePhase8OwnerArming),
         requestedValueWei: "100000000000000",
         estimatedGasFeeWei: "10000000000000",
-        availableGasBalanceWei: null,
+        availableGasBalanceWei: phase8LowValueBaseBalance.data?.value.toString() ?? null,
         data: "0x",
         includesTokenApproval: false,
         includesSwap: false,
@@ -1390,6 +1400,7 @@ export function Dashboard({
       authSession,
       baseAccountConnectionStatus.chainId,
       baseAccountConnectionStatus.connected,
+      phase8LowValueBaseBalance.data?.value,
       phase8FrozenAction?.requestId,
     ],
   );
@@ -3695,7 +3706,8 @@ export function Dashboard({
               {phase8UserSafeTransactionPolicy.reasons.length
                 ? <small>Blocked by: {phase8UserSafeTransactionPolicy.reasons.join(", ")}</small>
                 : <small>User-safe policy is private-dashboard only. Non-zero value, calldata, swaps, and token approvals remain locked.</small>}
-            </div>            <div className="phase-8-low-value-panel">
+            </div>
+            <div className="phase-8-low-value-panel">
               <div className="result-monitoring-header">
                 <span>Phase 8 low-value readiness</span>
                 <strong>{phase8LowValueTransactionReadiness.status.replace(/_/g, " ")}</strong>
@@ -3710,8 +3722,12 @@ export function Dashboard({
                   <strong>{phase8LowValueTransactionReadiness.requiredBalanceWei} wei</strong>
                 </span>
                 <span>
-                  Calldata
-                  <strong>blocked</strong>
+                  Live Base balance
+                  <strong>{baseAccountConnectionStatus.address && phase8LowValueBaseBalance.data ? `${formatPhase8BaseEth(phase8LowValueBaseBalance.data.value)} ETH` : phase8LowValueBaseBalance.isLoading ? "checking" : "required"}</strong>
+                </span>
+                <span>
+                  Gas/value source
+                  <strong>{phase8LowValueBaseBalance.data ? "live wallet" : "blocked"}</strong>
                 </span>
                 <span>
                   Swaps/approvals
@@ -3742,8 +3758,12 @@ export function Dashboard({
                   <strong>{phase8LowValueSubmitRequest.ok ? "true" : "locked"}</strong>
                 </span>
                 <span>
-                  Calldata
-                  <strong>blocked</strong>
+                  Live Base balance
+                  <strong>{baseAccountConnectionStatus.address && phase8LowValueBaseBalance.data ? `${formatPhase8BaseEth(phase8LowValueBaseBalance.data.value)} ETH` : phase8LowValueBaseBalance.isLoading ? "checking" : "required"}</strong>
+                </span>
+                <span>
+                  Gas/value source
+                  <strong>{phase8LowValueBaseBalance.data ? "live wallet" : "blocked"}</strong>
                 </span>
               </div>
               <p>{phase8LowValueSubmitRequest.message}</p>

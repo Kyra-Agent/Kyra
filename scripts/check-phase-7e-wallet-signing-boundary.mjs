@@ -71,6 +71,7 @@ const walletProviderImportPattern =
 const walletProviderImportAllowlist = new Set([
   "src/providers/WalletRuntimeProviders.tsx",
   "src/components/BaseAccountConnectionPanel.tsx",
+  "src/pages/Dashboard.tsx",
   "src/components/Phase8ControlledSubmitter.tsx",
   "src/components/Phase8LowValueSubmitter.tsx",
 ]);

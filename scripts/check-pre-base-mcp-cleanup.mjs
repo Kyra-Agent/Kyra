@@ -110,7 +110,7 @@ includes(
 includes(
   "canonical roadmap",
   roadmap,
-  "In progress: Batch 19",
+  "In progress: Batch 20",
 );
 includes(
   "canonical roadmap",
