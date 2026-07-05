@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 12 submitter closeout hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 13 result persistence hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 
 ## Purpose
 
@@ -415,5 +415,30 @@ Implementation evidence:
 - `src/components/Phase8ControlledSubmitter.tsx`
 - `src/pages/Dashboard.tsx`
 - `npm run check:phase-8-submitter`
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+
+## Batch 13 - Owner-Only Result Persistence
+
+Batch 13 persists the owner-only result record after the isolated submitter emits a sanitized closeout event. The first persistence layer is browser-session scoped so it can prove product behavior without adding public exposure, Telegram authority, token approval, swap, calldata, or non-zero value execution.
+
+Required Batch 13 controls:
+
+- result persistence requires owner, workspace, agent, prepared action, and submission nonce scope
+- only submitted, confirmed, or failed sanitized events can be persisted
+- transaction hash must be valid before it can be stored or displayed
+- persisted execution result remains `owner-only`
+- public agent profiles cannot access Phase 8 persisted owner results
+- persisted hash display is masked in the dashboard result list
+- session-scoped storage is used until a reviewed Supabase write path is approved
+
+Implementation evidence:
+
+- `src/types/phase8ResultPersistence.ts`
+- `src/services/phase8ResultPersistenceStore.ts`
+- `scripts/test-phase-8-result-persistence.mjs`
+- `scripts/check-phase-8-result-persistence.mjs`
+- `src/pages/Dashboard.tsx`
+- `npm run check:phase-8-result-persistence`
 
 User wallet authority and user Telegram bot-token privacy remain priority one.

@@ -57,7 +57,7 @@ const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 12 submitter closeout hardening.",
+  "Status: Batch 13 result persistence hardening.",
   "Owner Live-Window Activation Lock",
   "Owner Arming UX",
   "Owner Self-Check Candidate",
@@ -74,7 +74,7 @@ for (const expected of [
 }
 
 for (const expected of [
-  "In progress: Batch 12",
+  "In progress: Batch 13",
   "Batch 9 evidence",
   "owner live-window activation lock",
   "owner arming UX",
@@ -83,7 +83,7 @@ for (const expected of [
   "src/types/phase8OwnerLiveWindowActivation.ts",
   "src/types/phase8OwnerActionCandidate.ts",
   "scripts/check-phase-8-owner-live-window-activation.mjs",
-  "Status: Batch 12 submitter closeout hardening.",
+  "Status: Batch 13 result persistence hardening.",
 ]) {
   includes("roadmap", roadmap, expected);
 }
@@ -158,7 +158,7 @@ for (const expected of [
   "providerStatus: phase8SubmitterResult ? \"provider_submitted\" : \"not_started\"",
   "txHash: phase8SubmitterResult?.txHash ?? null",
   "resultEvents: phase8SubmitterResult ? [phase8SubmitterResult] : []",
-  "onResultCloseout={setPhase8SubmitterResult}",
+  "onResultCloseout={handlePhase8ResultCloseout}",
   "phase8OwnerArming",
   "phase8FrozenAction",
   "activePhase8OwnerArming",

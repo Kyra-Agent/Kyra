@@ -85,6 +85,16 @@ import {
 import { evaluatePhase8OwnerLiveWindowActivation } from "../types/phase8OwnerLiveWindowActivation";
 import { createPhase8OwnerActionCandidate } from "../types/phase8OwnerActionCandidate";
 import { evaluatePhase8RuntimeEnablementPreflight } from "../types/phase8RuntimeEnablementPreflight";
+import {
+  createPhase8PersistedExecutionResult,
+  getPhase8ResultPersistenceFailureMessage,
+  mapPhase8PersistedResultToDemoExecutionResult,
+  type Phase8PersistedExecutionResult,
+} from "../types/phase8ResultPersistence";
+import {
+  loadPhase8PersistedExecutionResults,
+  savePhase8PersistedExecutionResult,
+} from "../services/phase8ResultPersistenceStore";
 import { baseChainId } from "../types/unsignedTransactionHandoff";
 import { maskBaseAccountAddress } from "../types/baseAccountConnection";
 import type { DataProvider } from "../types/api";
@@ -700,6 +710,9 @@ export function Dashboard({
     useState<Phase8OwnerArmingState | null>(null);
   const [phase8SubmitterResult, setPhase8SubmitterResult] =
     useState<Phase8ControlledSubmissionResultEvent | null>(null);
+  const [phase8PersistedResults, setPhase8PersistedResults] = useState<
+    Phase8PersistedExecutionResult[]
+  >([]);
   const baseMcpRequestSequenceRef = useRef(0);
   const supabaseStatus = getSupabaseAdapterStatus();
 
@@ -1179,6 +1192,43 @@ export function Dashboard({
     }
   }, [activePhase8OwnerArming, phase8SubmitterResult]);
 
+  useEffect(() => {
+    setPhase8PersistedResults(
+      loadPhase8PersistedExecutionResults(authSession?.user.id),
+    );
+  }, [authSession?.user.id]);
+
+  function handlePhase8ResultCloseout(
+    event: Phase8ControlledSubmissionResultEvent,
+  ) {
+    setPhase8SubmitterResult(event);
+
+    const persisted = createPhase8PersistedExecutionResult({
+      ownerUserId: authSession?.user.id ?? "",
+      workspaceId: dashboardData?.workspace.id ?? "",
+      agentId: agentRecord?.id ?? "",
+      preparedActionId: phase8FrozenAction?.requestId ?? "",
+      submissionNonce: activePhase8OwnerArming?.submissionNonce ?? "",
+      event,
+    });
+
+    if (!persisted.ok || !persisted.record) {
+      recordBackendEvent({
+        kind: "dashboard-refresh",
+        source: "dashboard",
+        status: "blocked",
+        message: getPhase8ResultPersistenceFailureMessage(
+          persisted.reason ?? "transaction_hash_required",
+        ),
+      });
+      return;
+    }
+
+    setPhase8PersistedResults(
+      savePhase8PersistedExecutionResult(persisted.record),
+    );
+  }
+
   function createPhase8Nonce(prefix: string) {
     const randomId = globalThis.crypto?.randomUUID?.() ??
       `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
@@ -1215,9 +1265,15 @@ export function Dashboard({
   const preparedActionTone = getPreparedActionTone(
     preparedActionPreview.status,
   );
-  const executionResults = dashboardData?.executionResults.length
+  const baseExecutionResults = dashboardData?.executionResults.length
     ? dashboardData.executionResults
     : getExecutionResultFallback(Boolean(authSession));
+  const executionResults = phase8PersistedResults.length
+    ? [
+      ...phase8PersistedResults.map(mapPhase8PersistedResultToDemoExecutionResult),
+      ...baseExecutionResults,
+    ]
+    : baseExecutionResults;
   const resultMonitoringCloseout = useMemo(
     () =>
       evaluateResultMonitoringCloseout({
@@ -3434,7 +3490,7 @@ export function Dashboard({
               baseAccountAddress={baseAccountConnectionStatus.address}
               submissionNonce={activePhase8OwnerArming?.submissionNonce ?? null}
               frozenAction={phase8FrozenAction}
-              onResultCloseout={setPhase8SubmitterResult}
+              onResultCloseout={handlePhase8ResultCloseout}
             />
             <div className="result-monitoring-panel">
               <div className="result-monitoring-header">

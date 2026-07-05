@@ -55,7 +55,7 @@ const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 12 submitter closeout hardening.",
+  "Status: Batch 13 result persistence hardening.",
   "Owner Dashboard Submitter Wiring",
   "isolated `Phase8ControlledSubmitter` component",
   "zero-value/no-calldata/Base-only request builder",
@@ -73,7 +73,7 @@ for (const expected of [
   "src/types/phase8OwnerSubmitRequest.ts",
   "scripts/test-phase-8-owner-submit-request.mjs",
   "scripts/check-phase-8-controlled-submitter.mjs",
-  "Status: Batch 12 submitter closeout hardening.",
+  "Status: Batch 13 result persistence hardening.",
 ]) {
   includes("roadmap", roadmap, expected);
 }
