@@ -55,7 +55,7 @@ const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 13 result persistence hardening.",
+  "Status: Batch 14 funding UX hardening.",
   "Owner Dashboard Submitter Wiring",
   "isolated `Phase8ControlledSubmitter` component",
   "zero-value/no-calldata/Base-only request builder",
@@ -73,7 +73,7 @@ for (const expected of [
   "src/types/phase8OwnerSubmitRequest.ts",
   "scripts/test-phase-8-owner-submit-request.mjs",
   "scripts/check-phase-8-controlled-submitter.mjs",
-  "Status: Batch 13 result persistence hardening.",
+  "Status: Batch 14 funding UX hardening.",
 ]) {
   includes("roadmap", roadmap, expected);
 }
@@ -92,13 +92,13 @@ for (const expected of [
   "createPhase8OwnerSubmitRequest",
   "phase8ControlledSubmission === \"owner_approved_window\"",
   "submission.transactionSubmissionAllowed",
-  "No Telegram, public profile, token approval, swap, calldata, or non-zero value path is allowed here.",
+  "No Telegram, public profile, token approval, swap, calldata, non-zero value, seed phrase, or private-key path is allowed here.",
   "useBalance",
   "baseAccountAddress: `0x${string}` | null",
   "gasReady",
   "Base ETH gas",
-  "getGasReadiness",
-  "zero-value, but gas still requires ETH",
+  "evaluatePhase8FundingReadiness",
+  "seed phrase, or private-key path",
   "createPhase8SubmittedCloseoutEvent",
   "getPhase8SubmitterCloseoutFailureMessage",
   "submissionNonce",

@@ -43,96 +43,101 @@ function walkFiles(path) {
 const doc = read("docs/phase-8-controlled-live-transaction.md");
 const roadmap = read("docs/product-phase-roadmap.md");
 const readme = read("README.md");
-const model = read("src/types/phase8ResultPersistence.ts");
-const store = read("src/services/phase8ResultPersistenceStore.ts");
-const dashboard = read("src/pages/Dashboard.tsx");
-const test = read("scripts/test-phase-8-result-persistence.mjs");
+const model = read("src/types/phase8FundingReadiness.ts");
+const submitter = read("src/components/Phase8ControlledSubmitter.tsx");
+const styles = read("src/styles.css");
+const test = read("scripts/test-phase-8-funding-readiness.mjs");
 const packageJson = read("package.json");
 const sourceFiles = walkFiles("src").filter((path) => /\.(?:ts|tsx)$/u.test(path));
+const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
+  .filter((path) => /\.ts$/u.test(path) && !path.endsWith("_test.ts"));
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
   "Status: Batch 14 funding UX hardening.",
-  "Batch 13 - Owner-Only Result Persistence",
+  "Batch 14 - Funding and Gas UX",
   "User wallet authority and user Telegram bot-token privacy remain priority one",
 ]) {
   includes("Phase 8 doc", doc, expected);
 }
 
 for (const expected of [
-  "| 8 | Controlled Live Transaction",
   "In progress: Batch 14",
-  "Batch 13 evidence",
-  "src/types/phase8ResultPersistence.ts",
-  "src/services/phase8ResultPersistenceStore.ts",
-  "scripts/test-phase-8-result-persistence.mjs",
+  "Batch 14 evidence",
+  "src/types/phase8FundingReadiness.ts",
+  "scripts/test-phase-8-funding-readiness.mjs",
+  "scripts/check-phase-8-funding-readiness.mjs",
 ]) {
   includes("roadmap", roadmap, expected);
 }
 
 for (const expected of [
   "| 8 | In progress: controlled live transaction Batch 14 |",
-  "result persistence hardening",
+  "funding UX hardening",
 ]) {
   includes("README", readme, expected);
 }
 
 for (const expected of [
-  "createPhase8PersistedExecutionResult",
-  "owner_scope_required",
-  "owner_only_required",
-  "sanitized_event_required",
-  "transaction_hash_required",
-  "mapPhase8PersistedResultToDemoExecutionResult",
-  "visibility: \"owner-only\"",
+  "evaluatePhase8FundingReadiness",
+  "canOpenSubmitter",
+  "privacyBoundary",
+  "never stores private keys",
+  "never asks Telegram or public profiles",
+  "formatPhase8BaseEth",
 ]) {
-  includes("result persistence model", model, expected);
+  includes("funding model", model, expected);
 }
 
 for (const expected of [
-  "sessionStorage",
-  "kyra.phase8.ownerExecutionResults.v1",
-  "visibility === \"owner-only\"",
-  "maxStoredResults",
+  "evaluatePhase8FundingReadiness",
+  "fundingReadiness.canOpenSubmitter",
+  "phase-8-funding-guide",
+  "Funding required",
+  "No Telegram, public profile, token approval, swap, calldata, non-zero value, seed phrase, or private-key path is allowed here.",
 ]) {
-  includes("result persistence store", store, expected);
+  includes("submitter", submitter, expected);
 }
 
 for (const expected of [
-  "phase8PersistedResults",
-  "handlePhase8ResultCloseout",
-  "createPhase8PersistedExecutionResult",
-  "savePhase8PersistedExecutionResult",
-  "mapPhase8PersistedResultToDemoExecutionResult",
-  "onResultCloseout={handlePhase8ResultCloseout}",
+  ".phase-8-funding-guide",
+  "rgba(245, 158, 11",
 ]) {
-  includes("dashboard", dashboard, expected);
+  includes("styles", styles, expected);
 }
 
 for (const expected of [
-  "Phase 8 result persistence checks passed.",
-  "owner_only_required",
-  "sanitized_event_required",
-  "unsupported_state",
-  "transaction_hash_required",
+  "Phase 8 funding readiness checks passed.",
+  "zero-value",
+  "Base ETH",
+  "wallet_required",
 ]) {
-  includes("result persistence test", test, expected);
+  includes("funding test", test, expected);
 }
 
 for (const expected of [
-  '"test:phase-8-result-persistence"',
-  '"check:phase-8-result-persistence"',
+  '"test:phase-8-funding-readiness"',
+  '"check:phase-8-funding-readiness"',
 ]) {
   includes("package.json", packageJson, expected);
+}
+
+for (const path of telegramFiles) {
+  excludes(
+    path,
+    read(path),
+    /evaluatePhase8FundingReadiness|phase8FundingReadiness|phase-8-funding-guide|fundingReadiness/u,
+    "Phase 8 funding UX in Telegram authority",
+  );
 }
 
 for (const path of publicFiles) {
   excludes(
     path,
     read(path),
-    /phase8PersistedResults|Phase8PersistedExecutionResult|savePhase8PersistedExecutionResult|kyra\.phase8\.ownerExecutionResults/u,
-    "Phase 8 owner result persistence in public surfaces",
+    /evaluatePhase8FundingReadiness|phase8FundingReadiness|phase-8-funding-guide|fundingReadiness/u,
+    "Phase 8 funding UX in public surfaces",
   );
 }
 
-console.log("Phase 8 result persistence checks passed.");
+console.log("Phase 8 funding readiness checks passed.");

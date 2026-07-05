@@ -5723,6 +5723,30 @@ h2 {
   color: #d8e7f5;
 }
 
+.phase-8-funding-guide {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+  border: 1px solid rgba(245, 158, 11, 0.34);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(120, 72, 8, 0.16);
+}
+
+.phase-8-funding-guide strong {
+  color: #f8df8a;
+}
+
+.phase-8-funding-guide span {
+  color: #f6fbff;
+  font-size: 0.88rem;
+}
+
+.phase-8-funding-guide small {
+  color: #b9c9db;
+  line-height: 1.5;
+}
+
 .phase-8-submit-boundary .button {
   width: 100%;
   justify-content: center;

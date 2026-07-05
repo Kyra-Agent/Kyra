@@ -122,7 +122,7 @@
     "test:phase-8-runtime-preflight": "node scripts/test-phase-8-runtime-enable-preflight.mjs",
     "check:phase-8-owner-live-window": "npm run test:phase-8-owner-live-window-activation && node scripts/check-phase-8-owner-live-window-activation.mjs",
     "check:phase-8-runtime-preflight": "npm run test:phase-8-runtime-preflight && node scripts/check-phase-8-runtime-enable-preflight.mjs",
-    "check:phase-8-all": "npm run test:phase-8-owner-action-candidate && npm run check:phase-8 && npm run check:phase-8-live-window && npm run check:phase-8-wallet-prompt && npm run check:phase-8-submission && npm run check:phase-8-submitter && npm run check:phase-8-result-persistence && npm run check:phase-8-owner-live-window && npm run check:phase-8-runtime-preflight",
+    "check:phase-8-all": "npm run test:phase-8-owner-action-candidate && npm run check:phase-8 && npm run check:phase-8-live-window && npm run check:phase-8-wallet-prompt && npm run check:phase-8-submission && npm run check:phase-8-submitter && npm run check:phase-8-result-persistence && npm run check:phase-8-funding-readiness && npm run check:phase-8-owner-live-window && npm run check:phase-8-runtime-preflight",
     "check:roadmap": "node scripts/check-product-phase-roadmap.mjs",
     "check:optional-cdp": "node scripts/check-optional-cdp-node.mjs",
     "check:pre-base-mcp": "node scripts/check-pre-base-mcp-cleanup.mjs",
@@ -130,7 +130,9 @@
     "check:phase-7": "npm run check:roadmap && npm run check:pre-base-mcp && npm run check:phase-6 && npm run check:phase-7-entry && npm run check:phase-7b && npm run check:phase-7c && npm run check:phase-7c-contract && npm run check:phase-7c-hard-gate && npm run check:phase-7d && npm run check:phase-7e && npm run check:phase-7f && npm run check:phase-7g && npm run check:phase-7h && npm run check:phase-7i && npm run check:phase-7j && npm run check:execution-launch-readiness && npm run check:phase-7k && npm run check:phase-7l && npm run check:phase-7m && npm run check:phase-7n && npm run check:phase-7o && npm run check:phase-7p && npm run check:phase-7q && npm run test:phase-7r && npm run check:phase-7r && npm run check:phase-7s && npm run check:phase-7t && npm run check:phase-7u && npm run check:phase-7v && npm run check:phase-7w && npm run check:phase-7x && npm run check:phase-7y && npm run check:phase-7z && npm run check:phase-7aa && npm run check:phase-7ab && npm run check:phase-7ac && npm run check:phase-7ad && npm run check:phase-7ae && npm run check:phase-7af && npm run check:phase-7ag && npm run check:phase-7ah && npm run check:phase-7ai && npm run check:phase-7aj && npm run check:phase-7ak && npm run check:phase-7al && npm run check:phase-7am && npm run check:phase-7an && npm run check:phase-7ao && npm run check:phase-7ap && npm run check:phase-7aq && npm run check:phase-7ar && npm run check:phase-7as && npm run check:phase-7at && npm run check:phase-7au && npm run check:phase-7av && npm run check:phase-7aw && npm run check:phase-7ax && npm run check:phase-7ay && npm run check:phase-7az && npm run test:official-mcp-owner-auth && npm run check:official-mcp-owner-auth-boundary",
     "check:phase-6": "npm run check:privacy && npm run check:base-mcp && npm run check:prepared-actions && npm run check:supabase-copy && npm run check:phase-6b && npm run check:phase-6c && npm run test:unsigned-handoff && npm run test:wallet-signing && npm run test:risk-review && npm run test:execution-result && npm run check:functions",
     "build": "tsc && vite build",
-    "preview": "vite preview --host localhost"
+    "preview": "vite preview --host localhost",
+    "test:phase-8-funding-readiness": "node scripts/test-phase-8-funding-readiness.mjs",
+    "check:phase-8-funding-readiness": "npm run test:phase-8-funding-readiness && node scripts/check-phase-8-funding-readiness.mjs"
   },
   "dependencies": {
     "@base-org/account": "^2.5.6",

@@ -53,7 +53,7 @@ const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
 const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
-  "Status: Batch 13 result persistence hardening.",
+  "Status: Batch 14 funding UX hardening.",
   "Batch 10 - Runtime Enablement Preflight",
   "runtime flag",
   "owner session",
@@ -68,7 +68,7 @@ for (const expected of [
 }
 
 for (const expected of [
-  "In progress: Batch 13",
+  "In progress: Batch 14",
   "Batch 10 evidence",
   "runtime enablement preflight",
   "src/types/phase8RuntimeEnablementPreflight.ts",
@@ -127,8 +127,8 @@ for (const expected of [
   "baseAccountAddress: `0x${string}` | null",
   "gasReady",
   "Base ETH gas",
-  "getGasReadiness",
-  "zero-value, but gas still requires ETH",
+  "evaluatePhase8FundingReadiness",
+  "seed phrase, or private-key path",
 ]) {
   includes("submitter", submitter, expected);
 }

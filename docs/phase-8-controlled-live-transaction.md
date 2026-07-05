@@ -2,7 +2,7 @@
 
 Date: 2026-07-03
 
-Status: Batch 13 result persistence hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
+Status: Batch 14 funding UX hardening. Runtime execution remains default-off. Explicit owner-window flag enablement is required before activation.
 
 ## Purpose
 
@@ -440,5 +440,31 @@ Implementation evidence:
 - `scripts/check-phase-8-result-persistence.mjs`
 - `src/pages/Dashboard.tsx`
 - `npm run check:phase-8-result-persistence`
+
+User wallet authority and user Telegram bot-token privacy remain priority one.
+
+
+## Batch 14 - Funding and Gas UX
+
+Batch 14 hardens the owner-facing funding path after the Base Account prompt proved that even a zero-value transaction needs native ETH on Base for gas. This batch does not add token approval, swap, calldata, non-zero value execution, Telegram authority, public profile authority, seed phrase handling, or private-key handling.
+
+Required Batch 14 controls:
+
+- funding readiness is modeled in `src/types/phase8FundingReadiness.ts`, not only in UI copy
+- submitter can open only when the connected owner Base Account has native ETH on Base
+- empty, unavailable, checking, missing wallet, and missing address states stay blocked
+- owner-facing funding copy tells the user to fund the connected Base Account with Base ETH
+- funding guidance remains owner-dashboard only
+- Kyra never stores private keys, never requests seed phrases, and never asks Telegram or public profiles to fund or submit
+- public agent profiles and Telegram webhook code cannot access Phase 8 funding UX authority
+
+Implementation evidence:
+
+- `src/types/phase8FundingReadiness.ts`
+- `src/components/Phase8ControlledSubmitter.tsx`
+- `scripts/test-phase-8-funding-readiness.mjs`
+- `scripts/check-phase-8-funding-readiness.mjs`
+- `src/styles.css`
+- `npm run check:phase-8-funding-readiness`
 
 User wallet authority and user Telegram bot-token privacy remain priority one.
