@@ -51,19 +51,19 @@ export function WalletApprovalModal({
         } ${closing ? "is-closing" : ""}`}
         role="dialog"
         aria-modal="true"
-        aria-label="Wallet approval demo"
+        aria-label="Wallet approval review"
       >
         <div className="modal-header">
           <div>
             <span className="demo-badge compact">
               <WalletCards size={14} />
-              Demo review
+              Approval review
             </span>
             <h3>
               {approved
-                ? "Demo review recorded"
+                ? "Approval review recorded"
                 : rejected
-                ? "Demo rejection recorded"
+                ? "Approval rejection recorded"
                 : "Review draft"}
             </h3>
           </div>
@@ -179,9 +179,9 @@ export function WalletApprovalModal({
         <div className="approval-warning">
           <ShieldCheck size={17} />
           {approved
-            ? "Demo review is recorded locally. Real wallet signing remains disabled."
+            ? "Approval review is recorded locally. Real wallet signing remains disabled."
             : rejected
-            ? "Demo rejection is recorded locally. No wallet prompt was opened."
+            ? "Approval rejection is recorded locally. No wallet prompt was opened."
             : "Kyra prepares review context only. Real wallet signing stays disabled."}
         </div>
 
@@ -209,7 +209,7 @@ export function WalletApprovalModal({
             disabled={approved || rejected}
           >
             <CheckCircle2 size={17} />
-            {approved ? "Recorded" : "Record Demo Review"}
+            {approved ? "Recorded" : "Record Approval Review"}
           </button>
         </div>
       </section>

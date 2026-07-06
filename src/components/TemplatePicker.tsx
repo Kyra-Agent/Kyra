@@ -63,7 +63,7 @@ export function TemplatePicker({
             {getCatalogLabel(catalogStatus)}
           </span>
           {catalogError ? (
-            <small>Connected catalog unavailable. Local demo catalog loaded.</small>
+            <small>Connected catalog unavailable. Local template catalog loaded.</small>
           ) : null}
         </div>
       </div>
@@ -101,7 +101,7 @@ export function TemplatePicker({
               {template.status === "coming-soon" ? (
                 <span className="locked-line">
                   <LockKeyhole size={13} />
-                  Planned after demo validation
+                  Planned after runtime validation
                 </span>
               ) : null}
             </button>

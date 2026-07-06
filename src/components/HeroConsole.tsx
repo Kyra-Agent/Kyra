@@ -74,15 +74,15 @@ export function HeroConsole({
   ]);
 
   return (
-    <section className="hero-shell" aria-label="Kyra demo console">
+    <section className="hero-shell" aria-label="Kyra agent console">
       <div className="hero-console-topbar">
         <div className="window-controls" aria-hidden="true">
           <span />
           <span />
           <span />
         </div>
-        <span>kyra-core/demo</span>
-        <span className="live-indicator">live simulation</span>
+        <span>kyra-core/runtime</span>
+        <span className="live-indicator">approval-gated live</span>
       </div>
 
       <div className="hero-console-body">
@@ -100,7 +100,7 @@ export function HeroConsole({
           <span className="typing-caret" aria-hidden="true" />
         </div>
 
-        <div className="command-presets" aria-label="Demo commands">
+        <div className="command-presets" aria-label="Agent command presets">
           {scenarios.map((scenario) => (
             <button
               className={scenario.id === selectedScenario.id ? "is-active" : ""}

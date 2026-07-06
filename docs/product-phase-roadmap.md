@@ -72,7 +72,7 @@ evidence packets, not extra product phases.
 | 1 | Product Foundation | Product identity, public positioning, route shell, and baseline UX. | Complete |
 | 2 | Backend Foundation | Supabase-backed product data, deploy records, dashboard reads, public profile reads. | Complete |
 | 3 | Security + Privacy Foundation | Private/public data split, RLS assumptions, secret hygiene, owner-only sensitive state. | Complete |
-| 4 | Agent Deployment Flow | Users can create demo agents from templates and module stacks. | Complete |
+| 4 | Agent Deployment Flow | Users can create agents from templates and module stacks. | Complete |
 | 5 | Telegram + LLM Live | Connected deployed agents reply in Telegram with read-only commands and LLM planning. | Complete, live read-only |
 | 6 | Wallet/Approval Foundation | Wallet readiness, approval policy, risk review, prepared-action models, and refusal boundaries. | Foundation complete |
 | 7 | Base Account + Execution Readiness | Owner Base Account connection, prompt locks, prepared-action allowlist, policy gates, dual approval model, result closeout model, production smoke freeze. | Complete as readiness; not live execution |
@@ -95,7 +95,7 @@ Status: complete.
 
 Outcome:
 
-- Backend-connected demo data exists through Supabase.
+- Backend-connected product data exists through Supabase.
 - Dashboard and public profile reads are backend-ready.
 - Activity and deployment records are sanitized before display.
 
@@ -116,11 +116,11 @@ Status: complete.
 
 Outcome:
 
-- Users can deploy demo agents from templates.
+- Users can deploy agents from templates.
 - Deployed agents receive template-specific modules.
-- Workspace ownership and demo persistence exist.
+- Workspace ownership and agent persistence exist.
 
-Status: complete for the current backend-connected product demo.
+Status: complete for the current backend-connected product path.
 
 ## Phase 5 - Telegram + LLM Live
 
@@ -521,7 +521,7 @@ Status: structurally complete; runtime default-off. Phase 10 release readiness c
 
 Product outcome:
 
-Kyra is ready to be treated as a public product, not only a demo.
+Kyra is ready to be treated as a public product, with runtime execution still governed by approval and safety gates.
 
 Required:
 
