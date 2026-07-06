@@ -238,4 +238,10 @@ assert(
     dashboardPage.includes("Transaction controls, release readiness, closeout records, and wallet details are visible only after owner sign-in."),
   "Dashboard operational panels must stay behind an owner session gate.",
 );
+assert(
+  dashboardPage.includes("dashboard-auth-page") &&
+    dashboardPage.includes("Sign in to Kyra Console") &&
+    dashboardPage.includes("Public visitors do not see dashboard records"),
+  "Signed-out auth route must render a focused account page instead of dashboard operations.",
+);
 console.log("Public privacy checks passed.");

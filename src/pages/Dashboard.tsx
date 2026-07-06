@@ -2450,6 +2450,62 @@ export function Dashboard({
     setSelectedDashboardAgentId(agentId);
   }
 
+  if (!authSession && activeDashboardSectionId === "auth") {
+    return (
+      <main className="dashboard-page dashboard-auth-page">
+        <section className="dashboard-main dashboard-auth-main">
+          <div className="dashboard-topbar dashboard-auth-topbar">
+            <div>
+              <span className="demo-badge compact">
+                <KeyRound size={14} />
+                Account access
+              </span>
+              <h1>Sign in to Kyra Console</h1>
+              <p>
+                Use your account session to load private agent records, approval
+                queues, and owner-only transaction controls.
+              </p>
+            </div>
+            <button
+              className="button button-ghost"
+              type="button"
+              onClick={onBackHome}
+            >
+              <ArrowLeft size={16} />
+              Home
+            </button>
+          </div>
+
+          <div className="dashboard-auth-grid">
+            <AuthSessionPanel
+              session={authSession}
+              status={authStatus}
+              message={authMessage}
+              onSessionChange={onAuthSessionChange}
+            />
+
+            <section className="dashboard-public-owner-notice">
+              <div className="result-monitoring-header">
+                <span>Owner-only workspace</span>
+                <strong>private by default</strong>
+              </div>
+              <p>
+                Public visitors do not see dashboard records, wallet status,
+                approval queues, transaction controls, support evidence, or
+                release readiness.
+              </p>
+              <small>
+                Signing in only loads account-scoped Kyra records. Wallet keys,
+                Telegram bot tokens, and transaction execution stay behind
+                separate owner approvals.
+              </small>
+            </section>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="dashboard-page">
       <aside className="dashboard-sidebar">

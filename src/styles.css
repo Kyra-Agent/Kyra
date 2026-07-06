@@ -2540,6 +2540,30 @@ h2 {
   min-width: 0;
 }
 
+.dashboard-auth-page {
+  grid-template-columns: minmax(0, 760px);
+  justify-content: center;
+}
+
+.dashboard-auth-main {
+  display: grid;
+  gap: 1rem;
+}
+
+.dashboard-auth-topbar {
+  align-items: center;
+}
+
+.dashboard-auth-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.dashboard-auth-grid .auth-session-panel {
+  min-height: auto;
+}
+
 .dashboard-topbar {
   display: flex;
   align-items: flex-start;
