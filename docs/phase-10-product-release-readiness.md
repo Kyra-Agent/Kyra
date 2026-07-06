@@ -112,8 +112,11 @@ Implementation evidence:
 
 - `docs/phase-10E-release-decision-closeout.md`
 - `scripts/check-phase-10e-release-decision-closeout.mjs`
+- Product Readiness Snapshot: `docs/product-readiness-snapshot.md`
+- `scripts/check-product-readiness-snapshot.mjs`
 - `npm run check:phase-10e`
+- `npm run check:product-snapshot`
 
 Batch 10E closeout rule:
 
-- Phase 10 can close when 10A through 10E evidence exists, 10A through 10E checks pass, roadmap marks Phase 10 release readiness as closed for product readiness, public execution remains gated unless explicitly approved, secret scans are clean, build is green, and user wallet authority plus Telegram bot-token privacy remain priority one.
+- Phase 10 can close when 10A through 10E evidence exists, 10A through 10E checks pass, the Product Readiness Snapshot is present and checked, roadmap marks Phase 10 release readiness as closed for product readiness, public execution remains gated unless explicitly approved, secret scans are clean, build is green, and user wallet authority plus Telegram bot-token privacy remain priority one.

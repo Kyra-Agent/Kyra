@@ -50,6 +50,7 @@ Required closeout files:
 - `docs/phase-10C-launch-qa-production-health.md`
 - `docs/phase-10D-final-security-privacy-audit.md`
 - `docs/phase-10E-release-decision-closeout.md`
+- Product Readiness Snapshot: `docs/product-readiness-snapshot.md`
 
 ## Final Gate Summary
 
@@ -75,6 +76,7 @@ Before any push or release candidate promotion, run:
 - `npm run check:phase-10c`
 - `npm run check:phase-10d`
 - `npm run check:phase-10e`
+- `npm run check:product-snapshot`
 - `npm run check:roadmap`
 - `npm run check:privacy`
 - `npm run build`
@@ -114,6 +116,7 @@ Phase 10 can close when:
 - 10A through 10E evidence exists
 - 10A through 10E checks pass
 - roadmap marks Phase 10 release readiness as closed for product readiness
+- Product Readiness Snapshot is present and checked
 - public execution is still described as gated unless explicitly approved
 - secret scans are clean
 - build is green

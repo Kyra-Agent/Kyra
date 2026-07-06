@@ -130,6 +130,7 @@ Detailed engineering evidence is tracked in:
 - [`docs/product-phase-roadmap.md`](docs/product-phase-roadmap.md)
 - [`docs/supporting-readiness-closeout.md`](docs/supporting-readiness-closeout.md)
 - [`docs/phase-10-product-release-readiness.md`](docs/phase-10-product-release-readiness.md)
+- [Product Readiness Snapshot](docs/product-readiness-snapshot.md)
 
 ## Product Principles
 
