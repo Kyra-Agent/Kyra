@@ -1,6 +1,6 @@
 # Phase 10 Product Release Readiness
 
-Status: Batch 10C in progress. Public execution runtime remains default-off.
+Status: Batch 10D in progress. Public execution runtime remains default-off.
 
 Phase 10 turns Kyra from structurally hardened execution readiness into a public product readiness package. It does not bypass owner approval, Base Account approval, Kyra approval, receipt verification, rollback, privacy, or audit gates.
 
@@ -76,3 +76,24 @@ Implementation evidence:
 Batch 10C closeout rule:
 
 - Batch 10C can close when launch QA surfaces, production health evidence requirements, manual smoke steps, privacy-safe evidence rules, and required checks are documented and verified.
+## Batch 10D - Final Security and Privacy Audit
+
+Batch 10D is the final security and privacy audit before release decision. It keeps runtime execution default-off and verifies that product readiness does not weaken user wallet authority or Telegram bot-token privacy.
+
+Required audit boundaries:
+
+- Public surfaces must hide wallet internals, Telegram bot tokens, API keys, service-role data, raw session tokens, provider payload bodies, transaction intent internals, and raw errors.
+- Private surfaces must keep owner dashboard, Base Account connection, prepared action review, runtime submitter, result closeout, and emergency disable scoped to owner-controlled flows.
+- Supabase views and Edge Functions must preserve public/private separation and avoid unsanitized logs.
+- Runtime execution must require owner session, selected deployed agent, connected Base Account, Kyra approval, Base Account approval, allowlisted prepared action, NYX-05 risk review, rate limits, emergency disable checks, and result monitoring.
+- Official hosted Base MCP remains no-go until provider evidence is verified; Base Account SDK remains the primary user transaction boundary.
+
+Implementation evidence:
+
+- `docs/phase-10D-final-security-privacy-audit.md`
+- `scripts/check-phase-10d-final-security-privacy-audit.mjs`
+- `npm run check:phase-10d`
+
+Batch 10D closeout rule:
+
+- Batch 10D can close when public/private surface audit, Supabase/Edge audit, runtime gate audit, secret hygiene audit, release blockers, and required checks are documented and verified.

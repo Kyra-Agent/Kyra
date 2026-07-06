@@ -78,7 +78,7 @@ evidence packets, not extra product phases.
 | 7 | Base Account + Execution Readiness | Owner Base Account connection, prompt locks, prepared-action allowlist, policy gates, dual approval model, result closeout model, production smoke freeze. | Complete as readiness; not live execution |
 | 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, controlled submission, owner-only result. | Complete: controlled live transaction implementation closeout |
 | 9 | Public Execution Hardening | Rate limits, rollback, incident controls, monitoring, privacy audits, abuse controls, and wider execution eligibility. | Structurally complete; runtime default-off |
-| 10 | Product Release Readiness | Public-ready copy, support ops, launch QA, production runbook, final audit, and release decision. | Active: Batch 10C launch QA and production health evidence |
+| 10 | Product Release Readiness | Public-ready copy, support ops, launch QA, production runbook, final audit, and release decision. | Active: Batch 10D final security and privacy audit |
 
 ## Phase 1 - Product Foundation
 
@@ -532,7 +532,7 @@ Required:
 - final security and privacy audit
 - final release decision
 
-Status: active; Batch 10C launch QA and production health evidence in progress.
+Status: active; Batch 10D final security and privacy audit in progress.
 
 Phase 10 batches:
 
