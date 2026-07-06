@@ -120,7 +120,7 @@ for (const expected of [
 for (const expected of [
   "evaluatePhase8ControlledSubmission",
   "phase8ControlledSubmission",
-  "Phase 8 controlled submission",
+  "Controlled submission",
   "submission nonce",
   "result closeout",
   "submit allowed",

@@ -64,7 +64,7 @@ export function Phase8ControlledSubmitter({
   });
   const [state, setState] = useState<SubmitterState>("locked");
   const [message, setMessage] = useState(
-    "Controlled submission is locked until every Phase 8 Batch 1-10 gate passes.",
+    "Owner transaction window is locked until sign-in, Base Account, approval, and gas checks are complete.",
   );
   const [submittedHash, setSubmittedHash] = useState<string | null>(null);
 
@@ -98,7 +98,7 @@ export function Phase8ControlledSubmitter({
   async function handleSubmit() {
     if (!runtimeEnabled) {
       setState("locked");
-      setMessage("Phase 8 Batch 11 gas readiness is disabled for production safety.");
+      setMessage("Owner transaction submission is disabled for production safety.");
       return;
     }
 
@@ -179,16 +179,16 @@ export function Phase8ControlledSubmitter({
       <div className="phase-8-submit-boundary-header">
         <span className="queue-icon"><ShieldCheck size={16} /></span>
         <div>
-          <small>Phase 8 Batch 11 submitter</small>
-          <strong>{activation.transactionSubmissionAllowed ? "Window armed" : "Window locked"}</strong>
+          <small>Owner transaction window</small>
+          <strong>{activation.transactionSubmissionAllowed ? "Ready for owner review" : "Locked"}</strong>
         </div>
         <span>{state}</span>
       </div>
 
       <div className="phase-8-submit-boundary-grid">
         <span>
-          Runtime
-          <strong>{preflight.runtimeSubmitterEnabled ? "preflight ready" : runtimeEnabled ? "preflight locked" : "default-off"}</strong>
+          Access
+          <strong>{preflight.runtimeSubmitterEnabled ? "ready" : runtimeEnabled ? "waiting" : "disabled"}</strong>
         </span>
         <span>
           Wallet
@@ -196,11 +196,11 @@ export function Phase8ControlledSubmitter({
         </span>
         <span>
           Request
-          <strong>{submitRequest.ok ? "zero-value" : submitRequest.reason}</strong>
+          <strong>{submitRequest.ok ? "reviewed" : "needs review"}</strong>
         </span>
         <span>
-          Runtime preflight
-          <strong>{preflight.status}</strong>
+          Readiness
+          <strong>{preflight.runtimeSubmitterEnabled ? "ready" : "waiting"}</strong>
         </span>
         <span>
           Base ETH gas
@@ -209,8 +209,8 @@ export function Phase8ControlledSubmitter({
       </div>
 
       <p aria-live="polite">{activation.transactionSubmissionAllowed ? message : activation.message}</p>
-      {preflight.reasons.length ? <small>Preflight blocked by: {preflight.reasons.join(", ")}</small> : null}
-      {activation.reasons.length ? <small>Activation blocked by: {activation.reasons.join(", ")}</small> : null}
+      {preflight.reasons.length ? <small>{formatSubmitterGateReasons(preflight.reasons)}</small> : null}
+      {activation.reasons.length ? <small>{formatSubmitterGateReasons(activation.reasons)}</small> : null}
       {fundingReadiness.status !== "funded"
         ? (
           <div className="phase-8-funding-guide">
@@ -242,6 +242,32 @@ export function Phase8ControlledSubmitter({
   );
 }
 
+
+function formatSubmitterGateReasons(reasons: readonly string[]) {
+  if (!reasons.length) {
+    return "";
+  }
+
+  const labels = new Map<string, string>([
+    ["owner_session_required", "sign in to the owner account"],
+    ["selected_agent_required", "select a deployed agent"],
+    ["base_account_required", "connect Base Account"],
+    ["base_account_address_required", "connect Base Account"],
+    ["base_chain_required", "switch to Base"],
+    ["controlled_submission_required", "prepare the reviewed transaction"],
+    ["operator_ack_required", "confirm owner review"],
+    ["live_window_activation_required", "open the owner transaction window"],
+    ["runtime_window_disabled", "enable the owner runtime window"],
+    ["owner_approval_required", "record owner approval"],
+    ["base_account_approval_required", "confirm in Base Account"],
+    ["submission_nonce_required", "bind the one-time submit session"],
+    ["private_dashboard_required", "use the private dashboard"],
+    ["telegram_authority_forbidden", "Telegram cannot execute this action"],
+  ]);
+
+  const readable = reasons.map((reason) => labels.get(reason) ?? reason.replace(/_/g, " "));
+  return `Needs: ${Array.from(new Set(readable)).join(", ")}.`;
+}
 function classifySubmitError(error: unknown) {
   if (
     error &&

@@ -178,7 +178,7 @@ for (
   const required of [
     "evaluateControlledLiveTransactionGate",
     "controlledLiveTransactionGate",
-    "Phase 7J controlled live gate",
+    "Controlled transaction gate",
     "Gate is ready for explicit live-window approval only",
     "wallet prompt, signing, and submission",
   ]

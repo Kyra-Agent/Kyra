@@ -121,8 +121,8 @@ for (const expected of [
 for (const expected of [
   "preflight: Phase8RuntimeEnablementPreflightResult",
   "preflight.runtimeSubmitterEnabled",
-  "Phase 8 Batch 11 submitter",
-  "Runtime preflight",
+  "Owner transaction window",
+  "Readiness",
   "useBalance",
   "baseAccountAddress: `0x${string}` | null",
   "gasReady",

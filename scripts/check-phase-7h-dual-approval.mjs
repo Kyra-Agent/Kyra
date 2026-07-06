@@ -104,7 +104,7 @@ for (
   const required of [
     "evaluateDualApprovalExecution",
     "dualApprovalReview",
-    "Phase 7H dual approval",
+    "Two-step approval",
     "Frozen action",
     "Wallet prompt",
     "Transaction submission:",

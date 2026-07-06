@@ -139,11 +139,11 @@ for (const expected of [
 for (const expected of [
   "Phase8OwnerLiveWindowActivationResult",
   "activation.transactionSubmissionAllowed",
-  "Phase 8 Batch 11 submitter",
-  "Window armed",
+  "Owner transaction window",
+  "Ready for owner review",
   "onResultCloseout",
   "Submitted with sanitized hash reference.",
-  "Activation blocked by",
+  "formatSubmitterGateReasons",
 ]) {
   includes("submitter", submitter, expected);
 }
@@ -170,11 +170,11 @@ for (const expected of [
   "submissionNonce: activePhase8OwnerArming?.submissionNonce ?? null",
   "submissionState: phase8SubmitterResult",
   "? phase8SubmitterResult.state",
-  "Arm owner live window",
-  "Reset window",
+  "Open review window",
+  "Close window",
   "phase-8-owner-candidate-panel",
   "owner self-check",
-  "Phase 8 live-window activation",
+  "Transaction review window",
   "activation={phase8OwnerLiveWindowActivation}",
 ]) {
   includes("dashboard", dashboard, expected);

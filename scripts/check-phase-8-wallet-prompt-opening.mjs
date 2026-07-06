@@ -125,7 +125,7 @@ for (const expected of [
 for (const expected of [
   "evaluatePhase8WalletPromptOpening",
   "phase8WalletPromptOpening",
-  "Phase 8 wallet prompt opening",
+  "Wallet prompt review",
   "one-time nonce",
   "owner-only audit",
   "open allowed",

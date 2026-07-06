@@ -71,8 +71,8 @@ for (const expected of [
 }
 
 for (const expected of [
-  "| 8 | Complete: controlled live transaction implementation closeout |",
-  "result persistence hardening",
+  "Product Readiness Snapshot",
+  "Base-native AI agent platform",
 ]) {
   includes("README", readme, expected);
 }

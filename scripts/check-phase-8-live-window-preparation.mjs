@@ -125,7 +125,7 @@ for (const expected of [
 for (const expected of [
   "evaluatePhase8LiveWindowPreparation",
   "phase8LiveWindowPreparation",
-  "Phase 8 live window",
+  "Owner review window",
   "owner-approved window",
   "private dashboard intent",
   "prompt readiness",

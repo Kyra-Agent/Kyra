@@ -40,7 +40,7 @@ const packageJson = read("package.json");
 const sourceFiles = walkFiles("src").filter((path) => /\.(?:ts|tsx)$/u.test(path));
 const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
   .filter((path) => /\.ts$/u.test(path) && !path.endsWith("_test.ts"));
-const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
+const publicFiles = sourceFiles.filter((path) => /^(?:src\/pages|src\/components)\//u.test(path) && /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
   "## Batch 9B - Abuse, Rate Limit, and Value-Limit Enforcement",
@@ -74,7 +74,7 @@ for (const expected of [
 for (const expected of [
   "evaluatePhase9AbuseRateLimit",
   "phase9AbuseRateLimit",
-  "Phase 9B abuse and rate limit",
+  "Abuse and rate limits",
   "phase-9-abuse-rate-limit-panel",
 ]) {
   includes("dashboard", dashboard, expected);

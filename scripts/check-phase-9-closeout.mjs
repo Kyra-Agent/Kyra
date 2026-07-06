@@ -73,7 +73,7 @@ for (const expected of [
 for (const expected of [
   "evaluatePhase9Closeout",
   "phase9Closeout",
-  "Phase 9 closeout",
+  "Public release closeout",
   "phase-9-closeout-panel",
 ]) {
   includes("dashboard", dashboard, expected);

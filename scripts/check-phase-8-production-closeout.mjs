@@ -72,9 +72,9 @@ for (const expected of [
 }
 
 for (const expected of [
-  "| 8 | Complete: controlled live transaction implementation closeout |",
-  "Phase 8 implementation is closed",
-  "public execution stays Phase 9",
+  "Product Snapshot",
+  "Product Readiness Snapshot",
+  "Execution path",
 ]) {
   includes("README", readme, expected);
 }
@@ -94,7 +94,7 @@ for (const expected of [
 for (const expected of [
   "evaluatePhase8ProductionCloseout",
   "phase8ProductionCloseout",
-  "Phase 8 production closeout",
+  "Production closeout",
   "phase-8-production-closeout-panel",
 ]) {
   includes("dashboard", dashboard, expected);

@@ -72,8 +72,8 @@ for (const expected of [
 }
 
 for (const expected of [
-  "| 8 | Complete: controlled live transaction implementation closeout |",
-  "funding UX hardening",
+  "Product Snapshot",
+  "Base Account",
 ]) {
   includes("README", readme, expected);
 }

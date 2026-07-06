@@ -72,8 +72,8 @@ for (const expected of [
 }
 
 for (const expected of [
-  "| 8 | Complete: controlled live transaction implementation closeout |",
-  "user-facing execution flow",
+  "Product Snapshot",
+  "Execution path",
 ]) {
   includes("README", readme, expected);
 }
@@ -92,7 +92,7 @@ for (const expected of [
 for (const expected of [
   "evaluatePhase8UserExecutionFlow",
   "phase8UserExecutionFlow",
-  "Phase 8 user execution flow",
+  "User execution flow",
   "phase-8-user-flow-panel",
   "phase-8-user-flow-track",
 ]) {

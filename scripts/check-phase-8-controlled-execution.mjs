@@ -134,9 +134,9 @@ for (
   const expected of [
     "evaluatePhase8ControlledExecution",
     "phase8ControlledExecution",
-    "Phase 8 controlled execution",
+    "Owner-controlled execution",
     "ready for wallet prompt",
-    "default-off",
+    "locked",
   ]
 ) {
   includes("dashboard", dashboard, expected);

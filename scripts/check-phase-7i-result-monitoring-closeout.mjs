@@ -108,7 +108,7 @@ for (
   const required of [
     "evaluateResultMonitoringCloseout",
     "resultMonitoringCloseout",
-    "Phase 7I result monitoring",
+    "Result monitoring",
     "Tx hash",
     "not persisted",
     "Disconnect",

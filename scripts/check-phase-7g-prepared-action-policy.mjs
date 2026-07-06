@@ -70,12 +70,12 @@ includes("wallet prompt", walletPrompt, "owner_approval_required");
 for (
   const expected of [
     "evaluatePreparedActionPolicy",
-    "Phase 7G policy enforcement",
+    "Action policy review",
     "preparedActionStorageEnabled: false",
     "Owner approval",
     "Replay",
     "request id scoped",
-    "Blocked by:",
+    "formatGateHint(preparedActionPolicyReview.reasons)",
   ]
 ) {
   includes("dashboard policy evidence", dashboard, expected);

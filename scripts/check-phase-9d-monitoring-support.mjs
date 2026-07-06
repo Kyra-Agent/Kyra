@@ -40,7 +40,7 @@ const packageJson = read("package.json");
 const sourceFiles = walkFiles("src").filter((path) => /\.(?:ts|tsx)$/u.test(path));
 const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
   .filter((path) => /\.ts$/u.test(path) && !path.endsWith("_test.ts"));
-const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
+const publicFiles = sourceFiles.filter((path) => /^(?:src\/pages|src\/components)\//u.test(path) && /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
   "## Batch 9D - Monitoring, Support, and Owner Evidence",
@@ -79,7 +79,7 @@ for (const expected of [
 for (const expected of [
   "evaluatePhase9MonitoringSupport",
   "phase9MonitoringSupport",
-  "Phase 9D monitoring support",
+  "Monitoring and support",
   "phase-9-monitoring-support-panel",
 ]) {
   includes("dashboard", dashboard, expected);

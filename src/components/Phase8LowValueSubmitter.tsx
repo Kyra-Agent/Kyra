@@ -43,7 +43,7 @@ export function Phase8LowValueSubmitter({
   const sendTransaction = useSendTransaction();
   const [state, setState] = useState<LowValueSubmitterState>("locked");
   const [message, setMessage] = useState(
-    "Low-value submitter is isolated and default-off until the owner low-value runtime flag is enabled.",
+    "Low-value submission is locked until the owner-controlled transaction window is ready.",
   );
   const [submittedHash, setSubmittedHash] = useState<string | null>(null);
 
@@ -72,7 +72,7 @@ export function Phase8LowValueSubmitter({
   async function handleSubmit() {
     if (!runtimeEnabled) {
       setState("locked");
-      setMessage("Low-value runtime flag is disabled. No value-bearing submit can open.");
+      setMessage("Low-value submission is disabled for production safety.");
       return;
     }
 
@@ -156,23 +156,23 @@ export function Phase8LowValueSubmitter({
       <div className="phase-8-submit-boundary-header">
         <span className="queue-icon"><ShieldCheck size={16} /></span>
         <div>
-          <small>Phase 8 Batch 21 low-value live run</small>
-          <strong>{runtimeEnabled ? "runtime flag enabled" : "runtime flag disabled"}</strong>
+          <small>Low-value transaction window</small>
+          <strong>{runtimeEnabled ? "ready for owner review" : "locked"}</strong>
         </div>
         <span>{state}</span>
       </div>
 
       <div className="phase-8-low-value-submitter-grid">
         <span>
-          Runtime
-          <strong>{runtimeEnabled ? "enabled" : "default-off"}</strong>
+          Access
+          <strong>{runtimeEnabled ? "ready" : "locked"}</strong>
         </span>
         <span>
           Wallet
           <strong>{walletConnected ? "connected" : "required"}</strong>
         </span>
         <span>
-          Owner window
+          Review window
           <strong>{ownerWindowArmed ? "armed" : "locked"}</strong>
         </span>
         <span>
@@ -191,16 +191,16 @@ export function Phase8LowValueSubmitter({
 
       <p aria-live="polite">{message}</p>
       {!readiness.canEnterLowValueReview
-        ? <small>Readiness blocked by: {readiness.reasons.join(", ")}</small>
+        ? <small>Needs: complete low-value readiness checks.</small>
         : null}
       {!submitRequest.ok
-        ? <small>Request blocked by: {submitRequest.reasons.join(", ")}</small>
+        ? <small>Needs: prepare a reviewed low-value request.</small>
         : null}
       {securityBlockReasons.length
-        ? <small>Security blocked by: {securityBlockReasons.join(", ")}</small>
+        ? <small>Needs: security checks must pass before submission.</small>
         : null}
       {!hasCloseoutScope
-        ? <small>Closeout blocked by: owner/workspace/agent/action/nonce scope required.</small>
+        ? <small>Needs: complete owner, workspace, agent, action, and session scope.</small>
         : null}
       {submittedHash ? <small>Hash: {maskHash(submittedHash)}</small> : null}
 

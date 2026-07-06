@@ -189,6 +189,62 @@ function formatQueueStatus(status: DemoApprovalRequest["status"]) {
 function formatRuntimeValue(value: string) {
   return value.replace(/-/g, " ");
 }
+function formatGateReasons(reasons: readonly string[]) {
+  if (!reasons.length) {
+    return "";
+  }
+
+  const labels = new Map<string, string>([
+    ["owner_session_required", "sign in to the owner account"],
+    ["selected_agent_required", "select a deployed agent"],
+    ["deployed_agent_required", "publish an agent first"],
+    ["base_account_required", "connect Base Account"],
+    ["base_account_address_required", "connect Base Account"],
+    ["base_chain_required", "switch to Base"],
+    ["controlled_submission_required", "prepare the reviewed transaction"],
+    ["operator_ack_required", "confirm owner review"],
+    ["live_window_activation_required", "open the owner transaction window"],
+    ["live_window_approval_required", "approve the owner transaction window"],
+    ["runtime_window_disabled", "enable the owner runtime window"],
+    ["owner_click_required", "confirm with an owner click"],
+    ["owner_approval_required", "record owner approval"],
+    ["base_account_approval_required", "confirm in Base Account"],
+    ["submission_nonce_required", "bind the one-time submit session"],
+    ["one_time_prompt_nonce_required", "bind the one-time wallet prompt"],
+    ["owner_only_audit_required", "record private owner audit evidence"],
+    ["controlled_submission_runtime_disabled", "Submitter is disabled"],
+    ["runtime_submitter_disabled", "Submitter is disabled"],
+    ["private_dashboard_required", "use the private dashboard"],
+    ["telegram_authority_forbidden", "Telegram cannot execute this action"],
+    ["public_visibility_forbidden", "public profiles cannot execute this action"],
+    ["result_closeout_required", "complete result closeout"],
+    ["owner_closeout_required", "complete owner closeout"],
+    ["receipt_verification_required", "verify the transaction receipt"],
+    ["kyra_approval_required", "record Kyra approval"],
+    ["rollback_required", "keep rollback ready"],
+    ["gas_required", "fund Base ETH for gas"],
+    ["base_eth_gas_required", "fund Base ETH for gas"],
+  ]);
+
+  const readable = reasons.map((reason) => {
+    if (labels.has(reason)) {
+      return labels.get(reason);
+    }
+
+    if (reason.startsWith("frozen_action")) {
+      return "prepare the reviewed action";
+    }
+
+    return reason.replace(/_/g, " ");
+  }).filter(Boolean);
+
+  return Array.from(new Set(readable)).join(", ");
+}
+
+function formatGateHint(reasons: readonly string[]) {
+  const formatted = formatGateReasons(reasons);
+  return formatted ? `Needs: ${formatted}.` : "";
+}
 
 function getReadinessTone(status: SupabaseConnectionStatus) {
   if (status === "connected") {
@@ -220,10 +276,10 @@ function getDashboardReadinessLabel(status: SupabaseDashboardStatus) {
   }
 
   if (status === "error") {
-    return "fallback ready";
+    return "protected mode";
   }
 
-  return status === "not-configured" ? "not configured" : "no records";
+  return status === "not-configured" ? "not connected" : "no records";
 }
 
 function getWalletReadinessFallback(
@@ -385,7 +441,7 @@ function getCatalogValue(
   }
 
   if (status === "error") {
-    return "local fallback";
+    return "local preview";
   }
 
   return status === "checking" ? "checking" : "local";
@@ -876,7 +932,7 @@ export function Dashboard({
     async function loadDeployFunctionHealth() {
       if (!appConfig.functions.deployAgentConfigured) {
         setDeployFunctionStatus("not-configured");
-        setDeployFunctionMessage("Deploy function URL is not configured.");
+        setDeployFunctionMessage("Deploy function URL is not connected.");
         return;
       }
 
@@ -1102,7 +1158,7 @@ export function Dashboard({
         valueWei: "0",
         data: "0x",
         routeSummary: "Owner reviewed Base transaction preview.",
-        valueSummary: "No token spend in Phase 7F.",
+        valueSummary: "No token spend is allowed in this review.",
       }),
     [],
   );
@@ -1122,7 +1178,7 @@ export function Dashboard({
         valueWei: "0",
         data: "0x",
         routeSummary: "Owner reviewed Base transaction preview.",
-        valueSummary: "No token spend in Phase 7G policy review.",
+        valueSummary: "No token spend is allowed during policy review.",
       }),
     [agentRecord, authSession],
   );
@@ -1934,7 +1990,7 @@ export function Dashboard({
             type: "prompt_approved",
             ownerOnly: true,
             sanitized: true,
-            message: "Owner approved Batch 7 browser-session prompt readiness.",
+            message: "Owner approved browser-session prompt readiness.",
             createdAt: activePhase8OwnerArming.armedAt,
           }]
           : [],
@@ -2048,14 +2104,14 @@ export function Dashboard({
         id: "no-agent-workspace",
         name: "No agent workspace",
         owner: "Signed-in account",
-        mode: "backend-demo" as const,
+        mode: "backend connected" as const,
         authProvider: "supabase" as const,
       }
       : {
         id: "signed-out-preview",
         name: "Signed-out preview",
         owner: "No account session",
-        mode: "backend-demo" as const,
+        mode: "backend connected" as const,
         authProvider: "supabase" as const,
       });
   const activityLines = dashboardData?.activityLogs.length
@@ -2126,7 +2182,7 @@ export function Dashboard({
     },
     {
       label: "Edge function",
-      detail: "Health check answers before the frontend leaves fallback mode.",
+      detail: "Health check confirms the backend connection before protected local mode is used.",
       state: getDeployChecklistState(deployFunctionStatus),
     },
     {
@@ -2177,7 +2233,7 @@ export function Dashboard({
       label: "Reset function",
       value: appConfig.functions.resetDemoWorkspaceConfigured
         ? "configured"
-        : "not configured",
+        : "not connected",
       detail: appConfig.functions.resetDemoWorkspaceConfigured
         ? "Admin reset requests use the backend endpoint."
         : "Reset endpoint URL is missing.",
@@ -2851,7 +2907,7 @@ export function Dashboard({
                   <ShieldCheck size={16} />
                 </span>
                 <div>
-                  <small>Phase 7E signing boundary</small>
+                  <small>Wallet approval boundary</small>
                   <strong>
                     {walletPromptEligibility.eligible
                       ? "Prompt eligible"
@@ -2931,7 +2987,7 @@ export function Dashboard({
                 <span>Provider stack</span>
                 <strong>{walletProviderStatus.providerStack}</strong>
                 <small>
-                  {walletProviderStatus.dependencyStatus}: runtime gate{" "}
+                  {walletProviderStatus.dependencyStatus}: wallet gate{" "}
                   {walletProviderStatus.runtimeGate}
                 </small>
               </article>
@@ -3052,7 +3108,7 @@ export function Dashboard({
                             Provider: <strong>{templateCatalogSource}</strong>
                           </p>
                           <p>
-                            Runtime:{" "}
+                            Access:{" "}
                             <strong>
                               {formatRuntimeValue(appConfig.mode)}
                             </strong>
@@ -3253,7 +3309,7 @@ export function Dashboard({
             </div>
             <div className="prepared-action-allowlist-grid">
               <article>
-                <small>PreparedAction Allowlist</small>
+                <small>Action allowlist</small>
                 <strong>
                   {preparedActionAllowlistReview.allowed
                     ? "review schema ready"
@@ -3270,11 +3326,11 @@ export function Dashboard({
               </article>
               <article>
                 <small>Token spend</small>
-                <strong>blocked in 7F</strong>
+                <strong>blocked</strong>
               </article>
               <article>
                 <small>Calldata</small>
-                <strong>blocked in 7F</strong>
+                <strong>blocked</strong>
               </article>
               <article>
                 <small>Untrusted input</small>
@@ -3283,7 +3339,7 @@ export function Dashboard({
             </div>
             <div className="prepared-action-policy-panel">
               <div className="prepared-action-policy-header">
-                <span>Phase 7G policy enforcement</span>
+                <span>Action policy review</span>
                 <strong>{preparedActionPolicyReview.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="prepared-action-policy-grid">
@@ -3320,7 +3376,7 @@ export function Dashboard({
               {preparedActionPolicyReview.reasons.length
                 ? (
                   <small>
-                    Blocked by: {preparedActionPolicyReview.reasons.join(", ")}
+                    {formatGateHint(preparedActionPolicyReview.reasons)}
                   </small>
                 )
                 : (
@@ -3332,7 +3388,7 @@ export function Dashboard({
             </div>
             <div className="dual-approval-panel">
               <div className="dual-approval-header">
-                <span>Phase 7H dual approval</span>
+                <span>Two-step approval</span>
                 <strong>{dualApprovalReview.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="dual-approval-steps">
@@ -3349,7 +3405,7 @@ export function Dashboard({
                 <span>
                   Frozen action
                   <strong>
-                    {dualApprovalReview.frozenAction ? "locked" : "not issued"}
+                    {dualApprovalReview.frozenAction ? "locked" : "not ready"}
                   </strong>
                 </span>
                 <span>
@@ -3444,7 +3500,7 @@ export function Dashboard({
             </div>
             <div className="controlled-live-gate-panel">
               <div className="controlled-live-gate-header">
-                <span>Phase 7J controlled live gate</span>
+                <span>Controlled transaction gate</span>
                 <strong>
                   {controlledLiveTransactionGate.status.replace(/_/g, " ")}
                 </strong>
@@ -3483,7 +3539,7 @@ export function Dashboard({
               {controlledLiveTransactionGate.reasons.length
                 ? (
                   <small>
-                    Blocked by: {controlledLiveTransactionGate.reasons.join(", ")}
+                    {formatGateHint(controlledLiveTransactionGate.reasons)}
                   </small>
                 )
                 : (
@@ -3537,12 +3593,12 @@ export function Dashboard({
               {executionLaunchReadiness.reasons.length
                 ? (
                   <small>
-                    Blocked by: {executionLaunchReadiness.reasons.join(", ")}
+                    {formatGateHint(executionLaunchReadiness.reasons)}
                   </small>
                 )
                 : (
                   <small>
-                    Owner review can be prepared. Runtime wallet prompt,
+                    Owner review can be prepared. Access wallet prompt,
                     signing, and submission still require a separate enablement
                     window.
                   </small>
@@ -3550,16 +3606,16 @@ export function Dashboard({
             </div>
             <div className="phase-8-execution-panel">
               <div className="phase-8-execution-header">
-                <span>Phase 8 controlled execution</span>
+                <span>Owner-controlled execution</span>
                 <strong>{phase8ControlledExecution.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-8-execution-grid">
                 <span>
-                  Runtime
+                  Access
                   <strong>
                     {String(appConfig.integrations.walletExecution) === "enabled"
                       ? "enabled"
-                      : "default-off"}
+                      : "locked"}
                   </strong>
                 </span>
                 <span>
@@ -3591,7 +3647,7 @@ export function Dashboard({
               {phase8ControlledExecution.reasons.length
                 ? (
                   <small>
-                    Blocked by: {phase8ControlledExecution.reasons.join(", ")}
+                    {formatGateHint(phase8ControlledExecution.reasons)}
                   </small>
                 )
                 : (
@@ -3603,7 +3659,7 @@ export function Dashboard({
             </div>
             <div className="phase-8-live-window-panel">
               <div className="phase-8-live-window-header">
-                <span>Phase 8 live window</span>
+                <span>Owner review window</span>
                 <strong>{phase8LiveWindowPreparation.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-8-live-window-grid">
@@ -3650,20 +3706,20 @@ export function Dashboard({
               {phase8LiveWindowPreparation.reasons.length
                 ? (
                   <small>
-                    Blocked by: {phase8LiveWindowPreparation.reasons.join(", ")}
+                    {formatGateHint(phase8LiveWindowPreparation.reasons)}
                   </small>
                 )
                 : (
                   <small>
                     owner-approved window, private dashboard intent, frozen
                     action binding, and Base Account prompt readiness are ready.
-                    Transaction submission remains disabled in Batch 2.
+                    Transaction submission remains disabled until owner approval is complete.
                   </small>
                 )}
             </div>
             <div className="phase-8-wallet-prompt-panel">
               <div className="phase-8-wallet-prompt-header">
-                <span>Phase 8 wallet prompt opening</span>
+                <span>Wallet prompt review</span>
                 <strong>{phase8WalletPromptOpening.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-8-wallet-prompt-grid">
@@ -3708,20 +3764,20 @@ export function Dashboard({
               {phase8WalletPromptOpening.reasons.length
                 ? (
                   <small>
-                    Blocked by: {phase8WalletPromptOpening.reasons.join(", ")}
+                    {formatGateHint(phase8WalletPromptOpening.reasons)}
                   </small>
                 )
                 : (
                   <small>
                     One owner-click Base Account prompt can open under
                     owner-only audit. Transaction submission remains disabled in
-                    Batch 3.
+                    this step.
                   </small>
                 )}
             </div>
             <div className="phase-8-submission-panel">
               <div className="phase-8-submission-header">
-                <span>Phase 8 controlled submission</span>
+                <span>Controlled submission</span>
                 <strong>{phase8ControlledSubmission.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-8-submission-grid">
@@ -3766,7 +3822,7 @@ export function Dashboard({
               {phase8ControlledSubmission.reasons.length
                 ? (
                   <small>
-                    Blocked by: {phase8ControlledSubmission.reasons.join(", ")}
+                    {formatGateHint(phase8ControlledSubmission.reasons)}
                   </small>
                 )
                 : (
@@ -3780,12 +3836,12 @@ export function Dashboard({
             </div>
             <div className="phase-8-live-window-activation-panel">
               <div className="phase-8-live-window-activation-header">
-                <span>Phase 8 live-window activation</span>
+                <span>Transaction review window</span>
                 <strong>{phase8OwnerLiveWindowActivation.status}</strong>
               </div>
               <div className="phase-8-live-window-activation-grid">
                 <span>
-                  Runtime window
+                  Review window
                   <strong>
                     {phase8OwnerLiveWindowActivation.reasons.includes("runtime_window_disabled")
                       ? "disabled"
@@ -3842,7 +3898,7 @@ export function Dashboard({
               </div>
               <small>{phase8OwnerActionCandidate.message}</small>
               {!phase8OwnerActionCandidate.ok && phase8OwnerActionCandidate.reasons.length
-                ? <small>Candidate blocked by: {phase8OwnerActionCandidate.reasons.join(", ")}</small>
+                ? <small>{formatGateHint(phase8OwnerActionCandidate.reasons)}</small>
                 : null}
               <div className="phase-8-live-window-activation-actions">
                 <button
@@ -3852,7 +3908,7 @@ export function Dashboard({
                   type="button"
                 >
                   <ShieldCheck size={16} />
-                  Arm owner live window
+                  Open review window
                 </button>
                 <button
                   className="button button-ghost"
@@ -3861,7 +3917,7 @@ export function Dashboard({
                   type="button"
                 >
                   <RotateCcw size={16} />
-                  Reset window
+                  Close window
                 </button>
               </div>
               <small>
@@ -3872,17 +3928,17 @@ export function Dashboard({
                     second: "2-digit",
                     hour12: false,
                   })}. Browser session only.`
-                  : "Not armed. Owner must acknowledge the selected agent and frozen action first."}
+                  : "Review window is closed. Sign in, select an agent, and confirm the reviewed action first."}
               </small>
               {phase8OwnerLiveWindowActivation.reasons.length
                 ? (
                   <small>
-                    Blocked by: {phase8OwnerLiveWindowActivation.reasons.join(", ")}
+                    {formatGateHint(phase8OwnerLiveWindowActivation.reasons)}
                   </small>
                 )
                 : (
                   <small>
-                    One owner-controlled submitter window is armed. Telegram, public
+                    One owner-controlled transaction review window is open. Telegram, public
                     profiles, automation, token approvals, swaps, calldata, and
                     non-zero value remain blocked.
                   </small>
@@ -3890,12 +3946,12 @@ export function Dashboard({
             </div>
             <div className="phase-8-submission-panel">
               <div className="phase-8-submission-header">
-                <span>Phase 8 runtime enablement preflight</span>
+                <span>Transaction readiness</span>
                 <strong>{phase8RuntimeEnablementPreflight.status}</strong>
               </div>
               <div className="phase-8-submission-grid">
                 <span>
-                  runtime flag
+                  Access
                   <strong>
                     {appConfig.integrations.phase8ControlledSubmission === "owner_approved_window"
                       ? "enabled"
@@ -3907,11 +3963,11 @@ export function Dashboard({
                   <strong>{baseAccountConnectionStatus.connected ? "connected" : "required"}</strong>
                 </span>
                 <span>
-                  owner window
+                  Review window
                   <strong>{phase8OwnerLiveWindowActivation.transactionSubmissionAllowed ? "armed" : "locked"}</strong>
                 </span>
                 <span>
-                  runtime submitter
+                  Submitter
                   <strong>
                     {phase8RuntimeEnablementPreflight.runtimeSubmitterEnabled
                       ? "enabled"
@@ -3923,12 +3979,12 @@ export function Dashboard({
               {phase8RuntimeEnablementPreflight.reasons.length
                 ? (
                   <small>
-                    Blocked by: {phase8RuntimeEnablementPreflight.reasons.join(", ")}
+                    {formatGateHint(phase8RuntimeEnablementPreflight.reasons)}
                   </small>
                 )
                 : (
                   <small>
-                    Runtime is open only for the private owner dashboard, selected agent,
+                    Transaction submission is available only from the private dashboard, selected agent,
                     connected Base Account, and one owner-controlled zero-value submit.
                     Telegram and public profiles remain blocked.
                   </small>
@@ -3945,7 +4001,7 @@ export function Dashboard({
             />
             <div className="result-monitoring-panel">
               <div className="result-monitoring-header">
-                <span>Phase 7I result monitoring</span>
+                <span>Result monitoring</span>
                 <strong>{resultMonitoringCloseout.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="result-monitoring-grid">
@@ -3982,7 +4038,7 @@ export function Dashboard({
               {resultMonitoringCloseout.reasons.length
                 ? (
                   <small>
-                    Blocked by: {resultMonitoringCloseout.reasons.join(", ")}
+                    {formatGateHint(resultMonitoringCloseout.reasons)}
                   </small>
                 )
                 : (
@@ -3994,7 +4050,7 @@ export function Dashboard({
             </div>
             <div className="phase-8-user-policy-panel">
               <div className="result-monitoring-header">
-                <span>Phase 8 user-safe policy</span>
+                <span>User-safe transaction policy</span>
                 <strong>{phase8UserSafeTransactionPolicy.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-8-user-policy-grid">
@@ -4017,12 +4073,12 @@ export function Dashboard({
               </div>
               <p>{phase8UserSafeTransactionPolicy.message}</p>
               {phase8UserSafeTransactionPolicy.reasons.length
-                ? <small>Blocked by: {phase8UserSafeTransactionPolicy.reasons.join(", ")}</small>
+                ? <small>{formatGateHint(phase8UserSafeTransactionPolicy.reasons)}</small>
                 : <small>User-safe policy is private-dashboard only. Non-zero value, calldata, swaps, and token approvals remain locked.</small>}
             </div>
             <div className="phase-8-user-flow-panel">
               <div className="result-monitoring-header">
-                <span>Phase 8 user execution flow</span>
+                <span>User execution flow</span>
                 <strong>{phase8UserExecutionFlow.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-8-user-flow-track">
@@ -4041,12 +4097,12 @@ export function Dashboard({
               </div>
               <p>{phase8UserExecutionFlow.message}</p>
               {phase8UserExecutionFlow.reasons.length
-                ? <small>Blocked by: {phase8UserExecutionFlow.reasons.join(", ")}</small>
+                ? <small>{formatGateHint(phase8UserExecutionFlow.reasons)}</small>
                 : <small>Owner-only flow map. Telegram and public profiles cannot start, inspect, or complete execution.</small>}
             </div>
             <div className="phase-8-security-hardening-panel">
               <div className="result-monitoring-header">
-                <span>Phase 8 security hardening</span>
+                <span>Security hardening</span>
                 <strong>{phase8SecurityAbuseHardening.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-8-security-hardening-grid">
@@ -4060,12 +4116,12 @@ export function Dashboard({
               </div>
               <p>{phase8SecurityAbuseHardening.message}</p>
               {phase8SecurityAbuseHardening.reasons.length
-                ? <small>Blocked by: {phase8SecurityAbuseHardening.reasons.join(", ")}</small>
+                ? <small>{formatGateHint(phase8SecurityAbuseHardening.reasons)}</small>
                 : <small>Replay, double-submit, public, Telegram, calldata, swap, token approval, and unsanitized failure boundaries are hardened.</small>}
             </div>
             <div className="phase-8-low-value-panel">
               <div className="result-monitoring-header">
-                <span>Phase 8 low-value readiness</span>
+                <span>Low-value readiness</span>
                 <strong>{phase8LowValueTransactionReadiness.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-8-low-value-grid">
@@ -4092,12 +4148,12 @@ export function Dashboard({
               </div>
               <p>{phase8LowValueTransactionReadiness.message}</p>
               {phase8LowValueTransactionReadiness.reasons.length
-                ? <small>Blocked by: {phase8LowValueTransactionReadiness.reasons.join(", ")}</small>
+                ? <small>{formatGateHint(phase8LowValueTransactionReadiness.reasons)}</small>
                 : <small>Low-value review is owner-dashboard only. Execution still requires a separate submit gate.</small>}
             </div>
             <div className="phase-8-low-value-request-panel">
               <div className="result-monitoring-header">
-                <span>Phase 8 low-value request</span>
+                <span>Low-value request</span>
                 <strong>{phase8LowValueSubmitRequest.ok ? "skeleton ready" : "blocked"}</strong>
               </div>
               <div className="phase-8-low-value-request-grid">
@@ -4125,7 +4181,7 @@ export function Dashboard({
               <p>{phase8LowValueSubmitRequest.message}</p>
               {phase8LowValueSubmitRequest.ok
                 ? <small>Low-value request is ready for the isolated owner-dashboard submitter. Telegram and public profiles remain blocked.</small>
-                : <small>Blocked by: {phase8LowValueSubmitRequest.reasons.join(", ")}</small>}
+                : <small>{formatGateHint(phase8LowValueSubmitRequest.reasons)}</small>}
             </div>
             <Phase8LowValueSubmitter
               readiness={phase8LowValueTransactionReadiness}
@@ -4145,7 +4201,7 @@ export function Dashboard({
             />
             <div className="phase-8-transaction-verification-panel">
               <div className="result-monitoring-header">
-                <span>Phase 8 transaction verification</span>
+                <span>Transaction verification</span>
                 <strong>{phase8TransactionVerification.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-8-transaction-verification-grid">
@@ -4168,12 +4224,12 @@ export function Dashboard({
               </div>
               <p>{phase8TransactionVerification.message}</p>
               {phase8TransactionVerification.reasons.length
-                ? <small>Blocked by: {phase8TransactionVerification.reasons.join(", ")}</small>
+                ? <small>{formatGateHint(phase8TransactionVerification.reasons)}</small>
                 : <small>Receipt verification is owner-only. Telegram and public profiles cannot read or expose this state.</small>}
             </div>
             <div className="phase-8-production-closeout-panel">
               <div className="result-monitoring-header">
-                <span>Phase 8 production closeout</span>
+                <span>Production closeout</span>
                 <strong>{phase8ProductionCloseout.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-8-production-closeout-grid">
@@ -4187,12 +4243,12 @@ export function Dashboard({
               </div>
               <p>{phase8ProductionCloseout.message}</p>
               {phase8ProductionCloseout.reasons.length
-                ? <small>Blocked by: {phase8ProductionCloseout.reasons.join(", ")}</small>
-                : <small>Phase 8 closeout is owner-only. Phase 9 owns public execution hardening and wider eligibility.</small>}
+                ? <small>{formatGateHint(phase8ProductionCloseout.reasons)}</small>
+                : <small>Closeout remains owner-only. Public execution requires the separate release gate.</small>}
             </div>
             <div className="phase-9-execution-eligibility-panel">
               <div className="result-monitoring-header">
-                <span>Phase 9A execution eligibility</span>
+                <span>Public execution eligibility</span>
                 <strong>{phase9ExecutionEligibility.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-9-execution-eligibility-grid">
@@ -4206,12 +4262,12 @@ export function Dashboard({
               </div>
               <p>{phase9ExecutionEligibility.message}</p>
               {phase9ExecutionEligibility.reasons.length
-                ? <small>Blocked by: {phase9ExecutionEligibility.reasons.join(", ")}</small>
-                : <small>Public execution eligibility is approved only inside the explicit Phase 9 runtime lane.</small>}
+                ? <small>{formatGateHint(phase9ExecutionEligibility.reasons)}</small>
+                : <small>Public execution eligibility is available only inside the explicit release lane.</small>}
             </div>
             <div className="phase-9-abuse-rate-limit-panel">
               <div className="result-monitoring-header">
-                <span>Phase 9B abuse and rate limit</span>
+                <span>Abuse and rate limits</span>
                 <strong>{phase9AbuseRateLimit.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-9-abuse-rate-limit-grid">
@@ -4225,12 +4281,12 @@ export function Dashboard({
               </div>
               <p>{phase9AbuseRateLimit.message}</p>
               {phase9AbuseRateLimit.reasons.length
-                ? <small>Blocked by: {phase9AbuseRateLimit.reasons.join(", ")}</small>
-                : <small>Abuse and rate-limit enforcement is approved only inside the explicit Phase 9 runtime lane.</small>}
+                ? <small>{formatGateHint(phase9AbuseRateLimit.reasons)}</small>
+                : <small>Abuse and rate-limit enforcement stays inside the explicit release lane.</small>}
             </div>
             <div className="phase-9-incident-controls-panel">
               <div className="result-monitoring-header">
-                <span>Phase 9C incident controls</span>
+                <span>Incident controls</span>
                 <strong>{phase9IncidentControls.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-9-incident-controls-grid">
@@ -4244,12 +4300,12 @@ export function Dashboard({
               </div>
               <p>{phase9IncidentControls.message}</p>
               {phase9IncidentControls.reasons.length
-                ? <small>Blocked by: {phase9IncidentControls.reasons.join(", ")}</small>
-                : <small>Incident controls are armed only inside the explicit Phase 9 runtime lane.</small>}
+                ? <small>{formatGateHint(phase9IncidentControls.reasons)}</small>
+                : <small>Incident controls stay inside the explicit release lane.</small>}
             </div>
             <div className="phase-9-monitoring-support-panel">
               <div className="result-monitoring-header">
-                <span>Phase 9D monitoring support</span>
+                <span>Monitoring and support</span>
                 <strong>{phase9MonitoringSupport.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-9-monitoring-support-grid">
@@ -4263,12 +4319,12 @@ export function Dashboard({
               </div>
               <p>{phase9MonitoringSupport.message}</p>
               {phase9MonitoringSupport.reasons.length
-                ? <small>Blocked by: {phase9MonitoringSupport.reasons.join(", ")}</small>
-                : <small>Monitoring and support evidence is observable only inside the explicit Phase 9 runtime lane.</small>}
+                ? <small>{formatGateHint(phase9MonitoringSupport.reasons)}</small>
+                : <small>Monitoring and support evidence stays inside the explicit release lane.</small>}
             </div>
             <div className="phase-9-public-privacy-panel">
               <div className="result-monitoring-header">
-                <span>Phase 9E public privacy gate</span>
+                <span>Public privacy gate</span>
                 <strong>{phase9PublicPrivacyRelease.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-9-public-privacy-grid">
@@ -4282,12 +4338,12 @@ export function Dashboard({
               </div>
               <p>{phase9PublicPrivacyRelease.message}</p>
               {phase9PublicPrivacyRelease.reasons.length
-                ? <small>Blocked by: {phase9PublicPrivacyRelease.reasons.join(", ")}</small>
-                : <small>Phase 9 public privacy can close only inside the explicit release gate.</small>}
+                ? <small>{formatGateHint(phase9PublicPrivacyRelease.reasons)}</small>
+                : <small>Public privacy can close only inside the explicit release gate.</small>}
             </div>
             <div className="phase-9-closeout-panel">
               <div className="result-monitoring-header">
-                <span>Phase 9 closeout</span>
+                <span>Public release closeout</span>
                 <strong>{phase9Closeout.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-9-closeout-grid">
@@ -4301,12 +4357,12 @@ export function Dashboard({
               </div>
               <p>{phase9Closeout.message}</p>
               {phase9Closeout.reasons.length
-                ? <small>Open items: {phase9Closeout.reasons.join(", ")}</small>
-                : <small>Public execution hardening is complete. Runtime remains under explicit release approval.</small>}
+                ? <small>{formatGateHint(phase9Closeout.reasons)}</small>
+                : <small>Public execution hardening is complete. Access remains under explicit release approval.</small>}
             </div>
             <div className="phase-8-smoke-closeout-panel">
               <div className="result-monitoring-header">
-                <span>Phase 8 smoke closeout</span>
+                <span>Transaction smoke closeout</span>
                 <strong>{phase8SmokeCloseout.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-8-smoke-closeout-grid">
@@ -4329,7 +4385,7 @@ export function Dashboard({
               </div>
               <p>{phase8SmokeCloseout.message}</p>
               {phase8SmokeCloseout.reasons.length
-                ? <small>Blocked by: {phase8SmokeCloseout.reasons.join(", ")}</small>
+                ? <small>{formatGateHint(phase8SmokeCloseout.reasons)}</small>
                 : <small>Smoke closeout is owner-only. Public profiles and Telegram cannot expose or submit this state.</small>}
             </div>
             <div className="execution-result-list">

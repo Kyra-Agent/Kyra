@@ -73,8 +73,8 @@ for (const expected of [
 }
 
 for (const expected of [
-  "| 8 | Complete: controlled live transaction implementation closeout |",
-  "security and abuse hardening",
+  "Product Snapshot",
+  "approval-first onchain workflows",
 ]) {
   includes("README", readme, expected);
 }
@@ -94,7 +94,7 @@ for (const expected of [
 for (const expected of [
   "evaluatePhase8SecurityAbuseHardening",
   "phase8SecurityAbuseHardening",
-  "Phase 8 security hardening",
+  "Security hardening",
   "phase-8-security-hardening-panel",
 ]) {
   includes("dashboard", dashboard, expected);

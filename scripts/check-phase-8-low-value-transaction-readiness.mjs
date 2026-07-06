@@ -73,8 +73,8 @@ for (const expected of [
 }
 
 for (const expected of [
-  "| 8 | Complete: controlled live transaction implementation closeout |",
-  "live balance and gas readiness",
+  "Product Snapshot",
+  "Base Account",
 ]) {
   includes("README", readme, expected);
 }
@@ -98,7 +98,7 @@ for (const expected of [
 for (const expected of [
   "evaluatePhase8LowValueTransactionReadiness",
   "phase8LowValueTransactionReadiness",
-  "Phase 8 low-value readiness",
+  "Low-value readiness",
   "phase-8-low-value-panel",
 ]) {
   includes("dashboard", dashboard, expected);

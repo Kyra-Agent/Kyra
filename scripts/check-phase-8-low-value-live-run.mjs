@@ -58,14 +58,14 @@ for (const expected of [
 }
 
 for (const expected of [
-  "| 8 | Complete: controlled live transaction implementation closeout |",
-  "first controlled low-value live run",
+  "Product Snapshot",
+  "Execution path",
 ]) {
   includes("README", readme, expected);
 }
 
 for (const expected of [
-  "Phase 8 Batch 21 low-value live run",
+  "Low-value transaction window",
   "hasCloseoutScope",
   "closeoutScope.ownerUserId.trim()",
   "closeoutScope.workspaceId.trim()",

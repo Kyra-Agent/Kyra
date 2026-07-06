@@ -160,8 +160,8 @@ assertNotIncludes("WalletRuntimeProviders", walletRuntime, "window.ethereum");
 
 for (
   const modalBoundary of [
-    "Demo review",
-    "Record Demo Review",
+    "Approval review",
+    "Record Approval Review",
     "No wallet prompt was opened.",
     "Wallet execution remains disabled until provider integration.",
     "Real wallet signing remains disabled.",
@@ -295,10 +295,10 @@ for (
     "riskReviewReady: false",
     "ownerApprovalRecorded: false",
     "handoffValid: false",
-    "Phase 7E signing boundary",
+    "Wallet approval boundary",
     "Prompt locked",
     "Telegram",
-    "Blocked",
+    "locked",
   ]
 ) {
   assertIncludes("Dashboard", dashboard, dashboardBoundary);

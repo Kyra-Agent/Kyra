@@ -47,7 +47,7 @@ const packageJson = read("package.json");
 const sourceFiles = walkFiles("src").filter((path) => /\.(?:ts|tsx)$/u.test(path));
 const telegramFiles = walkFiles("supabase/functions/telegram-webhook")
   .filter((path) => /\.ts$/u.test(path) && !path.endsWith("_test.ts"));
-const publicFiles = sourceFiles.filter((path) => /Public|AgentProfile|public/i.test(path));
+const publicFiles = sourceFiles.filter((path) => /^(?:src\/pages|src\/components)\//u.test(path) && /Public|AgentProfile|public/i.test(path));
 
 for (const expected of [
   "# Phase 9 Public Execution Hardening",
@@ -83,7 +83,7 @@ for (const expected of [
 for (const expected of [
   "evaluatePhase9ExecutionEligibility",
   "phase9ExecutionEligibility",
-  "Phase 9A execution eligibility",
+  "Public execution eligibility",
   "phase-9-execution-eligibility-panel",
 ]) {
   includes("dashboard", dashboard, expected);

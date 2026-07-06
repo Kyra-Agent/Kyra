@@ -72,8 +72,8 @@ for (const expected of [
 }
 
 for (const expected of [
-  "| 8 | Complete: controlled live transaction implementation closeout |",
-  "transaction result verification",
+  "Product Snapshot",
+  "receipt checks",
 ]) {
   includes("README", readme, expected);
 }
@@ -92,7 +92,7 @@ for (const expected of [
 for (const expected of [
   "useWaitForTransactionReceipt",
   "phase8TransactionVerification",
-  "Phase 8 transaction verification",
+  "Transaction verification",
   "providerStatus: phase8TransactionVerification.status === \"confirmed\"",
   "confirmationId: phase8TransactionVerification.confirmationId",
   "phase-8-transaction-verification-panel",
