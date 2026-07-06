@@ -166,7 +166,8 @@
     "test:phase-9-closeout": "node scripts/test-phase-9-closeout.mjs",
     "check:phase-9-closeout": "npm run test:phase-9-closeout && node scripts/check-phase-9-closeout.mjs",
     "check:phase-10a": "node scripts/check-phase-10a-product-copy.mjs",
-    "check:phase-10b": "node scripts/check-phase-10b-support-ops.mjs"
+    "check:phase-10b": "node scripts/check-phase-10b-support-ops.mjs",
+    "check:phase-10c": "node scripts/check-phase-10c-launch-qa.mjs"
   },
   "dependencies": {
     "@base-org/account": "^2.5.6",

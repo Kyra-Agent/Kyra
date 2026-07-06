@@ -1,6 +1,6 @@
 # Phase 10 Product Release Readiness
 
-Status: Batch 10B in progress. Public execution runtime remains default-off.
+Status: Batch 10C in progress. Public execution runtime remains default-off.
 
 Phase 10 turns Kyra from structurally hardened execution readiness into a public product readiness package. It does not bypass owner approval, Base Account approval, Kyra approval, receipt verification, rollback, privacy, or audit gates.
 
@@ -55,3 +55,24 @@ Implementation evidence:
 Batch 10B closeout rule:
 
 - Batch 10B can close when support intake, user-facing blocked states, operator actions, emergency disable, rollback, escalation, and privacy/security boundaries are documented and checked.
+
+## Batch 10C - Launch QA and Production Health Evidence
+
+Batch 10C defines launch QA and production health evidence before final security/privacy audit. It does not claim a new deploy has happened; it defines the evidence required after an approved push or release candidate deploy.
+
+Required QA boundaries:
+
+- Landing page, README, dashboard, deploy flow, public agent profile, Telegram read-only, Base Account, transaction boundary, and support-state copy must be checked.
+- Netlify production deploy, Netlify routes, Supabase health, Supabase public views, Edge Functions, Telegram session, Base Account provider, privacy checks, roadmap checks, and build checks must have evidence.
+- Evidence must hide wallet internals, Telegram bot tokens, API keys, service-role data, raw session tokens, provider payload bodies, and raw Edge Function errors.
+- Public execution runtime remains default-off until explicit release approval.
+
+Implementation evidence:
+
+- `docs/phase-10C-launch-qa-production-health.md`
+- `scripts/check-phase-10c-launch-qa.mjs`
+- `npm run check:phase-10c`
+
+Batch 10C closeout rule:
+
+- Batch 10C can close when launch QA surfaces, production health evidence requirements, manual smoke steps, privacy-safe evidence rules, and required checks are documented and verified.
