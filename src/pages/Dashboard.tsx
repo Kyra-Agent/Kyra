@@ -506,7 +506,7 @@ function getTelegramSessionLabel(
     return "webhook paused";
   }
 
-  return "demo session";
+  return "session pending";
 }
 
 function getTelegramSessionHeadline(
@@ -528,7 +528,7 @@ function getTelegramSessionHeadline(
     return "Telegram paused";
   }
 
-  return "Telegram demo session";
+  return "Telegram session pending";
 }
 
 function getTelegramSessionDescription(
@@ -554,7 +554,7 @@ function getTelegramSessionDescription(
     return "Telegram delivery is paused for this agent. Deploy again with a valid BotFather token when ready.";
   }
 
-  return "This agent is still on a simulated Telegram demo session.";
+  return "This agent is waiting for a live Telegram session.";
 }
 
 function getTelegramOwnerPairingLabel(
@@ -669,7 +669,7 @@ export function Dashboard({
     "idle" | "running" | "success" | "error"
   >("idle");
   const [adminActionMessage, setAdminActionMessage] = useState(
-    "Admin actions are scoped to this signed-in demo workspace.",
+    "Admin actions are scoped to this signed-in workspace.",
   );
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [activeDashboardSectionId, setActiveDashboardSectionId] = useState<
@@ -836,7 +836,7 @@ export function Dashboard({
             : "info",
           message: result.ok
             ? "Dashboard records loaded."
-            : result.error ?? "Dashboard has no persisted demo records.",
+            : result.error ?? "Dashboard has no persisted agent records.",
           source: "dashboard",
           code: result.status,
         });
@@ -854,7 +854,7 @@ export function Dashboard({
           );
         } else {
           setAdminActionStatus("success");
-          setAdminActionMessage("Demo workspace reset. Agent quota is clear.");
+          setAdminActionMessage("Workspace reset. Agent quota is clear.");
         }
       }
     }
@@ -2045,8 +2045,8 @@ export function Dashboard({
   const workspace = dashboardData?.workspace ??
     (authSession
       ? {
-        id: "no-demo-workspace",
-        name: "No demo workspace",
+        id: "no-agent-workspace",
+        name: "No agent workspace",
         owner: "Signed-in account",
         mode: "backend-demo" as const,
         authProvider: "supabase" as const,
@@ -2061,16 +2061,16 @@ export function Dashboard({
   const activityLines = dashboardData?.activityLogs.length
     ? dashboardData.activityLogs.map(formatActivityLog)
     : dashboardStatus === "loading"
-    ? ["[--:--:--] dashboard: loading demo workspace records"]
+    ? ["[--:--:--] dashboard: loading agent workspace records"]
     : authSession
-    ? ["[--:--:--] dashboard: no deployed demo agent records"]
+    ? ["[--:--:--] dashboard: no deployed agent records"]
     : [
-      "[--:--:--] account: sign in to load demo workspace records",
+      "[--:--:--] account: sign in to load agent workspace records",
       "[--:--:--] dashboard: no sample agent or public route shown while signed out",
     ];
   const readinessRows = [
     {
-      label: "Demo records",
+      label: "Agent records",
       value: getDashboardReadinessLabel(dashboardStatus),
       tone: getDashboardReadinessTone(dashboardStatus),
       icon: Database,
@@ -2112,7 +2112,7 @@ export function Dashboard({
     {
       label: "Execution",
       value: appConfig.integrations.walletExecution === "disabled"
-        ? "simulated"
+        ? "gated"
         : appConfig.integrations.walletExecution,
       tone: "locked",
       icon: LockKeyhole,
@@ -2141,14 +2141,14 @@ export function Dashboard({
         : "todo",
     },
     {
-      label: "Demo database",
-      detail: "Signed-in deploy receipts persist through RLS-backed records.",
+      label: "Agent database",
+      detail: "Signed-in agent receipts persist through RLS-backed records.",
       state: getDashboardChecklistState(dashboardStatus),
     },
     {
       label: "Agent quota",
       detail:
-        `Demo workspace is capped at ${demoAgentLimits.maxAgentsPerWorkspace} agents.`,
+        `Agent workspace is capped at ${demoAgentLimits.maxAgentsPerWorkspace} agents.`,
       state: "complete",
     },
     {
@@ -2195,7 +2195,7 @@ export function Dashboard({
       label: "Dashboard records",
       value: getDashboardReadinessLabel(dashboardStatus),
       detail: dashboardError ??
-        `${dashboardAgentCount} persisted demo agent records loaded.`,
+        `${dashboardAgentCount} persisted agent records loaded.`,
       tone: getDashboardReadinessTone(dashboardStatus),
     },
     {
@@ -2336,7 +2336,7 @@ export function Dashboard({
       return;
     }
 
-    setAdminActionMessage("Resetting demo workspace records...");
+    setAdminActionMessage("Resetting workspace records...");
 
     const result = await resetSupabaseDemoWorkspace(freshAuth.session);
 
@@ -2367,7 +2367,7 @@ export function Dashboard({
     }
 
     setAdminActionStatus("idle");
-    setAdminActionMessage("Refreshing demo workspace records...");
+    setAdminActionMessage("Refreshing workspace records...");
     recordBackendEvent({
       kind: "dashboard-refresh",
       status: "running",
@@ -2517,25 +2517,25 @@ export function Dashboard({
                 ? "Signed-out preview"
                 : agentRecord
                 ? dashboardStatus === "connected"
-                  ? "Persisted demo agent"
-                  : "Demo agent ready"
+                  ? "Persisted agent"
+                  : "Agent ready"
                 : dashboardStatus === "loading"
                 ? "Syncing workspace"
-                : "No demo agent"}
+                : "No agent"}
             </span>
             <h1>
               {!authSession
-                ? "Sign in to view demo workspace"
+                ? "Sign in to view agent workspace"
                 : agentRecord
                 ? agentRecord.displayName
-                : "No demo agent deployed"}
+                : "No agent deployed"}
             </h1>
             <p>
               {!authSession
                 ? "Dashboard records are hidden until an account session is active. Sign in to load quota, deployed agents, approvals, and public routes."
                 : agentRecord
                 ? activeTemplate.role
-                : "Deploy a demo agent to create persisted dashboard records."}
+                : "Deploy an agent to create persisted dashboard records."}
             </p>
           </div>
           {agentRecord
@@ -2684,13 +2684,13 @@ export function Dashboard({
                   <Database size={20} />
                   <strong>
                     {authSession
-                      ? "No persisted demo agent records."
+                      ? "No persisted agent records."
                       : "Dashboard records locked until sign-in."}
                   </strong>
                   <p>
                     {authSession
-                      ? "This signed-in workspace is clean. Deploy a demo agent from the home flow to create the dashboard, approval queue, wallet policy, logs, and public agent route."
-                      : "Sign in to load account-scoped demo workspace records. No sample agent, wallet queue, or public route is shown while signed out."}
+                      ? "This signed-in workspace is clean. Deploy an agent from the home flow to create the dashboard, approval queue, wallet policy, logs, and public agent route."
+                      : "Sign in to load account-scoped agent workspace records. No sample agent, wallet queue, or public route is shown while signed out."}
                   </p>
                 </div>
               )}
@@ -2813,7 +2813,7 @@ export function Dashboard({
                     <strong>No approval requests.</strong>
                     <p>
                       {authSession
-                        ? "Deploy a demo agent before Kyra creates wallet approval records."
+                        ? "Deploy an agent before Kyra creates wallet approval records."
                         : "Sign in to load account-scoped approval records. Nothing is mocked while signed out."}
                     </p>
                   </div>
@@ -2969,8 +2969,8 @@ export function Dashboard({
                     <strong>No wallet policy record.</strong>
                     <p>
                       {authSession
-                        ? "No keys, funds, or approval settings exist until a demo agent is deployed."
-                        : "Sign in and deploy a demo agent before Kyra shows wallet policy records."}
+                        ? "No keys, funds, or approval settings exist until an agent is deployed."
+                        : "Sign in and deploy an agent before Kyra shows wallet policy records."}
                     </p>
                   </div>
                 )}
@@ -2988,7 +2988,7 @@ export function Dashboard({
                   <span>{authSession ? "workspace owner" : "locked"}</span>
                 </div>
                 <p className="admin-actions-copy">
-                  Reset the signed-in demo workspace when quota testing needs a
+                  Reset the signed-in workspace when quota testing needs a
                   clean slate.
                 </p>
                 <div className="admin-action-metrics">
@@ -3004,7 +3004,7 @@ export function Dashboard({
                     <span>Scope</span>
                     <strong>
                       {authSession
-                        ? "Signed-in demo workspace"
+                        ? "Signed-in workspace"
                         : "Account session required"}
                     </strong>
                   </article>
@@ -3017,7 +3017,7 @@ export function Dashboard({
                     disabled={!authSession || isAdminActionRunning}
                   >
                     <Trash2 size={16} />
-                    {isAdminActionRunning ? "Resetting" : "Reset demo agents"}
+                    {isAdminActionRunning ? "Resetting" : "Reset agent records"}
                   </button>
                   <button
                     className="button button-ghost admin-action-button"
@@ -3150,7 +3150,7 @@ export function Dashboard({
                                 <strong>No backend records yet.</strong>
                                 <p>
                                   A fresh account session stays clean until the
-                                  next demo deploy.
+                                  next agent deploy.
                                 </p>
                               </div>
                             )}
@@ -3163,12 +3163,12 @@ export function Dashboard({
                           <span>{agentTemplates.length} templates loaded</span>
                           <span>
                             {dashboardAgentCount
-                              ? `${dashboardAgentCount} persisted demo agents`
-                              : "no persisted demo agents"}
+                              ? `${dashboardAgentCount} persisted agents`
+                              : "no persisted agents"}
                           </span>
                           <span>
                             max {demoAgentLimits.maxAgentsPerWorkspace}{" "}
-                            demo agents
+                            agents
                           </span>
                           <span>
                             deploy-agent{" "}
@@ -3189,7 +3189,7 @@ export function Dashboard({
             id="backend"
           >
             <div className="panel-title">
-              <span>Demo readiness</span>
+              <span>Product readiness</span>
               <span>{authSession ? "account connected" : "preview mode"}</span>
             </div>
             <div className="readiness-summary">
@@ -3200,8 +3200,8 @@ export function Dashboard({
               >
                 <ShieldCheck size={14} />
                 {dashboardStatus === "connected"
-                  ? "Demo persistence active"
-                  : "demo safe"}
+                  ? "Backend persistence active"
+                  : "gated safe"}
               </span>
               <p>{kyraRepositoryRuntime.note}</p>
             </div>
@@ -3227,11 +3227,11 @@ export function Dashboard({
               <span>{agentTemplates.length} connected templates</span>
               <span>
                 {dashboardAgentCount
-                  ? `${dashboardAgentCount} persisted demo agents`
-                  : "no persisted demo agents"}
+                  ? `${dashboardAgentCount} persisted agents`
+                  : "no persisted agents"}
               </span>
               <span>
-                max {demoAgentLimits.maxAgentsPerWorkspace} demo agents
+                max {demoAgentLimits.maxAgentsPerWorkspace} agents
               </span>
               <span>approval-first workflows</span>
               <span>onchain execution disabled</span>
@@ -4372,7 +4372,7 @@ export function Dashboard({
           <section className="dashboard-panel" id="logs">
             <div className="panel-title">
               <span>Activity log</span>
-              <span>demo replay</span>
+              <span>release replay</span>
             </div>
             <div className="dashboard-log-box">
               {activityLines.map((log) => <p key={log}>{log}</p>)}
@@ -4430,9 +4430,9 @@ export function Dashboard({
                 <div>
                   <span className="demo-badge compact">
                     <Trash2 size={14} />
-                    Reset demo workspace
+                    Reset workspace records
                   </span>
-                  <h3 id="reset-demo-workspace-title">Confirm demo reset</h3>
+                  <h3 id="reset-demo-workspace-title">Confirm workspace reset</h3>
                 </div>
                 <button
                   aria-label="Close reset confirmation"
@@ -4446,14 +4446,14 @@ export function Dashboard({
               </div>
 
               <p className="reset-confirm-copy">
-                This deletes only the signed-in demo workspace records for this
+                This deletes only the signed-in workspace records for this
                 account. It does not touch global data, real funds, wallet keys,
                 private keys, Telegram tokens, or any onchain transactions.
               </p>
               <div className="reset-scope-grid">
                 <span>
                   Scope
-                  <strong>Signed-in demo workspace</strong>
+                  <strong>Signed-in workspace</strong>
                 </span>
                 <span>
                   Agent quota
@@ -4474,7 +4474,7 @@ export function Dashboard({
               <div className="approval-warning reset-confirm-warning">
                 <ShieldCheck size={17} />
                 After reset, the dashboard should show a clean empty state until
-                a new demo agent is deployed.
+                a new agent is deployed.
               </div>
               <div className="modal-actions">
                 <button

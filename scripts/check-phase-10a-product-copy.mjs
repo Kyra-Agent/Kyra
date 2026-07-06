@@ -18,15 +18,15 @@ const phase10 = read("docs/phase-10-product-release-readiness.md");
 const packageJson = read("package.json");
 
 for (const expected of [
-  "Phase%209%20Complete%20%7C%20Phase%2010%20Active",
+  "Phase%2010%20Closed%20%7C%20Release%20Candidate",
   "Kyra Agent is a Base-native AI agent console",
   "| 9 | Structurally complete: public execution hardening; runtime default-off |",
-  "| 10 | Active: product release readiness |",
+  "| 10 | Complete: product release readiness; runtime execution gated |",
   "## Phase 10 Release Readiness",
   "10A | Public product copy and UX final",
   "10E | Release decision and closeout",
   "Phase 10 does not bypass owner approval",
-  "public runtime default-off",
+  "runtime public execution remains gated",
 ]) {
   includes("README", readme, expected);
 }

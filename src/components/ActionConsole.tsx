@@ -28,7 +28,7 @@ export function ActionConsole() {
         <p className="eyebrow">Action Readiness</p>
         <h2>Chat intent becomes a review draft.</h2>
         <p>
-          Current actions stay demo-safe: read context, prepare bounded review
+          Current actions stay execution-safe: read context, prepare bounded review
           summaries, and keep wallet prompts and onchain execution disabled.
         </p>
       </div>

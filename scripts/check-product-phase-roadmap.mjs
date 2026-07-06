@@ -83,7 +83,7 @@ for (
     "| 7 | Base Account + execution readiness complete; not live execution |",
     "| 8 | Complete: controlled live transaction implementation closeout |",
     "| 9 | Structurally complete: public execution hardening; runtime default-off |",
-    "| 10 | Active: product release readiness |",
+    "| 10 | Complete: product release readiness; runtime execution gated |",
     "Phase 8 implementation is closed: one controlled live transaction path",
     "Older Phase 7A-Z documents are supporting evidence packets under Phase 7.",
   ]

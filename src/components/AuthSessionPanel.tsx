@@ -194,7 +194,7 @@ export function AuthSessionPanel({
 
       <div className="auth-safety-line">
         <span>No wallet access</span>
-        <span>Account-scoped demo records</span>
+        <span>Account-scoped agent records</span>
         <span>Session refresh supported</span>
       </div>
     </section>

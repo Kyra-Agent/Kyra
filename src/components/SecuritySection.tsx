@@ -5,7 +5,7 @@ const guarantees = [
   "No private keys",
   "No custody",
   "Wallet approval gate required",
-  "Demo mode executes no real transactions",
+  "Public execution stays gated",
   "No credentials stored",
 ];
 

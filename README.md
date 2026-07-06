@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img alt="Roadmap" src="https://img.shields.io/badge/Roadmap-Phase%209%20Complete%20%7C%20Phase%2010%20Active-111827?style=for-the-badge" />
+  <img alt="Roadmap" src="https://img.shields.io/badge/Roadmap-Phase%2010%20Closed%20%7C%20Release%20Candidate-111827?style=for-the-badge" />
   <img alt="Base" src="https://img.shields.io/badge/Base-Native-0052FF?style=for-the-badge" />
   <img alt="Safety" src="https://img.shields.io/badge/Execution-Approval%20First-16A34A?style=for-the-badge" />
 </p>
@@ -31,7 +31,7 @@ Kyra Agent is a Base-native AI agent console for creating user-owned agents that
 
 | Area                 | Current Status                                         |
 | -------------------- | ------------------------------------------------------ |
-| Agent deployment     | Demo agents can be created from templates              |
+| Agent deployment     | Agents can be created from templates                   |
 | Dashboard            | Private workspace view for deployed agents             |
 | Public profiles      | Shareable agent identity and capability pages          |
 | Telegram             | Live read-only commands and natural planning chat      |
@@ -62,12 +62,12 @@ Current canonical roadmap status:
 | 7 | Base Account + execution readiness complete; not live execution |
 | 8 | Complete: controlled live transaction implementation closeout |
 | 9 | Structurally complete: public execution hardening; runtime default-off |
-| 10 | Active: product release readiness |
+| 10 | Complete: product release readiness; runtime execution gated |
 
 Kyra can currently:
 
-- Deploy demo agent profiles from templates.
-- Persist demo records through the backend.
+- Deploy agent profiles from templates.
+- Persist agent records through the backend.
 - Show private dashboard and public agent profile views.
 - Reply in Telegram through read-only slash commands.
 - Handle bounded natural Telegram chat for planning requests.
@@ -143,7 +143,7 @@ Kyra is built around approval-first execution.
 | Natural planning chat                      | Token approvals                     |
 | LLM-assisted planning replies              | Base MCP transaction execution      |
 | Dashboard and public profiles              | Contract calls                      |
-| Demo persistence                           | Live onchain transaction submission |
+| Backend persistence                        | Live onchain transaction submission |
 | Wallet/Base readiness and review surfaces  | Arbitrary swaps or transfers        |
 | Read-only status bridge readiness          | Prepared-action production writes   |
 
@@ -156,7 +156,7 @@ Current boundaries:
 - No live wallet signing from Telegram.
 - No Base MCP execution from Telegram.
 - No official Base MCP OAuth registration, token, session, or tool call.
-- No live onchain transaction submission in the current demo.
+- No public live onchain transaction submission without explicit release approval.
 - Owner dashboard sensitive reads are column-scoped.
 - Activity log messages are sanitized before display and backend persistence.
 
@@ -192,7 +192,7 @@ The intended execution path remains deliberately narrow:
 8. The user's Base Account submits.
 9. Kyra records a sanitized owner-only result.
 
-Nothing in the current demo skips the owner, wallet, approval, or audit gates. Phase 8 implementation is closed, Phase 9 hardening is structurally complete, and Phase 10 owns final product release readiness.
+Nothing in the current product path skips the owner, wallet, approval, or audit gates. Phase 8 implementation is closed, Phase 9 hardening is structurally complete, and Phase 10 product release readiness is closed while runtime public execution remains gated.
 
 ## Base MCP Boundary
 
@@ -240,7 +240,7 @@ closeout is maintained in
 
 ## Phase 10 Release Readiness
 
-Phase 10 is the final public product-readiness pass. It keeps runtime execution gated while Kyra finishes public copy, support operations, launch QA, production health evidence, final privacy/security audit, and release decisioning.
+Phase 10 is closed as the public product-readiness pass. Runtime execution stays gated while Kyra preserves release evidence, support operations, launch QA, production health evidence, final privacy/security audit, and release decisioning.
 
 | Batch | Scope |
 | ----- | ----- |

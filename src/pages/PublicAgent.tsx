@@ -38,19 +38,19 @@ const capabilityRows = [
   },
   {
     title: "Base action layer",
-    summary: "Show approval-first Base action preparation while execution stays simulated.",
+    summary: "Show approval-first Base action preparation while public execution stays gated.",
     icon: Radio,
   },
   {
     title: "Approval guard",
-    summary: "No custody, no seed phrases, no real transactions in this demo.",
+    summary: "No custody, no seed phrases, no public execution without owner and wallet approval.",
     icon: ShieldCheck,
   },
 ];
 
 function getPublicStatusLabel(status: PublicAgentProfileStatus) {
   if (status === "connected") {
-    return "Persisted demo profile";
+    return "Persisted agent profile";
   }
 
   if (status === "loading") {
@@ -65,7 +65,7 @@ function isDemoPreviewSlug(agentSlug: string) {
 }
 
 function formatDemoRouteStatus(status: string) {
-  return status === "mocked" ? "simulated" : status;
+  return status === "mocked" ? "gated" : status;
 }
 
 function getPublicTelegramPanelStatus(status: string) {
@@ -130,7 +130,7 @@ export function PublicAgent({
   const activeTemplate = publicProfile?.template ?? (canUseMockPreview ? selectedTemplate : null);
   const approvalPolicy = agentRecord ? kyraDataService.getApprovalPolicyForAgent(agentRecord) : null;
   const commandRows = activeTemplate ? kyraDataService.listPriorityApprovalRequests(activeTemplate.id, 4) : [];
-  const profileSource = publicProfile ? "Persisted demo profile" : "Local demo preview";
+  const profileSource = publicProfile ? "Persisted agent profile" : "Local preview";
   const telegramPanelStatus = getPublicTelegramPanelStatus(agentRecord?.telegramStatus ?? "mocked");
 
   useEffect(() => {
@@ -171,13 +171,13 @@ export function PublicAgent({
 
           <span className={`demo-badge ${loading ? "" : "status-paused"}`}>
             <Bot size={14} />
-            {loading ? "Checking public profile" : "Expired demo agent"}
+            {loading ? "Checking public profile" : "Inactive agent route"}
           </span>
-          <h1>{loading ? "Checking agent route..." : "Demo agent unavailable."}</h1>
+          <h1>{loading ? "Checking agent route..." : "Agent route unavailable."}</h1>
           <p>
             {loading
-              ? "Kyra is checking whether this route maps to an active demo agent."
-              : "This public agent route does not map to an active demo record. The demo workspace may have been reset, the record may have expired, or the agent was never deployed."}
+              ? "Kyra is checking whether this route maps to an active agent."
+              : "This public agent route does not map to an active agent record. The workspace may have been reset, the record may have expired, or the agent was never deployed."}
           </p>
           {!loading ? (
             <div className="public-agent-empty-facts">
@@ -206,7 +206,7 @@ export function PublicAgent({
           </div>
           {publicError && !loading ? (
             <span className="demo-action-note public-profile-note">
-              No active demo profile is available for this route.
+              No active public profile is available for this route.
             </span>
           ) : null}
         </section>
@@ -262,13 +262,13 @@ export function PublicAgent({
           </div>
           <h1>{publicAgentHeadline}</h1>
           <p>
-            A share-ready backend demo profile for a deployed Kyra agent. It shows public
-            identity, available demo commands, and safety policy while Telegram and Base
-            execution remain simulated.
+            A share-ready public profile for a deployed Kyra agent. It shows
+            public identity, command examples, and safety policy while Telegram
+            and Base execution remain gated.
           </p>
           {publicError ? (
             <span className="demo-action-note public-profile-note">
-              Connected profile unavailable. Showing the local demo preview.
+              Connected profile unavailable. Showing the local preview.
             </span>
           ) : null}
 
@@ -323,7 +323,7 @@ export function PublicAgent({
             </span>
             <span>
               Mode
-              <strong>Demo</strong>
+              <strong>Gated</strong>
             </span>
             <span>
               Public route
@@ -392,7 +392,7 @@ export function PublicAgent({
         <article className="public-panel">
           <div className="panel-title">
             <span>Capabilities</span>
-            <span>demo</span>
+            <span>gated</span>
           </div>
           <div className="capability-list">
             {capabilityRows.map((item) => {
@@ -432,13 +432,13 @@ export function PublicAgent({
 
         <article className="public-panel public-record-panel">
           <div className="panel-title">
-            <span>Demo profile</span>
+            <span>Agent profile</span>
             <span>share-ready</span>
           </div>
           <div className="record-fact-grid">
             <span>
               Workspace
-              <strong>Demo workspace</strong>
+              <strong>Agent workspace</strong>
             </span>
             <span>
               Telegram
@@ -471,16 +471,16 @@ export function PublicAgent({
             </span>
             <span>
               <Terminal size={17} />
-              Demo mode only
+              Execution gated
             </span>
             <span>
               <Sparkles size={17} />
-              Public preview
+              Public profile
             </span>
           </div>
           <p>
             Kyra prepares actions. The connected wallet is always the final decision
-            point. This public preview does not execute real transactions.
+            point. This public profile cannot execute transactions.
           </p>
         </article>
       </section>

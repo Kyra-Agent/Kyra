@@ -146,7 +146,7 @@ function App() {
     hasInitialAuthSession
       ? "Stored account session loaded."
       : appConfig.supabase.configured
-      ? "Sign in to load account-scoped demo records."
+      ? "Sign in to load account-scoped agent records."
       : "Account session is not configured."
   );
   const [selectedScenarioId, setSelectedScenarioId] = useState("swap");
@@ -573,16 +573,16 @@ function App() {
       <div
         className="demo-disclaimer"
         role="note"
-        aria-label="Kyra demo disclaimer"
+        aria-label="Kyra release candidate safety boundary"
       >
         <span>
           <ShieldCheck size={15} />
-          BACKEND-CONNECTED DEMO
+          RELEASE CANDIDATE
         </span>
         <p>
-          No real transactions, wallet keys, or Telegram bot tokens. Demo
-          records can persist after sign-in, while onchain execution stays
-          simulated.
+          No custody, wallet keys, or Telegram bot tokens. Agent records can
+          persist after sign-in, while public onchain execution stays
+          approval-gated.
         </p>
       </div>
 
@@ -619,7 +619,7 @@ function App() {
                 <div className="hero-copy">
                   <span className="demo-badge hero-badge">
                     <Terminal size={15} />
-                    Backend-connected demo
+                    Product-ready release candidate
                   </span>
                   <h1>
                     Deploy Base agents with approval-first action workflows.
@@ -739,7 +739,7 @@ function createDemoUnsignedHandoff(
     gasPayer: "connected_wallet",
     routeSummary: scenario.route,
     valueSummary: scenario.approvalRequired
-      ? "Demo review only. No token spend is sent."
+      ? "Approval review only. No token spend is sent."
       : "Read-only scenario. No transaction handoff required.",
     risk: scenario.risk === "review" ? "medium" : "low",
     createdAt: createdAt.toISOString(),

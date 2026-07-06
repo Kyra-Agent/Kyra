@@ -1,6 +1,6 @@
 {
   "name": "kyra-agent",
-  "description": "Base-native onchain agent console demo.",
+  "description": "Base-native AI agent platform with approval-first onchain workflows.",
   "private": true,
   "version": "0.1.0",
   "type": "module",

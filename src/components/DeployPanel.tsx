@@ -53,12 +53,12 @@ interface DeployPanelProps {
 
 const deployLogs = [
   "compile agent profile",
-  "prepare demo backend records",
+  "prepare backend records",
   "load Kyra core modules",
   "link Telegram interface",
-  "sync simulated Base action route",
+  "sync gated Base action route",
   "enable wallet approval gate",
-  "publish demo dashboard",
+  "publish agent dashboard",
   "persist backend records",
 ];
 
@@ -91,7 +91,7 @@ const wizardSteps = [
   {
     id: "deploy",
     title: "Deploy",
-    summary: "Publish demo instance.",
+    summary: "Publish agent instance.",
   },
 ];
 
@@ -118,7 +118,7 @@ function getDeployFailureTitle(kind?: DeployFailureKind) {
     case "session":
       return "Account session required";
     case "quota":
-      return "Demo agent limit reached";
+      return "Preview agent limit reached";
     case "template":
       return "Template unavailable";
     case "request":
@@ -167,7 +167,7 @@ export function DeployPanel({
     remaining: demoAgentLimits.maxAgentsPerWorkspace,
     reached: false,
     source: "local",
-    message: `${demoAgentLimits.maxAgentsPerWorkspace} demo agent slots available.`,
+    message: `${demoAgentLimits.maxAgentsPerWorkspace} agent slots available.`,
   });
   const [quotaLoading, setQuotaLoading] = useState(false);
   const deployingRef = useRef(false);
@@ -196,20 +196,20 @@ export function DeployPanel({
       `agent.instance=${agentRecord.id}`,
       `agent.public_route=${agentRecord.publicPath}`,
       `profile.template=${selectedTemplate.name}`,
-      "profile.mode=demo",
-      `demo.record_groups=${backendTables.length}`,
+      "profile.mode=gated",
+      `agent.record_groups=${backendTables.length}`,
       `modules.load=${selectedTemplate.modules.join(",")}`,
       `actions.enable=${selectedActions.join(",")}`,
       `telegram.connect=${telegramTerminalStatus}`,
-      "base.actions=simulated",
+      "base.actions=gated",
       "wallet.policy=approval_required",
       `agent.quota=${authSession ? `${agentQuota.used}/${agentQuota.limit}` : `0/${agentQuota.limit}`}`,
-      `quota.guard=max_${agentQuota.limit}_demo_agents`,
+      `quota.guard=max_${agentQuota.limit}_agents`,
       `account.session=${authSession ? "active" : "missing"}`,
       `deploy.api=${authSession ? "backend_preferred" : "local_preview"}`,
-      `demo.persistence=${authSession ? "active" : "local_preview"}`,
+      `agent.persistence=${authSession ? "active" : "local_preview"}`,
       "security.no_private_keys=true",
-      "demo.transactions=disabled",
+      "public.transactions=gated",
     ],
     [
       agentName,
@@ -269,7 +269,7 @@ export function DeployPanel({
       ? "Backend"
         : persistStatus === "error"
           ? "Guard"
-          : "Demo";
+          : "Preview";
 
   function syncFreshAuthSession(
     currentSession: KyraAuthSession,
@@ -338,7 +338,7 @@ export function DeployPanel({
             remaining: demoAgentLimits.maxAgentsPerWorkspace,
             reached: false,
             source: "local",
-            message: "Session refresh failed. Sign in again to read demo quota.",
+            message: "Session refresh failed. Sign in again to read agent quota.",
           });
           return;
         }
@@ -398,7 +398,7 @@ export function DeployPanel({
     setDeployed(false);
     setActiveLogStep(0);
     setPersistStatus("skipped");
-    setPersistMessage(authSession ? "Preparing demo persistence." : "Demo will run locally until you sign in.");
+    setPersistMessage(authSession ? "Preparing backend persistence." : "Preview will run locally until you sign in.");
     setPersistedRecord(null);
     if (telegramTokenForDeploy) {
       setTelegramDeployConnectStatus("ready");
@@ -587,7 +587,7 @@ export function DeployPanel({
                 }
               }
             } catch {
-              const message = "Demo deploy failed unexpectedly. No public route was confirmed.";
+              const message = "Preview deploy failed unexpectedly. No public route was confirmed.";
 
               setPersistStatus("error");
               setPersistMessage(message);
@@ -634,7 +634,7 @@ export function DeployPanel({
 
     if (atDeployStep) {
       if (quotaBlocksDeploy) {
-        const message = `${agentQuota.message} Max ${agentQuota.limit} agents per demo workspace.`;
+        const message = `${agentQuota.message} Max ${agentQuota.limit} agents per workspace.`;
 
         setDeployed(true);
         setPersistStatus("error");
@@ -677,7 +677,7 @@ export function DeployPanel({
     setWizardStep((step) => Math.min(step + 1, wizardSteps.length - 1));
   }
 
-  function copyDemoLink() {
+  function copyPreviewLink() {
     if (!hasPersistedPublicRoute) {
       return;
     }
@@ -697,32 +697,32 @@ export function DeployPanel({
     <section className="section deploy-section" id="deploy">
       <div className="section-heading">
         <p className="eyebrow">Deploy Flow</p>
-        <h2>Deploy flow, demo-safe by design.</h2>
+        <h2>Deploy flow, approval-first by design.</h2>
         <p>
           Choose a template, configure the agent, link Telegram, set the wallet approval
-          policy, and publish a simulated instance with dashboard and public preview.
+          policy, and publish a gated agent instance with dashboard and public profile.
         </p>
       </div>
 
-      <div className="deploy-howto" aria-label="How to deploy a Kyra demo agent">
+      <div className="deploy-howto" aria-label="How to deploy a Kyra agent">
         <article>
           <span>01</span>
           <strong>Create an account</strong>
-          <p>Sign in so Kyra can save demo records, quota, and the public agent route.</p>
+          <p>Sign in so Kyra can save agent records, quota, and the public agent route.</p>
         </article>
         <article>
           <span>02</span>
           <strong>Choose a template</strong>
-          <p>Pick Operator, Steward, Strategist, or another demo profile for the use case.</p>
+          <p>Pick Operator, Steward, Strategist, or another agent profile for the use case.</p>
         </article>
         <article>
           <span>03</span>
           <strong>Configure identity</strong>
-          <p>Name the agent and review the enabled demo actions before publishing.</p>
+          <p>Name the agent and review the enabled agent actions before publishing.</p>
         </article>
         <article>
           <span>04</span>
-          <strong>Publish demo route</strong>
+          <strong>Publish agent route</strong>
           <p>Deploy a backend-persisted profile, then open dashboard or share the public route.</p>
         </article>
       </div>
@@ -730,8 +730,8 @@ export function DeployPanel({
       <div className="deploy-layout">
         <div className={`config-panel wizard-panel ${templateMenuOpen ? "is-menu-open" : ""}`}>
           <div className="panel-title">
-            <span>Demo deploy wizard</span>
-            <span className="demo-badge compact">Simulated</span>
+            <span>Agent deploy wizard</span>
+            <span className="demo-badge compact">Gated</span>
           </div>
 
           <div className="wizard-stepper" aria-label="Deploy wizard steps">
@@ -758,7 +758,7 @@ export function DeployPanel({
                 <span className="wizard-kicker">Step 01</span>
                 <h3>Create an account or sign in</h3>
                 <p>
-                  A saved demo agent needs an account session. You can still browse Kyra without
+                  A saved agent needs an account session. You can still browse Kyra without
                   signing in, but persisted agents, quota, dashboard records, and public routes are
                   account-scoped.
                 </p>
@@ -774,8 +774,8 @@ export function DeployPanel({
                       : "Sign in before deploy to create a shareable agent route."}
                   </strong>
                   <p>
-                    No wallet access is requested. The account only stores demo workspace records
-                    for this backend-connected preview.
+                    No wallet access is requested. The account only stores agent workspace records
+                    for this backend-connected agent profile.
                   </p>
                   <button className="button button-ghost" type="button" onClick={onOpenAccount}>
                     <UserRound size={16} />
@@ -843,7 +843,7 @@ export function DeployPanel({
               <div className="wizard-screen">
                 <span className="wizard-kicker">Step 03</span>
                 <h3>Configure agent</h3>
-                <p>Set the visible identity and confirm which demo actions are enabled.</p>
+                <p>Set the visible identity and confirm which gated actions are enabled.</p>
 
                 <label className="field">
                   <span>Agent name</span>
@@ -969,7 +969,7 @@ export function DeployPanel({
                   <span>
                     <WalletCards size={16} />
                     Base Account
-                    <strong>demo connected</strong>
+                    <strong>connected</strong>
                   </span>
                   <span>
                     <ShieldCheck size={16} />
@@ -988,11 +988,11 @@ export function DeployPanel({
             {wizardStep === 5 ? (
               <div className="wizard-screen">
                 <span className="wizard-kicker">Step 06</span>
-                <h3>Publish demo agent</h3>
+                <h3>Publish agent</h3>
                 <p>
                   {authSession
-                    ? "Publish a backend-persisted demo profile with dashboard records and a shareable public route."
-                    : "Review the demo output. Sign in before deploying if you want backend persistence and a shareable public route."}
+                    ? "Publish a backend-persisted agent profile with dashboard records and a shareable public route."
+                    : "Review the agent output. Sign in before deploying if you want backend persistence and a shareable public route."}
                 </p>
 
                 <div className="wizard-review-grid">
@@ -1014,7 +1014,7 @@ export function DeployPanel({
                   </span>
                   <span>
                     Persistence
-                    <strong>{authSession ? "Demo persistence active" : "Local preview only"}</strong>
+                    <strong>{authSession ? "Preview persistence active" : "Local preview only"}</strong>
                   </span>
                   <span>
                     Agent limit
@@ -1032,9 +1032,9 @@ export function DeployPanel({
                 >
                   <ShieldCheck size={15} />
                   {quotaBlocksDeploy
-                    ? `${agentQuota.message} Max ${agentQuota.limit} agents per demo workspace.`
+                    ? `${agentQuota.message} Max ${agentQuota.limit} agents per workspace.`
                     : authSession
-                    ? "Account session active. Kyra will persist this demo through the connected backend."
+                    ? "Account session active. Kyra will persist this agent through the connected backend."
                     : "No active account session. This deploy stays local unless you sign in first."}
                 </div>
               </div>
@@ -1063,10 +1063,10 @@ export function DeployPanel({
                 <>
                   <Play size={17} />
                   {deploying
-                    ? "Deploying demo..."
+                    ? "Deploying agent..."
                     : quotaBlocksDeploy
                       ? "Limit reached"
-                      : "Deploy demo agent"}
+                      : "Deploy agent"}
                 </>
               ) : (
                 atAccountStep && !authSession ? "Continue as preview" : "Continue"
@@ -1112,7 +1112,7 @@ export function DeployPanel({
                     </span>
                     <span>
                       Workspace
-                      <strong>{persistedRecord?.workspaceId ?? "local demo"}</strong>
+                      <strong>{persistedRecord?.workspaceId ?? "local session"}</strong>
                     </span>
                     <span>
                       Agent quota
@@ -1120,11 +1120,11 @@ export function DeployPanel({
                     </span>
                     <span>
                       Execution
-                      <strong>simulated</strong>
+                      <strong>gated</strong>
                     </span>
                   </div>
                   <p className="receipt-safety-line">
-                    Backend persistence stores demo records only. No real transaction or wallet key is used.
+                    Backend persistence stores agent records only. No real transaction or wallet key is used.
                     Telegram tokens are never stored in frontend state after submit.
                   </p>
                   {telegramDeployConnectStatus === "success" ? (
@@ -1145,9 +1145,9 @@ export function DeployPanel({
                     </div>
                   )}
                   <div className="receipt-actions">
-                    <button type="button" onClick={copyDemoLink} disabled={!hasPersistedPublicRoute}>
+                    <button type="button" onClick={copyPreviewLink} disabled={!hasPersistedPublicRoute}>
                       <Copy size={14} />
-                      {copiedLink ? "Copied" : hasPersistedPublicRoute ? "Copy demo link" : "No public route"}
+                      {copiedLink ? "Copied" : hasPersistedPublicRoute ? "Copy agent link" : "No public route"}
                     </button>
                     <button
                       type="button"
@@ -1167,7 +1167,7 @@ export function DeployPanel({
               ) : (
                 <div className="receipt-error-detail">
                   <strong>{getDeployFailureTitle(persistedRecord?.failureKind)}</strong>
-                  <small>No demo public route was confirmed, and no live transaction was attempted.</small>
+                  <small>No public agent route was confirmed, and no live transaction was attempted.</small>
                 </div>
               )}
             </div>

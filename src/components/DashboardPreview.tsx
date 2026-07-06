@@ -25,7 +25,7 @@ export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
         </div>
         <span className="demo-badge">
           <CircleDot size={14} />
-          Demo agent preview
+          Agent preview
         </span>
       </div>
 
@@ -48,7 +48,7 @@ export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
             </span>
             <span>
               Mode
-              <strong>Demo</strong>
+              <strong>Gated</strong>
             </span>
             <span>
               Platform
@@ -91,7 +91,7 @@ export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
         <div className="logs-card">
           <div className="panel-title">
             <span>Activity logs</span>
-            <span>demo replay</span>
+            <span>release replay</span>
           </div>
           <div className="log-stream">
             {dashboardLogs.map((log) => <p key={log}>{log}</p>)}

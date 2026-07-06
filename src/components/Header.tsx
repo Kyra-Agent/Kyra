@@ -89,7 +89,7 @@ export function Header({
           onClick={() => onOpenSection("deploy")}
         >
           <Rocket size={16} />
-          Launch Demo
+          Deploy Agent
         </button>
         <button
           className="button button-ghost button-small header-safety hide-on-mobile"
@@ -101,7 +101,7 @@ export function Header({
         </button>
         <span className="demo-badge">
           <Terminal size={14} />
-          Demo Mode
+          Release Candidate
         </span>
       </div>
 
@@ -129,7 +129,7 @@ export function Header({
           {accountSignedIn ? "Account" : "Sign in"}
         </button>
         <button type="button" onClick={() => handleNavigation(() => onOpenSection("deploy"))}>
-          Launch Demo
+          Deploy Agent
         </button>
         <button type="button" onClick={() => handleNavigation(onToggleTheme)}>
           {theme === "light" ? "Dark mode" : "Light mode"}
