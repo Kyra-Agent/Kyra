@@ -743,6 +743,7 @@ export function Dashboard({
       : getDashboardSectionIdFromPath(window.location.pathname)
   );
   const isAdmin = authSession?.user.app_metadata?.role === "admin";
+  const canViewOperationalReadiness = isAdmin;
   const postResetRefreshPendingRef = useRef(false);
   const [backendEvents, setBackendEvents] = useState<BackendEvent[]>(() =>
     getBackendEvents()
@@ -843,6 +844,7 @@ export function Dashboard({
   function openDashboardSection(sectionId: DashboardSectionId) {
     setActiveDashboardSectionId(sectionId);
     window.history.pushState({}, "", `/dashboard/${sectionId}`);
+    window.dispatchEvent(new PopStateEvent("popstate"));
   }
 
   useEffect(() => {
@@ -2585,19 +2587,23 @@ export function Dashboard({
             <Radio size={16} />
             Modules
           </a>
-          <a
-            className={activeDashboardSectionId === "backend"
-              ? "is-active"
-              : undefined}
-            href="/dashboard/backend"
-            onClick={(event) => {
-              event.preventDefault();
-              openDashboardSection("backend");
-            }}
-          >
-            <Server size={16} />
-            Readiness
-          </a>
+          {canViewOperationalReadiness
+            ? (
+              <a
+                className={activeDashboardSectionId === "backend"
+                  ? "is-active"
+                  : undefined}
+                href="/dashboard/backend"
+                onClick={(event) => {
+                  event.preventDefault();
+                  openDashboardSection("backend");
+                }}
+              >
+                <Server size={16} />
+                Readiness
+              </a>
+            )
+            : null}
           {isAdmin
             ? (
               <a
@@ -3313,6 +3319,8 @@ export function Dashboard({
             )
             : null}
 
+          {canViewOperationalReadiness ? (
+            <>
           <section
             className="dashboard-panel backend-readiness-panel"
             id="backend"
@@ -4512,6 +4520,8 @@ export function Dashboard({
             ) : null}
           </section>
 
+            </>
+          ) : null}
           <section className="dashboard-panel" id="logs">
             <div className="panel-title">
               <span>Activity log</span>

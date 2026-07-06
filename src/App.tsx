@@ -425,6 +425,11 @@ function App() {
     return () => window.removeEventListener("popstate", syncRouteFromLocation);
   }, []);
 
+  function pushAppPath(path: string) {
+    window.history.pushState({}, "", path);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }
+
   function navigate(
     nextRoute: "home" | "dashboard" | "agent",
     target?: { templateId?: string; publicPath?: string },
@@ -444,14 +449,14 @@ function App() {
       : nextRoute === "agent"
       ? `/agents/${targetSlug ?? `${nextTemplateId}-demo`}`
       : "/";
-    window.history.pushState({}, "", path);
+    pushAppPath(path);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function openAccountSession() {
     setHomeSectionId(null);
     setRoute("dashboard");
-    window.history.pushState({}, "", "/dashboard/auth");
+    pushAppPath("/dashboard/auth");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -468,7 +473,7 @@ function App() {
     );
     setRoute("home");
     setHomeSectionId(sectionId);
-    window.history.pushState({}, "", `/${sectionId}`);
+    pushAppPath(`/${sectionId}`);
   }
 
   function selectScenario(scenarioId: string) {

@@ -227,6 +227,7 @@ assert(
 );
 
 
+const appPage = read("src/App.tsx");
 const dashboardPage = read("src/pages/Dashboard.tsx");
 assert(
   dashboardPage.includes("Private owner workspace") &&
@@ -239,9 +240,27 @@ assert(
   "Dashboard operational panels must stay behind an owner session gate.",
 );
 assert(
+  dashboardPage.includes("const canViewOperationalReadiness = isAdmin") &&
+    dashboardPage.includes("{canViewOperationalReadiness") &&
+    dashboardPage.includes("className=\"dashboard-panel backend-readiness-panel\"") &&
+    dashboardPage.includes("className=\"dashboard-panel execution-result-panel\""),
+  "Dashboard phase/readiness operations must render only for owner/admin readiness access.",
+);
+assert(
   dashboardPage.includes("dashboard-auth-page") &&
     dashboardPage.includes("Sign in to Kyra Console") &&
     dashboardPage.includes("Public visitors do not see dashboard records"),
   "Signed-out auth route must render a focused account page instead of dashboard operations.",
+);
+assert(
+  appPage.includes("function pushAppPath") &&
+    appPage.includes("window.history.pushState") &&
+    appPage.includes("window.dispatchEvent(new PopStateEvent"),
+  "Programmatic navigation must dispatch route sync so dashboard auth state follows the URL.",
+);
+assert(
+  dashboardPage.includes("function openDashboardSection") &&
+    dashboardPage.includes("window.dispatchEvent(new PopStateEvent"),
+  "Dashboard section navigation must dispatch route sync for mounted route state.",
 );
 console.log("Public privacy checks passed.");
