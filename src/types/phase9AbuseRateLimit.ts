@@ -159,7 +159,7 @@ function buildControls(
     {
       label: "Runtime",
       status: input.phase9RuntimeEnabled ? "pass" : "pending",
-      detail: "Phase 9 runtime remains default-off until explicit release approval.",
+      detail: "Public execution runtime remains disabled until explicit release approval.",
     },
   ];
 }
@@ -169,14 +169,14 @@ function getMessage(
   blockingWithoutRuntime: Phase9AbuseRateLimitReason[],
 ) {
   if (reasons.length === 0) {
-    return "Phase 9 abuse and rate-limit controls are enforced for the public execution lane.";
+    return "Abuse and rate-limit controls are enforced for the approved release lane.";
   }
 
   if (blockingWithoutRuntime.length === 0) {
-    return "Phase 9 abuse and rate-limit controls are structurally ready, but runtime remains disabled.";
+    return "Abuse and rate-limit controls are structurally ready, but runtime remains disabled.";
   }
 
-  return `Phase 9 abuse and rate-limit controls are blocked by ${blockingWithoutRuntime[0]}.`;
+  return "Abuse and rate-limit controls are waiting on required safety checks.";
 }
 
 function isLimitExceeded(window: Phase9RateLimitWindowInput) {

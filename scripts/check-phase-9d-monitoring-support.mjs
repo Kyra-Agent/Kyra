@@ -79,7 +79,7 @@ for (const expected of [
 for (const expected of [
   "evaluatePhase9MonitoringSupport",
   "phase9MonitoringSupport",
-  "Monitoring and support",
+  "Support readiness",
   "phase-9-monitoring-support-panel",
 ]) {
   includes("dashboard", dashboard, expected);

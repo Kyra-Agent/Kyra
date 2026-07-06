@@ -158,7 +158,7 @@ for (
   ]
 ) includes("package scripts", packageJson, value);
 
-includes("README", readme, "pre-provider audit");
+includes("README", readme, "release-readiness roadmap");
 includes("Phase 7X", phase7X, "Current decision: blocked.");
 
 includes("runtime gate", runtime, 'return value === "true"');

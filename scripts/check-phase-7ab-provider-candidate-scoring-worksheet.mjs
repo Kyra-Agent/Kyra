@@ -106,7 +106,7 @@ for (
   ]
 ) includes("package scripts", packageJson, value);
 
-includes("README", readme, "provider candidate scoring worksheet");
+includes("README", readme, "Base MCP remains an optional provider adapter track");
 includes(
   "Phase 7AA intake",
   phase7AA,

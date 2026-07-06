@@ -92,7 +92,7 @@ for (const value of ['"check:phase-7ag"', "npm run check:phase-7ag"]) {
   includes("package scripts", packageJson, value);
 }
 
-includes("README", readme, "provider evidence fill review");
+includes("README", readme, "Base MCP remains an optional provider adapter track");
 includes(
   "Phase 7AF",
   phase7AF,

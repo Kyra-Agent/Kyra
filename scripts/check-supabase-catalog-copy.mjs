@@ -66,7 +66,11 @@ assertIncludes(
   templateContextLookupTest,
   "Rule-based action readiness agent",
 );
-assertIncludes("README", readme, "Personal wallet readiness agent");
+assertIncludes(
+  "README",
+  readme,
+  "Personal wallet readiness and action review agent",
+);
 assertIncludes("README", readme, "Rule-based action readiness agent");
 assertIncludes(
   "Catalog forward review SQL",

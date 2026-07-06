@@ -210,12 +210,12 @@ assertIncludes("dashboard", dashboard, "walletProviderStatus");
 assertIncludes("dashboard", dashboard, "executionResults");
 assertIncludes("dashboard", dashboard, "Execution audit trail");
 assertIncludes("dashboard", dashboard, "owner-only");
-assertIncludes("ActionConsole", actionConsole, "Action Readiness");
-assertIncludes("ActionConsole", actionConsole, "review draft");
+assertIncludes("ActionConsole", actionConsole, "Action Layer");
+assertIncludes("ActionConsole", actionConsole, "controlled review");
 assertIncludes(
   "ActionConsole",
   actionConsole,
-  "wallet prompts and onchain execution disabled",
+  "explicit owner approval",
 );
 assert(
   !actionConsole.includes("Onchain Actions") &&
@@ -237,7 +237,7 @@ assertIncludes(
 );
 assertIncludes("template data", templateData, "swap reviews");
 assertIncludes("template data", templateData, "transfer reviews");
-assertIncludes("template data", templateData, "approval-gated Base readiness");
+assertIncludes("template data", templateData, "approval-first Base readiness");
 assertIncludes("template data", templateData, "review 10 USDC to ETH swap");
 assertIncludes(
   "Supabase Kyra repository",
@@ -287,19 +287,19 @@ assertIncludes(
 assertIncludes(
   "FAQ data",
   faqData,
-  "wallet prompts, signing, and onchain execution stay disabled",
+  "wallet prompts, signing, and onchain execution stay behind the owner-controlled approval path",
 );
 assertIncludes("DashboardPreview", dashboardPreview, "review drafted");
-assertIncludes("DashboardPreview", dashboardPreview, "wallet gated");
+assertIncludes("DashboardPreview", dashboardPreview, "wallet approval");
 assertIncludes(
   "DashboardPreview",
   dashboardPreview,
-  "Wallet prompts, signing, and network",
+  "Wallet prompts, signing, and network fees",
 );
 assertIncludes(
   "DashboardPreview",
   dashboardPreview,
-  "fees stay disabled until the owner-controlled handoff is audited.",
+  "require the owner-controlled approval path.",
 );
 for (
   const forbidden of [
@@ -320,15 +320,15 @@ for (
     `Phase 6C product copy must not imply live wallet execution: ${forbidden}`,
   );
 }
-assertIncludes("HeroConsole", heroConsole, "BASE ACTION review layer gated");
+assertIncludes("HeroConsole", heroConsole, "BASE ACTION review layer ready");
 assertIncludes("HeroConsole", heroConsole, "Wallet review");
-assertIncludes("HeroConsole", heroConsole, "Base gated");
+assertIncludes("HeroConsole", heroConsole, "Base protected");
 assertIncludes(
   "SecuritySection",
   securitySection,
   "Wallet approval gate required",
 );
-assertIncludes("App", app, "Wallet approval gate required");
+assertIncludes("App", app, "explicit owner approval");
 assertIncludes("dashboard", dashboard, "Provider stack");
 assertIncludes("dashboard", dashboard, "Prompt access");
 assertIncludes("dashboard", dashboard, "No automatic wallet prompt");
@@ -377,9 +377,9 @@ assert(
   !walletRuntimeProviders.includes("window.ethereum"),
   "Wallet runtime providers must not use raw window.ethereum.",
 );
-assertIncludes("WalletApprovalModal", walletModal, "Record Demo Review");
-assertIncludes("WalletApprovalModal", walletModal, "Demo review");
-assertIncludes("WalletApprovalModal", walletModal, "Demo rejection recorded");
+assertIncludes("WalletApprovalModal", walletModal, "Record Approval Review");
+assertIncludes("WalletApprovalModal", walletModal, "Approval review");
+assertIncludes("WalletApprovalModal", walletModal, "Approval rejection recorded");
 assertIncludes(
   "WalletApprovalModal",
   walletModal,

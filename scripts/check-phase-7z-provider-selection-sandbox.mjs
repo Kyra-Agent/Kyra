@@ -106,7 +106,7 @@ for (
   ]
 ) includes("package scripts", packageJson, value);
 
-includes("README", readme, "provider selection sandbox");
+includes("README", readme, "Base MCP remains an optional provider adapter track");
 includes("Phase 7Y audit", phase7Y, "Phase 7Y is locally green");
 includes("Phase 7V dossier", phase7V, "Current decision: blocked.");
 includes("Phase 7M contract", phase7M, "kyra_status_v1");

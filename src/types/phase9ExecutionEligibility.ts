@@ -137,9 +137,9 @@ function buildControls(
 ): Phase9ExecutionEligibilityControl[] {
   return [
     {
-      label: "Phase 8 closeout",
+      label: "Foundation closeout",
       status: input.phase8CanContinueToPhase9 ? "pass" : "blocked",
-      detail: "Phase 8 must be closed before public execution hardening can start.",
+      detail: "The owner-controlled transaction foundation must be closed before public execution can widen.",
     },
     {
       label: "Owner and agent",
@@ -174,7 +174,7 @@ function buildControls(
     {
       label: "Runtime",
       status: input.phase9RuntimeEnabled ? "pass" : "pending",
-      detail: "Phase 9 public execution runtime remains default-off until explicit release approval.",
+      detail: "Public execution runtime remains disabled until explicit release approval.",
     },
   ];
 }
@@ -184,14 +184,14 @@ function getMessage(
   blockingWithoutRuntime: Phase9ExecutionEligibilityReason[],
 ) {
   if (reasons.length === 0) {
-    return "Phase 9 execution eligibility is open for the approved public execution lane.";
+    return "Public execution eligibility is open for the approved release lane.";
   }
 
   if (blockingWithoutRuntime.length === 0) {
-    return "Phase 9 eligibility is structurally ready, but public execution runtime remains disabled.";
+    return "Execution eligibility is structurally ready, but public execution runtime remains disabled.";
   }
 
-  return `Phase 9 execution eligibility is blocked by ${blockingWithoutRuntime[0]}.`;
+  return "Execution eligibility is waiting on required safety checks.";
 }
 
 function parseWei(value: string | null | undefined) {

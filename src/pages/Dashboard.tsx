@@ -224,6 +224,13 @@ function formatGateReasons(reasons: readonly string[]) {
     ["rollback_required", "keep rollback ready"],
     ["gas_required", "fund Base ETH for gas"],
     ["base_eth_gas_required", "fund Base ETH for gas"],
+    ["execution_eligibility_required", "complete execution safety review"],
+    ["abuse_rate_limit_required", "complete abuse and rate-limit controls"],
+    ["incident_controls_required", "complete incident controls"],
+    ["monitoring_support_required", "complete monitoring and support readiness"],
+    ["public_privacy_release_required", "complete public privacy review"],
+    ["phase10_readiness_required", "complete release readiness review"],
+    ["owner_scope_required", "use the private owner workspace"],
   ]);
 
   const readable = reasons.map((reason) => {
@@ -243,7 +250,7 @@ function formatGateReasons(reasons: readonly string[]) {
 
 function formatGateHint(reasons: readonly string[]) {
   const formatted = formatGateReasons(reasons);
-  return formatted ? `Needs: ${formatted}.` : "";
+  return formatted ? `To continue: ${formatted}.` : "";
 }
 
 function getReadinessTone(status: SupabaseConnectionStatus) {
@@ -2617,8 +2624,18 @@ export function Dashboard({
             )}
         </div>
 
-        {agentRecords.length
-          ? (
+        {!authSession ? (
+          <section className="dashboard-public-owner-notice" id="overview">
+            <div className="result-monitoring-header">
+              <span>Private owner workspace</span>
+              <strong>sign in required</strong>
+            </div>
+            <p>Kyra keeps dashboard records, wallet status, transaction controls, support evidence, and release readiness private until the workspace owner signs in.</p>
+            <small>Public visitors can use the product pages and public agent profiles without seeing operational or wallet internals.</small>
+          </section>
+        ) : (
+          <>
+        {agentRecords.length? (
             <section
               className="dashboard-agent-selector"
               aria-label="Dashboard agent selector"
@@ -3775,6 +3792,8 @@ export function Dashboard({
                   </small>
                 )}
             </div>
+            {authSession ? (
+              <>
             <div className="phase-8-submission-panel">
               <div className="phase-8-submission-header">
                 <span>Controlled submission</span>
@@ -4305,7 +4324,7 @@ export function Dashboard({
             </div>
             <div className="phase-9-monitoring-support-panel">
               <div className="result-monitoring-header">
-                <span>Monitoring and support</span>
+                <span>Support readiness</span>
                 <strong>{phase9MonitoringSupport.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-9-monitoring-support-grid">
@@ -4320,11 +4339,11 @@ export function Dashboard({
               <p>{phase9MonitoringSupport.message}</p>
               {phase9MonitoringSupport.reasons.length
                 ? <small>{formatGateHint(phase9MonitoringSupport.reasons)}</small>
-                : <small>Monitoring and support evidence stays inside the explicit release lane.</small>}
+                : <small>Support evidence stays private until the release lane is approved.</small>}
             </div>
             <div className="phase-9-public-privacy-panel">
               <div className="result-monitoring-header">
-                <span>Public privacy gate</span>
+                <span>Public privacy review</span>
                 <strong>{phase9PublicPrivacyRelease.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-9-public-privacy-grid">
@@ -4339,7 +4358,7 @@ export function Dashboard({
               <p>{phase9PublicPrivacyRelease.message}</p>
               {phase9PublicPrivacyRelease.reasons.length
                 ? <small>{formatGateHint(phase9PublicPrivacyRelease.reasons)}</small>
-                : <small>Public privacy can close only inside the explicit release gate.</small>}
+                : <small>Public privacy review stays inside the explicit release approval lane.</small>}
             </div>
             <div className="phase-9-closeout-panel">
               <div className="result-monitoring-header">
@@ -4362,7 +4381,7 @@ export function Dashboard({
             </div>
             <div className="phase-8-smoke-closeout-panel">
               <div className="result-monitoring-header">
-                <span>Transaction smoke closeout</span>
+                <span>Owner transaction closeout</span>
                 <strong>{phase8SmokeCloseout.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-8-smoke-closeout-grid">
@@ -4388,6 +4407,17 @@ export function Dashboard({
                 ? <small>{formatGateHint(phase8SmokeCloseout.reasons)}</small>
                 : <small>Smoke closeout is owner-only. Public profiles and Telegram cannot expose or submit this state.</small>}
             </div>
+            </>) : (
+              <div className="dashboard-public-owner-notice">
+                <div className="result-monitoring-header">
+                  <span>Owner console</span>
+                  <strong>private</strong>
+                </div>
+                <p>Transaction controls, release readiness, closeout records, and wallet details are visible only after owner sign-in.</p>
+                <small>Public visitors can view product status and deployed agent information without seeing operational internals.</small>
+              </div>
+            )}
+            {authSession ? (
             <div className="execution-result-list">
               {executionResults.map((result) => (
                 <article
@@ -4423,6 +4453,7 @@ export function Dashboard({
                 </article>
               ))}
             </div>
+            ) : null}
           </section>
 
           <section className="dashboard-panel" id="logs">
@@ -4471,10 +4502,11 @@ export function Dashboard({
             </div>
           </section>
         </div>
+          </>
+        )}
       </section>
 
-      {resetConfirmOpen && isAdmin
-        ? (
+      {resetConfirmOpen && isAdmin? (
           <div className="modal-backdrop" role="presentation">
             <section
               aria-labelledby="reset-demo-workspace-title"

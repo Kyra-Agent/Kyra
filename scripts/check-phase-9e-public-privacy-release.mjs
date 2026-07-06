@@ -80,7 +80,7 @@ for (const expected of [
 for (const expected of [
   "evaluatePhase9PublicPrivacyRelease",
   "phase9PublicPrivacyRelease",
-  "Public privacy gate",
+  "Public privacy review",
   "phase-9-public-privacy-panel",
 ]) {
   includes("dashboard", dashboard, expected);

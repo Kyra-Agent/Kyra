@@ -226,4 +226,16 @@ assert(
   "Operator swap deploy scenario must remain approval-required.",
 );
 
+
+const dashboardPage = read("src/pages/Dashboard.tsx");
+assert(
+  dashboardPage.includes("Private owner workspace") &&
+    dashboardPage.includes("Public visitors can use the product pages and public agent profiles without seeing operational or wallet internals."),
+  "Signed-out dashboard must show a public-safe private workspace notice.",
+);
+assert(
+  dashboardPage.includes("!authSession ?") &&
+    dashboardPage.includes("Transaction controls, release readiness, closeout records, and wallet details are visible only after owner sign-in."),
+  "Dashboard operational panels must stay behind an owner session gate.",
+);
 console.log("Public privacy checks passed.");

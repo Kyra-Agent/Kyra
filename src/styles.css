@@ -5610,6 +5610,25 @@ h2 {
   box-shadow: 0 16px 42px rgba(4, 12, 20, 0.22);
 }
 
+.dashboard-public-owner-notice {
+  border: 1px solid rgba(74, 222, 128, 0.34);
+  border-radius: 8px;
+  padding: 18px;
+  background: linear-gradient(145deg, rgba(8, 25, 31, 0.92), rgba(10, 20, 32, 0.84));
+  box-shadow: 0 16px 42px rgba(4, 12, 20, 0.22);
+}
+
+.dashboard-public-owner-notice p {
+  margin: 12px 0 8px;
+  color: #dce8f5;
+  line-height: 1.55;
+}
+
+.dashboard-public-owner-notice small {
+  color: #9fb2c7;
+  line-height: 1.5;
+}
+
 .phase-8-submission-header {
   display: flex;
   align-items: center;

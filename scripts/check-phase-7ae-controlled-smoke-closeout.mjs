@@ -116,7 +116,7 @@ for (
   ]
 ) includes("package scripts", packageJson, value);
 
-includes("README", readme, "controlled smoke closeout runbook");
+includes("README", readme, "Base MCP remains an optional provider adapter track");
 includes(
   "Phase 7AD SQL packet",
   phase7AD,

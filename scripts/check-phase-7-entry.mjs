@@ -140,11 +140,16 @@ assertIncludes(
 assertIncludes(
   "README",
   readme,
+  "Base Account readiness, controlled owner execution flow, public hardening, support operations, launch QA, and final security/privacy review.",
+);
+assertIncludes(
+  "Kyra context",
+  context,
   "Phase 7 is complete as Base Account + execution readiness.",
 );
 assertIncludes(
-  "README",
-  readme,
+  "Kyra context",
+  context,
   "Phase 8 implementation is closed",
 );
 assertIncludes(

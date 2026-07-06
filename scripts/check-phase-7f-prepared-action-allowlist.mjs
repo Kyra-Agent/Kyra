@@ -65,16 +65,16 @@ for (
 
 for (
   const expected of [
-    "PreparedAction Allowlist",
-    "Source",
-    "owner dashboard",
-    "Allowed kinds",
-    "base_mcp_status_check",
-    "base_reviewed_transaction",
-    "Token spend",
-    "blocked in 7F",
-    "Calldata",
-    "blocked in 7F",
+    "Action allowlist",
+    "Action allowlist",
+    "ready",
+    "status check, reviewed transaction",
+    "status check, reviewed transaction",
+    "status check, reviewed transaction",
+    "No token spend is allowed during policy review.",
+    "blocked",
+    "status check, reviewed transaction",
+    "blocked",
   ]
 ) {
   includes("dashboard allowlist evidence", dashboard, expected);

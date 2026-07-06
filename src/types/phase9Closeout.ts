@@ -62,47 +62,47 @@ export function evaluatePhase9Closeout(input: Phase9CloseoutInput): Phase9Closeo
 function buildControls(input: Phase9CloseoutInput): Phase9CloseoutItem[] {
   return [
     {
-      label: "9A eligibility",
+      label: "Execution safety",
       status: input.executionEligibilityReady ? "pass" : "blocked",
-      detail: "Execution eligibility hardening must be clean.",
+      detail: "Execution safety review must be complete before public access expands.",
     },
     {
-      label: "9B abuse limits",
+      label: "Abuse controls",
       status: input.abuseRateLimitReady ? "pass" : "blocked",
-      detail: "Rate limit, replay, duplicate-submit, and value controls must be clean.",
+      detail: "Rate limits, replay protection, duplicate-submit checks, and value caps must be ready.",
     },
     {
-      label: "9C incidents",
+      label: "Incident controls",
       status: input.incidentControlsReady ? "pass" : "blocked",
-      detail: "Incident, rollback, emergency disable, and failure handling must be clean.",
+      detail: "Incident, rollback, emergency disable, and failure handling must be ready.",
     },
     {
-      label: "9D monitoring",
+      label: "Support monitoring",
       status: input.monitoringSupportReady ? "pass" : "blocked",
-      detail: "Monitoring, support copy, owner evidence, and privacy analytics must be clean.",
+      detail: "Monitoring, support copy, owner evidence, and privacy-safe analytics must be ready.",
     },
     {
-      label: "9E privacy",
+      label: "Privacy review",
       status: input.publicPrivacyReleaseReady ? "pass" : "blocked",
-      detail: "Public surface audit and sensitive-data hiding must be clean.",
+      detail: "Public surfaces must hide sensitive data before release.",
     },
     {
-      label: "Phase 10",
+      label: "Release readiness",
       status: input.phase10ReadinessStarted ? "pass" : "pending",
-      detail: "Phase 10 owns final launch QA, production runbook, and release decision.",
+      detail: "Final launch QA, production runbook, and release decision must be ready.",
     },
     {
       label: "Runtime",
       status: "pending",
-      detail: "Public execution runtime remains disabled until explicit Phase 10 release approval.",
+      detail: "Public execution remains disabled until explicit release approval.",
     },
   ];
 }
 
 function getMessage(phase9StructurallyComplete: boolean, reasons: Phase9CloseoutReason[]) {
   if (phase9StructurallyComplete) {
-    return "Phase 9 public execution hardening is structurally complete; Phase 10 release readiness can start while runtime remains disabled.";
+    return "Public execution safety is structurally complete; release readiness can continue while runtime remains disabled.";
   }
 
-  return `Phase 9 closeout is blocked by ${reasons[0]}.`;
+  return "Public release readiness is waiting on final safety checks.";
 }

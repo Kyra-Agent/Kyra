@@ -92,7 +92,7 @@ for (const expected of [
 for (const expected of [
   "evaluatePhase8SmokeCloseout",
   "phase8SmokeCloseout",
-  "Transaction smoke closeout",
+  "Owner transaction closeout",
   "canContinueToPublicHardening",
   "phase-8-smoke-closeout-panel",
 ]) {

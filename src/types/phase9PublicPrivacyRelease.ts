@@ -132,7 +132,7 @@ function buildControls(
     {
       label: "Monitoring gate",
       status: input.monitoringSupportCanProceed ? "pass" : "blocked",
-      detail: "Batch 9D monitoring, support, and owner evidence must be clean first.",
+      detail: "Monitoring, support, and owner evidence must be ready first.",
     },
     {
       label: "Public surfaces",
@@ -147,12 +147,12 @@ function buildControls(
     {
       label: "Release decision",
       status: input.releaseDecisionRecorded ? "pass" : "blocked",
-      detail: "Phase 9 needs a recorded release decision before Phase 10 readiness starts.",
+      detail: "A recorded release decision is required before final readiness starts.",
     },
     {
       label: "Runtime",
       status: input.phase9RuntimeEnabled ? "pass" : "pending",
-      detail: "Phase 9 runtime remains default-off until explicit release approval.",
+      detail: "Public execution runtime remains disabled until explicit release approval.",
     },
   ];
 }
@@ -162,12 +162,12 @@ function getMessage(
   blockingWithoutRuntime: Phase9PublicPrivacyReleaseReason[],
 ) {
   if (reasons.length === 0) {
-    return "Phase 9 public privacy and release gate is ready for the public execution lane.";
+    return "Public privacy and release review is ready for the approved release lane.";
   }
 
   if (blockingWithoutRuntime.length === 0) {
-    return "Phase 9 public privacy gate can close structurally, but runtime remains disabled.";
+    return "Public privacy review can close structurally, but runtime remains disabled.";
   }
 
-  return `Phase 9 public privacy gate is blocked by ${blockingWithoutRuntime[0]}.`;
+  return "Public privacy review is waiting on required safety checks.";
 }

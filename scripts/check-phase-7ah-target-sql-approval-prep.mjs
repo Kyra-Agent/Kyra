@@ -100,7 +100,7 @@ for (const value of ['"check:phase-7ah"', "npm run check:phase-7ah"]) {
   includes("package scripts", packageJson, value);
 }
 
-includes("README", readme, "target SQL approval prep");
+includes("README", readme, "Base MCP remains an optional provider adapter track");
 includes(
   "Phase 7AD",
   phase7AD,

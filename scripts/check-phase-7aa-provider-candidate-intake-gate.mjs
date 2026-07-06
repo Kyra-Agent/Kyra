@@ -109,7 +109,7 @@ for (
   ]
 ) includes("package scripts", packageJson, value);
 
-includes("README", readme, "provider candidate intake gate");
+includes("README", readme, "Base MCP remains an optional provider adapter track");
 includes(
   "Phase 7Z sandbox",
   phase7Z,

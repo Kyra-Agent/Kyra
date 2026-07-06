@@ -131,7 +131,7 @@ for (
   ]
 ) includes("package scripts", packageJson, value);
 
-includes("README", readme, "SQL/verifier final approval packet");
+includes("README", readme, "Base MCP remains an optional provider adapter track");
 includes("Phase 7U verifier", phase7U, "Current decision: blocked.");
 includes("Phase 7T smoke", phase7T, "Current decision: blocked.");
 includes(

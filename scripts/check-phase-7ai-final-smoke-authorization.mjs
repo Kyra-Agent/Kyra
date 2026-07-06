@@ -108,7 +108,7 @@ for (const value of ['"check:phase-7ai"', "npm run check:phase-7ai"]) {
   includes("package scripts", packageJson, value);
 }
 
-includes("README", readme, "final smoke authorization packet");
+includes("README", readme, "Base MCP remains an optional provider adapter track");
 includes(
   "Phase 7AF",
   phase7AF,

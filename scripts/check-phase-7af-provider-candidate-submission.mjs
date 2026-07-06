@@ -94,7 +94,7 @@ for (const value of ['"check:phase-7af"', "npm run check:phase-7af"]) {
   includes("package scripts", packageJson, value);
 }
 
-includes("README", readme, "provider candidate submission template");
+includes("README", readme, "Base MCP remains an optional provider adapter track");
 includes("runtime gate", runtime, 'return value === "true"');
 excludes("dependencies", dependencies, "storePreparedActionSummary");
 excludes("provider adapter", providerAdapter, "walletAddress");

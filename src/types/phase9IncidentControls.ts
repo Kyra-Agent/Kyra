@@ -162,7 +162,7 @@ function buildControls(
     {
       label: "Runtime",
       status: input.phase9RuntimeEnabled ? "pass" : "pending",
-      detail: "Phase 9 runtime remains default-off until explicit release approval.",
+      detail: "Public execution runtime remains disabled until explicit release approval.",
     },
   ];
 }
@@ -172,12 +172,12 @@ function getMessage(
   blockingWithoutRuntime: Phase9IncidentControlReason[],
 ) {
   if (reasons.length === 0) {
-    return "Phase 9 incident, rollback, and emergency controls are armed for the public execution lane.";
+    return "Incident, rollback, and emergency controls are armed for the approved release lane.";
   }
 
   if (blockingWithoutRuntime.length === 0) {
-    return "Phase 9 incident controls are structurally ready, but runtime remains disabled.";
+    return "Incident controls are structurally ready, but runtime remains disabled.";
   }
 
-  return `Phase 9 incident controls are blocked by ${blockingWithoutRuntime[0]}.`;
+  return "Incident controls are waiting on required safety checks.";
 }

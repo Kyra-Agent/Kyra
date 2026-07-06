@@ -130,7 +130,7 @@ function buildControls(
     {
       label: "Incident gate",
       status: input.incidentControlsCanProceed ? "pass" : "blocked",
-      detail: "Batch 9C incident and rollback controls must be clean first.",
+      detail: "Incident and rollback controls must be ready first.",
     },
     {
       label: "Production health",
@@ -155,7 +155,7 @@ function buildControls(
     {
       label: "Runtime",
       status: input.phase9RuntimeEnabled ? "pass" : "pending",
-      detail: "Phase 9 runtime remains default-off until explicit release approval.",
+      detail: "Public execution runtime remains disabled until explicit release approval.",
     },
   ];
 }
@@ -165,12 +165,12 @@ function getMessage(
   blockingWithoutRuntime: Phase9MonitoringSupportReason[],
 ) {
   if (reasons.length === 0) {
-    return "Phase 9 monitoring, support, and owner evidence are observable for the public execution lane.";
+    return "Monitoring, support, and owner evidence are ready for the approved release lane.";
   }
 
   if (blockingWithoutRuntime.length === 0) {
-    return "Phase 9 monitoring and support are structurally ready, but runtime remains disabled.";
+    return "Monitoring and support are structurally ready, but runtime remains disabled.";
   }
 
-  return `Phase 9 monitoring and support are blocked by ${blockingWithoutRuntime[0]}.`;
+  return "Monitoring and support are waiting on required safety checks.";
 }
