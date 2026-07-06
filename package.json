@@ -168,7 +168,8 @@
     "check:phase-10a": "node scripts/check-phase-10a-product-copy.mjs",
     "check:phase-10b": "node scripts/check-phase-10b-support-ops.mjs",
     "check:phase-10c": "node scripts/check-phase-10c-launch-qa.mjs",
-    "check:phase-10d": "node scripts/check-phase-10d-final-security-privacy-audit.mjs"
+    "check:phase-10d": "node scripts/check-phase-10d-final-security-privacy-audit.mjs",
+    "check:phase-10e": "node scripts/check-phase-10e-release-decision-closeout.mjs"
   },
   "dependencies": {
     "@base-org/account": "^2.5.6",

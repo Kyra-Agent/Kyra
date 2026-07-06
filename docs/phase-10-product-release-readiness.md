@@ -1,6 +1,6 @@
 # Phase 10 Product Release Readiness
 
-Status: Batch 10D in progress. Public execution runtime remains default-off.
+Status: Phase 10E closeout in progress. Public execution runtime remains default-off until explicit release approval.
 
 Phase 10 turns Kyra from structurally hardened execution readiness into a public product readiness package. It does not bypass owner approval, Base Account approval, Kyra approval, receipt verification, rollback, privacy, or audit gates.
 
@@ -97,3 +97,23 @@ Implementation evidence:
 Batch 10D closeout rule:
 
 - Batch 10D can close when public/private surface audit, Supabase/Edge audit, runtime gate audit, secret hygiene audit, release blockers, and required checks are documented and verified.
+
+## Batch 10E - Release Decision and Closeout
+
+Batch 10E records the release decision framework for Kyra as a public product. It closes Phase 10 for product readiness while keeping runtime public execution gated until explicit release approval.
+
+Release decision boundaries:
+
+- Kyra is ready for release-candidate review across product copy, support operations, launch QA, security/privacy audit, Telegram read-only replies, Base Account connection, and owner-dashboard review.
+- Kyra remains gated for public transaction execution, Telegram transaction submission, public profile transaction submission, token approvals, swaps, transfers, arbitrary calldata, autonomous fund movement, and official hosted Base MCP execution.
+- Public release must preserve user wallet authority, Telegram bot-token privacy, manual Base Account approval, separate Kyra approval, emergency disable, rollback, and sanitized public routes.
+
+Implementation evidence:
+
+- `docs/phase-10E-release-decision-closeout.md`
+- `scripts/check-phase-10e-release-decision-closeout.mjs`
+- `npm run check:phase-10e`
+
+Batch 10E closeout rule:
+
+- Phase 10 can close when 10A through 10E evidence exists, 10A through 10E checks pass, roadmap marks Phase 10 release readiness as closed for product readiness, public execution remains gated unless explicitly approved, secret scans are clean, build is green, and user wallet authority plus Telegram bot-token privacy remain priority one.

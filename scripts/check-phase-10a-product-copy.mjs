@@ -33,7 +33,6 @@ for (const expected of [
 
 for (const expected of [
   "## Phase 10 - Product Release Readiness",
-  "Status: active; Batch",
   "10A - Public product copy and UX final",
   "10B - Support operations and operator runbook",
   "10C - Launch QA and production health evidence",

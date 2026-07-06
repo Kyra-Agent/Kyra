@@ -64,7 +64,6 @@ for (const expected of [
 }
 
 for (const expected of [
-  "Status: active;",
   "10C - Launch QA and production health evidence",
 ]) {
   includes("roadmap", roadmap, expected);

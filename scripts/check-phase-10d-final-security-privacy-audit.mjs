@@ -82,7 +82,6 @@ for (const expected of [
 }
 
 for (const expected of [
-  "Status: active; Batch 10D final security and privacy audit in progress.",
   "10D - Final security and privacy audit",
 ]) {
   includes("roadmap", roadmap, expected);

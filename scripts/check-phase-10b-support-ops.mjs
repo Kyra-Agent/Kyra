@@ -55,7 +55,6 @@ for (const expected of [
 }
 
 for (const expected of [
-  "Status: active;",
   "10B - Support operations and operator runbook",
 ]) {
   includes("roadmap", roadmap, expected);
