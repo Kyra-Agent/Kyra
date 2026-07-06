@@ -11,8 +11,8 @@ interface TemplatePickerProps {
 }
 
 const statusLabel = {
-  mvp: "MVP",
-  advanced: "Advanced",
+  mvp: "Ready",
+  advanced: "Pro",
   "coming-soon": "Soon",
 };
 
@@ -53,10 +53,9 @@ export function TemplatePicker({
     <section className="section" id="templates">
       <div className="section-heading">
         <p className="eyebrow">Agent Templates</p>
-        <h2>Start from an agent users can understand.</h2>
+        <h2>Start from a role users already understand.</h2>
         <p>
-          Templates stay clear and use-case driven, while the Kyra module system handles
-          the deeper agent behavior underneath.
+          Templates keep the product simple. Kyra modules handle orchestration, research, data, and security underneath.
         </p>
         <div className="catalog-status-row">
           <span className={`readiness-chip readiness-${getCatalogTone(catalogStatus)}`}>

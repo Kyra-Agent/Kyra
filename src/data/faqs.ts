@@ -4,27 +4,27 @@ export const faqs: FAQItem[] = [
   {
     question: "What is Kyra?",
     answer:
-      "Kyra is a Base-native agent console. It lets users deploy Telegram-native agents that read context, understand commands, and prepare approval-gated action reviews.",
+      "Kyra is a Base-native AI agent platform. It lets users deploy Telegram-native agents that read context, understand commands, and prepare approval-first action reviews.",
   },
   {
     question: "Does Kyra execute real transactions automatically?",
     answer:
-      "No. Kyra is product-ready for agent deployment, Telegram read-only replies, and approval-gated review flows. Public transaction execution remains gated by explicit owner and wallet approval.",
+      "No. Kyra can deploy agents, run Telegram read-only replies, and prepare approval-first review flows. Transaction execution requires explicit owner and wallet approval.",
   },
   {
     question: "Does Kyra control my wallet?",
     answer:
-      "No. Kyra should never ask for seed phrases or private keys. The agent can prepare review context, but wallet prompts, signing, and onchain execution stay disabled until the owner-controlled handoff is audited.",
+      "No. Kyra never needs seed phrases or private keys. The agent can prepare review context, but wallet prompts, signing, and onchain execution stay behind the owner-controlled approval path.",
   },
   {
     question: "Who pays for onchain actions?",
     answer:
-      "Public live onchain actions are not submitted without explicit release approval. Any future network and protocol fees must be shown to the owner wallet before an approval path is enabled.",
+      "Network and protocol fees belong to the owner wallet. Any onchain action must show the owner what is being approved before submission.",
   },
   {
     question: "Why Telegram first?",
     answer:
-      "Telegram gives Kyra a fast command interface for personal and community agents. The product output is still an agent instance: Telegram interface, Kyra dashboard, and an approval-gated review workflow.",
+      "Telegram gives Kyra a fast command interface for personal and community agents. The product output is still a full agent workspace: Telegram interface, dashboard, public profile, and approval-first workflow.",
   },
   {
     question: "Do I need to expose a Telegram bot token?",
@@ -34,7 +34,7 @@ export const faqs: FAQItem[] = [
   {
     question: "What is the Base action layer?",
     answer:
-      "It is the approval-first workflow Kyra uses to prepare Base ecosystem action reviews while keeping wallet prompts and execution behind explicit owner control.",
+      "It is the approval-first workflow Kyra uses to prepare Base ecosystem action reviews while keeping wallet prompts and execution under explicit owner control.",
   },
   {
     question: "Can project teams use Kyra?",
@@ -44,6 +44,6 @@ export const faqs: FAQItem[] = [
   {
     question: "Can I save an agent?",
     answer:
-      "Yes. Signed-in users can persist agent records for dashboard and public profile views. Telegram connections stay owner-managed, while wallet transactions and public onchain execution remain approval-gated.",
+      "Yes. Signed-in users can persist agent records for dashboard and public profile views. Telegram connections stay owner-managed, while wallet transactions remain approval-first.",
   },
 ];

@@ -101,7 +101,7 @@ export function Header({
         </button>
         <span className="demo-badge">
           <Terminal size={14} />
-          Release Candidate
+          Product Ready
         </span>
       </div>
 

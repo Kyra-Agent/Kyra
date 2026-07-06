@@ -5,7 +5,7 @@ const guarantees = [
   "No private keys",
   "No custody",
   "Wallet approval gate required",
-  "Public execution stays gated",
+  "Public execution needs approval",
   "No credentials stored",
 ];
 
@@ -14,11 +14,9 @@ export function SecuritySection() {
     <section className="section security-section" id="security">
       <div className="security-copy">
         <p className="eyebrow">Security Model</p>
-        <h2>Kyra prepares. Your wallet decides.</h2>
+        <h2>Kyra plans. Your wallet decides.</h2>
         <p>
-          The product must be built around user control. Agents can understand
-          commands and prepare review drafts, but the wallet remains the final
-          gate for any future onchain action.
+          Kyra is built around user control. Agents can understand commands and prepare review drafts, while the wallet remains the final gate for any onchain action.
         </p>
       </div>
 
@@ -27,16 +25,14 @@ export function SecuritySection() {
           <LockKeyhole size={22} />
           <strong>No custody</strong>
           <p>
-            Kyra should never store seed phrases, private keys, or raw wallet
-            credentials.
+            Kyra never needs seed phrases, private keys, or raw wallet credentials.
           </p>
         </article>
         <article>
           <WalletCards size={22} />
           <strong>Approval first</strong>
           <p>
-            Swaps, sends, and admin actions stay gated until the wallet or Base
-            Account handoff is explicitly approved and audited.
+            Swaps, sends, and admin actions require explicit wallet or Base Account approval before execution can proceed.
           </p>
         </article>
         <article>

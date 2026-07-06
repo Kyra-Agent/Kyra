@@ -56,7 +56,7 @@ const deployLogs = [
   "prepare backend records",
   "load Kyra core modules",
   "link Telegram interface",
-  "sync gated Base action route",
+  "sync protected Base action route",
   "enable wallet approval gate",
   "publish agent dashboard",
   "persist backend records",
@@ -196,12 +196,12 @@ export function DeployPanel({
       `agent.instance=${agentRecord.id}`,
       `agent.public_route=${agentRecord.publicPath}`,
       `profile.template=${selectedTemplate.name}`,
-      "profile.mode=gated",
+      "profile.mode=protected",
       `agent.record_groups=${backendTables.length}`,
       `modules.load=${selectedTemplate.modules.join(",")}`,
       `actions.enable=${selectedActions.join(",")}`,
       `telegram.connect=${telegramTerminalStatus}`,
-      "base.actions=gated",
+      "base.actions=approval_required",
       "wallet.policy=approval_required",
       `agent.quota=${authSession ? `${agentQuota.used}/${agentQuota.limit}` : `0/${agentQuota.limit}`}`,
       `quota.guard=max_${agentQuota.limit}_agents`,
@@ -209,7 +209,7 @@ export function DeployPanel({
       `deploy.api=${authSession ? "backend_preferred" : "local_preview"}`,
       `agent.persistence=${authSession ? "active" : "local_preview"}`,
       "security.no_private_keys=true",
-      "public.transactions=gated",
+      "public.transactions=approval_required",
     ],
     [
       agentName,
@@ -700,7 +700,7 @@ export function DeployPanel({
         <h2>Deploy flow, approval-first by design.</h2>
         <p>
           Choose a template, configure the agent, link Telegram, set the wallet approval
-          policy, and publish a gated agent instance with dashboard and public profile.
+          policy, and publish an approval-first agent instance with dashboard and public profile.
         </p>
       </div>
 
@@ -731,7 +731,7 @@ export function DeployPanel({
         <div className={`config-panel wizard-panel ${templateMenuOpen ? "is-menu-open" : ""}`}>
           <div className="panel-title">
             <span>Agent deploy wizard</span>
-            <span className="demo-badge compact">Gated</span>
+            <span className="demo-badge compact">Protected</span>
           </div>
 
           <div className="wizard-stepper" aria-label="Deploy wizard steps">
@@ -828,7 +828,7 @@ export function DeployPanel({
                               <small>{template.role}</small>
                             </span>
                             <span className={`mini-label-inline status-${template.status}`}>
-                              {template.status === "coming-soon" ? "soon" : template.status}
+                              {template.status === "coming-soon" ? "soon" : template.status === "mvp" ? "ready" : "pro"}
                             </span>
                           </button>
                         );
@@ -843,7 +843,7 @@ export function DeployPanel({
               <div className="wizard-screen">
                 <span className="wizard-kicker">Step 03</span>
                 <h3>Configure agent</h3>
-                <p>Set the visible identity and confirm which gated actions are enabled.</p>
+                <p>Set the visible identity and confirm which approval-first actions are enabled.</p>
 
                 <label className="field">
                   <span>Agent name</span>
@@ -1120,7 +1120,7 @@ export function DeployPanel({
                     </span>
                     <span>
                       Execution
-                      <strong>gated</strong>
+                      <strong>protected</strong>
                     </span>
                   </div>
                   <p className="receipt-safety-line">
@@ -1131,7 +1131,7 @@ export function DeployPanel({
                     <div className="deploy-persist-note persist-success">
                       <ShieldCheck size={15} />
                       Telegram connection active. Open the bot and use /help or /status; write, wallet,
-                      approval, and onchain actions stay gated.
+                      approval, and onchain actions require owner approval.
                     </div>
                   ) : telegramDeployConnectStatus !== "idle" ? (
                     <div className={`deploy-persist-note persist-${telegramDeployConnectStatus}`}>

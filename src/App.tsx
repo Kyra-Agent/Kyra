@@ -573,16 +573,14 @@ function App() {
       <div
         className="demo-disclaimer"
         role="note"
-        aria-label="Kyra release candidate safety boundary"
+        aria-label="Kyra product safety boundary"
       >
         <span>
           <ShieldCheck size={15} />
-          RELEASE CANDIDATE
+          PRODUCT READY
         </span>
         <p>
-          No custody, wallet keys, or Telegram bot tokens. Agent records can
-          persist after sign-in, while public onchain execution stays
-          approval-gated.
+          No custody, wallet keys, or Telegram bot tokens. Agents can persist after sign-in, while every onchain action stays behind explicit owner approval.
         </p>
       </div>
 
@@ -619,15 +617,13 @@ function App() {
                 <div className="hero-copy">
                   <span className="demo-badge hero-badge">
                     <Terminal size={15} />
-                    Product-ready release candidate
+                    Base-native agent platform
                   </span>
                   <h1>
-                    Deploy Base agents with approval-first action workflows.
+                    Deploy Telegram-native Base agents with approval-first workflows.
                   </h1>
                   <p className="hero-subtitle">
-                    Launch Telegram-native AI agents that read wallet context,
-                    prepare Base action reviews, and keep wallet prompts,
-                    signing, and onchain execution gated.
+                    Create agent profiles, connect Telegram, prepare Base action reviews, and keep wallet prompts, signing, and onchain execution behind explicit owner approval.
                   </p>
 
                   <div className="hero-actions">
@@ -660,7 +656,7 @@ function App() {
                   <div className="trust-row" aria-label="Kyra trust model">
                     <span>No seed phrases</span>
                     <span>No custody</span>
-                    <span>Wallet approval gate required</span>
+                    <span>Owner-approved execution</span>
                   </div>
                 </div>
 

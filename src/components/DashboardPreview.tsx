@@ -20,12 +20,12 @@ export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
     <section className="section dashboard-section">
       <div className="dashboard-header">
         <div>
-          <p className="eyebrow">Agent Output</p>
-          <h2>One agent output across Telegram, console, and approvals.</h2>
+          <p className="eyebrow">Agent Workspace</p>
+          <h2>One agent workspace across Telegram, dashboard, and approvals.</h2>
         </div>
         <span className="demo-badge">
           <CircleDot size={14} />
-          Agent preview
+          Workspace preview
         </span>
       </div>
 
@@ -48,7 +48,7 @@ export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
             </span>
             <span>
               Mode
-              <strong>Gated</strong>
+              <strong>Protected</strong>
             </span>
             <span>
               Platform
@@ -64,7 +64,7 @@ export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
         <div className="approval-card">
           <div className="panel-title">
             <span>Approval queue</span>
-            <span className="status-pill status-mvp">Waiting</span>
+            <span className="status-pill status-mvp">Review ready</span>
           </div>
           <div className="approval-flow">
             <span>
@@ -79,19 +79,18 @@ export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
             <ArrowRight size={16} />
             <span>
               <ExternalLink size={16} />
-              wallet gated
+              wallet approval
             </span>
           </div>
           <p className="muted">
-            Kyra prepares review context. Wallet prompts, signing, and network
-            fees stay disabled until the owner-controlled handoff is audited.
+            Kyra prepares review context. Wallet prompts, signing, and network fees require the owner-controlled approval path.
           </p>
         </div>
 
         <div className="logs-card">
           <div className="panel-title">
             <span>Activity logs</span>
-            <span>release replay</span>
+            <span>activity replay</span>
           </div>
           <div className="log-stream">
             {dashboardLogs.map((log) => <p key={log}>{log}</p>)}

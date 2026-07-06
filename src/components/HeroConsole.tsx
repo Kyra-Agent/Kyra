@@ -33,11 +33,11 @@ export function HeroConsole({
   const lines = useMemo(
     () => [
       `kyra@base:~$ deploy --template ${selectedTemplate.id}`,
-      "loading Telegram-native agent shell",
+      "loading Telegram-native agent runtime",
       "NIRA-01  routing intent",
       "NOVA-04  wallet data module synced",
       "NYX-05   risk guard active",
-      "BASE ACTION review layer gated",
+      "BASE ACTION review layer ready",
       `telegram> ${selectedScenario.command}`,
       ...selectedScenario.lines,
     ],
@@ -82,7 +82,7 @@ export function HeroConsole({
           <span />
         </div>
         <span>kyra-core/runtime</span>
-        <span className="live-indicator">approval-gated live</span>
+        <span className="live-indicator">owner-approved runtime</span>
       </div>
 
       <div className="hero-console-body">
@@ -128,7 +128,7 @@ export function HeroConsole({
           </span>
           <span>
             <Radio size={15} />
-            Base gated
+            Base protected
           </span>
         </div>
       </div>

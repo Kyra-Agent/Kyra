@@ -38,7 +38,7 @@ const capabilityRows = [
   },
   {
     title: "Base action layer",
-    summary: "Show approval-first Base action preparation while public execution stays gated.",
+    summary: "Show approval-first Base action preparation while execution stays owner-controlled.",
     icon: Radio,
   },
   {
@@ -65,7 +65,7 @@ function isDemoPreviewSlug(agentSlug: string) {
 }
 
 function formatDemoRouteStatus(status: string) {
-  return status === "mocked" ? "gated" : status;
+  return status === "mocked" ? "protected" : status;
 }
 
 function getPublicTelegramPanelStatus(status: string) {
@@ -74,7 +74,7 @@ function getPublicTelegramPanelStatus(status: string) {
       eyebrow: "Telegram live connect",
       headline: "Telegram bot connected",
       description:
-        "This agent has an active Telegram bot connection. Public commands stay read-only while wallet, approval, and onchain actions remain gated.",
+        "This agent has an active Telegram bot connection. Public commands stay read-only while wallet, approval, and onchain actions remain owner-controlled.",
       label: "Read-only live",
     };
   }
@@ -264,7 +264,7 @@ export function PublicAgent({
           <p>
             A share-ready public profile for a deployed Kyra agent. It shows
             public identity, command examples, and safety policy while Telegram
-            and Base execution remain gated.
+            and Base execution remain approval-first.
           </p>
           {publicError ? (
             <span className="demo-action-note public-profile-note">
@@ -323,7 +323,7 @@ export function PublicAgent({
             </span>
             <span>
               Mode
-              <strong>Gated</strong>
+              <strong>Protected</strong>
             </span>
             <span>
               Public route
@@ -392,7 +392,7 @@ export function PublicAgent({
         <article className="public-panel">
           <div className="panel-title">
             <span>Capabilities</span>
-            <span>gated</span>
+            <span>protected</span>
           </div>
           <div className="capability-list">
             {capabilityRows.map((item) => {
@@ -471,7 +471,7 @@ export function PublicAgent({
             </span>
             <span>
               <Terminal size={17} />
-              Execution gated
+              Execution protected
             </span>
             <span>
               <Sparkles size={17} />

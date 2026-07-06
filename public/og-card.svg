@@ -16,7 +16,7 @@
   <text x="126" y="224" fill="#F8FBFF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="70" font-weight="850">Kyra Agent</text>
   <text x="130" y="284" fill="#8EB8FF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="30" font-weight="750">Telegram-native AI agents for Base</text>
   <text x="130" y="334" fill="#B9C7D9" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="25">Read-only Telegram commands. LLM planning.</text>
-  <text x="130" y="370" fill="#B9C7D9" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="25">Wallet and onchain execution stay gated.</text>
+  <text x="130" y="370" fill="#B9C7D9" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="25">Wallet execution requires approval.</text>
 
   <g transform="translate(130 418)">
     <rect x="0" y="0" width="128" height="38" rx="19" fill="#071B31" stroke="#2F7CFF"/>
@@ -50,7 +50,7 @@
     <rect x="24" y="274" width="326" height="58" rx="16" fill="#172018" stroke="#41F1A0" stroke-opacity="0.55"/>
     <rect x="24" y="274" width="5" height="58" rx="2.5" fill="#41F1A0"/>
     <text x="48" y="299" fill="#F8FBFF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="800">Execution boundary</text>
-    <text x="48" y="320" fill="#B9C7D9" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13">wallet + Base MCP gated for Phase 6</text>
+    <text x="48" y="320" fill="#B9C7D9" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13">wallet + Base actions require owner approval</text>
 
     <rect x="24" y="356" width="326" height="24" rx="12" fill="#21141A" stroke="#F97373" stroke-opacity="0.65"/>
     <text x="82" y="373" fill="#FFC0C0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12" font-weight="850" letter-spacing="1.1">NO SWAPS  NO SIGNING  NO CONTRACT CALLS</text>

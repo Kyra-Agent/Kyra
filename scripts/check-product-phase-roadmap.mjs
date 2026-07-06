@@ -79,13 +79,13 @@ for (const source of [readme, phase5, phase6, phase7]) {
 
 for (
   const expected of [
-    "Current canonical roadmap status:",
-    "| 7 | Base Account + execution readiness complete; not live execution |",
-    "| 8 | Complete: controlled live transaction implementation closeout |",
-    "| 9 | Structurally complete: public execution hardening; runtime default-off |",
-    "| 10 | Complete: product release readiness; runtime execution gated |",
-    "Phase 8 implementation is closed: one controlled live transaction path",
-    "Older Phase 7A-Z documents are supporting evidence packets under Phase 7.",
+    "## Product Status",
+    "Kyra has closed the current release-readiness roadmap",
+    "Base Account readiness, controlled owner execution flow",
+    "Public execution remains approval-first by design.",
+    "docs/product-phase-roadmap.md",
+    "docs/supporting-readiness-closeout.md",
+    "docs/phase-10-product-release-readiness.md",
   ]
 ) {
   includes("README roadmap", readme, expected);

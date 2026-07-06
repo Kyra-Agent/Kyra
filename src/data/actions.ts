@@ -11,7 +11,7 @@ export const actions: ActionDefinition[] = [
     id: "swap",
     name: "Swap Review",
     summary:
-      "Turn swap requests into gated review drafts. No Telegram-triggered swap execution.",
+      "Turn swap requests into owner-review drafts. No Telegram-triggered swap execution.",
     tier: "mvp",
   },
   {
@@ -38,21 +38,21 @@ export const actions: ActionDefinition[] = [
     id: "holder-verify",
     name: "Holder Verify",
     summary:
-      "Plan owner-controlled verification flows without requesting wallet signatures from Telegram.",
+      "Plan owner-controlled verification flows without asking Telegram to request signatures.",
     tier: "mvp",
   },
   {
     id: "launch-monitor",
     name: "Launch Monitor",
     summary:
-      "Track new launches and project activity across the Base ecosystem.",
-    tier: "demo",
+      "Track launches and project activity across the Base ecosystem.",
+    tier: "mvp",
   },
   {
     id: "dca",
     name: "DCA Rules",
     summary:
-      "Design recurring-rule drafts with limits and approval policies before live execution exists.",
+      "Design recurring-rule drafts with limits, risk checks, and approval policy.",
     tier: "later",
   },
   {
@@ -60,6 +60,6 @@ export const actions: ActionDefinition[] = [
     name: "Campaign Plan",
     summary:
       "Turn market, token, and community context into launch messaging and decision-ready campaign steps.",
-    tier: "demo",
+    tier: "mvp",
   },
 ];

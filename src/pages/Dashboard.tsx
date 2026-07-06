@@ -700,7 +700,7 @@ export function Dashboard({
     useState<TelegramDashboardStatusLoadState>("idle");
   const [telegramDashboardStatusMessage, setTelegramDashboardStatusMessage] =
     useState(
-      "Dashboard Telegram status read model is gated.",
+      "Dashboard Telegram status read model is protected.",
     );
   const [telegramDashboardStatuses, setTelegramDashboardStatuses] = useState<
     TelegramDashboardStatusRecord[]
@@ -926,7 +926,7 @@ export function Dashboard({
     ) {
       setTelegramDashboardStatusState("idle");
       setTelegramDashboardStatusMessage(
-        "Dashboard Telegram status read model is gated.",
+        "Dashboard Telegram status read model is protected.",
       );
       setTelegramDashboardStatuses([]);
       return;
@@ -2112,7 +2112,7 @@ export function Dashboard({
     {
       label: "Execution",
       value: appConfig.integrations.walletExecution === "disabled"
-        ? "gated"
+        ? "protected"
         : appConfig.integrations.walletExecution,
       tone: "locked",
       icon: LockKeyhole,
@@ -3201,7 +3201,7 @@ export function Dashboard({
                 <ShieldCheck size={14} />
                 {dashboardStatus === "connected"
                   ? "Backend persistence active"
-                  : "gated safe"}
+                  : "protected"}
               </span>
               <p>{kyraRepositoryRuntime.note}</p>
             </div>
@@ -3326,7 +3326,7 @@ export function Dashboard({
                 : (
                   <small>
                     Policy review passed. Wallet prompt remains separately
-                    gated.
+                    approval-first.
                   </small>
                 )}
             </div>
@@ -4302,7 +4302,7 @@ export function Dashboard({
               <p>{phase9Closeout.message}</p>
               {phase9Closeout.reasons.length
                 ? <small>Open items: {phase9Closeout.reasons.join(", ")}</small>
-                : <small>Phase 9 is structurally complete. Runtime remains disabled until Phase 10 release approval.</small>}
+                : <small>Public execution hardening is complete. Runtime remains under explicit release approval.</small>}
             </div>
             <div className="phase-8-smoke-closeout-panel">
               <div className="result-monitoring-header">

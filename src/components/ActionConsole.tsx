@@ -9,6 +9,12 @@ import {
 } from "lucide-react";
 import { actions } from "../data/actions";
 
+const actionTierLabel = {
+  mvp: "Ready",
+  demo: "Preview",
+  later: "Planned",
+};
+
 const actionIcons = {
   balance: Coins,
   swap: ArrowRightLeft,
@@ -25,11 +31,11 @@ export function ActionConsole() {
   return (
     <section className="section" id="actions">
       <div className="section-heading">
-        <p className="eyebrow">Action Readiness</p>
-        <h2>Chat intent becomes a review draft.</h2>
+        <p className="eyebrow">Action Layer</p>
+        <h2>Every command becomes a controlled review.</h2>
         <p>
-          Current actions stay execution-safe: read context, prepare bounded review
-          summaries, and keep wallet prompts and onchain execution disabled.
+          Kyra reads context, prepares bounded summaries, and routes wallet or
+          onchain requests through explicit owner approval.
         </p>
       </div>
 
@@ -50,7 +56,7 @@ export function ActionConsole() {
                 <span className="action-name">{action.name}</span>
                 <p>{action.summary}</p>
               </div>
-              <span className="mini-label">{action.tier}</span>
+              <span className="mini-label">{actionTierLabel[action.tier]}</span>
             </article>
           );
         })}

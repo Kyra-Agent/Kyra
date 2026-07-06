@@ -7,7 +7,7 @@ export const agentTemplates: AgentTemplate[] = [
     role: "Personal wallet readiness agent",
     status: "mvp",
     summary:
-      "A private Telegram-native agent for wallet checks, swap reviews, transfer reviews, action logs, and approval-gated Base readiness.",
+      "A private Telegram-native agent for wallet checks, swap reviews, transfer reviews, action logs, and approval-first Base readiness.",
     bestFor:
       "Traders, founders, and Base users who want a safe command layer for wallet review workflows.",
     actions: [
