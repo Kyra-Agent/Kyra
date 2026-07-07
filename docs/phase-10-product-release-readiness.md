@@ -1,6 +1,6 @@
 # Phase 10 Product Release Readiness
 
-Status: Phase 10E closeout in progress. Public execution runtime remains default-off until explicit release approval.
+Status: Phase 10E closeout complete for product release readiness. Public execution runtime remains default-off until explicit release approval.
 
 Phase 10 turns Kyra from structurally hardened execution readiness into a public product readiness package. It does not bypass owner approval, Base Account approval, Kyra approval, receipt verification, rollback, privacy, or audit gates.
 
@@ -15,6 +15,13 @@ Batch 10A makes the public README and product-facing copy reflect what Kyra is n
 - Product release readiness active.
 - Public execution runtime default-off until explicit release approval.
 
+
+Latest public product polish scope:
+
+- Public profile fallback copy presents protected agent profiles instead of raw preview states.
+- Signed-out dashboard views route users toward the private account workspace without exposing operational readiness internals.
+- Deploy flow copy presents workspace persistence, Telegram ownership, and account-saving boundaries clearly.
+- README, context, and readiness docs frame Kyra as a product-ready public surface while preserving approval-first execution gates.
 Required copy boundaries:
 
 - Public copy must not expose secrets, install-only instructions, private setup steps, or raw provider internals.

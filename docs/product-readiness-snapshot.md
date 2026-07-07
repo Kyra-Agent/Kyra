@@ -8,6 +8,8 @@ This snapshot is the compact operator view of Kyra after the public product poli
 
 Current decision: ready for public product review and controlled owner use, not automatic public transaction enablement.
 
+The latest public UX and owner-dashboard polish keeps signed-out users on clean product surfaces while protecting owner-only operational, wallet, Telegram, and execution details.
+
 Kyra is ready as a public product surface for:
 
 - Base-native AI agent positioning.

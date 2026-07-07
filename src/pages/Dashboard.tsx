@@ -2118,7 +2118,7 @@ export function Dashboard({
       }
       : {
         id: "signed-out-preview",
-        name: "Signed-out preview",
+        name: "Private workspace",
         owner: "No account session",
         mode: "backend connected" as const,
         authProvider: "supabase" as const,
@@ -2639,7 +2639,7 @@ export function Dashboard({
             <span className="demo-badge compact">
               <Bot size={14} />
               {!authSession
-                ? "Signed-out preview"
+                ? "Private workspace"
                 : agentRecord
                 ? dashboardStatus === "connected"
                   ? "Persisted agent"
@@ -2650,14 +2650,14 @@ export function Dashboard({
             </span>
             <h1>
               {!authSession
-                ? "Sign in to view agent workspace"
+                ? "Open your private Kyra workspace"
                 : agentRecord
                 ? agentRecord.displayName
                 : "No agent deployed"}
             </h1>
             <p>
               {!authSession
-                ? "Dashboard records are hidden until an account session is active. Sign in to load quota, deployed agents, approvals, and public routes."
+                ? "Sign in to manage saved agents, public routes, approval queues, Base Account status, and owner-only execution controls."
                 : agentRecord
                 ? activeTemplate.role
                 : "Deploy an agent to create persisted dashboard records."}
@@ -2678,9 +2678,16 @@ export function Dashboard({
                 <ExternalLink size={16} />
               </button>
             )
+            : !authSession
+            ? (
+              <button className="button button-primary" type="button" onClick={() => openDashboardSection("auth")}>
+                Sign in
+                <KeyRound size={16} />
+              </button>
+            )
             : (
               <button className="button button-primary" type="button" disabled>
-                Public Agent Unavailable
+                Deploy agent first
                 <ExternalLink size={16} />
               </button>
             )}
@@ -2692,7 +2699,7 @@ export function Dashboard({
               <span>Private owner workspace</span>
               <strong>sign in required</strong>
             </div>
-            <p>Kyra keeps dashboard records, wallet status, transaction controls, support evidence, and release readiness private until the workspace owner signs in.</p>
+            <p>Kyra keeps agent records, wallet status, approval queues, transaction controls, support evidence, and release readiness inside the private owner workspace.</p>
             <small>Public visitors can use the product pages and public agent profiles without seeing operational or wallet internals.</small>
           </section>
         ) : (
@@ -2885,7 +2892,7 @@ export function Dashboard({
                       </span>
                     </div>
                     <p className="telegram-connect-message telegram-connect-idle">
-                      Dashboard is status-only. BotFather token validation,
+                      Dashboard is owner-controlled. BotFather token validation,
                       backend token storage, webhook activation, and owner
                       pairing happen during deploy or an owner-approved backend
                       flow.

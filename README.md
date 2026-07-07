@@ -50,7 +50,7 @@ Kyra is designed for users and teams who want an agent interface without giving 
 - Publish private dashboard and public profile views.
 - Reply in Telegram with read-only commands and planning chat.
 - Convert risky wallet or transaction requests into review drafts.
-- Keep Telegram execution blocked while allowing useful plans, checklists, and risk reviews.
+- Refuse Telegram-triggered execution while still producing useful plans, checklists, and risk reviews.
 - Require owner approval and wallet approval before any onchain action can move forward.
 - Preserve sanitized logs, support evidence, and release readiness records.
 
@@ -121,7 +121,7 @@ Base MCP remains an optional provider adapter track. It is not a blocker for Kyr
 
 ## Product Status
 
-Kyra has closed the current release-readiness roadmap for agent deployment, Telegram-native interaction, wallet policy modeling, Base Account readiness, controlled owner execution flow, public hardening, support operations, launch QA, and final security/privacy review.
+Kyra has closed the current release-readiness roadmap for agent deployment, Telegram-native interaction, wallet policy modeling, Base Account readiness, controlled owner execution flow, public hardening, support operations, launch QA, final security/privacy review, and public product polish.
 
 Public execution remains approval-first by design. Any widened transaction rollout must preserve the same owner dashboard, Base Account approval, risk review, receipt verification, emergency disable, and privacy-safe evidence requirements.
 

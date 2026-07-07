@@ -236,17 +236,17 @@ export function DeployPanel({
   const telegramStepTitle = telegramConnectTokenInputEnabled ? "Connect Telegram during deploy" : "Telegram status";
   const telegramStepDescription = telegramConnectTokenInputEnabled
     ? "Paste a BotFather token only in this deploy step. Kyra validates it before quota is used, stores token refs backend-only, and clears the field after submit."
-    : "Telegram token entry is disabled in this environment. Dashboard and public profiles stay status-only.";
+    : "Telegram token entry is only available in approved owner deploy flows. Public profiles stay safe, and token handling remains backend-only.";
   const telegramInterfaceStatus = telegramConnectTokenInputEnabled
     ? telegramTokenQueuedForDeploy
       ? "validates before quota"
       : "optional during deploy"
-    : "status only";
+    : "owner controlled";
   const telegramReviewPlatformLabel = telegramConnectTokenInputEnabled
     ? telegramTokenQueuedForDeploy
       ? "Telegram live connect"
       : "Telegram optional"
-    : "Telegram status only";
+    : "Telegram owner controlled";
   const activePublicPath = persistedRecord?.publicSlug
     ? `/agents/${persistedRecord.publicSlug}`
     : agentRecord.publicPath;
@@ -263,13 +263,13 @@ export function DeployPanel({
     ? `${persistedRecord.quota.used}/${persistedRecord.quota.limit}`
     : authSession
       ? `${agentQuota.used}/${agentQuota.limit}`
-      : "local preview";
+      : "private workspace";
   const receiptSourceLabel =
     persistedRecord?.source === "edge-function" || persistedRecord?.source === "supabase-rest"
       ? "Backend"
         : persistStatus === "error"
           ? "Guard"
-          : "Preview";
+          : "Private";
 
   function syncFreshAuthSession(
     currentSession: KyraAuthSession,
@@ -398,14 +398,14 @@ export function DeployPanel({
     setDeployed(false);
     setActiveLogStep(0);
     setPersistStatus("skipped");
-    setPersistMessage(authSession ? "Preparing backend persistence." : "Preview will run locally until you sign in.");
+    setPersistMessage(authSession ? "Preparing backend persistence." : "Sign in before deploy to save the agent and public route.");
     setPersistedRecord(null);
     if (telegramTokenForDeploy) {
       setTelegramDeployConnectStatus("ready");
       setTelegramDeployConnectMessage("Telegram bot token will be validated before agent deploy uses quota.");
     } else {
       setTelegramDeployConnectStatus("idle");
-      setTelegramDeployConnectMessage("Deploying without a Telegram token. This agent will stay status-only until a deploy includes a valid BotFather token.");
+      setTelegramDeployConnectMessage("Deploying without a Telegram token. The agent can be published now, and Telegram can be connected later through an approved owner flow.");
     }
 
     deployLogs.forEach((_, index) => {
@@ -535,7 +535,7 @@ export function DeployPanel({
                 kind: "deploy",
                 status: "running",
                 message: `Deploy attempt started for ${selectedTemplate.name}.`,
-                source: deploySession ? "backend" : "local preview",
+                source: deploySession ? "backend" : "private workspace",
               });
 
               const result = await saveSupabaseDemoDeployment({
@@ -550,7 +550,7 @@ export function DeployPanel({
               const deployEventSource =
                 result.source === "edge-function" || result.source === "supabase-rest"
                   ? "Backend"
-                  : "local preview";
+                  : "private workspace";
               recordBackendEvent({
                 kind: "deploy",
                 status: result.status === "saved" ? "success" : result.status === "error" ? "error" : "info",
@@ -931,8 +931,8 @@ export function DeployPanel({
                   ) : (
                     <ol>
                       <li>Telegram bots are created through @BotFather.</li>
-                      <li>Token entry stays hidden while this environment is status-only.</li>
-                      <li>Dashboard and public profiles show selected-agent status only.</li>
+                      <li>Token entry stays hidden until an approved owner deploy flow is available.</li>
+                      <li>Dashboard and public profiles show owner-controlled agent status.</li>
                     </ol>
                   )}
                 </div>
@@ -1012,7 +1012,7 @@ export function DeployPanel({
                   </span>
                   <span>
                     Persistence
-                    <strong>{authSession ? "Preview persistence active" : "Local preview only"}</strong>
+                    <strong>{authSession ? "Workspace persistence active" : "Sign in to save route"}</strong>
                   </span>
                   <span>
                     Agent limit
@@ -1067,7 +1067,7 @@ export function DeployPanel({
                       : "Deploy agent"}
                 </>
               ) : (
-                atAccountStep && !authSession ? "Continue as preview" : "Continue"
+                atAccountStep && !authSession ? "Continue without saving" : "Continue"
               )}
             </button>
           </div>

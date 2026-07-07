@@ -33,17 +33,17 @@ interface PublicAgentProps {
 const capabilityRows = [
   {
     title: "Telegram interface",
-    summary: "Telegram status is controlled by the owner dashboard.",
+    summary: "Live Telegram surface managed from the private owner dashboard.",
     icon: Bot,
   },
   {
     title: "Base action layer",
-    summary: "Show approval-first Base action preparation while execution stays owner-controlled.",
+    summary: "Prepares Base action context while submission stays owner-controlled.",
     icon: Radio,
   },
   {
     title: "Approval guard",
-    summary: "No custody, no seed phrases, no public execution without owner and wallet approval.",
+    summary: "No custody, no seed phrases, and no public signing path.",
     icon: ShieldCheck,
   },
 ];
@@ -57,7 +57,7 @@ function getPublicStatusLabel(status: PublicAgentProfileStatus) {
     return "Loading public profile";
   }
 
-  return "Public agent preview";
+  return "Protected agent profile";
 }
 
 function isDemoPreviewSlug(agentSlug: string) {
@@ -90,11 +90,11 @@ function getPublicTelegramPanelStatus(status: string) {
   }
 
   return {
-    eyebrow: "Telegram status",
-    headline: "Controlled from dashboard",
+    eyebrow: "Telegram boundary",
+    headline: "Owner controlled",
     description:
       "Public profiles never collect bot tokens. Owners connect Telegram during deploy and manage selected-agent status or owner pairing from the dashboard.",
-    label: "Status only",
+    label: "Owner controlled",
   };
 }
 
@@ -130,7 +130,7 @@ export function PublicAgent({
   const activeTemplate = publicProfile?.template ?? (canUseMockPreview ? selectedTemplate : null);
   const approvalPolicy = agentRecord ? kyraDataService.getApprovalPolicyForAgent(agentRecord) : null;
   const commandRows = activeTemplate ? kyraDataService.listPriorityApprovalRequests(activeTemplate.id, 4) : [];
-  const profileSource = publicProfile ? "Persisted agent profile" : "Local preview";
+  const profileSource = publicProfile ? "Persisted agent profile" : "Protected profile view";
   const telegramPanelStatus = getPublicTelegramPanelStatus(agentRecord?.telegramStatus ?? "mocked");
 
   useEffect(() => {
@@ -171,13 +171,13 @@ export function PublicAgent({
 
           <span className={`demo-badge ${loading ? "" : "status-paused"}`}>
             <Bot size={14} />
-            {loading ? "Checking public profile" : "Inactive agent route"}
+            {loading ? "Checking public profile" : "Private or inactive route"}
           </span>
-          <h1>{loading ? "Checking agent route..." : "Agent route unavailable."}</h1>
+          <h1>{loading ? "Checking agent route..." : "Agent route is not public yet."}</h1>
           <p>
             {loading
               ? "Kyra is checking whether this route maps to an active agent."
-              : "This public agent route does not map to an active agent record. The workspace may have been reset, the record may have expired, or the agent was never deployed."}
+              : "This link is not attached to an active public agent profile. The owner may need to publish, refresh, or select the agent route from the private workspace."}
           </p>
           {!loading ? (
             <div className="public-agent-empty-facts">
@@ -268,7 +268,7 @@ export function PublicAgent({
           </p>
           {publicError ? (
             <span className="demo-action-note public-profile-note">
-              Connected profile unavailable. Showing the local preview.
+              Live profile data is unavailable. Showing the protected product view.
             </span>
           ) : null}
 
