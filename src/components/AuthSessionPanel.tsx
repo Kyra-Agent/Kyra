@@ -48,12 +48,17 @@ export function AuthSessionPanel({
   message,
   onSessionChange,
 }: AuthSessionPanelProps) {
+  const [authMode, setAuthMode] = useState<"signup" | "signin">("signup");
   const [email, setEmail] = useState(session?.user.email ?? "");
   const [password, setPassword] = useState("");
   const [busyAction, setBusyAction] = useState<"signin" | "signup" | "validate" | "signout" | null>(null);
 
   const busy = busyAction !== null;
   const statusTone = getStatusTone(status);
+  const isSignUpMode = authMode === "signup";
+  const emailReady = email.trim().length > 3 && email.includes("@");
+  const passwordReady = password.length >= 6;
+  const canSubmit = emailReady && passwordReady && !busy;
 
   function applyResult(result: KyraAuthResult) {
     onSessionChange(result.session, result.status, result.message);
@@ -71,6 +76,19 @@ export function AuthSessionPanel({
     const result = await signUpWithPassword(email.trim(), password);
     applyResult(result);
     setBusyAction(null);
+  }
+
+  async function handlePrimarySubmit() {
+    if (!canSubmit) {
+      return;
+    }
+
+    if (isSignUpMode) {
+      await handleSignUp();
+      return;
+    }
+
+    await handleSignIn();
   }
 
   async function handleValidate() {
@@ -98,6 +116,7 @@ export function AuthSessionPanel({
     clearStoredAuthSession();
     setEmail("");
     setPassword("");
+    setAuthMode("signup");
     applyResult(result);
     setBusyAction(null);
   }
@@ -106,7 +125,7 @@ export function AuthSessionPanel({
     <section className="dashboard-panel auth-session-panel" id="auth">
       <div className="panel-title">
         <span>Account session</span>
-        <span>{session ? "session active" : "session required"}</span>
+        <span>{session ? "session active" : isSignUpMode ? "new account" : "sign in"}</span>
       </div>
 
       <div className="auth-session-summary">
@@ -129,31 +148,72 @@ export function AuthSessionPanel({
           <em>{formatSessionExpiry(session)}</em>
         </div>
       ) : (
-        <div className="auth-form-grid">
-          <label className="field">
-            <span>Email</span>
-            <input
-              autoComplete="email"
-              disabled={busy}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="founder@kyra.agent"
-              type="email"
-              value={email}
-            />
-          </label>
-          <label className="field">
-            <span>Password</span>
-            <input
-              autoComplete="current-password"
-              disabled={busy}
-              minLength={6}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Minimum 6 characters"
-              type="password"
-              value={password}
-            />
-          </label>
-        </div>
+        <>
+          <div className="auth-mode-card">
+            <strong>{isSignUpMode ? "Create your Kyra account" : "Welcome back"}</strong>
+            <p>
+              {isSignUpMode
+                ? "Use an email and password to save agents, dashboard records, and public routes. This does not connect a wallet or request a transaction."
+                : "Sign in to continue managing your saved agents, dashboard records, and account-scoped routes."}
+            </p>
+            <div className="auth-mode-switch" role="tablist" aria-label="Account access mode">
+              <button
+                aria-selected={isSignUpMode}
+                className={isSignUpMode ? "is-active" : undefined}
+                disabled={busy}
+                onClick={() => setAuthMode("signup")}
+                role="tab"
+                type="button"
+              >
+                New account
+              </button>
+              <button
+                aria-selected={!isSignUpMode}
+                className={!isSignUpMode ? "is-active" : undefined}
+                disabled={busy}
+                onClick={() => setAuthMode("signin")}
+                role="tab"
+                type="button"
+              >
+                Sign in
+              </button>
+            </div>
+          </div>
+
+          <div className="auth-form-grid">
+            <label className="field">
+              <span>Email</span>
+              <input
+                autoComplete="email"
+                disabled={busy}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@example.com"
+                type="email"
+                value={email}
+              />
+            </label>
+            <label className="field">
+              <span>Password</span>
+              <input
+                autoComplete={isSignUpMode ? "new-password" : "current-password"}
+                disabled={busy}
+                minLength={6}
+                onChange={(event) => setPassword(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    void handlePrimarySubmit();
+                  }
+                }}
+                placeholder={isSignUpMode ? "Create at least 6 characters" : "Enter your password"}
+                type="password"
+                value={password}
+              />
+              <small className="auth-field-hint">
+                {passwordReady ? "Password length is ready." : "Use at least 6 characters."}
+              </small>
+            </label>
+          </div>
+        </>
       )}
 
       <div className="auth-actions">
@@ -171,22 +231,27 @@ export function AuthSessionPanel({
         ) : (
           <>
             <button
-              className="button button-primary button-small"
-              disabled={busy || !email || password.length < 6}
-              onClick={handleSignIn}
+              className="button button-primary button-small auth-primary-action"
+              disabled={!canSubmit}
+              onClick={handlePrimarySubmit}
               type="button"
             >
-              <CheckCircle2 size={15} />
-              {busyAction === "signin" ? "Signing in..." : "Sign in"}
+              {isSignUpMode ? <UserRound size={15} /> : <CheckCircle2 size={15} />}
+              {busyAction === "signup"
+                ? "Creating account..."
+                : busyAction === "signin"
+                ? "Signing in..."
+                : isSignUpMode
+                ? "Create account"
+                : "Sign in"}
             </button>
             <button
               className="button button-ghost button-small"
-              disabled={busy || !email || password.length < 6}
-              onClick={handleSignUp}
+              disabled={busy}
+              onClick={() => setAuthMode(isSignUpMode ? "signin" : "signup")}
               type="button"
             >
-              <UserRound size={15} />
-              {busyAction === "signup" ? "Creating..." : "Create account"}
+              {isSignUpMode ? "I already have an account" : "Create a new account"}
             </button>
           </>
         )}
@@ -194,8 +259,8 @@ export function AuthSessionPanel({
 
       <div className="auth-safety-line">
         <span>No wallet access</span>
+        <span>No transaction signing</span>
         <span>Account-scoped agent records</span>
-        <span>Session refresh supported</span>
       </div>
     </section>
   );

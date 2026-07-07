@@ -66,7 +66,7 @@ const wizardSteps = [
   {
     id: "account",
     title: "Account",
-    summary: "Sign in to save.",
+    summary: "Create account to save.",
   },
   {
     id: "template",
@@ -708,7 +708,10 @@ export function DeployPanel({
         <article>
           <span>01</span>
           <strong>Create an account</strong>
-          <p>Sign in so Kyra can save agent records, quota, and the public agent route.</p>
+          <p>
+            Create an account to save agent records, quota, and the public agent route.
+            Existing users can sign in.
+          </p>
         </article>
         <article>
           <span>02</span>
@@ -756,22 +759,22 @@ export function DeployPanel({
             {wizardStep === 0 ? (
               <div className="wizard-screen">
                 <span className="wizard-kicker">Step 01</span>
-                <h3>Create an account or sign in</h3>
+                <h3>Create your account to save this agent</h3>
                 <p>
-                  A saved agent needs an account session. You can still browse Kyra without
-                  signing in, but persisted agents, quota, dashboard records, and public routes are
-                  account-scoped.
+                  Create an account before deploy if you want Kyra to save this agent, quota,
+                  dashboard records, and the public route. If you already have an account,
+                  switch to sign in on the account page.
                 </p>
 
                 <div className="deploy-account-card">
                   <span className={`readiness-chip readiness-${authSession ? "ready" : "standby"}`}>
                     {authSession ? <CheckCircle2 size={14} /> : <KeyRound size={14} />}
-                    {authSession ? "Account active" : "Sign-in recommended"}
+                    {authSession ? "Account active" : "Account needed to save"}
                   </span>
                   <strong>
                     {authSession
                       ? "Kyra can save this deploy to the connected backend."
-                      : "Sign in before deploy to create a shareable agent route."}
+                      : "Create an account before deploy to create a shareable agent route."}
                   </strong>
                   <p>
                     No wallet access is requested. The account only stores agent workspace records
@@ -779,7 +782,7 @@ export function DeployPanel({
                   </p>
                   <button className="button button-ghost" type="button" onClick={onOpenAccount}>
                     <UserRound size={16} />
-                    {authSession ? "View account session" : "Open sign-in"}
+                    {authSession ? "View account session" : "Create account / sign in"}
                   </button>
                 </div>
               </div>
