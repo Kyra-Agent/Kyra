@@ -66,17 +66,17 @@ const wizardSteps = [
   {
     id: "account",
     title: "Account",
-    summary: "Create account to save.",
+    summary: "Save workspace.",
   },
   {
     id: "template",
     title: "Template",
-    summary: "Choose the agent type.",
+    summary: "Select operating mode.",
   },
   {
     id: "configure",
     title: "Configure",
-    summary: "Set identity and actions.",
+    summary: "Tune identity and actions.",
   },
   {
     id: "telegram",
@@ -91,7 +91,7 @@ const wizardSteps = [
   {
     id: "deploy",
     title: "Deploy",
-    summary: "Publish agent instance.",
+    summary: "Launch public route.",
   },
 ];
 
@@ -697,20 +697,18 @@ export function DeployPanel({
     <section className="section deploy-section" id="deploy">
       <div className="section-heading">
         <p className="eyebrow">Deploy Flow</p>
-        <h2>Deploy flow, approval-first by design.</h2>
+        <h2>Deploy a public-ready agent workspace.</h2>
         <p>
-          Choose a template, configure the agent, link Telegram, set the wallet approval
-          policy, and publish an approval-first agent instance with dashboard and public profile.
+          Choose a template, configure identity, connect Telegram, and publish an agent profile with private dashboard records and explicit owner approval for every onchain action.
         </p>
       </div>
 
       <div className="deploy-howto" aria-label="How to deploy a Kyra agent">
         <article>
           <span>01</span>
-          <strong>Create an account</strong>
+          <strong>Create workspace</strong>
           <p>
-            Create an account to save agent records, quota, and the public agent route.
-            Existing users can sign in.
+            Save private agent records, quota, and the public route under your Kyra account.
           </p>
         </article>
         <article>
@@ -720,13 +718,13 @@ export function DeployPanel({
         </article>
         <article>
           <span>03</span>
-          <strong>Configure identity</strong>
-          <p>Name the agent and review the enabled agent actions before publishing.</p>
+          <strong>Shape the agent</strong>
+          <p>Name the agent and review its enabled actions before publishing.</p>
         </article>
         <article>
           <span>04</span>
-          <strong>Publish agent route</strong>
-          <p>Deploy a backend-persisted profile, then open dashboard or share the public route.</p>
+          <strong>Launch profile</strong>
+          <p>Publish the backend-persisted profile, then manage it from the private dashboard.</p>
         </article>
       </div>
 
@@ -759,11 +757,9 @@ export function DeployPanel({
             {wizardStep === 0 ? (
               <div className="wizard-screen">
                 <span className="wizard-kicker">Step 01</span>
-                <h3>Create your account to save this agent</h3>
+                <h3>Create a workspace for this agent</h3>
                 <p>
-                  Create an account before deploy if you want Kyra to save this agent, quota,
-                  dashboard records, and the public route. If you already have an account,
-                  switch to sign in on the account page.
+                  Kyra saves deployed agents to a private account workspace with quota, dashboard records, and public profile routes. Existing users can switch to sign in on the account page.
                 </p>
 
                 <div className="deploy-account-card">
@@ -773,12 +769,11 @@ export function DeployPanel({
                   </span>
                   <strong>
                     {authSession
-                      ? "Kyra can save this deploy to the connected backend."
-                      : "Create an account before deploy to create a shareable agent route."}
+                      ? "Kyra can persist this agent to your private workspace."
+                      : "Create an account to unlock saved routes and private dashboard records."}
                   </strong>
                   <p>
-                    No wallet access is requested. The account only stores agent workspace records
-                    for this backend-connected agent profile.
+                    Account access stores workspace records only. Wallet connection, signing, and transactions remain separate owner-approved actions.
                   </p>
                   <button className="button button-ghost" type="button" onClick={onOpenAccount}>
                     <UserRound size={16} />

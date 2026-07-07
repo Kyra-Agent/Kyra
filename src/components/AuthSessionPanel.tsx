@@ -150,11 +150,11 @@ export function AuthSessionPanel({
       ) : (
         <>
           <div className="auth-mode-card">
-            <strong>{isSignUpMode ? "Create your Kyra account" : "Welcome back"}</strong>
+            <strong>{isSignUpMode ? "Create your Kyra workspace" : "Welcome back"}</strong>
             <p>
               {isSignUpMode
-                ? "Use an email and password to save agents, dashboard records, and public routes. This does not connect a wallet or request a transaction."
-                : "Sign in to continue managing your saved agents, dashboard records, and account-scoped routes."}
+                ? "Start with email and password to save agents, private dashboard records, quota, and public routes. Wallet connection is a separate owner-controlled step."
+                : "Sign in to return to your private agent workspace, saved routes, and owner dashboard controls."}
             </p>
             <div className="auth-mode-switch" role="tablist" aria-label="Account access mode">
               <button

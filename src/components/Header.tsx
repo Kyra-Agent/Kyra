@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Github, Menu, Rocket, ShieldCheck, Terminal, UserRound, X } from "lucide-react";
+import { Github, Menu, Rocket, ShieldCheck, Sparkles, UserRound, X } from "lucide-react";
 import { BrandMark } from "./BrandMark";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -99,8 +99,8 @@ export function Header({
           <ShieldCheck size={16} />
           Safety
         </button>
-        <span className="demo-badge">
-          <Terminal size={14} />
+        <span className="demo-badge header-product-badge">
+          <Sparkles size={14} />
           Product Ready
         </span>
       </div>

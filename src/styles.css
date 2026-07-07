@@ -432,6 +432,23 @@ button {
   min-width: 0;
 }
 
+.site-header::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0.35rem;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(94, 162, 255, 0.28),
+    rgba(138, 230, 177, 0.18),
+    transparent
+  );
+  pointer-events: none;
+}
+
 .logo-link {
   min-width: 164px;
   flex: 0 1 auto;
@@ -702,6 +719,14 @@ button {
   white-space: nowrap;
 }
 
+.header-product-badge {
+  border-color: rgba(138, 230, 177, 0.28);
+  background:
+    linear-gradient(135deg, rgba(138, 230, 177, 0.12), rgba(94, 162, 255, 0.07)),
+    rgba(255, 255, 255, 0.035);
+  color: var(--green);
+}
+
 .demo-badge.compact {
   padding: 0.35rem 0.5rem;
 }
@@ -804,6 +829,29 @@ h2 {
   gap: 0.75rem;
 }
 
+.hero-proof-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  max-width: 740px;
+}
+
+.hero-proof-strip span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.48rem;
+  min-height: 42px;
+  padding: 0.68rem 0.72rem;
+  border: 1px solid rgba(94, 162, 255, 0.22);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(94, 162, 255, 0.08), transparent 62%),
+    rgba(255, 255, 255, 0.035);
+  color: #dceaff;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
 .trust-row {
   flex-wrap: wrap;
   gap: 0.6rem;
@@ -844,6 +892,11 @@ h2 {
   min-height: 520px;
   min-width: 0;
   max-width: 100%;
+  border-color: rgba(94, 162, 255, 0.24);
+  background:
+    linear-gradient(145deg, rgba(94, 162, 255, 0.08), transparent 46%),
+    linear-gradient(315deg, rgba(138, 230, 177, 0.05), transparent 42%),
+    var(--panel);
 }
 
 .hero-shell::before {
@@ -927,10 +980,17 @@ h2 {
   top: 1.2rem;
   right: 1rem;
   margin: 0;
-  color: rgba(94, 162, 255, 0.24);
+  max-width: 16rem;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid rgba(94, 162, 255, 0.18);
+  border-radius: var(--radius);
+  background: rgba(5, 8, 13, 0.38);
+  color: rgba(176, 205, 255, 0.32);
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 0.84rem;
-  line-height: 1.15;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.45;
+  text-align: right;
   user-select: none;
   animation: asciiFlicker 6s ease-in-out infinite;
 }
@@ -1010,8 +1070,14 @@ h2 {
   align-items: center;
   gap: 0.5rem;
   padding: 0.78rem;
+  border-color: rgba(94, 162, 255, 0.2);
   color: #dbe8fb;
   font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.console-status-grid span svg {
+  color: var(--green);
 }
 
 .section {
@@ -1498,8 +1564,10 @@ h2 {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background:
-    linear-gradient(135deg, rgba(94, 162, 255, 0.07), transparent 58%),
+    linear-gradient(135deg, rgba(94, 162, 255, 0.1), transparent 54%),
+    linear-gradient(315deg, rgba(138, 230, 177, 0.06), transparent 46%),
     rgba(255, 255, 255, 0.035);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
 }
 
 .deploy-account-card strong {
@@ -2904,7 +2972,10 @@ h2 {
   padding: 0.85rem;
   border: 1px solid rgba(72, 145, 255, 0.22);
   border-radius: var(--radius);
-  background: rgba(72, 145, 255, 0.055);
+  background:
+    linear-gradient(135deg, rgba(72, 145, 255, 0.09), transparent 58%),
+    rgba(72, 145, 255, 0.045);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .auth-mode-card strong {
@@ -5282,6 +5353,14 @@ h2 {
     flex: 1 1 100%;
     width: 100%;
     min-width: 0;
+  }
+
+  .hero-proof-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-proof-strip span {
+    min-height: 38px;
   }
 
   .hero-shell {

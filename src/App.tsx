@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, ShieldCheck, Terminal } from "lucide-react";
+import { ArrowRight, CheckCircle2, ShieldCheck, Sparkles, Terminal } from "lucide-react";
 import { AnimatedBackground } from "./components/AnimatedBackground";
 import { ActionConsole } from "./components/ActionConsole";
 import { CoreModules } from "./components/CoreModules";
@@ -585,7 +585,7 @@ function App() {
           PRODUCT READY
         </span>
         <p>
-          No custody, wallet keys, or Telegram bot tokens. Agents can persist after sign-in, while every onchain action stays behind explicit owner approval.
+          Public-ready agent workspace. Account records stay private, Telegram tokens stay backend-only, and every onchain action stays behind explicit owner approval.
         </p>
       </div>
 
@@ -621,15 +621,30 @@ function App() {
               <section className="hero-section">
                 <div className="hero-copy">
                   <span className="demo-badge hero-badge">
-                    <Terminal size={15} />
-                    Base-native agent platform
+                    <Sparkles size={15} />
+                    Base-native agent operating system
                   </span>
                   <h1>
-                    Deploy Telegram-native Base agents with approval-first workflows.
+                    Launch Telegram agents that can move from chat to Base execution.
                   </h1>
                   <p className="hero-subtitle">
-                    Create agent profiles, connect Telegram, prepare Base action reviews, and keep wallet prompts, signing, and onchain execution behind explicit owner approval.
+                    Kyra turns templates into live agent workspaces: Telegram-native chat, private account records, Base Account connection, and owner-approved transaction controls built for public use.
                   </p>
+
+                  <div className="hero-proof-strip" aria-label="Kyra production readiness">
+                    <span>
+                      <CheckCircle2 size={15} />
+                      Live Telegram agents
+                    </span>
+                    <span>
+                      <ShieldCheck size={15} />
+                      Owner approval gates
+                    </span>
+                    <span>
+                      <Terminal size={15} />
+                      Base runtime ready
+                    </span>
+                  </div>
 
                   <div className="hero-actions">
                     <button
@@ -661,7 +676,8 @@ function App() {
                   <div className="trust-row" aria-label="Kyra trust model">
                     <span>No seed phrases</span>
                     <span>No custody</span>
-                    <span>Owner-approved execution</span>
+                    <span>Private owner dashboard</span>
+                    <span>Explicit execution approval</span>
                   </div>
                 </div>
 

@@ -12,13 +12,10 @@ interface HeroConsoleProps {
 }
 
 const asciiKyra = [
-  "        .------.",
-  "     .-'  KYRA '-.",
-  "    /  .--------. \\",
-  "   |  | 01 04 05 | |",
-  "   |  |  BASE   | |",
-  "    \\  '--------' /",
-  "     '---.____.---'",
+  "KYRA / BASE",
+  "OPERATOR CONSOLE",
+  "NIRA VEXA ASTRA NOVA NYX",
+  "TELEGRAM -> REVIEW -> BASE",
 ].join("\n");
 
 export function HeroConsole({
@@ -33,11 +30,11 @@ export function HeroConsole({
   const lines = useMemo(
     () => [
       `kyra@base:~$ deploy --template ${selectedTemplate.id}`,
-      "loading Telegram-native agent runtime",
-      "NIRA-01  routing intent",
-      "NOVA-04  wallet data module synced",
-      "NYX-05   risk guard active",
-      "BASE ACTION review layer ready",
+      "loading public agent workspace",
+      "NIRA-01  intent routing online",
+      "NOVA-04  account-scoped data ready",
+      "NYX-05   risk and approval guard active",
+      "BASE ACTION owner review layer ready",
       `telegram> ${selectedScenario.command}`,
       ...selectedScenario.lines,
     ],
@@ -81,8 +78,8 @@ export function HeroConsole({
           <span />
           <span />
         </div>
-        <span>kyra-core/runtime</span>
-        <span className="live-indicator">owner-approved runtime</span>
+        <span>kyra command center</span>
+        <span className="live-indicator">production guarded</span>
       </div>
 
       <div className="hero-console-body">
@@ -116,19 +113,19 @@ export function HeroConsole({
         <div className="console-status-grid">
           <span>
             <Bot size={15} />
-            Telegram ready
+            Telegram live
           </span>
           <span>
             <WalletCards size={15} />
-            Wallet review
+            Owner review
           </span>
           <span>
             <ShieldCheck size={15} />
-            Risk checked
+            Risk guarded
           </span>
           <span>
             <Radio size={15} />
-            Base protected
+            Base ready
           </span>
         </div>
       </div>
