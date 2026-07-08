@@ -171,13 +171,13 @@ export function PublicAgent({
 
           <span className={`demo-badge ${loading ? "" : "status-paused"}`}>
             <Bot size={14} />
-            {loading ? "Checking public profile" : "Private or inactive route"}
+            {loading ? "Checking public profile" : "Profile not published"}
           </span>
-          <h1>{loading ? "Checking agent route..." : "Agent route is not public yet."}</h1>
+          <h1>{loading ? "Checking agent route..." : "This agent profile is not published yet."}</h1>
           <p>
             {loading
               ? "Kyra is checking whether this route maps to an active agent."
-              : "This link is not attached to an active public agent profile yet. The owner can publish or select the route from the private workspace."}
+              : "This route is reserved for a Kyra agent, but the owner has not published the public profile for this account session yet."}
           </p>
           {!loading ? (
             <div className="public-agent-empty-facts">
@@ -197,7 +197,7 @@ export function PublicAgent({
           ) : null}
           <div className="profile-cta-row">
             <button className="button button-primary" type="button" onClick={onBackDashboard}>
-              Back to Dashboard
+              Open Dashboard
               <ArrowLeft size={16} />
             </button>
             <button className="button button-ghost" type="button" onClick={onBackHome}>
@@ -206,7 +206,7 @@ export function PublicAgent({
           </div>
           {publicError && !loading ? (
             <span className="demo-action-note public-profile-note">
-              No public agent profile is active for this route yet.
+              Public access is unavailable until the owner publishes this agent profile.
             </span>
           ) : null}
         </section>

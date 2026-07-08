@@ -3334,7 +3334,7 @@ export function Dashboard({
           >
             <div className="panel-title">
               <span>Product readiness</span>
-              <span>{authSession ? "account connected" : "preview mode"}</span>
+              <span>{authSession ? "account connected" : "private access"}</span>
             </div>
             <div className="readiness-summary">
               <span
