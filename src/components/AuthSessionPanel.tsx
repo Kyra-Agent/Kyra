@@ -125,7 +125,7 @@ export function AuthSessionPanel({
     <section className="dashboard-panel auth-session-panel" id="auth">
       <div className="panel-title">
         <span>Account session</span>
-        <span>{session ? "session active" : isSignUpMode ? "new account" : "sign in"}</span>
+        <span>{session ? "session active" : isSignUpMode ? "create workspace" : "returning user"}</span>
       </div>
 
       <div className="auth-session-summary">
@@ -150,11 +150,11 @@ export function AuthSessionPanel({
       ) : (
         <>
           <div className="auth-mode-card">
-            <strong>{isSignUpMode ? "Create your Kyra workspace" : "Welcome back"}</strong>
+            <strong>{isSignUpMode ? "Create your Kyra workspace" : "Sign in to your workspace"}</strong>
             <p>
               {isSignUpMode
-                ? "Start with email and password to save agents, private dashboard records, quota, and public routes. Wallet connection is a separate owner-controlled step."
-                : "Sign in to return to your private agent workspace, saved routes, and owner dashboard controls."}
+                ? "New users start here. Create a private workspace to save agents, dashboard records, quota, and public routes. Wallet and Base Account connection stay separate."
+                : "Returning users sign in here to reopen saved agents, public routes, approval queues, and owner dashboard controls."}
             </p>
             <div className="auth-mode-switch" role="tablist" aria-label="Account access mode">
               <button
@@ -165,7 +165,7 @@ export function AuthSessionPanel({
                 role="tab"
                 type="button"
               >
-                New account
+                Create account
               </button>
               <button
                 aria-selected={!isSignUpMode}
@@ -180,6 +180,17 @@ export function AuthSessionPanel({
             </div>
           </div>
 
+          <div className="auth-choice-summary" aria-label="Account path summary">
+            <div className={isSignUpMode ? "is-active" : undefined}>
+              <strong>Create account</strong>
+              <span>For new Kyra users who need a private workspace.</span>
+            </div>
+            <div className={!isSignUpMode ? "is-active" : undefined}>
+              <strong>Sign in</strong>
+              <span>For returning users with an existing email and password.</span>
+            </div>
+          </div>
+
           <div className="auth-form-grid">
             <label className="field">
               <span>Email</span>
@@ -187,7 +198,7 @@ export function AuthSessionPanel({
                 autoComplete="email"
                 disabled={busy}
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@example.com"
+                placeholder={isSignUpMode ? "new-user@example.com" : "your-account@example.com"}
                 type="email"
                 value={email}
               />
@@ -209,7 +220,7 @@ export function AuthSessionPanel({
                 value={password}
               />
               <small className="auth-field-hint">
-                {passwordReady ? "Password length is ready." : "Use at least 6 characters."}
+                {passwordReady ? "Password is ready for this account step." : "Use at least 6 characters. Never reuse wallet or seed-phrase passwords."}
               </small>
             </label>
           </div>
@@ -251,13 +262,14 @@ export function AuthSessionPanel({
               onClick={() => setAuthMode(isSignUpMode ? "signin" : "signup")}
               type="button"
             >
-              {isSignUpMode ? "I already have an account" : "Create a new account"}
+              {isSignUpMode ? "Switch to sign in" : "Switch to create account"}
             </button>
           </>
         )}
       </div>
 
       <div className="auth-safety-line">
+        <span>Email account only</span>
         <span>No wallet access</span>
         <span>No transaction signing</span>
         <span>Account-scoped agent records</span>

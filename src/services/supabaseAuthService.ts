@@ -345,7 +345,7 @@ export async function signUpWithPassword(email: string, password: string) {
     email,
     password,
     data: {
-      workspace_name: "Kyra demo workspace",
+      workspace_name: "Kyra workspace",
     },
   });
 }
@@ -374,7 +374,7 @@ export async function ensureFreshAuthSession(
   session: KyraAuthSession | null,
 ): Promise<KyraAuthResult> {
   if (!session) {
-    return makeResult("signed-out", "Sign in before using persisted demo records.");
+    return makeResult("signed-out", "Sign in before using private workspace records.");
   }
 
   if (!appConfig.supabase.configured) {
@@ -395,7 +395,7 @@ export async function ensureFreshAuthSession(
 
   return makeResult(
     "error",
-    `Session expired and refresh failed. Sign in again before using persisted demo records. ${result.message}`,
+    `Session expired and refresh failed. Sign in again before using private workspace records. ${result.message}`,
   );
 }
 
