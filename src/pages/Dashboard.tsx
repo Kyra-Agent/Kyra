@@ -2681,7 +2681,7 @@ export function Dashboard({
             : !authSession
             ? (
               <button className="button button-primary" type="button" onClick={() => openDashboardSection("auth")}>
-                Sign in
+                Open account access
                 <KeyRound size={16} />
               </button>
             )
