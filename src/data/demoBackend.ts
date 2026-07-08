@@ -47,11 +47,11 @@ export const demoAgentInstances: DemoAgentInstance[] = agentTemplates.map((
   template,
   index,
 ) => ({
-  id: `agent_${template.id}_demo`,
+  id: `agent_${template.id}_profile`,
   workspaceId: demoWorkspace.id,
   templateId: template.id,
   displayName: `Kyra ${template.name}`,
-  handle: `@kyra_${template.id}_demo`,
+  handle: `@kyra_${template.id}`,
   publicPath: `/agents/${template.id}-demo`,
   status: template.status === "coming-soon" ? "draft" : "online",
   mode: "frontend-demo",
@@ -114,7 +114,7 @@ export const demoActivityLogs: DemoActivityLog[] = [
     timestamp: "12:04:19",
     source: "telegram_sessions",
     level: "notice",
-    message: "Telegram interface linked in demo mode",
+    message: "Telegram interface linked in protected mode",
   },
   {
     id: "log_base_mcp_registered",
@@ -176,7 +176,7 @@ export const demoActivityLogs: DemoActivityLog[] = [
 
 export const demoExecutionResults: DemoExecutionResult[] = [
   {
-    id: "execution_swap_pending_demo",
+    id: "execution_swap_pending_review",
     preparedActionId: "demo-swap-handoff",
     agentId: getDemoAgentInstance("operator").id,
     status: "pending",
@@ -188,7 +188,7 @@ export const demoExecutionResults: DemoExecutionResult[] = [
     updatedAt: "12:05:07",
   },
   {
-    id: "execution_rejection_demo",
+    id: "execution_rejection_review",
     preparedActionId: "demo-rejected-handoff",
     agentId: getDemoAgentInstance("operator").id,
     status: "rejected",
@@ -200,7 +200,7 @@ export const demoExecutionResults: DemoExecutionResult[] = [
     updatedAt: "12:05:08",
   },
   {
-    id: "execution_failure_demo",
+    id: "execution_failure_review",
     preparedActionId: "demo-failed-handoff",
     agentId: getDemoAgentInstance("operator").id,
     status: "failed",
