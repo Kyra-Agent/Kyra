@@ -30,7 +30,7 @@ export function HeroConsole({
   const lines = useMemo(
     () => [
       `kyra@base:~$ deploy --template ${selectedTemplate.id}`,
-      "loading public agent workspace",
+      "opening public agent workspace",
       "NIRA-01  intent routing online",
       "NOVA-04  account-scoped data ready",
       "NYX-05   risk and approval guard active",
@@ -125,7 +125,7 @@ export function HeroConsole({
           </span>
           <span>
             <Radio size={15} />
-            Base ready
+            Base Account ready
           </span>
         </div>
       </div>

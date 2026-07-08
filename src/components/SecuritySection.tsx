@@ -5,7 +5,7 @@ const guarantees = [
   "No private keys",
   "No custody",
   "Wallet approval gate required",
-  "Public execution needs approval",
+  "Public actions need approval",
   "No credentials stored",
 ];
 
@@ -16,7 +16,7 @@ export function SecuritySection() {
         <p className="eyebrow">Security Model</p>
         <h2>Kyra plans. Your wallet decides.</h2>
         <p>
-          Kyra is built around user control. Agents can understand commands and prepare review drafts, while the wallet remains the final gate for any onchain action.
+          Kyra is built around user control. Agents can understand commands and prepare review context, while the wallet remains the final gate for any onchain action.
         </p>
       </div>
 

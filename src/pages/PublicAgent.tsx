@@ -177,7 +177,7 @@ export function PublicAgent({
           <p>
             {loading
               ? "Kyra is checking whether this route maps to an active agent."
-              : "This link is not attached to an active public agent profile. The owner may need to publish, refresh, or select the agent route from the private workspace."}
+              : "This link is not attached to an active public agent profile yet. The owner can publish or select the route from the private workspace."}
           </p>
           {!loading ? (
             <div className="public-agent-empty-facts">
@@ -206,7 +206,7 @@ export function PublicAgent({
           </div>
           {publicError && !loading ? (
             <span className="demo-action-note public-profile-note">
-              No active public profile is available for this route.
+              No public agent profile is active for this route yet.
             </span>
           ) : null}
         </section>
@@ -268,7 +268,7 @@ export function PublicAgent({
           </p>
           {publicError ? (
             <span className="demo-action-note public-profile-note">
-              Live profile data is unavailable. Showing the protected product view.
+              Profile data is protected. Showing the public product view with owner-safe details.
             </span>
           ) : null}
 
@@ -290,7 +290,7 @@ export function PublicAgent({
             </button>
           </div>
           <span className="demo-action-note">
-            Telegram connection changes are owner-only and handled from deploy or an approved backend flow.
+            Telegram connection changes stay owner-only and are handled from deploy or approved account settings.
           </span>
         </div>
 
