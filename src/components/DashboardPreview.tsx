@@ -25,7 +25,7 @@ export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
         </div>
         <span className="demo-badge">
           <CircleDot size={14} />
-          Workspace preview
+          Workspace model
         </span>
       </div>
 
@@ -74,7 +74,7 @@ export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
             <ArrowRight size={16} />
             <span>
               <Clock size={16} />
-              review drafted
+              review prepared
             </span>
             <ArrowRight size={16} />
             <span>

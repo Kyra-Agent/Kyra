@@ -118,18 +118,18 @@ function getDeployFailureTitle(kind?: DeployFailureKind) {
     case "session":
       return "Account session required";
     case "quota":
-      return "Preview agent limit reached";
+      return "Agent limit reached";
     case "template":
-      return "Template unavailable";
+      return "Template not ready";
     case "request":
       return "Deploy request incomplete";
     case "configuration":
       return "Backend configuration required";
     case "backend":
-      return "Backend unavailable";
+      return "Backend not ready";
     case "unknown":
     default:
-      return "Deploy persistence blocked";
+      return "Deploy requires attention";
   }
 }
 
@@ -206,8 +206,8 @@ export function DeployPanel({
       `agent.quota=${authSession ? `${agentQuota.used}/${agentQuota.limit}` : `0/${agentQuota.limit}`}`,
       `quota.guard=max_${agentQuota.limit}_agents`,
       `account.session=${authSession ? "active" : "missing"}`,
-      `deploy.api=${authSession ? "backend_preferred" : "local_preview"}`,
-      `agent.persistence=${authSession ? "active" : "local_preview"}`,
+      `deploy.api=${authSession ? "backend_preferred" : "account_required"}`,
+      `agent.persistence=${authSession ? "active" : "account_required"}`,
       "security.no_private_keys=true",
       "public.transactions=approval_required",
     ],
@@ -587,7 +587,7 @@ export function DeployPanel({
                 }
               }
             } catch {
-              const message = "Preview deploy failed unexpectedly. No public route was confirmed.";
+              const message = "Agent deploy failed unexpectedly. No public route was confirmed.";
 
               setPersistStatus("error");
               setPersistMessage(message);
@@ -664,7 +664,7 @@ export function DeployPanel({
         });
         if (telegramBotToken.trim()) {
           setTelegramDeployConnectStatus("error");
-          setTelegramDeployConnectMessage("Telegram connect skipped because deploy was blocked by quota.");
+          setTelegramDeployConnectMessage("Telegram connect paused because the agent limit is reached.");
           setTelegramBotToken("");
         }
         return;
@@ -1033,7 +1033,7 @@ export function DeployPanel({
                     ? `${agentQuota.message} Max ${agentQuota.limit} agents per workspace.`
                     : authSession
                     ? "Account session active. Kyra will persist this agent through the connected backend."
-                    : "No active account session. This deploy stays local unless you sign in first."}
+                    : "No active account session. Sign in first to save this agent and public route."}
                 </div>
               </div>
             ) : null}
@@ -1077,7 +1077,7 @@ export function DeployPanel({
               <div className="receipt-top">
                 <span>
                   {persistStatus === "error" ? <ShieldCheck size={16} /> : <CheckCircle2 size={16} />}
-                  {persistStatus === "error" ? "Deploy blocked" : "Agent deployed"}
+                  {persistStatus === "error" ? "Deploy requires attention" : "Agent deployed"}
                 </span>
                 <strong>{receiptSourceLabel}</strong>
               </div>
@@ -1110,7 +1110,7 @@ export function DeployPanel({
                     </span>
                     <span>
                       Workspace
-                      <strong>{persistedRecord?.workspaceId ?? "local session"}</strong>
+                      <strong>{persistedRecord?.workspaceId ?? "not saved"}</strong>
                     </span>
                     <span>
                       Agent quota

@@ -11,7 +11,7 @@ import { actions } from "../data/actions";
 
 const actionTierLabel = {
   mvp: "Ready",
-  demo: "Preview",
+  demo: "Guided",
   later: "Planned",
 };
 

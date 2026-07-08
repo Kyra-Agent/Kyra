@@ -625,7 +625,7 @@ function App() {
                     Base-native agent operating system
                   </span>
                   <h1>
-                    Launch Telegram agents that can move from chat to Base execution.
+                    Launch Telegram agents for owner-approved Base execution.
                   </h1>
                   <p className="hero-subtitle">
                     Kyra turns templates into live agent workspaces: Telegram-native chat, private account records, Base Account connection, and owner-approved transaction controls built for public use.
@@ -642,7 +642,7 @@ function App() {
                     </span>
                     <span>
                       <Terminal size={15} />
-                      Base runtime ready
+                      Base Account ready
                     </span>
                   </div>
 

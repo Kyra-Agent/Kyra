@@ -36,10 +36,10 @@ function getCatalogLabel(status: SupabaseConnectionStatus) {
   }
 
   if (status === "error") {
-    return "Catalog: Local fallback";
+    return "Catalog: Built-in fallback";
   }
 
-  return status === "checking" ? "Catalog: Checking" : "Catalog: Local";
+  return status === "checking" ? "Catalog: Checking" : "Catalog: Built-in";
 }
 
 export function TemplatePicker({
@@ -62,7 +62,7 @@ export function TemplatePicker({
             {getCatalogLabel(catalogStatus)}
           </span>
           {catalogError ? (
-            <small>Connected catalog unavailable. Local template catalog loaded.</small>
+            <small>Connected catalog is temporarily offline. Built-in Kyra templates are loaded safely.</small>
           ) : null}
         </div>
       </div>
