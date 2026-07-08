@@ -2956,7 +2956,7 @@ export function Dashboard({
                     <p>
                       {authSession
                         ? "Deploy an agent before Kyra creates wallet approval records."
-                        : "Sign in to load account-scoped approval records. Nothing is mocked while signed out."}
+                        : "Sign in to load account-scoped approval records. Private queues stay hidden while signed out."}
                     </p>
                   </div>
                 )}

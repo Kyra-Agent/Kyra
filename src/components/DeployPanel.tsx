@@ -682,11 +682,11 @@ export function DeployPanel({
       return;
     }
 
-    const origin = typeof window === "undefined" ? "https://kyra-agent.demo" : window.location.origin;
-    const demoLink = `${origin}${activePublicPath}`;
+    const origin = typeof window === "undefined" ? "https://kyraagent.xyz" : window.location.origin;
+    const profileLink = `${origin}${activePublicPath}`;
 
     if (navigator.clipboard) {
-      void navigator.clipboard.writeText(demoLink);
+      void navigator.clipboard.writeText(profileLink);
     }
 
     setCopiedLink(true);

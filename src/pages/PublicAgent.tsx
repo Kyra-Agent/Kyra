@@ -60,11 +60,11 @@ function getPublicStatusLabel(status: PublicAgentProfileStatus) {
   return "Protected agent profile";
 }
 
-function isDemoPreviewSlug(agentSlug: string) {
+function isProtectedPreviewSlug(agentSlug: string) {
   return agentSlug.endsWith("-demo");
 }
 
-function formatDemoRouteStatus(status: string) {
+function formatPublicRouteStatus(status: string) {
   return status === "mocked" ? "protected" : status;
 }
 
@@ -123,11 +123,11 @@ export function PublicAgent({
   const [publicStatus, setPublicStatus] = useState<PublicAgentProfileStatus>("loading");
   const [publicProfile, setPublicProfile] = useState<PublicAgentProfile | null>(null);
   const [publicError, setPublicError] = useState<string | null>(null);
-  const canUseMockPreview = isDemoPreviewSlug(agentSlug);
-  const showUnavailableAgent = !canUseMockPreview && !publicProfile && publicStatus !== "loading";
+  const canUseProtectedPreview = isProtectedPreviewSlug(agentSlug);
+  const showUnavailableAgent = !canUseProtectedPreview && !publicProfile && publicStatus !== "loading";
   const fallbackAgentRecord = kyraDataService.getAgentInstance(selectedTemplate.id);
-  const agentRecord = publicProfile?.agent ?? (canUseMockPreview ? fallbackAgentRecord : null);
-  const activeTemplate = publicProfile?.template ?? (canUseMockPreview ? selectedTemplate : null);
+  const agentRecord = publicProfile?.agent ?? (canUseProtectedPreview ? fallbackAgentRecord : null);
+  const activeTemplate = publicProfile?.template ?? (canUseProtectedPreview ? selectedTemplate : null);
   const approvalPolicy = agentRecord ? kyraDataService.getApprovalPolicyForAgent(agentRecord) : null;
   const commandRows = activeTemplate ? kyraDataService.listPriorityApprovalRequests(activeTemplate.id, 4) : [];
   const profileSource = publicProfile ? "Persisted agent profile" : "Protected profile view";
@@ -222,7 +222,7 @@ export function PublicAgent({
   );
 
   function copyProfileLink() {
-    const origin = typeof window === "undefined" ? "https://kyra-agent.demo" : window.location.origin;
+    const origin = typeof window === "undefined" ? "https://kyraagent.xyz" : window.location.origin;
     const profileUrl = `${origin}${visibleAgentRecord.publicPath}`;
 
     if (navigator.clipboard) {
@@ -344,7 +344,7 @@ export function PublicAgent({
         </span>
         <span>
           <Route size={16} />
-          {formatDemoRouteStatus(visibleAgentRecord.baseMcpStatus)} Base action route
+          {formatPublicRouteStatus(visibleAgentRecord.baseMcpStatus)} Base action route
         </span>
       </section>
 
@@ -368,7 +368,7 @@ export function PublicAgent({
         <article className="public-panel telegram-status-panel">
           <div className="panel-title">
             <span>Telegram connection</span>
-            <span>{formatDemoRouteStatus(agentRecord.telegramStatus)}</span>
+            <span>{formatPublicRouteStatus(agentRecord.telegramStatus)}</span>
           </div>
           <div className="telegram-status-card">
             <span className="telegram-status-icon">
@@ -442,11 +442,11 @@ export function PublicAgent({
             </span>
             <span>
               Telegram
-              <strong>{formatDemoRouteStatus(visibleAgentRecord.telegramStatus)}</strong>
+              <strong>{formatPublicRouteStatus(visibleAgentRecord.telegramStatus)}</strong>
             </span>
             <span>
               Base actions
-              <strong>{formatDemoRouteStatus(visibleAgentRecord.baseMcpStatus)}</strong>
+              <strong>{formatPublicRouteStatus(visibleAgentRecord.baseMcpStatus)}</strong>
             </span>
             <span>
               Last sync
