@@ -45,7 +45,7 @@ const blockMessages: Record<Phase8RuntimeEnablementPreflightBlockReason, string>
   selected_agent_required:
     "Select one deployed agent before runtime submission can open.",
   base_account_required:
-    "Connect the owner's Base Account before runtime submission can open.",
+    "Connect the owner wallet before runtime submission can open.",
   controlled_submission_required:
     "Controlled submission must be ready before runtime submission can open.",
   live_window_activation_required:
@@ -133,7 +133,7 @@ export function evaluatePhase8RuntimeEnablementPreflight(
     runtimeSubmitterEnabled: true,
     reasons: [],
     message:
-      "Phase 8 Batch 11 gas readiness is ready for one owner-controlled Base submit.",
+      "Phase 8 Batch 11 gas readiness is ready for one owner-controlled network submit.",
   };
 }
 

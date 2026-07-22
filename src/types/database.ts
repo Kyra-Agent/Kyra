@@ -6,6 +6,11 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+export type KyraChainKey =
+  | "base"
+  | "robinhood_mainnet"
+  | "robinhood_testnet";
+
 export interface KyraDatabase {
   public: {
     Tables: {
@@ -63,7 +68,8 @@ export interface KyraDatabase {
           public_slug: string;
           status: "online" | "draft" | "paused";
           mode: "demo" | "live";
-          network: "base";
+          network: KyraChainKey;
+          chain_action_status: "disabled" | "ready" | "active" | "paused";
           telegram_status: "mocked" | "active" | "queued" | "review";
           base_mcp_status: "mocked" | "active" | "queued" | "review";
           approval_policy_id: string | null;
@@ -79,7 +85,8 @@ export interface KyraDatabase {
           public_slug: string;
           status?: "online" | "draft" | "paused";
           mode?: "demo" | "live";
-          network?: "base";
+          network?: KyraChainKey;
+          chain_action_status?: "disabled" | "ready" | "active" | "paused";
           telegram_status?: "mocked" | "active" | "queued" | "review";
           base_mcp_status?: "mocked" | "active" | "queued" | "review";
           approval_policy_id?: string | null;
@@ -99,6 +106,8 @@ export interface KyraDatabase {
           approval_required: boolean;
           allowed_actions: Json;
           status: "active" | "simulated" | "paused";
+          chain_key: KyraChainKey;
+          chain_id: number;
           created_at: string;
         };
         Insert: {
@@ -111,6 +120,8 @@ export interface KyraDatabase {
           approval_required?: boolean;
           allowed_actions?: Json;
           status?: "active" | "simulated" | "paused";
+          chain_key?: KyraChainKey;
+          chain_id?: number;
           created_at?: string;
         };
         Update: Partial<KyraDatabase["public"]["Tables"]["wallet_policies"]["Insert"]>;
@@ -132,6 +143,8 @@ export interface KyraDatabase {
           tx_hash: string | null;
           created_at: string;
           resolved_at: string | null;
+          chain_key: KyraChainKey;
+          chain_id: number;
         };
         Insert: {
           id?: string;
@@ -149,6 +162,8 @@ export interface KyraDatabase {
           tx_hash?: string | null;
           created_at?: string;
           resolved_at?: string | null;
+          chain_key?: KyraChainKey;
+          chain_id?: number;
         };
         Update: Partial<KyraDatabase["public"]["Tables"]["approval_requests"]["Insert"]>;
       };

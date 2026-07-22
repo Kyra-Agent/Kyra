@@ -17,6 +17,12 @@ import type { ChainActionPrepareRuntimeConfig } from "./runtime-config.ts";
 export const maxChainActionPrepareBodyBytes = 4096;
 export const maxChainActionPrepareRequestAgeMs = 5 * 60 * 1000;
 export const maxChainActionPrepareFutureSkewMs = 60 * 1000;
+export type ChainActionAgentStatus = "disabled" | "ready" | "active" | "paused";
+
+export interface ChainActionAgentOwnershipRecord extends AgentOwnershipRecord {
+  chainKey: "base" | "robinhood_mainnet" | "robinhood_testnet";
+  chainActionStatus: ChainActionAgentStatus;
+}
 
 export interface ChainActionPrepareRequest {
   actionKind: "chain_status_check";
@@ -81,7 +87,7 @@ export interface ChainActionPrepareDependencies {
   lookupAgentOwnership?: (
     agentId: string,
     ownerUserId: string,
-  ) => Promise<AgentOwnershipRecord | null>;
+  ) => Promise<ChainActionAgentOwnershipRecord | null>;
   checkRateLimit?: (input: {
     ownerUserId: string;
     workspaceId: string;
@@ -132,7 +138,10 @@ export async function handleChainActionPrepareRequest(
       authorization,
     );
     const ownerUserId = assertAuthenticatedUserId(user);
-    const body = await readJsonObjectBody(request, maxChainActionPrepareBodyBytes);
+    const body = await readJsonObjectBody(
+      request,
+      maxChainActionPrepareBodyBytes,
+    );
     const input = readPrepareRequest(body);
     const now = getSafeNow(dependencies.getNow);
     assertFreshRequestedAt(input.requestedAt, now);
@@ -141,10 +150,16 @@ export async function handleChainActionPrepareRequest(
       input.chainKey !== runtimeConfig.chain.key ||
       input.chainId !== runtimeConfig.chain.chainId
     ) {
-      throw new HttpError(400, "invalid_request", "Chain action request is invalid.");
+      throw new HttpError(
+        400,
+        "invalid_request",
+        "Chain action request is invalid.",
+      );
     }
 
-    const lookupOwnership = requireDependency(dependencies.lookupAgentOwnership);
+    const lookupOwnership = requireDependency(
+      dependencies.lookupAgentOwnership,
+    );
     const ownership = await safeLookupOwnership(
       lookupOwnership,
       input.agentId,
@@ -152,7 +167,25 @@ export async function handleChainActionPrepareRequest(
     );
     assertAgentOwnership(input.agentId, ownerUserId, ownership);
     if (!ownership || ownership.workspaceId !== input.workspaceId) {
-      throw new HttpError(403, "forbidden", "Agent does not belong to the signed-in user.");
+      throw new HttpError(
+        403,
+        "forbidden",
+        "Agent does not belong to the signed-in user.",
+      );
+    }
+    if (ownership.chainKey !== input.chainKey) {
+      throw new HttpError(
+        409,
+        "agent_chain_mismatch",
+        "Selected agent is not available on the requested chain.",
+      );
+    }
+    if (!["ready", "active"].includes(ownership.chainActionStatus)) {
+      throw new HttpError(
+        409,
+        "agent_chain_action_locked",
+        "Selected agent is not enabled for chain action preparation.",
+      );
     }
 
     if (
@@ -172,12 +205,16 @@ export async function handleChainActionPrepareRequest(
       chainKey: input.chainKey,
     });
     if (!rateLimit.allowed) {
-      return resultResponse({
-        ok: false,
-        status: "blocked",
-        code: "chain_action_rate_limited",
-        message: "Chain status checks are temporarily limited.",
-      }, 429, input.requestId);
+      return resultResponse(
+        {
+          ok: false,
+          status: "blocked",
+          code: "chain_action_rate_limited",
+          message: "Chain status checks are temporarily limited.",
+        },
+        429,
+        input.requestId,
+      );
     }
 
     try {
@@ -186,29 +223,35 @@ export async function handleChainActionPrepareRequest(
         input,
       );
       if (result.ok) {
-        await assertStorageResult(await dependencies.storePreparedAction({
-          ownerUserId,
-          workspaceId: input.workspaceId,
-          agentId: input.agentId,
-          requestId: input.requestId,
-          requestedAt: input.requestedAt,
-          actionKind: input.actionKind,
-          chainKey: input.chainKey,
-          chainId: input.chainId,
-          routeSummary: result.summary.routeSummary,
-          valueSummary: result.summary.valueSummary,
-          risk: result.summary.risk,
-          expiryIso: result.summary.expiryIso,
-        }));
+        await assertStorageResult(
+          await dependencies.storePreparedAction({
+            ownerUserId,
+            workspaceId: input.workspaceId,
+            agentId: input.agentId,
+            requestId: input.requestId,
+            requestedAt: input.requestedAt,
+            actionKind: input.actionKind,
+            chainKey: input.chainKey,
+            chainId: input.chainId,
+            routeSummary: result.summary.routeSummary,
+            valueSummary: result.summary.valueSummary,
+            risk: result.summary.risk,
+            expiryIso: result.summary.expiryIso,
+          }),
+        );
       }
       return resultResponse(result, result.ok ? 200 : 502, input.requestId);
     } catch {
-      return resultResponse({
-        ok: false,
-        status: "failed",
-        code: "chain_action_unavailable",
-        message: "No chain action can be prepared right now.",
-      }, 502, input.requestId);
+      return resultResponse(
+        {
+          ok: false,
+          status: "failed",
+          code: "chain_action_unavailable",
+          message: "No chain action can be prepared right now.",
+        },
+        502,
+        input.requestId,
+      );
     }
   } catch (error) {
     if (error instanceof HttpError) {
@@ -224,7 +267,9 @@ export async function handleChainActionPrepareRequest(
   }
 }
 
-export function readPrepareRequest(body: Record<string, unknown>): ChainActionPrepareRequest {
+export function readPrepareRequest(
+  body: Record<string, unknown>,
+): ChainActionPrepareRequest {
   if (
     Object.keys(body).sort().join(",") !==
       "actionKind,agentId,chainId,chainKey,mode,requestId,requestedAt,workspaceId" ||
@@ -240,7 +285,11 @@ export function readPrepareRequest(body: Record<string, unknown>): ChainActionPr
     typeof body.requestedAt !== "string" ||
     !Number.isFinite(Date.parse(body.requestedAt))
   ) {
-    throw new HttpError(400, "invalid_request", "Chain action request is invalid.");
+    throw new HttpError(
+      400,
+      "invalid_request",
+      "Chain action request is invalid.",
+    );
   }
   const agentId = assertAgentId(body.agentId);
   return {
@@ -290,10 +339,16 @@ function resultResponse(
   const headers = new Headers(corsHeaders);
   headers.set("cache-control", "no-store");
   headers.set("x-content-type-options", "nosniff");
-  if (requestId) headers.set("x-kyra-request-id", requestId);
+  if (requestId) {
+    headers.set("access-control-expose-headers", "x-kyra-request-id");
+    headers.set("x-kyra-request-id", requestId);
+  }
   return new Response(JSON.stringify(result), {
     status,
-    headers: { ...Object.fromEntries(headers), "content-type": "application/json; charset=utf-8" },
+    headers: {
+      ...Object.fromEntries(headers),
+      "content-type": "application/json; charset=utf-8",
+    },
   });
 }
 
@@ -337,7 +392,11 @@ function assertFreshRequestedAt(value: string, now: Date) {
     time < now.getTime() - maxChainActionPrepareRequestAgeMs ||
     time > now.getTime() + maxChainActionPrepareFutureSkewMs
   ) {
-    throw new HttpError(400, "invalid_request", "Chain action request is invalid.");
+    throw new HttpError(
+      400,
+      "invalid_request",
+      "Chain action request is invalid.",
+    );
   }
 }
 
@@ -347,5 +406,6 @@ function isCanonicalUuid(value: string) {
 }
 
 function bounded(value: unknown, max: number) {
-  return typeof value === "string" && value.trim().length > 0 && value.length <= max;
+  return typeof value === "string" && value.trim().length > 0 &&
+    value.length <= max;
 }

@@ -1,3 +1,4 @@
+
 import { baseChainId } from "./unsignedTransactionHandoff";
 
 export type Phase8UserSafeTransactionPolicyStatus =
@@ -54,13 +55,13 @@ const blockMessages: Record<Phase8UserSafeTransactionPolicyReason, string> = {
   agent_required:
     "A selected deployed agent is required before user-safe transaction review.",
   base_account_required:
-    "A connected Base Account is required before user-safe transaction review.",
+    "A connected owner wallet is required before user-safe transaction review.",
   base_chain_required:
-    "User-safe transaction review is restricted to Base.",
+    "User-safe transaction review is restricted to the selected runtime network.",
   prepared_action_required:
     "A reviewed prepared action is required before user-safe transaction review.",
   unsupported_action_kind:
-    "Only the controlled Base reviewed transaction kind is allowed.",
+    "Only the controlled reviewed transaction kind is allowed.",
   non_zero_value_forbidden:
     "Non-zero value remains disabled until the next explicit expansion gate.",
   calldata_forbidden:

@@ -1,3 +1,4 @@
+
 import type {
   ControlledLiveTransactionGateResult,
 } from "./controlledLiveTransactionGate";
@@ -61,7 +62,7 @@ const blockMessages: Record<ExecutionLaunchReadinessBlockReason, string> = {
   selected_agent_required:
     "Select one deployed agent before execution launch review.",
   base_account_required:
-    "Connect the owner's Base Account before launch review.",
+    "Connect the owner's wallet before launch review.",
   controlled_gate_not_ready:
     "Controlled live gate must be ready before launch review.",
   official_mcp_must_remain_optional_or_disabled:
@@ -178,7 +179,7 @@ export function evaluateExecutionLaunchReadiness(
       ? blockMessages[uniqueReasons[0]]
       : input.ownerLaunchDecision === "approved"
         ? "Owner launch decision is approved, but runtime wallet prompt, signing, and submission remain disabled until the separate enablement window."
-        : "Execution launch packet is ready for owner review. Base Account remains the primary lane and official Base MCP remains optional.",
+        : "Execution launch packet is ready for owner review. The owner wallet remains the primary lane and the legacy hosted MCP path remains optional.",
   };
 }
 

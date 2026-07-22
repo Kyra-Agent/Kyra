@@ -53,7 +53,7 @@ const blockMessages: Record<Phase8TransactionVerificationReason, string> = {
   transaction_hash_required:
     "Transaction verification requires a valid transaction hash.",
   receipt_pending:
-    "Transaction receipt is still pending on Base.",
+    "Transaction receipt is still pending on the selected network.",
   receipt_reverted:
     "Transaction receipt shows a reverted transaction.",
   receipt_unavailable:
@@ -155,13 +155,13 @@ function getMessage(status: Phase8TransactionVerificationStatus) {
     case "not_started":
       return "No submitted transaction hash is available for verification.";
     case "pending_receipt":
-      return "Submitted transaction is waiting for a Base receipt.";
+      return "Submitted transaction is waiting for a network receipt.";
     case "confirmed":
-      return "Base transaction receipt verified successfully under owner-only monitoring.";
+      return "Transaction receipt verified successfully under owner-only monitoring.";
     case "failed":
-      return "Base transaction verification closed with sanitized failure evidence.";
+      return "Transaction verification closed with sanitized failure evidence.";
     case "blocked":
-      return "Base transaction verification is blocked.";
+      return "Transaction verification is blocked.";
   }
 }
 

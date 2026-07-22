@@ -16,6 +16,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import type { AgentTemplate } from "../types/agent";
+import { currentProductChain } from "../config/productChains";
 import { kyraDataService } from "../services/kyraDataService";
 import {
   fetchPublicAgentProfile,
@@ -37,8 +38,8 @@ const capabilityRows = [
     icon: Bot,
   },
   {
-    title: "Base action layer",
-    summary: "Prepares Base action context while submission stays owner-controlled.",
+    title: `${currentProductChain.name} action layer`,
+    summary: `Prepares ${currentProductChain.name} action context while submission stays owner-controlled.`,
     icon: Radio,
   },
   {
@@ -264,7 +265,7 @@ export function PublicAgent({
           <p>
             A share-ready public profile for a deployed Kyra agent. It shows
             public identity, command examples, and safety policy while Telegram
-            and Base execution remain approval-first.
+            and {currentProductChain.name} execution remain approval-first.
           </p>
           {publicError ? (
             <span className="demo-action-note public-profile-note">
@@ -344,7 +345,7 @@ export function PublicAgent({
         </span>
         <span>
           <Route size={16} />
-          {formatPublicRouteStatus(visibleAgentRecord.baseMcpStatus)} Base action route
+          {formatPublicRouteStatus(visibleAgentRecord.baseMcpStatus)} {currentProductChain.name} action route
         </span>
       </section>
 
@@ -445,7 +446,7 @@ export function PublicAgent({
               <strong>{formatPublicRouteStatus(visibleAgentRecord.telegramStatus)}</strong>
             </span>
             <span>
-              Base actions
+              {currentProductChain.name} actions
               <strong>{formatPublicRouteStatus(visibleAgentRecord.baseMcpStatus)}</strong>
             </span>
             <span>

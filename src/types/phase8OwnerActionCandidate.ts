@@ -61,7 +61,7 @@ export function createPhase8OwnerActionCandidate(
       candidate: null,
       reasons,
       message:
-        "Owner Base Account self-check candidate is locked until owner, agent, Base network, and browser-session address are ready.",
+        `Owner wallet self-check candidate is locked until owner, agent, ${currentProductChain.name} network, and browser-session address are ready.`,
     };
   }
 
@@ -70,7 +70,7 @@ export function createPhase8OwnerActionCandidate(
     candidate: {
       actionKind: "base_reviewed_transaction",
       chain: currentProductChain.name,
-      routeSummary: "Owner Base Account self-check controlled transaction.",
+      routeSummary: "Owner wallet self-check controlled transaction.",
       valueSummary: "Zero ETH, no token spend, no calldata, self-address recipient.",
       risk: "review",
       requiresWallet: true,
@@ -80,6 +80,6 @@ export function createPhase8OwnerActionCandidate(
     },
     reasons: [],
     message:
-      "Owner Base Account self-check candidate is ready for private-dashboard review.",
+      "Owner wallet self-check candidate is ready for private-dashboard review.",
   };
 }

@@ -105,7 +105,7 @@ for (const expected of [
 for (const expected of [
   "createPhase8OwnerActionCandidate",
   "base_account_address_required",
-  "Owner Base Account self-check controlled transaction.",
+  "Owner wallet self-check controlled transaction.",
   "Zero ETH, no token spend, no calldata, self-address recipient.",
 ]) {
   includes("owner action candidate", candidate, expected);

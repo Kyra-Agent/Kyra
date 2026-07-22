@@ -104,8 +104,8 @@ const blockMessages: Record<Phase8LiveWindowPreparationBlockReason, string> = {
   workspace_match_required: "The selected workspace must match the owner-approved live window.",
   selected_agent_required: "Select one deployed agent before preparing Phase 8 execution.",
   selected_agent_match_required: "The selected agent must match the owner-approved live window.",
-  base_chain_required: "Phase 8 Batch 2 only allows Base mainnet readiness.",
-  base_account_required: "Connect the owner's Base Account before preparing the wallet prompt.",
+  base_chain_required: "Phase 8 Batch 2 only allows the selected runtime network.",
+  base_account_required: "Connect the owner wallet before preparing the wallet prompt.",
   live_window_approval_required: "An explicit owner-approved live window is required.",
   live_window_owner_mismatch: "The live window must be approved by the same owner session.",
   live_window_workspace_mismatch: "The live window workspace does not match the selected workspace.",
@@ -120,7 +120,7 @@ const blockMessages: Record<Phase8LiveWindowPreparationBlockReason, string> = {
   frozen_action_agent_mismatch: "The frozen action agent does not match the selected agent.",
   zero_value_action_required: "Batch 2 only prepares a zero-value first transaction.",
   no_calldata_required: "Batch 2 only prepares a no-calldata first transaction.",
-  base_account_prompt_ready_required: "Base Account prompt readiness must be ready, opened, or approved.",
+  base_account_prompt_ready_required: "Owner-wallet prompt readiness must be ready, opened, or approved.",
   telegram_authority_forbidden: "Telegram cannot request or authorize Phase 8 execution.",
   public_visibility_forbidden: "Public profiles cannot expose or trigger Phase 8 execution state.",
 };
@@ -277,7 +277,7 @@ export function evaluatePhase8LiveWindowPreparation(
       walletPromptAllowed: true,
       transactionSubmissionAllowed: false,
       reasons: [],
-      message: "Base Account approval readiness is recorded. Batch 2 still does not submit transactions.",
+      message: "Owner-wallet approval readiness is recorded. Batch 2 still does not submit transactions.",
     };
   }
 
@@ -298,7 +298,7 @@ export function evaluatePhase8LiveWindowPreparation(
     walletPromptAllowed: true,
     transactionSubmissionAllowed: false,
     reasons: [],
-    message: "Phase 8 live window is prepared for an explicit owner Base Account prompt.",
+    message: "Phase 8 live window is prepared for an explicit owner-wallet prompt.",
   };
 }
 

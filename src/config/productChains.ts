@@ -48,7 +48,7 @@ export const baseLegacyChain = defineProductChain({
 });
 
 export const robinhoodChain = defineProductChain({
-  key: "robinhood",
+  key: "robinhood_mainnet",
   id: 4663,
   hexId: "0x1237",
   name: "Robinhood Chain",
@@ -63,7 +63,7 @@ export const robinhoodChain = defineProductChain({
 });
 
 export const robinhoodTestnetChain = defineProductChain({
-  key: "robinhood-testnet",
+  key: "robinhood_testnet",
   id: 46630,
   hexId: "0xb626",
   name: "Robinhood Chain Testnet",
@@ -83,9 +83,48 @@ export const productChains = Object.freeze([
   robinhoodTestnetChain,
 ] as const);
 
-// Batch 2 is abstraction-only. Batch 6 performs the atomic production cutover.
-export const currentProductChain = baseLegacyChain;
+export type ProductChain = (typeof productChains)[number];
+export type ProductChainKey = ProductChain["key"];
+
+export interface ProductChainRuntimeSelection {
+  mode: string;
+  requestedTarget: string;
+  testnetWindow: string;
+}
+
+export function selectProductChainForRuntime(
+  selection: ProductChainRuntimeSelection,
+) {
+  if (
+    selection.mode === "robinhood-testnet" &&
+    selection.requestedTarget === "robinhood_testnet" &&
+    selection.testnetWindow === "owner_testnet_window"
+  ) {
+    return robinhoodTestnetChain;
+  }
+
+  return baseLegacyChain;
+}
+
+function readBuildEnv(key: string) {
+  const env = (import.meta as ImportMeta & {
+    readonly env?: Readonly<Record<string, string | undefined>>;
+  }).env;
+  return env?.[key] ?? "";
+}
+
+// Production remains Base. Batch 5 can select testnet only in its named local
+// Vite mode; Robinhood mainnet has no environment-selectable path before Batch 6.
+export const currentProductChain = selectProductChainForRuntime({
+  mode: readBuildEnv("MODE"),
+  requestedTarget: readBuildEnv("VITE_KYRA_CHAIN_RELEASE_TARGET"),
+  testnetWindow: readBuildEnv("VITE_KYRA_ROBINHOOD_TESTNET_WINDOW"),
+});
 export const migrationTargetChain = robinhoodChain;
+export const currentWalletDisplayName = currentProductChain.key === "base"
+  ? "Base Account"
+  : `${currentProductChain.name} wallet`;
+export const currentGasDisplayName = `${currentProductChain.name} ETH`;
 
 export function normalizeEvmChainId(value: unknown): number | null {
   if (typeof value === "number") {
@@ -125,4 +164,9 @@ export function isMigrationTargetChainId(
 export function getProductChainById(value: unknown) {
   const chainId = normalizeEvmChainId(value);
   return productChains.find((chain) => chain.id === chainId) ?? null;
+}
+
+export function getProductChainByKey(value: unknown): ProductChain | null {
+  if (typeof value !== "string") return null;
+  return productChains.find((chain) => chain.key === value) ?? null;
 }

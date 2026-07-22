@@ -180,7 +180,7 @@ export function isTransactionHash(value: unknown): value is `0x${string}` {
 
 const walletSigningFailureMessages: Record<WalletSigningFailureCode, string> = {
   user_rejected: "User rejected the wallet request.",
-  network_mismatch: "Wallet must be connected to Base.",
+  network_mismatch: `Wallet must be connected to ${currentProductChain.name}.`,
   provider_unavailable: "Wallet provider is unavailable.",
   unsupported_action: "This action is not supported for wallet signing.",
   expired_handoff: "Wallet approval window expired.",

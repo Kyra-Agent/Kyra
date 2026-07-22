@@ -1,3 +1,5 @@
+import { currentProductChain } from "../config/productChains";
+
 export interface DemoScenario {
   id: string;
   label: string;
@@ -16,15 +18,15 @@ export const demoScenarios: DemoScenario[] = [
     label: "Swap Review",
     command: "review 10 USDC to ETH swap",
     templateId: "operator",
-    route: "USDC -> WETH review route on Base",
+    route: "USDC -> WETH review route on " + currentProductChain.name,
     risk: "review",
-    network: "Base",
+    network: currentProductChain.name,
     approvalRequired: true,
     lines: [
       "NIRA-01 parsed intent: token_swap_review",
       "NOVA-04 balance check: USDC available",
       "NYX-05 risk check: review required",
-      "BASE ACTION review draft created",
+      "CHAIN ACTION review draft created",
       "status: wallet_execution_disabled",
     ],
   },
@@ -35,24 +37,24 @@ export const demoScenarios: DemoScenario[] = [
     templateId: "steward",
     route: "Wallet ownership + holder status proof",
     risk: "read-only",
-    network: "Base",
+    network: currentProductChain.name,
     approvalRequired: false,
     lines: [
       "NIRA-01 parsed intent: holder_verify",
       "NOVA-04 reading token holder context",
       "NYX-05 wallet scope check: read-only",
-      "BASE ACTION proof request simulated",
+      "CHAIN ACTION proof request simulated",
       "status: holder verification ready",
     ],
   },
   {
     id: "scan",
     label: "Launch Scan",
-    command: "scan new Base launches",
+    command: "scan new " + currentProductChain.name + " launches",
     templateId: "scout",
     route: "Launch monitor + token risk brief",
     risk: "review",
-    network: "Base",
+    network: currentProductChain.name,
     approvalRequired: false,
     lines: [
       "VEXA-02 scanning launch surfaces",
@@ -69,7 +71,7 @@ export const demoScenarios: DemoScenario[] = [
     templateId: "strategist",
     route: "Market brief + narrative map + campaign plan",
     risk: "review",
-    network: "Base",
+    network: currentProductChain.name,
     approvalRequired: false,
     lines: [
       "ASTRA-03 framing token and project context",

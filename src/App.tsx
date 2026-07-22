@@ -13,7 +13,10 @@ import { SecuritySection } from "./components/SecuritySection";
 import { TemplatePicker } from "./components/TemplatePicker";
 import { WalletApprovalModal } from "./components/WalletApprovalModal";
 import { appConfig } from "./config/appConfig";
-import { currentProductChain } from "./config/productChains";
+import {
+  currentProductChain,
+  currentWalletDisplayName,
+} from "./config/productChains";
 import { Dashboard } from "./pages/Dashboard";
 import { PublicAgent } from "./pages/PublicAgent";
 import { kyraDataService } from "./services/kyraDataService";
@@ -222,6 +225,17 @@ function App() {
       ),
     [walletUnsignedHandoff, walletUnsignedHandoffValidation],
   );
+
+  useEffect(() => {
+    const chainLabel = currentProductChain.key === "base"
+      ? "Base-Native"
+      : currentProductChain.name;
+    document.title = `Kyra Agent | ${chainLabel} AI Agent Platform`;
+    document.querySelector('meta[name="description"]')?.setAttribute(
+      "content",
+      `Deploy Telegram-native agents with owner-approved ${currentProductChain.name} workflows.`,
+    );
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -623,13 +637,13 @@ function App() {
                 <div className="hero-copy">
                   <span className="demo-badge hero-badge">
                     <Sparkles size={15} />
-                    Base-native agent operating system
+                    {currentProductChain.name} agent operating system
                   </span>
                   <h1>
-                    Launch Telegram agents for owner-approved Base execution.
+                    Launch Telegram agents for owner-approved {currentProductChain.name} execution.
                   </h1>
                   <p className="hero-subtitle">
-                    Kyra turns templates into live agent workspaces: Telegram-native chat, private account records, Base Account connection, and owner-approved transaction controls built for public use.
+                    Kyra turns templates into live agent workspaces: Telegram-native chat, private account records, {currentWalletDisplayName} connection, and owner-approved transaction controls built for public use.
                   </p>
 
                   <div className="hero-proof-strip" aria-label="Kyra production readiness">
@@ -643,7 +657,7 @@ function App() {
                     </span>
                     <span>
                       <Terminal size={15} />
-                      Base Account ready
+                      {currentWalletDisplayName} ready
                     </span>
                   </div>
 

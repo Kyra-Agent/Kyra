@@ -1,3 +1,4 @@
+
 import {
   baseChainId,
   validateUnsignedTransactionHandoff,
@@ -83,7 +84,7 @@ export function reviewPreparedActionRisk(
   }
 
   if (input.chainId !== baseChainId) {
-    return blockedRiskReview("Prepared action must target Base.");
+    return blockedRiskReview("Prepared action must target the selected network.");
   }
 
   const permissions = getRiskPermissions(input);

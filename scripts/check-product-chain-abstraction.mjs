@@ -38,7 +38,10 @@ for (const expected of [
   'hexId: "0xb626"',
   'publicRpcUrl: "https://rpc.mainnet.chain.robinhood.com"',
   'explorerUrl: "https://robinhoodchain.blockscout.com"',
-  'export const currentProductChain = baseLegacyChain',
+  'selection.mode === "robinhood-testnet"',
+  'selection.requestedTarget === "robinhood_testnet"',
+  'selection.testnetWindow === "owner_testnet_window"',
+  'return baseLegacyChain',
   'export const migrationTargetChain = robinhoodChain',
   'productionRpcPolicy: "backend_secret_required"',
   "normalizeEvmChainId",
@@ -51,9 +54,11 @@ for (const expected of [
 for (const [label, source, expected] of [
   ["app config", appConfig, "network: currentProductChain.name"],
   ["app config", appConfig, 'cutoverStatus: "pending"'],
+  ["app config", appConfig, 'testnetEvidenceMode: currentProductChain.key === "robinhood_testnet"'],
   ["app config", appConfig, 'walletExecution: "disabled"'],
-  ["wallet providers", walletProviders, "id: currentProductChain.id"],
-  ["wallet providers", walletProviders, "currentProductChain.publicRpcUrl"],
+  ["wallet providers", walletProviders, "id: productChain.id"],
+  ["wallet providers", walletProviders, "productChain.publicRpcUrl"],
+  ["wallet providers", walletProviders, 'currentProductChain.key === "robinhood_testnet"'],
   ["unsigned handoff", unsignedHandoff, "baseChainId = currentProductChain.id"],
   ["owner wallet binding", ownerWalletConnection, "ownerWalletChainId = currentProductChain.id"],
   ["wallet signing", walletSigning, "isCurrentProductChainId(chainId)"],
@@ -89,8 +94,8 @@ for (const policyPath of [
 
 assert(
   !walletProviders.includes("robinhoodChain") &&
-    !walletProviders.includes("robinhoodTestnetChain"),
-  "Robinhood must not become the active wallet runtime before atomic cutover.",
+    walletProviders.includes("robinhoodTestnetChain"),
+  "Wallet runtime may expose the gated testnet chain but never mainnet before cutover.",
 );
 
 console.log("Product chain abstraction checks passed.");

@@ -74,7 +74,7 @@ for (const expected of [
   "phase8LowValueBaseBalance",
   "availableGasBalanceWei: phase8LowValueBaseBalance.data?.value.toString() ?? null",
   "formatPhase8BaseEth",
-  "Live Base balance",
+  "Live {currentProductChain.name} balance",
   "Gas/value source",
 ]) {
   includes("Dashboard", dashboard, expected);

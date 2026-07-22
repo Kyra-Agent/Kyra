@@ -1,3 +1,7 @@
+import {
+  currentProductChain,
+  currentWalletDisplayName,
+} from "../config/productChains";
 import { demoScenarios } from "./demoScenarios";
 import { agentTemplates } from "./templates";
 import type {
@@ -21,7 +25,7 @@ export const demoWorkspace: DemoWorkspaceRecord = {
 export const demoWalletPolicies: DemoWalletPolicy[] = [
   {
     id: "policy_base_account",
-    label: "Base Account",
+    label: currentWalletDisplayName,
     value: "0x8a...91c",
     status: "gated",
     description: "Demo connection only. No wallet prompt or funds touched.",
@@ -55,7 +59,11 @@ export const demoAgentInstances: DemoAgentInstance[] = agentTemplates.map((
   publicPath: `/agents/${template.id}-demo`,
   status: template.status === "coming-soon" ? "draft" : "online",
   mode: "frontend-demo",
-  network: "Base",
+  network: currentProductChain.name,
+  chainKey: currentProductChain.key,
+  chainActionStatus: currentProductChain.key === "robinhood_testnet"
+    ? "ready"
+    : "disabled",
   telegramStatus: template.status === "coming-soon" ? "queued" : "mocked",
   baseMcpStatus: template.status === "coming-soon" ? "queued" : "mocked",
   approvalPolicyId: "policy_approval_gate",
@@ -121,7 +129,7 @@ export const demoActivityLogs: DemoActivityLog[] = [
     timestamp: "12:04:21",
     source: "base_mcp_routes",
     level: "notice",
-    message: "Base action route prepared",
+    message: `${currentProductChain.name} action route prepared`,
   },
   {
     id: "log_command_received",
@@ -205,9 +213,9 @@ export const demoExecutionResults: DemoExecutionResult[] = [
     agentId: getDemoAgentInstance("operator").id,
     status: "failed",
     label: "Sanitized failure",
-    summary: "Provider and Base errors collapse into safe user-facing copy.",
+    summary: `Provider and ${currentProductChain.name} errors collapse into safe user-facing copy.`,
     txHashLabel: "No transaction hash before submission",
-    failureReason: "Wallet must be connected to Base.",
+    failureReason: `Wallet must be connected to ${currentProductChain.name}.`,
     visibility: "owner-only",
     updatedAt: "12:05:09",
   },
@@ -224,7 +232,7 @@ export const demoBackendTables: DemoBackendTable[] = [
     name: "agent_instances",
     records: demoAgentInstances.length,
     status: "mocked",
-    purpose: "Template, handle, public route, status, and Base network.",
+    purpose: `Template, handle, public route, status, and ${currentProductChain.name} network.`,
   },
   {
     name: "approval_requests",

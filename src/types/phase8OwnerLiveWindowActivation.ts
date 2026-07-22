@@ -35,7 +35,7 @@ const blockMessages: Record<Phase8OwnerLiveWindowActivationBlockReason, string> 
   controlled_submission_required:
     "Controlled submission must be ready before the live-window activation can arm the submitter.",
   operator_ack_required:
-    "The owner operator must acknowledge the exact agent, action, Base Account, and rollback plan.",
+    "The owner operator must acknowledge the exact agent, action, connected wallet, and rollback plan.",
   rollback_required: "Rollback readiness is required before live-window activation.",
   emergency_disable_required:
     "Emergency disablement readiness is required before live-window activation.",
@@ -100,7 +100,7 @@ export function evaluatePhase8OwnerLiveWindowActivation(
     transactionSubmissionAllowed: true,
     reasons: [],
     message:
-      "Phase 8 Batch 11 live window is armed for one owner-controlled Base submit.",
+      "Phase 8 Batch 11 live window is armed for one owner-controlled network submit.",
   };
 }
 

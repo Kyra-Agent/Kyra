@@ -82,6 +82,16 @@ try {
   });
   assertEquals(unavailable.status, "unavailable");
 
+  const robinhoodEmpty = evaluatePhase8FundingReadiness({
+    ...baseInput,
+    value: 0n,
+    networkName: "Robinhood Chain Testnet",
+    walletDisplayName: "Robinhood Chain Testnet wallet",
+    gasDisplayName: "Robinhood Chain Testnet ETH",
+  });
+  assert(robinhoodEmpty.message.includes("Robinhood Chain Testnet"));
+  assert(robinhoodEmpty.ownerAction.includes("Robinhood Chain Testnet wallet"));
+
   assertEquals(formatPhase8BaseEth(1_000_000_000_000_000_000n), "1");
   assertEquals(formatPhase8BaseEth(12_345_678_900_000_000n), "0.012345");
 } finally {

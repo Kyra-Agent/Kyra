@@ -1,10 +1,11 @@
+import { currentProductChain } from "../config/productChains";
 import type { ActionDefinition } from "../types/agent";
 
 export const actions: ActionDefinition[] = [
   {
     id: "balance",
     name: "Balance",
-    summary: "Read wallet balances and summarize available assets on Base.",
+    summary: `Read wallet balances and summarize available assets on ${currentProductChain.name}.`,
     tier: "mvp",
   },
   {
@@ -45,7 +46,7 @@ export const actions: ActionDefinition[] = [
     id: "launch-monitor",
     name: "Launch Monitor",
     summary:
-      "Track launches and project activity across the Base ecosystem.",
+      `Track launches and project activity across the ${currentProductChain.name} ecosystem.`,
     tier: "mvp",
   },
   {

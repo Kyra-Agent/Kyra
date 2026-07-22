@@ -285,7 +285,7 @@ export function evaluatePhase8WalletPromptOpening(
     walletApprovalRecorded: false,
     transactionSubmissionAllowed: false,
     reasons: [],
-    message: "Phase 8 Batch 3 is ready to open one owner-click Base Account prompt.",
+    message: "Phase 8 Batch 3 is ready to open one owner-click wallet prompt.",
   };
 }
 

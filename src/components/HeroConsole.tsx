@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Bot, Radio, ShieldCheck, WalletCards } from "lucide-react";
 import type { AgentTemplate } from "../types/agent";
 import type { DemoScenario } from "../data/demoScenarios";
+import {
+  currentProductChain,
+  currentWalletDisplayName,
+} from "../config/productChains";
 
 interface HeroConsoleProps {
   selectedTemplate: AgentTemplate;
@@ -12,10 +16,10 @@ interface HeroConsoleProps {
 }
 
 const asciiKyra = [
-  "KYRA / BASE",
+  `KYRA / ${currentProductChain.name.toUpperCase()}`,
   "OPERATOR CONSOLE",
   "NIRA VEXA ASTRA NOVA NYX",
-  "TELEGRAM -> REVIEW -> BASE",
+  `TELEGRAM -> REVIEW -> ${currentProductChain.name.toUpperCase()}`,
 ].join("\n");
 
 export function HeroConsole({
@@ -29,12 +33,12 @@ export function HeroConsole({
 
   const lines = useMemo(
     () => [
-      `kyra@base:~$ deploy --template ${selectedTemplate.id}`,
+      `kyra@${currentProductChain.key.replace(/_/g, "-")}:~$ deploy --template ${selectedTemplate.id}`,
       "opening public agent workspace",
       "NIRA-01  intent routing online",
       "NOVA-04  account-scoped data ready",
       "NYX-05   risk and approval guard active",
-      "BASE ACTION owner review layer ready",
+      `${currentProductChain.name.toUpperCase()} ACTION owner review layer ready`,
       `telegram> ${selectedScenario.command}`,
       ...selectedScenario.lines,
     ],
@@ -125,7 +129,7 @@ export function HeroConsole({
           </span>
           <span>
             <Radio size={15} />
-            Base Account ready
+            {currentWalletDisplayName} ready
           </span>
         </div>
       </div>

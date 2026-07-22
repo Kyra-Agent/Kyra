@@ -1,3 +1,4 @@
+
 import { baseChainId } from "./unsignedTransactionHandoff";
 
 export type Phase9ExecutionEligibilityStatus =
@@ -149,12 +150,12 @@ function buildControls(
     {
       label: "Wallet boundary",
       status: reasons.some((reason) => ["base_account_required", "base_chain_required", "base_account_approval_required"].includes(reason)) ? "blocked" : "pass",
-      detail: "The user's own Base Account on Base must approve the transaction.",
+      detail: "The user's own wallet on the selected network must approve the transaction.",
     },
     {
       label: "Action shape",
       status: valueWei !== null && maxValueWei !== null && valueWei > 0n && valueWei <= maxValueWei && allowedActionKinds.has(input.actionKind ?? "") && (input.calldata ?? "0x") === "0x" ? "pass" : "blocked",
-      detail: "Only capped Base ETH transfer actions with no calldata are eligible.",
+      detail: "Only capped native-currency transfer actions with no calldata are eligible.",
     },
     {
       label: "Approval and receipt",

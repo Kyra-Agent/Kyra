@@ -9,7 +9,7 @@ function formatActivityLog(log: DemoActivityLog) {
     {
       agent_instances: "agent",
       telegram_sessions: "telegram",
-      base_mcp_routes: "base action",
+      base_mcp_routes: "chain action",
       approval_requests: "approval",
       execution_results: "execution",
     }[log.source] ?? "demo";

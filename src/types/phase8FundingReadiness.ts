@@ -12,6 +12,9 @@ export interface Phase8FundingReadinessInput {
   isLoading: boolean;
   isError: boolean;
   value: bigint | null;
+  networkName?: string;
+  walletDisplayName?: string;
+  gasDisplayName?: string;
 }
 
 export interface Phase8FundingReadinessResult {
@@ -26,12 +29,16 @@ export interface Phase8FundingReadinessResult {
 export function evaluatePhase8FundingReadiness(
   input: Phase8FundingReadinessInput,
 ): Phase8FundingReadinessResult {
+  const networkName = input.networkName ?? "Base";
+  const walletDisplayName = input.walletDisplayName ?? "Base Account";
+  const gasDisplayName = input.gasDisplayName ?? "Base ETH";
+
   if (!input.walletConnected) {
     return createResult({
       status: "wallet_required",
       label: "wallet required",
-      message: "Connect the owner Base Account before checking gas readiness.",
-      ownerAction: "Connect the owner Base Account from the private dashboard.",
+      message: `Connect the owner ${walletDisplayName} before checking gas readiness.`,
+      ownerAction: `Connect the owner ${walletDisplayName} from the private dashboard.`,
       canOpenSubmitter: false,
     });
   }
@@ -40,8 +47,8 @@ export function evaluatePhase8FundingReadiness(
     return createResult({
       status: "address_required",
       label: "address required",
-      message: "Kyra needs the owner Base Account address before checking gas readiness.",
-      ownerAction: "Reconnect the Base Account so Kyra can read the owner address.",
+      message: `Kyra needs the owner ${walletDisplayName} address before checking gas readiness.`,
+      ownerAction: `Reconnect ${walletDisplayName} so Kyra can read the owner address.`,
       canOpenSubmitter: false,
     });
   }
@@ -50,8 +57,8 @@ export function evaluatePhase8FundingReadiness(
     return createResult({
       status: "checking",
       label: "checking",
-      message: "Checking native ETH gas balance on Base before opening the submit prompt.",
-      ownerAction: "Wait for the Base ETH balance check to finish.",
+      message: `Checking native ETH gas balance on ${networkName} before opening the submit prompt.`,
+      ownerAction: `Wait for the ${gasDisplayName} balance check to finish.`,
       canOpenSubmitter: false,
     });
   }
@@ -60,7 +67,7 @@ export function evaluatePhase8FundingReadiness(
     return createResult({
       status: "unavailable",
       label: "check failed",
-      message: "Kyra could not verify Base ETH gas readiness. Retry after the wallet connection refreshes.",
+      message: `Kyra could not verify ${gasDisplayName} gas readiness. Retry after the wallet connection refreshes.`,
       ownerAction: "Refresh the wallet connection before submitting.",
       canOpenSubmitter: false,
     });
@@ -70,8 +77,8 @@ export function evaluatePhase8FundingReadiness(
     return createResult({
       status: "empty",
       label: "0 ETH",
-      message: "Add native ETH on Base to the connected Base Account before submitting. The transaction is zero-value, but gas still requires ETH.",
-      ownerAction: "Fund the connected Base Account with Base ETH, then refresh the dashboard.",
+      message: `Add native ETH on ${networkName} to the connected ${walletDisplayName} before submitting. The transaction is zero-value, but gas still requires ETH.`,
+      ownerAction: `Fund the connected ${walletDisplayName} with ${gasDisplayName}, then refresh the dashboard.`,
       canOpenSubmitter: false,
     });
   }
@@ -79,7 +86,7 @@ export function evaluatePhase8FundingReadiness(
   return createResult({
     status: "funded",
     label: `${formatPhase8BaseEth(input.value)} ETH`,
-    message: "Base ETH gas balance is present for the owner-controlled submit.",
+    message: `${gasDisplayName} gas balance is present for the owner-controlled submit.`,
     ownerAction: "No funding action is required before the controlled submit.",
     canOpenSubmitter: true,
   });

@@ -1,3 +1,4 @@
+
 import { baseChainId, isEvmAddress, isHexData } from "./unsignedTransactionHandoff";
 
 export type Phase8LowValueSubmitRequestFailure =
@@ -65,9 +66,9 @@ const failureMessages: Record<Phase8LowValueSubmitRequestFailure, string> = {
   private_dashboard_required:
     "Low-value submit request can only be created from the private owner dashboard.",
   base_account_required:
-    "Low-value submit request requires a connected owner Base Account.",
+    "Low-value submit request requires a connected owner wallet.",
   base_chain_required:
-    "Low-value submit request is restricted to Base.",
+    "Low-value submit request is restricted to the selected runtime network.",
   prepared_action_required:
     "Low-value submit request requires a reviewed prepared action.",
   owner_approval_required:

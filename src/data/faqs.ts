@@ -1,10 +1,11 @@
+import { currentProductChain } from "../config/productChains";
 import type { FAQItem } from "../types/agent";
 
 export const faqs: FAQItem[] = [
   {
     question: "What is Kyra?",
     answer:
-      "Kyra is a Base-native AI agent platform. It lets users deploy Telegram-native agents that read context, understand commands, and prepare approval-first action reviews.",
+      `Kyra is a ${currentProductChain.name}-native AI agent platform. It lets users deploy Telegram-native agents that read context, understand commands, and prepare approval-first action reviews.`,
   },
   {
     question: "Does Kyra execute real transactions automatically?",
@@ -32,9 +33,9 @@ export const faqs: FAQItem[] = [
       "No. Public pages never collect bot tokens. Owners connect Telegram only through deploy or an explicit reconnect flow, and token handling stays backend-scoped.",
   },
   {
-    question: "What is the Base action layer?",
+    question: `What is the ${currentProductChain.name} action layer?`,
     answer:
-      "It is the approval-first workflow Kyra uses to prepare Base ecosystem action reviews while keeping wallet prompts and execution under explicit owner control.",
+      `It is the approval-first workflow Kyra uses to prepare ${currentProductChain.name} action reviews while keeping wallet prompts and execution under explicit owner control.`,
   },
   {
     question: "Can project teams use Kyra?",

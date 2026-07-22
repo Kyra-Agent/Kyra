@@ -28,6 +28,8 @@ const telegramDashboardStatusFunctionUrl =
   (supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/telegram-dashboard-status` : "");
 const baseMcpPrepareFunctionUrl =
   supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/base-mcp-prepare` : "";
+const chainActionPrepareFunctionUrl =
+  supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/chain-action-prepare` : "";
 const telegramConnectTokenInputEnabled =
   readEnv("VITE_KYRA_ENABLE_TELEGRAM_CONNECT_TOKEN_INPUT").toLowerCase() === "true";
 const telegramDashboardStatusReadModelEnabled =
@@ -56,6 +58,7 @@ export const appConfig = {
     migrationTargetKey: migrationTargetChain.key,
     migrationTargetId: migrationTargetChain.id,
     cutoverStatus: "pending",
+    testnetEvidenceMode: currentProductChain.key === "robinhood_testnet",
   },
   publishTarget: "vercel",
   supabase: {
@@ -79,6 +82,10 @@ export const appConfig = {
     baseMcpPrepareUrl: baseMcpPrepareFunctionUrl,
     baseMcpPrepareConfigured: Boolean(
       baseMcpPrepareFunctionUrl && supabaseConfigured,
+    ),
+    chainActionPrepareUrl: chainActionPrepareFunctionUrl,
+    chainActionPrepareConfigured: Boolean(
+      chainActionPrepareFunctionUrl && supabaseConfigured,
     ),
   },
   featureFlags: {

@@ -36,11 +36,44 @@ try {
   assertEquals(chains.baseLegacyChain.hexId, "0x2105");
   assertEquals(chains.currentProductChain.key, "base");
   assertEquals(chains.currentProductChain.name, "Base");
-  assertEquals(chains.migrationTargetChain.key, "robinhood");
+  assertEquals(chains.migrationTargetChain.key, "robinhood_mainnet");
   assertEquals(chains.robinhoodChain.id, 4663);
   assertEquals(chains.robinhoodChain.hexId, "0x1237");
   assertEquals(chains.robinhoodTestnetChain.id, 46630);
   assertEquals(chains.robinhoodTestnetChain.hexId, "0xb626");
+  assertEquals(chains.robinhoodTestnetChain.key, "robinhood_testnet");
+
+  assertEquals(
+    chains.selectProductChainForRuntime({
+      mode: "robinhood-testnet",
+      requestedTarget: "robinhood_testnet",
+      testnetWindow: "owner_testnet_window",
+    }).key,
+    "robinhood_testnet",
+  );
+  for (const selection of [
+    {
+      mode: "production",
+      requestedTarget: "robinhood_testnet",
+      testnetWindow: "owner_testnet_window",
+    },
+    {
+      mode: "robinhood-testnet",
+      requestedTarget: "robinhood_mainnet",
+      testnetWindow: "owner_testnet_window",
+    },
+    {
+      mode: "robinhood-testnet",
+      requestedTarget: "robinhood_testnet",
+      testnetWindow: "disabled",
+    },
+  ]) {
+    assertEquals(
+      chains.selectProductChainForRuntime(selection).key,
+      "base",
+      "Incomplete or production selection must fail closed to Base.",
+    );
+  }
 
   for (const value of [8453, "8453", "0x2105", " 0X2105 ", 8453n]) {
     assertEquals(chains.normalizeEvmChainId(value), 8453);

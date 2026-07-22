@@ -1,3 +1,4 @@
+
 import {
   isTransactionHash,
 } from "./walletSigning";
@@ -61,7 +62,7 @@ export interface ResultMonitoringCloseout {
 
 const failureMessages: Record<ExecutionFailureCode, string> = {
   user_rejected: "User rejected the wallet request.",
-  network_mismatch: "Wallet must be connected to Base.",
+  network_mismatch: "Wallet must be connected to the selected network.",
   submission_failed: "Transaction submission failed safely.",
   confirmation_timeout: "Transaction confirmation was not observed in time.",
   unsupported_action: "This execution action is not supported.",

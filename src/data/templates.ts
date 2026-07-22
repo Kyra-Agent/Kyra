@@ -1,3 +1,4 @@
+import { currentProductChain } from "../config/productChains";
 import type { AgentTemplate } from "../types/agent";
 
 export const agentTemplates: AgentTemplate[] = [
@@ -7,9 +8,9 @@ export const agentTemplates: AgentTemplate[] = [
     role: "Personal wallet readiness agent",
     status: "mvp",
     summary:
-      "A private Telegram-native agent for wallet checks, swap reviews, transfer reviews, action logs, and approval-first Base readiness.",
+      `A private Telegram-native agent for wallet checks, swap reviews, transfer reviews, action logs, and approval-first ${currentProductChain.name} readiness.`,
     bestFor:
-      "Traders, founders, and Base users who want a safe command layer for wallet review workflows.",
+      `Traders, founders, and ${currentProductChain.name} users who want a safe command layer for wallet review workflows.`,
     actions: [
       "balance",
       "swap review",
@@ -27,7 +28,7 @@ export const agentTemplates: AgentTemplate[] = [
     role: "Recon and launch monitor",
     status: "mvp",
     summary:
-      "A research-forward agent that watches new launches, token activity, and Base ecosystem signals before summarizing what matters.",
+      `A research-forward agent that watches new launches, token activity, and ${currentProductChain.name} ecosystem signals before summarizing what matters.`,
     bestFor:
       "Users tracking launches, new tokens, project signals, and onchain opportunities.",
     actions: [
@@ -38,7 +39,7 @@ export const agentTemplates: AgentTemplate[] = [
       "project summary",
     ],
     modules: ["NIRA-01", "VEXA-02", "ASTRA-03", "NOVA-04", "NYX-05"],
-    terminalSeed: "scan new Base launches",
+    terminalSeed: `scan new ${currentProductChain.name} launches`,
   },
   {
     id: "steward",
@@ -48,7 +49,7 @@ export const agentTemplates: AgentTemplate[] = [
     summary:
       "A public-facing agent for token communities that can answer project questions, verify holders, and surface token context.",
     bestFor:
-      "Token teams, creator coins, Base communities, and project founders.",
+      `Token teams, creator coins, ${currentProductChain.name} communities, and project founders.`,
     actions: [
       "faq",
       "holder verify",

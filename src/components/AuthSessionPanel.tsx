@@ -11,6 +11,7 @@ import {
   type KyraAuthSession,
   type KyraAuthStatus,
 } from "../services/supabaseAuthService";
+import { currentWalletDisplayName } from "../config/productChains";
 
 interface AuthSessionPanelProps {
   session: KyraAuthSession | null;
@@ -153,7 +154,7 @@ export function AuthSessionPanel({
             <strong>{isSignUpMode ? "Create your Kyra workspace" : "Sign in to your workspace"}</strong>
             <p>
               {isSignUpMode
-                ? "New users start here. Create a private workspace to save agents, dashboard records, quota, and public routes. Wallet and Base Account connection stay separate."
+                ? `New users start here. Create a private workspace to save agents, dashboard records, quota, and public routes. ${currentWalletDisplayName} connection stays separate and always requires owner action.`
                 : "Returning users sign in here to reopen saved agents, public routes, approval queues, and owner dashboard controls."}
             </p>
             <div className="auth-mode-switch" role="tablist" aria-label="Account access mode">

@@ -23,8 +23,9 @@ const packageLock = read("package-lock.json");
 
 for (const expected of [
   "defineChain",
-  "currentProductChain.id",
-  "currentProductChain.publicRpcUrl",
+  "id: productChain.id",
+  "productChain.publicRpcUrl",
+  'currentProductChain.key === "robinhood_testnet"',
   "injected({ shimDisconnect: true })",
   "multiInjectedProviderDiscovery: true",
   "storage: null",
@@ -37,7 +38,6 @@ for (const forbidden of [
   "baseAccount(",
   'from "wagmi/chains"',
   "robinhoodChain",
-  "robinhoodTestnetChain",
 ]) {
   excludes("wallet runtime", providers, forbidden);
 }

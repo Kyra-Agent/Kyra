@@ -1,3 +1,4 @@
+
 import type { DemoExecutionResult } from "./backend";
 import type {
   Phase8ControlledSubmissionResultEvent,
@@ -160,9 +161,9 @@ function reject(
 function getPhase8ResultLabel(status: Phase8PersistedResultStatus) {
   switch (status) {
     case "submitted":
-      return "Submitted to Base";
+      return "Submitted to network";
     case "confirmed":
-      return "Confirmed on Base";
+      return "Confirmed on network";
     case "failed":
       return "Closed safely";
   }

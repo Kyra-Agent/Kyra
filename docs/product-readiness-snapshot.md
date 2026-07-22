@@ -2,12 +2,13 @@
 
 ## Active Migration Notice
 
-Kyra's existing Base release remains the current deployed product while a
-Robinhood Chain migration is prepared. Migration Batches 1-4 are complete
-locally: evidence, chain abstraction, chain-neutral owner wallet, and a
-default-off backend/provider foundation. The reviewed database migrations and
-Edge Functions are not deployed, no production RPC secret is configured, Base
-remains the active chain, and Robinhood Chain is not yet an advertised live
+Kyra's existing Base release remains the current deployed product while the
+Robinhood Chain migration advances through testnet closeout.
+Migration Batches 1-4 are complete locally and the reviewed database migrations plus read-only
+Edge Functions are deployed. The Robinhood testnet UI/runtime lane and automated
+gates are ready for a manual owner-only zero-value smoke, but no production RPC
+secret is configured, and Base remains the active public chain.
+Robinhood Chain is not yet an advertised live
 Kyra transaction lane.
 
 The migration is governed by

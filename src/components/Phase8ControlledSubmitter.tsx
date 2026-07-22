@@ -2,6 +2,11 @@ import { useMemo, useState } from "react";
 import { LoaderCircle, Send, ShieldCheck } from "lucide-react";
 import { useBalance, useConnection, useSendTransaction } from "wagmi";
 import { appConfig } from "../config/appConfig";
+import {
+  currentGasDisplayName,
+  currentProductChain,
+  currentWalletDisplayName,
+} from "../config/productChains";
 import type { FrozenPreparedAction } from "../types/dualApprovalExecution";
 import type {
   Phase8ControlledSubmissionResult,
@@ -37,10 +42,10 @@ type SubmitterState = "locked" | "ready" | "submitting" | "submitted" | "failed"
 
 const failureCopy: Record<Phase8OwnerSubmitRequestFailure, string> = {
   frozen_action_required: "A frozen reviewed action is required.",
-  base_chain_required: "Only Base mainnet is allowed for this controlled submit.",
+  base_chain_required: `Only ${currentProductChain.name} is allowed for this controlled submit.`,
   zero_value_required: "Only the zero-value first transaction is allowed.",
   no_calldata_required: "Calldata is blocked for this controlled submit.",
-  recipient_required: "A valid Base recipient is required.",
+  recipient_required: `A valid ${currentProductChain.name} recipient is required.`,
 };
 
 export function Phase8ControlledSubmitter({
@@ -64,7 +69,7 @@ export function Phase8ControlledSubmitter({
   });
   const [state, setState] = useState<SubmitterState>("locked");
   const [message, setMessage] = useState(
-    "Owner transaction window is locked until sign-in, Base Account, approval, and gas checks are complete.",
+    `Owner transaction window is locked until sign-in, ${currentWalletDisplayName}, approval, and gas checks are complete.`,
   );
   const [submittedHash, setSubmittedHash] = useState<string | null>(null);
 
@@ -82,6 +87,9 @@ export function Phase8ControlledSubmitter({
     isLoading: baseGasBalance.isLoading,
     isError: baseGasBalance.isError,
     value: baseGasBalance.data?.value ?? null,
+    networkName: currentProductChain.name,
+    walletDisplayName: currentWalletDisplayName,
+    gasDisplayName: currentGasDisplayName,
   });
   const gasReady = fundingReadiness.canOpenSubmitter;
   const canSubmit = Boolean(
@@ -110,7 +118,7 @@ export function Phase8ControlledSubmitter({
 
     if (!walletConnected) {
       setState("locked");
-      setMessage("Connect the owner Base Account before controlled submit.");
+      setMessage(`Connect the owner ${currentWalletDisplayName} before controlled submit.`);
       return;
     }
     if (!gasReady) {
@@ -144,7 +152,7 @@ export function Phase8ControlledSubmitter({
 
     try {
       setState("submitting");
-      setMessage("Opening Base Account for one owner-controlled zero-value submit...");
+      setMessage(`Opening ${currentWalletDisplayName} for one owner-controlled zero-value submit...`);
       const hash = await sendTransaction.sendTransactionAsync(submitRequest.request);
       const closeout = createPhase8SubmittedCloseoutEvent({
         ownerUserId: frozenAction.ownerUserId,
@@ -203,7 +211,7 @@ export function Phase8ControlledSubmitter({
           <strong>{preflight.runtimeSubmitterEnabled ? "ready" : "waiting"}</strong>
         </span>
         <span>
-          Base ETH gas
+          {currentGasDisplayName} gas
           <strong>{fundingReadiness.label}</strong>
         </span>
       </div>
@@ -220,7 +228,7 @@ export function Phase8ControlledSubmitter({
           </div>
         )
         : (
-          <small>Gas balance: {formatPhase8BaseEth(baseGasBalance.data?.value ?? 0n)} ETH on Base.</small>
+          <small>Gas balance: {formatPhase8BaseEth(baseGasBalance.data?.value ?? 0n)} ETH on {currentProductChain.name}.</small>
         )}
       {submittedHash ? <small>Hash: {maskHash(submittedHash)}</small> : null}
 
@@ -251,15 +259,15 @@ function formatSubmitterGateReasons(reasons: readonly string[]) {
   const labels = new Map<string, string>([
     ["owner_session_required", "sign in to the owner account"],
     ["selected_agent_required", "select a deployed agent"],
-    ["base_account_required", "connect Base Account"],
-    ["base_account_address_required", "connect Base Account"],
-    ["base_chain_required", "switch to Base"],
+    ["base_account_required", `connect ${currentWalletDisplayName}`],
+    ["base_account_address_required", `connect ${currentWalletDisplayName}`],
+    ["base_chain_required", `switch to ${currentProductChain.name}`],
     ["controlled_submission_required", "prepare the reviewed transaction"],
     ["operator_ack_required", "confirm owner review"],
     ["live_window_activation_required", "open the owner transaction window"],
     ["runtime_window_disabled", "enable the owner runtime window"],
     ["owner_approval_required", "record owner approval"],
-    ["base_account_approval_required", "confirm in Base Account"],
+    ["base_account_approval_required", `confirm in ${currentWalletDisplayName}`],
     ["submission_nonce_required", "bind the one-time submit session"],
     ["private_dashboard_required", "use the private dashboard"],
     ["telegram_authority_forbidden", "Telegram cannot execute this action"],
@@ -276,7 +284,7 @@ function classifySubmitError(error: unknown) {
     typeof error.name === "string" &&
     error.name.toLowerCase().includes("userrejected")
   ) {
-    return "Owner rejected the Base Account submit prompt.";
+    return `Owner rejected the ${currentWalletDisplayName} submit prompt.`;
   }
 
   if (
@@ -285,7 +293,7 @@ function classifySubmitError(error: unknown) {
     "code" in error &&
     error.code === 4001
   ) {
-    return "Owner rejected the Base Account submit prompt.";
+    return `Owner rejected the ${currentWalletDisplayName} submit prompt.`;
   }
 
   return "Controlled submit failed safely before closeout.";

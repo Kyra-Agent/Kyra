@@ -1,3 +1,4 @@
+
 import type {
   DualApprovalExecutionResult,
 } from "./dualApprovalExecution";
@@ -70,9 +71,9 @@ const blockMessages: Record<ControlledLiveTransactionBlockReason, string> = {
   agent_scope_required:
     "Controlled live transaction requires one deployed agent scope.",
   base_account_required:
-    "Connect one owner Base Account before a live window can be reviewed.",
+    "Connect one owner wallet before a live window can be reviewed.",
   base_network_required:
-    "Controlled live transaction must target Base.",
+    "Controlled live transaction must target the selected runtime network.",
   single_action_required:
     "Controlled live transaction allows exactly one prepared action.",
   allowlisted_action_required:
@@ -80,7 +81,7 @@ const blockMessages: Record<ControlledLiveTransactionBlockReason, string> = {
   low_risk_action_required:
     "The first live transaction candidate must be low risk.",
   dual_approval_required:
-    "Kyra owner approval and Base Account approval boundaries must be ready.",
+    "Kyra owner approval and wallet approval boundaries must be ready.",
   result_monitoring_required:
     "Result monitoring and closeout must be ready before a live window.",
   rollback_required:

@@ -1,4 +1,9 @@
 import { appConfig } from "../config/appConfig";
+import {
+  currentProductChain,
+  currentWalletDisplayName,
+  getProductChainByKey,
+} from "../config/productChains";
 import type {
   DemoActivityLog,
   DemoAgentInstance,
@@ -50,6 +55,7 @@ const dashboardAgentInstanceColumns = [
   "status",
   "mode",
   "network",
+  "chain_action_status",
   "telegram_status",
   "base_mcp_status",
   "approval_policy_id",
@@ -75,6 +81,7 @@ export type SupabaseDashboardStatus =
   | "error";
 
 export interface SupabaseDashboardData {
+  walletReadinessByAgent: Record<string, DemoWalletReadiness>;
   workspace: DemoWorkspaceRecord;
   agentInstances: DemoAgentInstance[];
   approvalRequests: DemoApprovalRequest[];
@@ -196,6 +203,8 @@ function mapWorkspace(
 }
 
 function mapAgent(row: AgentInstanceRow): DemoAgentInstance {
+  const chain = getProductChainByKey(row.network);
+
   return {
     id: row.id,
     workspaceId: row.workspace_id,
@@ -205,7 +214,9 @@ function mapAgent(row: AgentInstanceRow): DemoAgentInstance {
     publicPath: `/agents/${row.public_slug}`,
     status: row.status,
     mode: "backend-demo",
-    network: "Base",
+    chainKey: row.network,
+    network: chain?.name ?? "Unsupported network",
+    chainActionStatus: row.chain_action_status,
     telegramStatus: mapRecordStatus(row.telegram_status),
     baseMcpStatus: mapRecordStatus(row.base_mcp_status),
     approvalPolicyId: row.approval_policy_id ?? "",
@@ -288,7 +299,7 @@ function createWalletReadiness(rows: WalletPolicyRow[]): DemoWalletReadiness {
       state: "not_connected",
       label: "No wallet policy",
       addressLabel: "Not connected",
-      network: "Base pending",
+      network: currentProductChain.name + " pending",
       approvalGate: "Not created",
       execution: "Disabled",
       nextAction: "Deploy an agent before wallet readiness checks.",
@@ -299,18 +310,50 @@ function createWalletReadiness(rows: WalletPolicyRow[]): DemoWalletReadiness {
   const addressLabel = policy.wallet_address
     ? shortenAddress(policy.wallet_address)
     : "No live wallet connected";
+  const policyChain = getProductChainByKey(policy.chain_key);
+  const chainIdentityValid = Boolean(
+    policyChain && policyChain.id === policy.chain_id,
+  );
   const approvalGate = policy.approval_required ? "Required" : "Optional";
+
+  if (!policyChain || !chainIdentityValid) {
+    return {
+      state: "connected_wrong_network",
+      label: "Invalid chain policy",
+      addressLabel,
+      network: "Unsupported network",
+      approvalGate,
+      execution: "Blocked",
+      nextAction: "Redeploy this agent with a valid chain policy.",
+      privacyNote,
+    };
+  }
+
+  if (policyChain.key !== currentProductChain.key) {
+    return {
+      state: "connected_wrong_network",
+      label: "Agent chain differs from runtime",
+      addressLabel,
+      network: policyChain.name,
+      approvalGate,
+      execution: "Blocked",
+      nextAction:
+        "Select an agent deployed for " + currentProductChain.name +
+        " before connecting a wallet.",
+      privacyNote,
+    };
+  }
 
   if (appConfig.integrations.walletExecution === "disabled") {
     return {
       state: "execution_disabled",
       label: "Execution disabled",
       addressLabel,
-      network: "Base",
+      network: policyChain.name,
       approvalGate,
       execution: "Disabled",
       nextAction: policy.wallet_address
-        ? "Review wallet readiness before Base MCP preparation."
+        ? "Review wallet readiness before chain action preparation."
         : "Connect an owner wallet only after provider and permission review.",
       privacyNote,
     };
@@ -321,7 +364,7 @@ function createWalletReadiness(rows: WalletPolicyRow[]): DemoWalletReadiness {
       state: "not_connected",
       label: "Policy gated",
       addressLabel,
-      network: "Base pending",
+      network: policyChain.name + " pending",
       approvalGate,
       execution: "Blocked",
       nextAction:
@@ -334,7 +377,7 @@ function createWalletReadiness(rows: WalletPolicyRow[]): DemoWalletReadiness {
     state: "connected_ready_for_approval",
     label: "Ready for approval",
     addressLabel,
-    network: "Base",
+    network: policyChain.name,
     approvalGate,
     execution: "Ready for approval",
     nextAction:
@@ -352,10 +395,10 @@ function createWalletProviderStatus(): DemoWalletProviderStatus {
     dependencyStatus: "installed",
     runtimeGate: connectionEnabled ? "enabled" : "disabled",
     promptAccess: connectionEnabled ? "owner_click_only" : "disabled",
-    connectorPriority: ["Base Account"],
+    connectorPriority: [currentWalletDisplayName],
     safetyNote: connectionEnabled
       ? "Connection is owner-initiated. Signing and transactions remain disabled."
-      : "Base Account connection is disabled.",
+      : currentWalletDisplayName + " connection is disabled.",
   };
 }
 
@@ -363,10 +406,10 @@ function createPreparedActionPreview(
   walletReadiness: DemoWalletReadiness,
 ): DemoPreparedActionPreview {
   const basePreview = {
-    id: "base_mcp_status_check_preview",
+    id: "chain_status_check_preview",
     actionKind: "base_mcp_status_check" as const,
-    title: "Base MCP status check",
-    chain: "Base" as const,
+    title: currentProductChain.name + " status check",
+    chain: currentProductChain.name,
     routeSummary:
       "Read-only capability check before any transaction preparation.",
     valueSummary: "No token spend, no gas request, no calldata.",
@@ -380,7 +423,7 @@ function createPreparedActionPreview(
     return {
       ...basePreview,
       status: "draft",
-      approvalRequirement: "Wallet approval remains disabled until Phase 6C.",
+      approvalRequirement: "Wallet approval remains disabled by the runtime gate.",
     };
   }
 
@@ -519,7 +562,7 @@ function createBackendTables(
     countTable(
       agents,
       "active",
-      "Template, handle, public route, status, and Base network.",
+      `Template, handle, public route, status, and ${currentProductChain.name} binding.`,
       "agent_instances",
     ),
     countTable(
@@ -601,7 +644,7 @@ export async function fetchSupabaseDashboardData(
         ),
         selectRows<WalletPolicyRow>(
           session,
-          `wallet_policies?select=id,wallet_label,wallet_address,daily_limit_usdc,approval_required,status&workspace_id=eq.${workspaceFilter}&order=created_at.desc&limit=20`,
+          `wallet_policies?select=id,agent_id,wallet_label,wallet_address,daily_limit_usdc,approval_required,status,chain_key,chain_id&workspace_id=eq.${workspaceFilter}&order=created_at.desc&limit=20`,
         ),
         selectRows<ApprovalRequestRow>(
           session,
@@ -628,6 +671,12 @@ export async function fetchSupabaseDashboardData(
     );
     const latestAgent = mappedAgents[0] ?? null;
     const walletReadiness = createWalletReadiness(walletPolicies);
+    const walletReadinessByAgent = Object.fromEntries(
+      walletPolicies.map((policy) => [
+        policy.agent_id,
+        createWalletReadiness([policy]),
+      ]),
+    );
     const walletProviderStatus = createWalletProviderStatus();
     const mappedApprovalRequests = approvalRequests.map((request) =>
       mapApprovalRequest(request, agentTemplateLookup)
@@ -643,6 +692,7 @@ export async function fetchSupabaseDashboardData(
         approvalRequests: mappedApprovalRequests,
         walletPolicies: walletPolicies.flatMap(mapWalletPolicy).slice(0, 6),
         walletReadiness,
+        walletReadinessByAgent,
         walletProviderStatus,
         preparedActionPreview: createPreparedActionPreview(walletReadiness),
         executionResults,

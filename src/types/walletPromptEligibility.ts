@@ -1,3 +1,4 @@
+
 import { baseChainId } from "./unsignedTransactionHandoff";
 
 export type WalletPromptSource =
@@ -53,8 +54,8 @@ const promptBlockMessages: Record<WalletPromptBlockReason, string> = {
   not_owner_dashboard: "Wallet prompts are only allowed from the private owner dashboard.",
   owner_session_required: "A fresh owner session is required before any wallet prompt.",
   agent_binding_required: "A selected deployed agent binding is required.",
-  base_account_connection_required: "Connect the owner Base Account before signing can be reviewed.",
-  base_network_required: "The connected wallet must be on Base.",
+  base_account_connection_required: "Connect the owner wallet before signing can be reviewed.",
+  base_network_required: "The connected wallet must be on the selected network.",
   reviewed_prepared_action_required: "A reviewed prepared action is required before signing.",
   risk_review_required: "NYX-05 risk review must be ready before signing.",
   owner_approval_required: "Kyra owner approval must be recorded before wallet approval.",

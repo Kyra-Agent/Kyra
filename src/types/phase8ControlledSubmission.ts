@@ -120,11 +120,11 @@ const blockMessages: Record<Phase8ControlledSubmissionBlockReason, string> = {
     "Phase 8 Batch 4 only allows the zero-value first transaction.",
   no_calldata_required:
     "Phase 8 Batch 4 only allows a no-calldata first transaction.",
-  base_chain_required: "Phase 8 Batch 4 only allows Base mainnet.",
+  base_chain_required: `Phase 8 Batch 4 only allows ${currentProductChain.key === "base" ? "Base mainnet" : currentProductChain.name}.`,
   submission_nonce_required: "A one-time submission nonce is required.",
   submission_nonce_unused_required: "A submission nonce can only be used once.",
   base_account_approval_required:
-    "Base Account approval must be recorded before submission.",
+    "Connected owner-wallet approval must be recorded before submission.",
   tx_hash_required:
     "Submitted, confirmed, or failed closeout requires an owner-only transaction hash reference.",
   sanitized_tx_hash_required:
@@ -303,7 +303,7 @@ export function evaluatePhase8ControlledSubmission(
       resultCloseoutRecorded: true,
       reasons: [],
       message:
-        "Controlled Base transaction confirmed and closed under owner-only audit.",
+        `Controlled ${currentProductChain.name} transaction confirmed and closed under owner-only audit.`,
     };
   }
 
@@ -317,7 +317,7 @@ export function evaluatePhase8ControlledSubmission(
       resultCloseoutRecorded: true,
       reasons: [],
       message:
-        "Controlled Base transaction failed safely and closed under owner-only audit.",
+        `Controlled ${currentProductChain.name} transaction failed safely and closed under owner-only audit.`,
     };
   }
 
@@ -331,7 +331,7 @@ export function evaluatePhase8ControlledSubmission(
       resultCloseoutRecorded: true,
       reasons: [],
       message:
-        "Controlled Base transaction submitted. Owner-only confirmation monitoring is active.",
+        `Controlled ${currentProductChain.name} transaction submitted. Owner-only confirmation monitoring is active.`,
     };
   }
 
@@ -344,7 +344,7 @@ export function evaluatePhase8ControlledSubmission(
     resultCloseoutRecorded: false,
     reasons: [],
     message:
-      "Phase 8 Batch 4 is ready for one explicit owner-controlled Base submission.",
+      `Phase 8 Batch 4 is ready for one explicit owner-controlled ${currentProductChain.name} submission.`,
   };
 }
 

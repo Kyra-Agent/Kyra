@@ -1,11 +1,16 @@
 # Robinhood Chain Migration Blueprint
 
-Date: 2026-07-22
+Date: 2026-07-23
 
-Status: Batch 1 architecture, Batch 2 chain abstraction, Batch 3 wallet
-migration, and Batch 4 default-off backend foundation are complete locally.
-Runtime cutover has not started, production behavior is unchanged, and no
-Robinhood Chain capability may be described as live yet.
+Status: Batches 1-4 are complete locally and the reviewed database migrations
+and read-only Edge Functions are deployed. The chain-status preparation lane is
+owner-scoped, rate-limited, and enabled only for bounded read-only checks;
+signing and submission remain disabled in the backend. Batch 5 automated
+Robinhood Chain testnet checks and the local owner-only zero-value lane are
+ready, while the manual wallet prompt, transaction receipt, and closeout
+remain pending. Runtime cutover has not started, production behavior is
+unchanged, and no Robinhood Chain transaction capability may be described as
+live yet.
 
 ## Decision
 
@@ -307,9 +312,10 @@ It is deliberately not a public support claim at this stage.
 
 ### Batch 4 - Backend and provider migration
 
-Status: locally complete and verified; migration and functions are not
-deployed, runtime flags remain disabled, and no production RPC secret is
-configured.
+Status: complete and deployed behind strict runtime boundaries. The reviewed
+migrations and read-only Edge Functions are active, chain-status preparation is
+enabled for bounded owner-scoped checks, transaction signing/submission runtime flags remain disabled,
+and no production RPC secret is configured.
 
 - introduce chain-neutral provider and prepared-action contracts
 - migrate Supabase status, prepare, policy, rate-limit, and receipt paths
@@ -350,16 +356,19 @@ Implemented evidence:
 
 Still required in Batch 5:
 
-- apply the reviewed migrations and deploy both Edge Functions while their
-  runtime flags remain disabled
-- create the Kyra-owned managed RPC secret; the public Robinhood testnet RPC
-  may be used only for bounded test evidence, never as the production provider
-- verify Robinhood Wallet compatibility and one owner-controlled testnet
-  receipt before any runtime or public copy cutover
+- run the owner-only testnet flow with a newly deployed Robinhood testnet agent
+  after the read-only chain status check succeeds
+- verify wallet compatibility, explicit wallet confirmation, one zero-value
+  self-send receipt, owner-only closeout, replay protection, and disconnect
+- create the Kyra-owned managed RPC secret before any production/mainnet use;
+  the public Robinhood testnet RPC remains limited to bounded test evidence
 
 ### Batch 5 - Testnet closeout
 
-- deploy the migration behind disabled runtime flags
+Status: automated checks and local UI/runtime lane are ready; the manual owner
+wallet prompt, zero-value receipt, and sanitized closeout evidence are pending.
+
+- keep the deployed migration behind bounded runtime flags
 - complete one owner-controlled Robinhood Chain testnet transaction
 - verify wallet prompt, chain ID, receipt, owner-only result, replay protection,
   rate limits, rollback, emergency disable, and public privacy

@@ -93,7 +93,7 @@ includes(
 includes("wallet boundary", walletBoundary, "return <>{children}</>;");
 includes("wallet boundary", walletBoundary, "lazy(() =>");
 includes("wallet runtime", walletRuntime, "injected({ shimDisconnect: true })");
-includes("wallet runtime", walletRuntime, "id: currentProductChain.id");
+includes("wallet runtime", walletRuntime, "id: productChain.id");
 includes("wallet runtime", walletRuntime, "storage: null");
 includes("wallet runtime", walletRuntime, "reconnectOnMount={false}");
 excludes("wallet runtime", walletRuntime, "coinbaseWallet");

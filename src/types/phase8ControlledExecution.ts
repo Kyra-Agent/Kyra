@@ -1,3 +1,4 @@
+
 import type {
   ExecutionLaunchReadinessResult,
 } from "./executionLaunchReadiness";
@@ -71,7 +72,7 @@ const blockMessages: Record<Phase8ControlledExecutionBlockReason, string> = {
   selected_agent_required:
     "Select one deployed agent before controlled execution.",
   base_account_required:
-    "Connect the owner's Base Account before controlled execution.",
+    "Connect the owner's wallet before controlled execution.",
   launch_packet_required:
     "Phase 8 requires an owner-approved launch packet.",
   runtime_enablement_required:
@@ -85,7 +86,7 @@ const blockMessages: Record<Phase8ControlledExecutionBlockReason, string> = {
   no_calldata_required:
     "The first controlled live action must not include calldata.",
   base_account_prompt_required:
-    "Base Account prompt must be opened and approved by the owner.",
+    "The wallet prompt must be opened and approved by the owner.",
   result_monitoring_required:
     "Owner-only result monitoring must be ready before submission.",
   rollback_required:
@@ -202,7 +203,7 @@ export function evaluatePhase8ControlledExecution(
       transactionSubmissionAllowed: true,
       reasons: [],
       message:
-        "Base Account approval was recorded. Owner-only result monitoring controls the closeout.",
+        "Wallet approval was recorded. Owner-only result monitoring controls the closeout.",
     };
   }
 
@@ -216,7 +217,7 @@ export function evaluatePhase8ControlledExecution(
       transactionSubmissionAllowed: false,
       reasons: [],
       message:
-        "Base Account prompt is open. Submission requires explicit wallet approval.",
+        "The wallet prompt is open. Submission requires explicit wallet approval.",
     };
   }
 

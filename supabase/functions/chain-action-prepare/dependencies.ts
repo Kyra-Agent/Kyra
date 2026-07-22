@@ -1,21 +1,23 @@
-import {
-  lookupAgentOwnershipRecord,
-  type OwnershipLookupClient,
-} from "../telegram-connect/core.ts";
-import type { ChainActionPrepareDependencies } from "./core.ts";
+import { type OwnershipLookupClient } from "../telegram-connect/core.ts";
+import type {
+  ChainActionAgentOwnershipRecord,
+  ChainActionPrepareDependencies,
+} from "./core.ts";
 import { createChainStatusCheckAdapter } from "./provider-adapter.ts";
 import {
-  createChainActionRateLimitChecker,
   type ChainActionRateLimitRpcClient,
+  createChainActionRateLimitChecker,
 } from "./rate-limit.ts";
 import { createChainActionPrepareRuntimeConfig } from "./runtime-config.ts";
 import {
-  createChainPreparedActionStorageAdapter,
   type ChainPreparedActionStorageClient,
+  createChainPreparedActionStorageAdapter,
 } from "./storage-adapter.ts";
 
-type ChainActionServiceClient = OwnershipLookupClient &
-  ChainActionRateLimitRpcClient & ChainPreparedActionStorageClient;
+type ChainActionServiceClient =
+  & OwnershipLookupClient
+  & ChainActionRateLimitRpcClient
+  & ChainPreparedActionStorageClient;
 
 export interface ChainActionDependencyOptions {
   getEnv: (key: string) => string;
@@ -25,6 +27,59 @@ export interface ChainActionDependencyOptions {
     supabaseUrl: string,
     serviceRoleKey: string,
   ) => Promise<ChainActionServiceClient> | ChainActionServiceClient;
+}
+
+interface ChainAgentRow {
+  id: string;
+  workspace_id: string;
+  network: ChainActionAgentOwnershipRecord["chainKey"];
+  chain_action_status: ChainActionAgentOwnershipRecord["chainActionStatus"];
+}
+
+interface ChainWorkspaceRow {
+  id: string;
+  owner_user_id: string;
+}
+
+export async function lookupChainActionAgentOwnership(
+  serviceClient: OwnershipLookupClient,
+  agentId: string,
+): Promise<ChainActionAgentOwnershipRecord | null> {
+  const { data: agent, error: agentError } = await serviceClient
+    .from("agent_instances")
+    .select("id,workspace_id,network,chain_action_status")
+    .eq("id", agentId)
+    .maybeSingle<ChainAgentRow>();
+  if (agentError) throw agentError;
+  if (!agent) return null;
+  if (
+    !["base", "robinhood_mainnet", "robinhood_testnet"].includes(
+      agent.network,
+    ) ||
+    !["disabled", "ready", "active", "paused"].includes(
+      agent.chain_action_status,
+    )
+  ) {
+    throw new Error("Agent chain identity is invalid.");
+  }
+
+  const { data: workspace, error: workspaceError } = await serviceClient
+    .from("workspaces")
+    .select("id,owner_user_id")
+    .eq("id", agent.workspace_id)
+    .maybeSingle<ChainWorkspaceRow>();
+  if (workspaceError) throw workspaceError;
+  if (!workspace || workspace.id !== agent.workspace_id) {
+    throw new Error("Ownership workspace was not found.");
+  }
+
+  return {
+    agentId: agent.id,
+    ownerUserId: workspace.owner_user_id,
+    workspaceId: workspace.id,
+    chainKey: agent.network,
+    chainActionStatus: agent.chain_action_status,
+  };
 }
 
 export function createChainActionDependenciesFromOptions(
@@ -50,7 +105,7 @@ export function createChainActionDependenciesFromOptions(
   };
 
   dependencies.lookupAgentOwnership = async (agentId) =>
-    await lookupAgentOwnershipRecord(await getServiceClient(), agentId);
+    await lookupChainActionAgentOwnership(await getServiceClient(), agentId);
   dependencies.checkRateLimit = async (input) =>
     await createChainActionRateLimitChecker(await getServiceClient())(input);
   dependencies.storePreparedAction = async (input) =>

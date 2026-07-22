@@ -1,11 +1,12 @@
 import { Github, Terminal } from "lucide-react";
+import { currentProductChain } from "../config/productChains";
 
 export function Footer() {
   return (
     <footer className="site-footer">
       <div>
         <strong>KYRA-AGENT</strong>
-        <p>Base-native AI agent platform. Approval-first execution.</p>
+        <p>{currentProductChain.name} AI agent platform. Approval-first execution.</p>
       </div>
       <div className="footer-links">
         <a href="https://github.com/Kyra-Agent/Kyra" target="_blank" rel="noreferrer">

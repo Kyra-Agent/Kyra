@@ -7,7 +7,10 @@ import {
   useDisconnect,
 } from "wagmi";
 import { appConfig } from "../config/appConfig";
-import { currentProductChain } from "../config/productChains";
+import {
+  currentProductChain,
+  type ProductChainKey,
+} from "../config/productChains";
 import {
   createOwnerWalletConnectionBinding,
   getOwnerWalletConnectionFailureMessage,
@@ -30,6 +33,7 @@ interface OwnerWalletConnectionPanelProps {
   session: KyraAuthSession | null;
   workspaceId: string | null;
   agentId: string | null;
+  agentChainKey: ProductChainKey | null;
   agentName: string | null;
   onConnectionStateChange?: (state: OwnerWalletConnectionStatus) => void;
   onSessionChange: (
@@ -58,6 +62,7 @@ export function OwnerWalletConnectionPanel({
   session,
   workspaceId,
   agentId,
+  agentChainKey,
   agentName,
   onConnectionStateChange,
   onSessionChange,
@@ -77,8 +82,14 @@ export function OwnerWalletConnectionPanel({
     "Sign in and select a persisted agent before connecting a wallet.",
   );
   const requestSequenceRef = useRef(0);
+  const agentChainMatchesRuntime =
+    agentChainKey === currentProductChain.key;
 
   const target = useMemo<OwnerWalletConnectionTarget | null>(() => {
+    if (!agentChainMatchesRuntime) {
+      return null;
+    }
+
     const candidate = {
       ownerUserId: session?.user.id,
       workspaceId: workspaceId ?? undefined,
@@ -87,7 +98,13 @@ export function OwnerWalletConnectionPanel({
     };
 
     return isOwnerWalletConnectionTarget(candidate) ? candidate : null;
-  }, [agentId, session?.expiresAt, session?.user.id, workspaceId]);
+  }, [
+    agentChainMatchesRuntime,
+    agentId,
+    session?.expiresAt,
+    session?.user.id,
+    workspaceId,
+  ]);
   const targetKey = target
     ? `${target.ownerUserId}:${target.workspaceId}:${target.agentId}:${target.sessionExpiresAt}`
     : "locked";
@@ -100,6 +117,7 @@ export function OwnerWalletConnectionPanel({
   const canConnect = Boolean(
     appConfig.integrations.walletConnection === "owner_click_only" &&
       target &&
+      agentChainMatchesRuntime &&
       connector &&
       !connectMutation.isPending &&
       !disconnectMutation.isPending,
@@ -142,7 +160,10 @@ export function OwnerWalletConnectionPanel({
     if (!target && !binding) {
       setUiState("locked");
       setMessage(
-        !session || (workspaceId && agentId)
+        agentId && !agentChainMatchesRuntime
+          ? "Selected agent belongs to another chain. Choose an agent deployed for " +
+            currentProductChain.name + "."
+          : !session
           ? getOwnerWalletConnectionFailureMessage("owner_session_required")
           : getOwnerWalletConnectionFailureMessage("agent_binding_required"),
       );
@@ -155,7 +176,13 @@ export function OwnerWalletConnectionPanel({
         `Connect an EVM wallet to this agent on ${currentProductChain.name}.`,
       );
     }
-  }, [targetKey]);
+  }, [
+    agentChainMatchesRuntime,
+    agentId,
+    binding,
+    session,
+    targetKey,
+  ]);
 
   useEffect(() => {
     if (!binding) return;
@@ -192,6 +219,14 @@ export function OwnerWalletConnectionPanel({
 
   async function handleConnect() {
     if (!session || !target || !connector || !canConnect) {
+    if (agentId && !agentChainMatchesRuntime) {
+      setUiState("error");
+      setMessage(
+        "Selected agent is not eligible for " + currentProductChain.name + ".",
+      );
+      return;
+    }
+
       setUiState("error");
       setMessage(
         !session
@@ -331,7 +366,11 @@ export function OwnerWalletConnectionPanel({
         </span>
         <span>
           Network
-          <strong>{currentProductChain.name}</strong>
+          <strong>
+            {agentChainMatchesRuntime
+              ? currentProductChain.name
+              : "Agent chain mismatch"}
+          </strong>
         </span>
         <span>
           Storage

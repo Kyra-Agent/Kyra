@@ -1,3 +1,5 @@
+
+
 export type Phase8SecurityAbuseHardeningStatus =
   | "blocked"
   | "ready_for_hardening"
@@ -203,7 +205,7 @@ function buildControls(
     {
       label: "Receipt verification",
       status: input.verificationStatus === "blocked" ? "blocked" : input.verificationStatus === "pending_receipt" ? "pending" : "pass",
-      detail: "A submitted hash must close through Base receipt verification.",
+      detail: "A submitted hash must close through network receipt verification.",
     },
   ];
 }

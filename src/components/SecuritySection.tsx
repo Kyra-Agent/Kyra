@@ -1,4 +1,5 @@
 import { LockKeyhole, ShieldCheck, WalletCards } from "lucide-react";
+import { currentWalletDisplayName } from "../config/productChains";
 
 const guarantees = [
   "No seed phrases",
@@ -32,7 +33,7 @@ export function SecuritySection() {
           <WalletCards size={22} />
           <strong>Approval first</strong>
           <p>
-            Swaps, sends, and admin actions require explicit wallet or Base Account approval before execution can proceed.
+            Swaps, sends, and admin actions require explicit {currentWalletDisplayName} approval before execution can proceed.
           </p>
         </article>
         <article>

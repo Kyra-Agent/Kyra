@@ -1,4 +1,8 @@
 import { appConfig } from "../config/appConfig";
+import {
+  currentProductChain,
+  currentWalletDisplayName,
+} from "../config/productChains";
 import { demoAgentLimits } from "../config/demoLimits";
 import { demoScenarios } from "../data/demoScenarios";
 import type { AgentTemplate } from "../types/agent";
@@ -239,7 +243,10 @@ async function createAgent(
     public_slug: publicSlug,
     status: template.status === "coming-soon" ? "draft" : "online",
     mode: "demo",
-    network: "base",
+    network: currentProductChain.key,
+    chain_action_status: currentProductChain.key === "robinhood_testnet"
+      ? "ready"
+      : "disabled",
     telegram_status: "mocked",
     base_mcp_status: "mocked",
   });
@@ -254,8 +261,10 @@ async function createWalletPolicy(
   return insertRow(session, "wallet_policies", {
     workspace_id: workspaceId,
     agent_id: agentId,
-    wallet_label: "Demo Base Account",
+    wallet_label: "Demo " + currentWalletDisplayName,
     wallet_address: null,
+    chain_key: currentProductChain.key,
+    chain_id: currentProductChain.id,
     daily_limit_usdc: 100,
     approval_required: true,
     allowed_actions: selectedActions,
@@ -277,9 +286,10 @@ async function createApprovalRequest(
     agent_id: agentId,
     scenario_id: scenario?.id ?? null,
     title: `${template.name} demo action`,
-    command: template.terminalSeed || scenario?.command ||
-      "prepare demo action",
-    route: scenario?.route ?? "Demo route prepared by Kyra",
+    command: (
+      template.terminalSeed || scenario?.command || "prepare demo action"
+    ).replaceAll("Base", currentProductChain.name),
+    route: (scenario?.route ?? "Demo route prepared by Kyra").replaceAll("Base", currentProductChain.name),
     risk,
     status: scenario?.approvalRequired
       ? "waiting_wallet"
@@ -287,9 +297,13 @@ async function createApprovalRequest(
       ? "read_only_ready"
       : "review_required",
     fee_payer: "connected_wallet",
+    chain_key: currentProductChain.key,
+    chain_id: currentProductChain.id,
     requires_wallet: scenario?.approvalRequired ?? true,
     prepared_tx: {
       demo: true,
+      chain_key: currentProductChain.key,
+      chain_id: currentProductChain.id,
       template_id: template.id,
       onchain_execution: "disabled",
     },
@@ -435,6 +449,8 @@ async function saveViaDeployFunction({
       templateId: template.id,
       agentName,
       selectedActions,
+      chainKey: currentProductChain.key,
+      chainId: currentProductChain.id,
     }),
   });
   const payload = await parseDeployFunctionResponse(response);

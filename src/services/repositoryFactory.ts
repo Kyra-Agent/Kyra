@@ -16,7 +16,7 @@ export const kyraRepositoryRuntime: KyraRepositoryRuntime = {
   supabaseConfigured: appConfig.supabase.configured,
   note:
     appConfig.dataProvider === "supabase"
-      ? "Signed-in demo records can persist through the Kyra backend. Onchain execution stays disabled until Base MCP approval gates are ready."
+      ? "Signed-in records can persist through the Kyra backend. Onchain execution stays behind owner, wallet, policy, and release gates."
       : "Local demo records stay in the browser until an account session is connected.",
 };
 

@@ -1,6 +1,6 @@
 # Kyra Agent Canonical Product Roadmap
 
-Date: 2026-06-25
+Date: 2026-07-23
 
 Status: canonical source of truth for product phases and execution flow.
 
@@ -9,12 +9,14 @@ the complete historical product roadmap; the migration uses six grouped batches
 and does not create Phase 11. See
 `docs/robinhood-chain-migration-blueprint.md`.
 
-Migration status: Batches 1-4 are complete locally, including the chain-neutral
-owner-wallet runtime and default-off backend/provider foundation. Base remains
-the deployed runtime; the reviewed Supabase migration and functions are not
-deployed, no production Robinhood RPC secret is configured, and testnet and
-mainnet cutover have not started. Robinhood wallet support is not yet a public
-live claim.
+Migration status: Batches 1-4 are complete locally, and the reviewed Supabase
+migrations plus read-only chain functions are deployed. Base remains the public
+production runtime. The Robinhood testnet frontend, owner-wallet connector,
+agent-chain binding, read-only status preparation, and automated execution gates
+are ready for a manual owner-only zero-value smoke. That receipt evidence, a
+Kyra-owned production RPC secret, and the controlled mainnet cutover remain
+pending. Robinhood wallet and transaction support are not yet public live
+claims.
 
 This document resolves conflicting wording across older phase plans and
 closeout notes. If another document disagrees with this roadmap about product

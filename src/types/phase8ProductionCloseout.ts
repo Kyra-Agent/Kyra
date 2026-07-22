@@ -1,3 +1,5 @@
+
+
 export type Phase8ProductionCloseoutStatus =
   | "blocked"
   | "ready_for_owner_run"
@@ -135,7 +137,7 @@ function buildChecklist(
     {
       label: "Owner flow",
       status: reasons.includes("owner_flow_required") ? "blocked" : "pass",
-      detail: "Owner session, agent, Base Account, prepared action, approval, submitter, receipt, and closeout are mapped.",
+      detail: "Owner session, agent, wallet, prepared action, approval, submitter, receipt, and closeout are mapped.",
     },
     {
       label: "Security hardening",
@@ -145,12 +147,12 @@ function buildChecklist(
     {
       label: "Low-value readiness",
       status: reasons.includes("low_value_readiness_required") || reasons.includes("submit_request_required") ? "blocked" : "pass",
-      detail: "The only executable shape is the capped owner-controlled Base ETH transfer.",
+      detail: "The only executable shape is the capped owner-controlled native-currency transfer.",
     },
     {
       label: "Receipt path",
       status: input.transactionVerificationStatus === "confirmed" ? "pass" : input.transactionVerificationStatus === "pending_receipt" ? "pending" : "pending",
-      detail: "Provider hash is not final proof; Base receipt verification closes the run.",
+      detail: "Provider hash is not final proof; network receipt verification closes the run.",
     },
     {
       label: "Owner closeout",
@@ -170,7 +172,7 @@ function getMessage(status: Phase8ProductionCloseoutStatus) {
     case "ready_for_owner_run":
       return "Phase 8 implementation is closed and ready for a funded owner-controlled run; public execution stays Phase 9.";
     case "receipt_pending":
-      return "Phase 8 closeout is waiting for Base receipt verification.";
+      return "Phase 8 closeout is waiting for network receipt verification.";
     case "complete":
       return "Phase 8 controlled live transaction is complete with owner-only verified closeout.";
     case "blocked":

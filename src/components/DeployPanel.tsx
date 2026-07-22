@@ -13,6 +13,10 @@ import {
   X,
 } from "lucide-react";
 import { appConfig } from "../config/appConfig";
+import {
+  currentProductChain,
+  currentWalletDisplayName,
+} from "../config/productChains";
 import { demoAgentLimits } from "../config/demoLimits";
 import type { AgentTemplate } from "../types/agent";
 import { kyraDataService } from "../services/kyraDataService";
@@ -56,7 +60,7 @@ const deployLogs = [
   "prepare backend records",
   "load Kyra core modules",
   "link Telegram interface",
-  "sync protected Base action route",
+  `sync protected ${currentProductChain.name} action route`,
   "enable wallet approval gate",
   "publish agent dashboard",
   "persist backend records",
@@ -201,7 +205,7 @@ export function DeployPanel({
       `modules.load=${selectedTemplate.modules.join(",")}`,
       `actions.enable=${selectedActions.join(",")}`,
       `telegram.connect=${telegramTerminalStatus}`,
-      "base.actions=approval_required",
+      `chain.target=${currentProductChain.key}`,
       "wallet.policy=approval_required",
       `agent.quota=${authSession ? `${agentQuota.used}/${agentQuota.limit}` : `0/${agentQuota.limit}`}`,
       `quota.guard=max_${agentQuota.limit}_agents`,
@@ -966,7 +970,7 @@ export function DeployPanel({
                 <div className="connection-grid">
                   <span>
                     <WalletCards size={16} />
-                    Base Account
+                    {currentWalletDisplayName}
                     <strong>connected</strong>
                   </span>
                   <span>

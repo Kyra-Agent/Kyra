@@ -6,10 +6,24 @@ type AgentStatus = "online" | "draft";
 type ApprovalRisk = "normal" | "review" | "read-only";
 type ApprovalStatus = "waiting_wallet" | "read_only_ready" | "review_required";
 
+type ChainKey = "base" | "robinhood_mainnet" | "robinhood_testnet";
+
+interface ChainTarget {
+  key: ChainKey;
+  id: 8453 | 4663 | 46630;
+  name: "Base" | "Robinhood Chain" | "Robinhood Chain Testnet";
+  walletLabel:
+    | "Base Account"
+    | "Robinhood Chain wallet"
+    | "Robinhood Chain Testnet wallet";
+}
+
 interface DeployAgentRequest {
   templateId?: unknown;
   agentName?: unknown;
   selectedActions?: unknown;
+  chainKey?: unknown;
+  chainId?: unknown;
 }
 
 interface AgentTemplateRow {
@@ -39,6 +53,7 @@ interface AgentInstanceRow {
   handle: string;
   public_slug: string;
   status: AgentStatus;
+  network: ChainKey;
 }
 
 interface WalletPolicyRow {
@@ -77,6 +92,27 @@ const corsHeaders = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+};
+
+const chainTargets: Record<ChainKey, ChainTarget> = {
+  base: {
+    key: "base",
+    id: 8453,
+    name: "Base",
+    walletLabel: "Base Account",
+  },
+  robinhood_mainnet: {
+    key: "robinhood_mainnet",
+    id: 4663,
+    name: "Robinhood Chain",
+    walletLabel: "Robinhood Chain wallet",
+  },
+  robinhood_testnet: {
+    key: "robinhood_testnet",
+    id: 46630,
+    name: "Robinhood Chain Testnet",
+    walletLabel: "Robinhood Chain Testnet wallet",
+  },
 };
 
 const scenarios: Record<string, DemoScenario> = {
@@ -177,6 +213,50 @@ function assertTemplateId(value: unknown) {
   }
 
   return templateId;
+}
+
+function assertChainTarget(
+  chainKeyValue: unknown,
+  chainIdValue: unknown,
+): ChainTarget {
+  if (chainKeyValue === undefined && chainIdValue === undefined) {
+    return chainTargets.base;
+  }
+
+  if (
+    typeof chainKeyValue !== "string" ||
+    !(chainKeyValue in chainTargets)
+  ) {
+    throw new HttpError(400, "invalid_chain", "chainKey is invalid.");
+  }
+
+  const chain = chainTargets[chainKeyValue as ChainKey];
+  const chainId = typeof chainIdValue === "number"
+    ? chainIdValue
+    : typeof chainIdValue === "string" && /^\d+$/.test(chainIdValue)
+    ? Number(chainIdValue)
+    : Number.NaN;
+
+  if (!Number.isSafeInteger(chainId) || chainId !== chain.id) {
+    throw new HttpError(
+      400,
+      "invalid_chain",
+      "chainKey and chainId must identify the same supported chain.",
+    );
+  }
+
+  if (
+    chain.key === "robinhood_mainnet" &&
+    Deno.env.get("KYRA_ROBINHOOD_MAINNET_DEPLOY_ENABLED") !== "true"
+  ) {
+    throw new HttpError(
+      403,
+      "chain_release_locked",
+      "Robinhood Chain mainnet deployment is not released.",
+    );
+  }
+
+  return chain;
 }
 
 async function readDeployRequestBody(
@@ -439,6 +519,7 @@ async function insertAgent(
   template: AgentTemplateRow,
   userId: string,
   agentName: string,
+  chain: ChainTarget,
 ) {
   const publicSlug = createPublicSlug(template.id, userId);
   const handle = createTelegramHandle(template.id, publicSlug);
@@ -455,12 +536,15 @@ async function insertAgent(
       public_slug: publicSlug,
       status,
       mode: "demo",
-      network: "base",
+      network: chain.key,
+      chain_action_status: chain.key === "robinhood_testnet"
+        ? "ready"
+        : "disabled",
       telegram_status: "mocked",
       base_mcp_status: "mocked",
     })
     .select(
-      "id,workspace_id,template_id,display_name,handle,public_slug,status",
+      "id,workspace_id,template_id,display_name,handle,public_slug,status,network",
     )
     .single<AgentInstanceRow>();
 
@@ -480,14 +564,17 @@ async function insertWalletPolicy(
   workspaceId: string,
   agentId: string,
   selectedActions: string[],
+  chain: ChainTarget,
 ) {
   const { data, error } = await serviceClient
     .from("wallet_policies")
     .insert({
       workspace_id: workspaceId,
       agent_id: agentId,
-      wallet_label: "Demo Base Account",
+      wallet_label: "Demo " + chain.walletLabel,
       wallet_address: null,
+      chain_key: chain.key,
+      chain_id: chain.id,
       daily_limit_usdc: 100,
       approval_required: true,
       allowed_actions: selectedActions,
@@ -509,6 +596,7 @@ async function insertRelatedRecords(
   agent: AgentInstanceRow,
   template: AgentTemplateRow,
   policy: WalletPolicyRow,
+  chain: ChainTarget,
 ) {
   const scenario = getScenario(template.id, template);
 
@@ -527,14 +615,21 @@ async function insertRelatedRecords(
       agent_id: agent.id,
       scenario_id: scenario.id,
       title: scenario.title,
-      command: template.terminal_seed || scenario.command,
-      route: scenario.route,
+      command: (template.terminal_seed || scenario.command).replaceAll(
+        "Base",
+        chain.name,
+      ),
+      route: scenario.route.replaceAll("Base", chain.name),
       risk: scenario.risk,
       status: getApprovalStatus(scenario),
       fee_payer: "connected_wallet",
+      chain_key: chain.key,
+      chain_id: chain.id,
       requires_wallet: scenario.approvalRequired,
       prepared_tx: {
         demo: true,
+        chain_key: chain.key,
+        chain_id: chain.id,
         template_id: template.id,
         review_draft: true,
         onchain_execution: "disabled",
@@ -644,6 +739,7 @@ Deno.serve(async (request) => {
     const limit = getDemoLimit();
     const body = await readDeployRequestBody(request);
     const templateId = assertTemplateId(body.templateId);
+    const chain = assertChainTarget(body.chainKey, body.chainId);
 
     const user = await getUserClient(supabaseUrl, anonKey, authorization);
     const serviceClient = createClient(supabaseUrl, serviceRoleKey, {
@@ -687,6 +783,7 @@ Deno.serve(async (request) => {
       template,
       user.id,
       agentName,
+      chain,
     );
     let nextUsed = used + 1;
 
@@ -696,6 +793,7 @@ Deno.serve(async (request) => {
         workspace.id,
         agent.id,
         selectedActions,
+        chain,
       );
 
       await insertRelatedRecords(
@@ -704,6 +802,7 @@ Deno.serve(async (request) => {
         agent,
         template,
         policy,
+        chain,
       );
 
       try {
@@ -735,6 +834,8 @@ Deno.serve(async (request) => {
           agent: agent.display_name,
           telegram: agent.handle,
           wallet: "approval_required",
+          chainKey: chain.key,
+          chainId: chain.id,
           mode: "demo",
           execution: "disabled",
         },

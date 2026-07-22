@@ -1,3 +1,4 @@
+
 import type {
   PreparedActionCanonicalInput,
   PreparedActionChain,
@@ -87,7 +88,7 @@ const blockMessages: Record<DualApprovalBlockReason, string> = {
   policy_not_ready:
     "Prepared action must pass policy review before owner approval.",
   owner_approval_required:
-    "Kyra owner approval is required before Base Account approval.",
+    "Kyra owner approval is required before wallet approval.",
   owner_rejected:
     "Owner rejected the prepared action. No wallet prompt can open.",
   approval_identity_required:
@@ -95,9 +96,9 @@ const blockMessages: Record<DualApprovalBlockReason, string> = {
   reviewed_action_changed:
     "Reviewed prepared action changed after approval and must be rejected.",
   base_account_connection_required:
-    "Connect the owner Base Account before wallet approval can be considered.",
+    "Connect the owner wallet before wallet approval can be considered.",
   valid_handoff_required:
-    "A valid unsigned handoff is required before Base Account approval.",
+    "A valid unsigned handoff is required before wallet approval.",
   wallet_execution_disabled:
     "Wallet execution remains disabled by the Phase 7H runtime gate.",
   wallet_signing_disabled:

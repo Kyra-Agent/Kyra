@@ -1,3 +1,5 @@
+
+
 export type Phase8UserExecutionFlowStatus =
   | "blocked"
   | "ready_to_start"
@@ -100,7 +102,7 @@ export function evaluatePhase8UserExecutionFlow(
     steps: [
       buildStep("owner_session", "Owner session", input.ownerSignedIn, firstMissingIndex === 0, "Sign in to the private owner dashboard."),
       buildStep("agent_selection", "Agent selected", input.selectedAgent, firstMissingIndex === 1, "Choose one deployed agent for the run."),
-      buildStep("base_account", "Base Account", input.baseAccountConnected && input.baseChainReady, firstMissingIndex === 2, "Connect the owner Base Account on Base."),
+      buildStep("base_account", "Owner wallet", input.baseAccountConnected && input.baseChainReady, firstMissingIndex === 2, "Connect the owner wallet on the selected network."),
       buildStep("prepared_action", "Prepared action", input.preparedActionReady, firstMissingIndex === 3, "Review the bounded low-value prepared action."),
       buildStep("owner_approval", "Owner approval", input.ownerApprovalRecorded, firstMissingIndex === 4, "Arm the owner live window before submit."),
       buildStep("runtime_submitter", "Submitter", input.runtimeEnabled && input.lowValueRequestReady && submitted, firstMissingIndex === 5 || status === "ready_to_submit", getSubmitterDetail(input, submitted)),
@@ -238,9 +240,9 @@ function getSubmitterDetail(input: Phase8UserExecutionFlowInput, submitted: bool
 function getVerificationDetail(input: Phase8UserExecutionFlowInput) {
   switch (input.verificationStatus) {
     case "confirmed":
-      return "Base receipt verified successfully.";
+      return "Network receipt verified successfully.";
     case "pending_receipt":
-      return "Waiting for the Base receipt.";
+      return "Waiting for the network receipt.";
     case "failed":
       return "Receipt failed safely with sanitized evidence.";
     case "blocked":
@@ -261,7 +263,7 @@ function getFlowMessage(status: Phase8UserExecutionFlowStatus) {
     case "submitted":
       return "Transaction submit was handed to the provider; receipt verification is next.";
     case "verifying":
-      return "Kyra is waiting for Base receipt verification under owner-only monitoring.";
+      return "Kyra is waiting for network receipt verification under owner-only monitoring.";
     case "confirmed":
       return "Controlled low-value execution is confirmed and closed owner-only.";
     case "failed":

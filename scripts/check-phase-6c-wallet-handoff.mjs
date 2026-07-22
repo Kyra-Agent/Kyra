@@ -364,7 +364,7 @@ for (
     "WagmiProvider",
     "QueryClientProvider",
     "injected({ shimDisconnect: true })",
-    "id: currentProductChain.id",
+    "id: productChain.id",
     "storage: null",
     "reconnectOnMount={false}",
   ]

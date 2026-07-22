@@ -1,3 +1,4 @@
+
 import { baseChainId } from "./unsignedTransactionHandoff";
 
 export type Phase8LowValueTransactionReadinessStatus =
@@ -60,9 +61,9 @@ const blockMessages: Record<Phase8LowValueTransactionReadinessReason, string> = 
   agent_required:
     "A selected deployed agent is required before low-value transaction review.",
   base_account_required:
-    "A connected Base Account is required before low-value transaction review.",
+    "A connected owner wallet is required before low-value transaction review.",
   base_chain_required:
-    "Low-value transaction review is restricted to Base.",
+    "Low-value transaction review is restricted to the selected runtime network.",
   prepared_action_required:
     "A reviewed prepared action is required before low-value transaction review.",
   owner_approval_required:
@@ -74,7 +75,7 @@ const blockMessages: Record<Phase8LowValueTransactionReadinessReason, string> = 
   gas_estimate_required:
     "A gas estimate is required before low-value transaction review.",
   gas_balance_required:
-    "The connected Base Account needs enough Base ETH for value plus gas.",
+    "The connected owner wallet needs enough native gas currency for value plus gas.",
   calldata_forbidden:
     "Calldata remains disabled for the low-value readiness gate.",
   token_approval_forbidden:

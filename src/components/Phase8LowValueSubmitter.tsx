@@ -2,6 +2,7 @@ import { LoaderCircle, Send, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { useConnection, useSendTransaction } from "wagmi";
 import { appConfig } from "../config/appConfig";
+import { currentWalletDisplayName } from "../config/productChains";
 import type { Phase8ControlledSubmissionResultEvent } from "../types/phase8ControlledSubmission";
 import type { Phase8LowValueSubmitRequestResult } from "../types/phase8LowValueSubmitRequest";
 import {
@@ -78,7 +79,7 @@ export function Phase8LowValueSubmitter({
 
     if (!walletConnected) {
       setState("locked");
-      setMessage("Connect the owner Base Account before low-value submit.");
+      setMessage(`Connect the owner ${currentWalletDisplayName} before low-value submit.`);
       return;
     }
 
@@ -121,7 +122,7 @@ export function Phase8LowValueSubmitter({
     try {
       setSubmittedHash(null);
       setState("submitting");
-      setMessage("Opening Base Account for one owner-controlled low-value submit...");
+      setMessage(`Opening ${currentWalletDisplayName} for one owner-controlled low-value submit...`);
       const hash = await sendTransaction.sendTransactionAsync(submitRequest.request);
       const closeout = createPhase8SubmittedCloseoutEvent({
         ownerUserId: closeoutScope.ownerUserId,
@@ -231,7 +232,7 @@ function classifySubmitError(error: unknown) {
     typeof error.name === "string" &&
     error.name.toLowerCase().includes("userrejected")
   ) {
-    return "Owner rejected the Base Account low-value submit prompt.";
+    return `Owner rejected the ${currentWalletDisplayName} low-value submit prompt.`;
   }
 
   if (
@@ -240,7 +241,7 @@ function classifySubmitError(error: unknown) {
     "code" in error &&
     error.code === 4001
   ) {
-    return "Owner rejected the Base Account low-value submit prompt.";
+    return `Owner rejected the ${currentWalletDisplayName} low-value submit prompt.`;
   }
 
   return "Low-value submit failed safely inside the isolated gate.";

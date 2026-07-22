@@ -1,3 +1,5 @@
+import type { ProductChainKey } from "../config/productChains";
+
 export type DemoBackendMode = "frontend-demo" | "backend-demo";
 export type DemoRecordStatus =
   | "mocked"
@@ -28,7 +30,9 @@ export interface DemoAgentInstance {
   publicPath: string;
   status: "online" | "draft" | "paused";
   mode: DemoBackendMode;
-  network: "Base";
+  chainKey: ProductChainKey;
+  network: string;
+  chainActionStatus: "disabled" | "ready" | "active" | "paused";
   telegramStatus: DemoRecordStatus;
   baseMcpStatus: DemoRecordStatus;
   approvalPolicyId: string;
@@ -83,7 +87,7 @@ export interface DemoWalletReadiness {
   state: DemoWalletReadinessState;
   label: string;
   addressLabel: string;
-  network: "Base" | "Base pending";
+  network: string;
   approvalGate: "Required" | "Optional" | "Not created";
   execution: "Disabled" | "Ready for approval" | "Blocked";
   nextAction: string;
@@ -104,9 +108,12 @@ export type DemoPreparedActionStatus = "blocked" | "draft" | "preview_ready";
 export interface DemoPreparedActionPreview {
   id: string;
   status: DemoPreparedActionStatus;
-  actionKind: "base_mcp_status_check" | "quote_preview";
+  actionKind:
+    | "base_mcp_status_check"
+    | "chain_status_check"
+    | "quote_preview";
   title: string;
-  chain: "Base";
+  chain: string;
   routeSummary: string;
   valueSummary: string;
   risk: "read-only" | "review";

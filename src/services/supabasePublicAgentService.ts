@@ -1,10 +1,14 @@
 import { appConfig } from "../config/appConfig";
 import type { AgentTemplate, TemplateStatus } from "../types/agent";
+import {
+  getProductChainByKey,
+  type ProductChainKey,
+} from "../config/productChains";
 import type { DemoAgentInstance, DemoBackendTable, DemoRecordStatus } from "../types/backend";
 import { sanitizeSupabaseMessage, selectPublicRows } from "./supabaseRestClient";
 
 type PublicAgentMode = "demo" | "live";
-type PublicAgentNetwork = "base";
+type PublicAgentNetwork = ProductChainKey;
 type PublicAgentStatus = "online" | "draft" | "paused";
 type PublicAgentRouteStatus = "mocked" | "active" | "queued" | "review";
 
@@ -65,6 +69,8 @@ function buildPublicAgentQuery(agentSlug: string) {
 }
 
 function mapPublicAgentProfile(row: PublicAgentProfileRow): PublicAgentProfile {
+  const chain = getProductChainByKey(row.network);
+
   const template: AgentTemplate = {
     id: row.template_id,
     name: row.template_name,
@@ -85,7 +91,9 @@ function mapPublicAgentProfile(row: PublicAgentProfileRow): PublicAgentProfile {
     publicPath: `/agents/${row.public_slug}`,
     status: row.status,
     mode: row.mode === "demo" ? "backend-demo" : "backend-demo",
-    network: row.network === "base" ? "Base" : "Base",
+    chainKey: row.network,
+    network: chain?.name ?? "Unsupported network",
+    chainActionStatus: "disabled",
     telegramStatus: mapRecordStatus(row.telegram_status),
     baseMcpStatus: mapRecordStatus(row.base_mcp_status),
     approvalPolicyId: "public_approval_required",

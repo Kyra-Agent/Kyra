@@ -61,7 +61,7 @@ export function validateUnsignedTransactionHandoff(
     handoff.chainId !== baseChainId ||
     handoff.chainName !== currentProductChain.name
   ) {
-    return reject("Wallet handoff must target Base.");
+    return reject(`Wallet handoff must target ${currentProductChain.name}.`);
   }
 
   if (handoff.gasPayer !== "connected_wallet") {
