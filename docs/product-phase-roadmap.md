@@ -9,10 +9,12 @@ the complete historical product roadmap; the migration uses six grouped batches
 and does not create Phase 11. See
 `docs/robinhood-chain-migration-blueprint.md`.
 
-Migration status: Batch 1 evidence, Batch 2 chain abstraction, and Batch 3
-chain-neutral owner-wallet runtime are complete locally. Base remains the
-deployed runtime; Robinhood backend, testnet, and mainnet cutover work have not
-started. Robinhood wallet support is not yet a public live claim.
+Migration status: Batches 1-4 are complete locally, including the chain-neutral
+owner-wallet runtime and default-off backend/provider foundation. Base remains
+the deployed runtime; the reviewed Supabase migration and functions are not
+deployed, no production Robinhood RPC secret is configured, and testnet and
+mainnet cutover have not started. Robinhood wallet support is not yet a public
+live claim.
 
 This document resolves conflicting wording across older phase plans and
 closeout notes. If another document disagrees with this roadmap about product

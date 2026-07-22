@@ -31,7 +31,12 @@ create table if not exists public.agent_instances (
   public_slug text not null unique,
   status text not null default 'online' check (status in ('online', 'draft', 'paused')),
   mode text not null default 'demo' check (mode in ('demo', 'live')),
-  network text not null default 'base' check (network in ('base')),
+  network text not null default 'base' check (
+    network in ('base', 'robinhood_mainnet', 'robinhood_testnet')
+  ),
+  chain_action_status text not null default 'disabled' check (
+    chain_action_status in ('disabled', 'ready', 'active', 'paused')
+  ),
   telegram_status text not null default 'mocked' check (telegram_status in ('mocked', 'active', 'queued', 'review')),
   base_mcp_status text not null default 'mocked' check (base_mcp_status in ('mocked', 'active', 'queued', 'review')),
   approval_policy_id uuid,
@@ -45,6 +50,14 @@ create table if not exists public.wallet_policies (
   agent_id uuid not null references public.agent_instances(id) on delete cascade,
   wallet_label text not null,
   wallet_address text,
+  chain_key text not null default 'base' check (
+    chain_key in ('base', 'robinhood_mainnet', 'robinhood_testnet')
+  ),
+  chain_id bigint not null default 8453 check (
+    (chain_key = 'base' and chain_id = 8453)
+    or (chain_key = 'robinhood_mainnet' and chain_id = 4663)
+    or (chain_key = 'robinhood_testnet' and chain_id = 46630)
+  ),
   daily_limit_usdc numeric(18, 6),
   approval_required boolean not null default true,
   allowed_actions jsonb not null default '[]'::jsonb,
@@ -75,6 +88,14 @@ create table if not exists public.approval_requests (
   title text not null,
   command text not null,
   route text not null,
+  chain_key text not null default 'base' check (
+    chain_key in ('base', 'robinhood_mainnet', 'robinhood_testnet')
+  ),
+  chain_id bigint not null default 8453 check (
+    (chain_key = 'base' and chain_id = 8453)
+    or (chain_key = 'robinhood_mainnet' and chain_id = 4663)
+    or (chain_key = 'robinhood_testnet' and chain_id = 46630)
+  ),
   risk text not null check (risk in ('normal', 'review', 'read-only')),
   status text not null default 'waiting_wallet' check (
     status in ('waiting_wallet', 'read_only_ready', 'review_required', 'approved', 'rejected')

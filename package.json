@@ -175,7 +175,9 @@
     "check:product-snapshot": "node scripts/check-product-readiness-snapshot.mjs",
     "test:product-chains": "node scripts/test-product-chain-registry.mjs",
     "check:chain-abstraction": "npm run test:product-chains && node scripts/check-product-chain-abstraction.mjs",
-    "check:robinhood-migration": "node scripts/check-robinhood-chain-migration-blueprint.mjs && npm run check:chain-abstraction && npm run check:owner-wallet-migration"
+    "check:robinhood-migration": "node scripts/check-robinhood-chain-migration-blueprint.mjs && npm run check:chain-abstraction && npm run check:owner-wallet-migration && npm run check:chain-backend",
+    "test:chain-backend": "deno test supabase/functions/_shared/chain-runtime_test.ts supabase/functions/chain-status-provider supabase/functions/chain-action-prepare",
+    "check:chain-backend": "npm run test:chain-backend && deno check supabase/functions/chain-status-provider/index.ts supabase/functions/chain-action-prepare/index.ts && node scripts/check-robinhood-chain-backend.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.0",

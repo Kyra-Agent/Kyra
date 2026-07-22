@@ -22,6 +22,15 @@ verify_jwt = true
 [functions.base-mcp-status-provider]
 verify_jwt = false
 
+# Chain-neutral status verification is server-to-server only. The function is
+# default-off and authenticates with its own backend bearer secret.
+[functions.chain-status-provider]
+verify_jwt = false
+
+# Chain-neutral preparation is owner-dashboard only and remains default-off.
+[functions.chain-action-prepare]
+verify_jwt = true
+
 # Telegram disconnect is called by a signed-in dashboard user. Keep Supabase
 # gateway JWT verification enabled in addition to future function ownership
 # validation and operator action checks.

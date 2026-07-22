@@ -2,10 +2,10 @@
 
 Date: 2026-07-22
 
-Status: Batch 1 architecture, Batch 2 chain abstraction, and Batch 3 wallet
-migration are complete locally. Runtime cutover has not started, production
-behavior is unchanged, and no Robinhood Chain capability may be described as
-live yet.
+Status: Batch 1 architecture, Batch 2 chain abstraction, Batch 3 wallet
+migration, and Batch 4 default-off backend foundation are complete locally.
+Runtime cutover has not started, production behavior is unchanged, and no
+Robinhood Chain capability may be described as live yet.
 
 ## Decision
 
@@ -307,11 +307,55 @@ It is deliberately not a public support claim at this stage.
 
 ### Batch 4 - Backend and provider migration
 
+Status: locally complete and verified; migration and functions are not
+deployed, runtime flags remain disabled, and no production RPC secret is
+configured.
+
 - introduce chain-neutral provider and prepared-action contracts
 - migrate Supabase status, prepare, policy, rate-limit, and receipt paths
 - add reversible schema migration and RLS tests
 - configure a Kyra-owned production RPC secret
 - retain compatibility wrappers until production callers are migrated
+
+Implemented evidence:
+
+- a strict backend registry binds Base, Robinhood Chain mainnet, and Robinhood
+  Chain testnet keys to their canonical decimal and hexadecimal chain IDs
+- `chain-status-provider` exposes only an authenticated internal
+  `eth_chainId` status check; signing, submission, calldata, balances, and
+  account methods are absent
+- `chain-action-prepare` requires an authenticated owner, exact
+  workspace-agent ownership, chain binding, fresh request correlation, and a
+  persistent service-side rate limit before storing a summary
+- provider-to-provider authorization uses a server-only shared secret, exact
+  endpoint host binding, bounded responses, and a short timeout; errors are
+  collapsed to fixed sanitized messages
+- the schema migration preserves every existing Base agent, adds explicit
+  Robinhood network values and a default-disabled chain-action state, then
+  creates owner-readable summary storage and service-only limiter state under
+  RLS
+- existing wallet policy and approval/receipt rows gain an exact chain key and
+  chain ID with Base/8453 defaults; Robinhood rows cannot be confused with
+  historical Base evidence
+- prepared-action storage deliberately excludes owner IDs, wallet addresses,
+  private keys, seed phrases, Telegram tokens, provider payloads, calldata,
+  signed payloads, and transaction hashes
+- replayed request IDs cannot mutate prepared-action identity, provider,
+  summary, chain, or original creation time
+- rollback refuses destructive removal when any prepared action, limiter row,
+  Robinhood agent/policy/receipt, or enabled chain-action state exists
+- `npm run check:chain-backend` covers default-off startup, ownership, chain
+  drift, response correlation, provider timeout, RLS/privacy contracts, and
+  forbidden signing methods with 28 passing tests
+
+Still required in Batch 5:
+
+- apply the reviewed migrations and deploy both Edge Functions while their
+  runtime flags remain disabled
+- create the Kyra-owned managed RPC secret; the public Robinhood testnet RPC
+  may be used only for bounded test evidence, never as the production provider
+- verify Robinhood Wallet compatibility and one owner-controlled testnet
+  receipt before any runtime or public copy cutover
 
 ### Batch 5 - Testnet closeout
 
