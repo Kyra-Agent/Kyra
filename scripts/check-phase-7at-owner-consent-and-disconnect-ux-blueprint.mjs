@@ -116,7 +116,7 @@ includes(
 includes(
   "private context",
   context,
-  "Phase 7AT owner consent and disconnect UX blueprint is complete",
+  "Supporting readiness packets are evidence under Phase 7",
 );
 
 includes("Phase 7AO decision", decisionPacket, "Decision: **NO-GO**.");

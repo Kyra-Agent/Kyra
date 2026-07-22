@@ -76,7 +76,7 @@ includes(
 includes(
   "private context",
   context,
-  "Phase 7AN production UI and Base MCP evidence refresh is complete",
+  "Supporting readiness packets are evidence under Phase 7",
 );
 
 assert(

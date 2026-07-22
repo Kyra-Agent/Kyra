@@ -21,9 +21,9 @@ import {
 import { useBalance, useWaitForTransactionReceipt } from "wagmi";
 import { AuthSessionPanel } from "../components/AuthSessionPanel";
 import {
-  BaseAccountConnectionPanel,
-  type BaseAccountConnectionStatus,
-} from "../components/BaseAccountConnectionPanel";
+  OwnerWalletConnectionPanel,
+  type OwnerWalletConnectionStatus,
+} from "../components/OwnerWalletConnectionPanel";
 import { Phase8ControlledSubmitter } from "../components/Phase8ControlledSubmitter";
 import { Phase8LowValueSubmitter } from "../components/Phase8LowValueSubmitter";
 import type { AgentTemplate } from "../types/agent";
@@ -113,7 +113,7 @@ import {
   savePhase8PersistedExecutionResult,
 } from "../services/phase8ResultPersistenceStore";
 import { baseChainId } from "../types/unsignedTransactionHandoff";
-import { maskBaseAccountAddress } from "../types/baseAccountConnection";
+import { maskOwnerWalletAddress } from "../types/ownerWalletConnection";
 import type { DataProvider } from "../types/api";
 import type {
   DemoActivityLog,
@@ -782,7 +782,7 @@ export function Dashboard({
     BaseMcpPreparedActionSummary | null
   >(null);
   const [baseAccountConnectionStatus, setBaseAccountConnectionStatus] =
-    useState<BaseAccountConnectionStatus>({
+    useState<OwnerWalletConnectionStatus>({
       connected: false,
       address: null,
       chainId: null,
@@ -2975,7 +2975,7 @@ export function Dashboard({
               <span>Wallet policy</span>
               <span>{walletReadiness.state.replace(/_/g, " ")}</span>
             </div>
-            <BaseAccountConnectionPanel
+            <OwnerWalletConnectionPanel
               session={authSession}
               workspaceId={agentRecord?.workspaceId ?? null}
               agentId={agentRecord?.id ?? null}
@@ -3016,7 +3016,7 @@ export function Dashboard({
                   Connection
                   <strong>
                     {baseAccountConnectionStatus.connected
-                      ? "Base Account ready"
+                        ? "Owner wallet ready"
                       : "Required"}
                   </strong>
                 </span>
@@ -3973,7 +3973,7 @@ export function Dashboard({
                   Recipient
                   <strong>
                     {phase8OwnerActionCandidate.ok
-                      ? maskBaseAccountAddress(phase8OwnerActionCandidate.candidate.recipient)
+                      ? maskOwnerWalletAddress(phase8OwnerActionCandidate.candidate.recipient)
                       : "Base Account required"}
                   </strong>
                 </span>

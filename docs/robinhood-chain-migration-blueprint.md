@@ -2,9 +2,10 @@
 
 Date: 2026-07-22
 
-Status: Batch 1 architecture and Batch 2 chain abstraction are complete
-locally. Runtime cutover has not started, production behavior is unchanged,
-and no Robinhood Chain capability may be described as live yet.
+Status: Batch 1 architecture, Batch 2 chain abstraction, and Batch 3 wallet
+migration are complete locally. Runtime cutover has not started, production
+behavior is unchanged, and no Robinhood Chain capability may be described as
+live yet.
 
 ## Decision
 
@@ -208,13 +209,13 @@ Highest-risk hardcoded boundaries already confirmed:
 - README, dashboard, deploy flow, public profiles, and writer context use
   Base-native product wording.
 
-Known baseline verification finding:
+Resolved baseline verification finding:
 
-- `npm audit --audit-level=high` reports one high-severity advisory through the
-  Base-only dependency chain `@base-org/account` -> `@coinbase/cdp-sdk` ->
-  `axios`. The proposed automatic fix is a breaking downgrade and is not
-  accepted. Batch 3 must remove the obsolete Base connector dependency and the
-  audit must return clean before Robinhood Chain cutover.
+- Batch 3 removed the direct `@base-org/account` package and its installed
+  `@coinbase/cdp-sdk`/`axios` dependency chain. `npm audit --audit-level=high`
+  now returns zero vulnerabilities. Wagmi retains only an uninstalled optional
+  peer declaration for its separate Base connector export; Kyra does not import
+  or execute that connector.
 
 ## Security And Privacy Non-Negotiables
 
@@ -267,21 +268,42 @@ Implemented evidence:
 - `npm run check:chain-abstraction` guards against duplicated chain constants
   and confirms wallet execution stays disabled
 
-Compatibility intentionally retained for Batch 3 and Batch 4:
+Compatibility intentionally retained for Batch 4:
 
-- the Base Account connector is still the production wallet connector
 - `base_*` action kinds, Base MCP function names, stored Base records, and
   current Base-facing copy remain unchanged
-- Robinhood Chain is not present in the wallet runtime and cannot be selected,
-  signed, submitted, or advertised as live
+- Base remains `currentProductChain`, so Robinhood Chain cannot be selected,
+  signed, submitted, or advertised as live before atomic cutover
 
 ### Batch 3 - Wallet migration
+
+Status: locally complete and verified; not deployed and not a production
+cutover.
 
 - replace Base Account-only connection with audited EVM wallet connectors
 - validate connect, disconnect, account change, chain change, rejection, expiry,
   and refresh behavior
 - validate Robinhood Wallet compatibility before public claims
 - keep all connection and execution state owner-only
+
+Implemented evidence:
+
+- Wagmi now uses its standard EIP-1193 injected connector with EIP-6963
+  discovery rather than the Base Account SDK connector
+- the wallet chain is generated from `currentProductChain`; no Robinhood chain
+  is silently added to the active runtime
+- connection binding freezes owner, workspace, selected agent, auth-session
+  expiry, address, chain ID, connector ID, and connector type
+- owner/session/agent/address/chain/provider drift disconnects and fails closed
+- connection state and Wagmi state remain in browser memory only; reconnect on
+  mount, signing, approval, and submission remain disabled
+- expired targets, refreshed sessions, user rejection, malformed providers,
+  wrong-chain responses, and address/provider drift have regression coverage
+- `npm run check:owner-wallet-migration`, chain abstraction checks, production
+  build, and zero-vulnerability dependency audit pass locally
+
+Manual Robinhood Wallet compatibility remains a Batch 5 testnet evidence item.
+It is deliberately not a public support claim at this stage.
 
 ### Batch 4 - Backend and provider migration
 

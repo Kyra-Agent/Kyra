@@ -107,7 +107,7 @@ includes(
 includes(
   "private context",
   context,
-  "Phase 7AV disabled route test harness plan is complete",
+  "Supporting readiness packets are evidence under Phase 7",
 );
 
 includes(

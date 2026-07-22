@@ -70,7 +70,7 @@ const walletProviderImportPattern =
   /(?:from\s+["'](?:wagmi|viem|@base-org\/account|@tanstack\/react-query)["']|import\(["'](?:wagmi|viem|@base-org\/account|@tanstack\/react-query)["']\))/u;
 const walletProviderImportAllowlist = new Set([
   "src/providers/WalletRuntimeProviders.tsx",
-  "src/components/BaseAccountConnectionPanel.tsx",
+  "src/components/OwnerWalletConnectionPanel.tsx",
   "src/pages/Dashboard.tsx",
   "src/components/Phase8ControlledSubmitter.tsx",
   "src/components/Phase8LowValueSubmitter.tsx",
@@ -147,8 +147,8 @@ for (
   const runtimeBoundary of [
     "WagmiProvider",
     "QueryClientProvider",
-    "baseAccount(",
-    "chains: [base]",
+    "injected({ shimDisconnect: true })",
+    "id: currentProductChain.id",
     "storage: null",
     "reconnectOnMount={false}",
   ]
@@ -156,6 +156,7 @@ for (
   assertIncludes("WalletRuntimeProviders", walletRuntime, runtimeBoundary);
 }
 assertNotIncludes("WalletRuntimeProviders", walletRuntime, "coinbaseWallet");
+assertNotIncludes("WalletRuntimeProviders", walletRuntime, "baseAccount(");
 assertNotIncludes("WalletRuntimeProviders", walletRuntime, "window.ethereum");
 
 for (

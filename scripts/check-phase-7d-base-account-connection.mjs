@@ -18,9 +18,9 @@ const doc = read("docs/phase-7D-base-account-connection-runtime.md");
 const config = read("src/config/appConfig.ts");
 const boundary = read("src/providers/WalletProviderBoundary.tsx");
 const providers = read("src/providers/WalletRuntimeProviders.tsx");
-const component = read("src/components/BaseAccountConnectionPanel.tsx");
-const contract = read("src/types/baseAccountConnection.ts");
-const test = read("scripts/test-base-account-connection.mjs");
+const component = read("src/components/OwnerWalletConnectionPanel.tsx");
+const contract = read("src/types/ownerWalletConnection.ts");
+const test = read("scripts/test-owner-wallet-connection.mjs");
 const dashboard = read("src/pages/Dashboard.tsx");
 const packageJson = read("package.json");
 
@@ -53,10 +53,12 @@ includes(
   boundary,
   'return value === "owner_click_only"',
 );
-includes("wallet providers", providers, "baseAccount({ appName: appConfig.appName })");
+includes("wallet providers", providers, "injected({ shimDisconnect: true })");
+includes("wallet providers", providers, "multiInjectedProviderDiscovery: true");
 includes("wallet providers", providers, "reconnectOnMount={false}");
 includes("wallet providers", providers, "storage: null");
 excludes("wallet providers", providers, "coinbaseWallet");
+excludes("wallet providers", providers, "baseAccount(");
 
 for (
   const expected of [
@@ -68,9 +70,9 @@ for (
     "async function handleConnect()",
     "connectMutation.connectAsync",
     "chainId: currentProductChain.id",
-    "createBaseAccountConnectionBinding",
-    "bindingMatchesTarget",
-    "connectionMatchesBinding",
+    "createOwnerWalletConnectionBinding",
+    "walletBindingMatchesTarget",
+    "walletConnectionMatchesBinding",
     "requestSequenceRef",
     "Signing and transactions remain disabled.",
     "onClick={() => void handleConnect()}",
@@ -97,43 +99,43 @@ for (
     "console.",
   ]
 ) {
-  excludes("Base Account connection panel", component, forbidden);
+  excludes("owner wallet connection panel", component, forbidden);
 }
 
 for (
   const expected of [
-    "baseAccountChainId = currentProductChain.id",
-    'baseAccountConnectorId = "baseAccount"',
+    "ownerWalletChainId = currentProductChain.id",
+    'ownerWalletConnectorType = "injected"',
+    "ownerWalletMinimumSessionValiditySeconds = 30",
     "canonicalUuidPattern",
     "addressPattern",
-    "bindingMatchesTarget",
-    "connectionMatchesBinding",
-    "maskBaseAccountAddress",
-    "Base Account connection failed safely.",
+    "walletBindingMatchesTarget",
+    "walletConnectionMatchesBinding",
+    "maskOwnerWalletAddress",
+    "Wallet connection failed safely.",
   ]
 ) {
-  includes("Base Account connection contract", contract, expected);
+  includes("owner wallet connection contract", contract, expected);
 }
 
 for (
   const expected of [
-    "Binding must not transfer to another agent.",
-    "Binding must not transfer to another owner.",
-    "Binding must not transfer to another workspace.",
-    "Address, chain, or connector drift must fail closed.",
-    "Non-Base chain must be rejected.",
-    "Non-Base-Account connector must be rejected.",
-    "Malformed wallet address must be rejected.",
+    "Binding must not survive target or refreshed-session drift.",
+    "Address, chain, connector ID, or connector type drift must fail closed.",
+    "Wrong chain, connector, or address must be rejected.",
+    "Expired connection target must be rejected at binding time.",
+    "User rejection must map to fixed sanitized copy.",
   ]
 ) {
-  includes("Base Account connection tests", test, expected);
+  includes("owner wallet connection tests", test, expected);
 }
 
-includes("dashboard", dashboard, "<BaseAccountConnectionPanel");
+includes("dashboard", dashboard, "<OwnerWalletConnectionPanel");
 includes("dashboard", dashboard, "workspaceId={agentRecord?.workspaceId ?? null}");
 includes("dashboard", dashboard, "agentId={agentRecord?.id ?? null}");
+includes("package.json", packageJson, '"test:owner-wallet-connection"');
 includes("package.json", packageJson, '"test:base-account-connection"');
 includes("package.json", packageJson, '"check:phase-7d-connection"');
 includes("package.json", packageJson, "npm run check:phase-7d-connection");
 
-console.log("Phase 7D Base Account connection checks passed.");
+console.log("Phase 7D history and owner wallet migration checks passed.");

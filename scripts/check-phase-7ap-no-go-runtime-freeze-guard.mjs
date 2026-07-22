@@ -78,7 +78,7 @@ includes(
 includes(
   "private context",
   context,
-  "Phase 7AP NO-GO runtime freeze guard is complete",
+  "Supporting readiness packets are evidence under Phase 7",
 );
 includes("Phase 7AO decision", decisionPacket, "Decision: **NO-GO**.");
 
@@ -92,11 +92,12 @@ includes(
 );
 includes("wallet boundary", walletBoundary, "return <>{children}</>;");
 includes("wallet boundary", walletBoundary, "lazy(() =>");
-includes("wallet runtime", walletRuntime, "baseAccount(");
-includes("wallet runtime", walletRuntime, "chains: [base]");
+includes("wallet runtime", walletRuntime, "injected({ shimDisconnect: true })");
+includes("wallet runtime", walletRuntime, "id: currentProductChain.id");
 includes("wallet runtime", walletRuntime, "storage: null");
 includes("wallet runtime", walletRuntime, "reconnectOnMount={false}");
 excludes("wallet runtime", walletRuntime, "coinbaseWallet");
+excludes("wallet runtime", walletRuntime, "baseAccount(");
 excludes("wallet runtime", walletRuntime, "window.ethereum");
 
 includes("dashboard", dashboard, "Official Base MCP wallet authority is blocked");

@@ -42,7 +42,6 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
-        "npm:@base-org/account@^2.5.6",
         "npm:@tanstack/react-query@^5.101.0",
         "npm:@types/react-dom@^18.3.0",
         "npm:@types/react@^18.3.3",

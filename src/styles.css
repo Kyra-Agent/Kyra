@@ -3287,6 +3287,23 @@ h2 {
   line-height: 1.4;
 }
 
+.owner-wallet-provider-select {
+  display: grid;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+
+.owner-wallet-provider-select select {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-deep);
+  color: var(--text);
+  padding: 0 12px;
+}
+
 .wallet-signing-boundary {
   display: grid;
   gap: 0.72rem;

@@ -84,7 +84,7 @@ includes(
 includes(
   "private context",
   context,
-  "Phase 7AO official Base MCP go/no-go decision packet is complete",
+  "Supporting readiness packets are evidence under Phase 7",
 );
 includes("unblock matrix", unblock, "Hard No-Go Conditions");
 includes("evidence refresh", refresh, "Keep Phase 7C blocked.");

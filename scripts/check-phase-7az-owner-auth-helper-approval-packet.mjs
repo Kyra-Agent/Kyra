@@ -91,7 +91,7 @@ includes(
 includes(
   "private context",
   context,
-  "Phase 7AZ owner-auth helper approval packet is complete locally",
+  "Supporting readiness packets are evidence under Phase 7",
 );
 includes("Phase 7AO decision", decisionPacket, "Decision: **NO-GO**.");
 includes("Phase 7AX skeleton", skeletonDoc, "Phase 7AX result: `disabled_safe`.");

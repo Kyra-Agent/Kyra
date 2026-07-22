@@ -135,12 +135,12 @@ assertIncludes(
 assertIncludes(
   "Kyra context",
   context,
-  "Phase 7 pre-execution audit",
+  "Supporting readiness packets are evidence under Phase 7",
 );
 assertIncludes(
   "README",
   readme,
-  "Base Account readiness, controlled owner execution flow, public hardening, support operations, launch QA, and final security/privacy review.",
+  "Base Account readiness, controlled owner execution flow, public hardening, support operations, launch QA, final security/privacy review, and public product polish.",
 );
 assertIncludes(
   "Kyra context",

@@ -98,7 +98,7 @@ includes(
 includes(
   "private context",
   context,
-  "Phase 7AW disabled-only route skeleton approval packet is complete",
+  "Supporting readiness packets are evidence under Phase 7",
 );
 
 includes("Phase 7AO decision", decisionPacket, "Decision: **NO-GO**.");

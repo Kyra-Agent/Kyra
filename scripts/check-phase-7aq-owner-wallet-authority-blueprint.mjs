@@ -93,7 +93,7 @@ includes(
 includes(
   "private context",
   context,
-  "Phase 7AQ owner wallet authority blueprint is complete",
+  "Supporting readiness packets are evidence under Phase 7",
 );
 includes("decision packet", decisionPacket, "Decision: **NO-GO**.");
 includes("freeze guard", freezeGuard, "The official MCP freeze stays active while Phase 7AO is NO-GO.");

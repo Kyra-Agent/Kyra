@@ -47,7 +47,7 @@ const candidate = read("src/types/phase8OwnerActionCandidate.ts");
 const test = read("scripts/test-phase-8-owner-live-window-activation.mjs");
 const candidateTest = read("scripts/test-phase-8-owner-action-candidate.mjs");
 const submitter = read("src/components/Phase8ControlledSubmitter.tsx");
-const baseAccountPanel = read("src/components/BaseAccountConnectionPanel.tsx");
+const ownerWalletPanel = read("src/components/OwnerWalletConnectionPanel.tsx");
 const dashboard = read("src/pages/Dashboard.tsx");
 const styles = read("src/styles.css");
 const packageJson = read("package.json");
@@ -133,7 +133,7 @@ for (const expected of [
   "address: `0x${string}` | null",
   "address: binding?.address ?? null",
 ]) {
-  includes("base account panel", baseAccountPanel, expected);
+  includes("owner wallet panel", ownerWalletPanel, expected);
 }
 
 for (const expected of [

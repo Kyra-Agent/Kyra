@@ -102,7 +102,7 @@ includes(
 includes(
   "private context",
   context,
-  "Phase 7AR token lifecycle and revocation blueprint is complete",
+  "Supporting readiness packets are evidence under Phase 7",
 );
 
 includes("Phase 7AO decision", decisionPacket, "Decision: **NO-GO**.");

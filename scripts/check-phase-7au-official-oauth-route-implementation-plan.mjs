@@ -112,7 +112,7 @@ includes(
 includes(
   "private context",
   context,
-  "Phase 7AU official OAuth route implementation plan is complete",
+  "Supporting readiness packets are evidence under Phase 7",
 );
 
 includes("Phase 7O threat model", threatModel, "Use Authorization Code flow with PKCE `S256`");

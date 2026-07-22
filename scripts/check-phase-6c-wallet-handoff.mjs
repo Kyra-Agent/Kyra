@@ -75,13 +75,12 @@ const walletProviderPackageImportPattern =
   /(?:import\s+(?:type\s+)?[\s\S]*?\s+from\s+["'](?:wagmi|viem|@base-org\/account|@tanstack\/react-query)["']|await\s+import\(["'](?:wagmi|viem|@base-org\/account|@tanstack\/react-query)["']\))/;
 const walletProviderImportAllowlist = new Set([
   "src/providers/WalletRuntimeProviders.tsx",
-  "src/components/BaseAccountConnectionPanel.tsx",
+  "src/components/OwnerWalletConnectionPanel.tsx",
   "src/pages/Dashboard.tsx",
   "src/components/Phase8ControlledSubmitter.tsx",
   "src/components/Phase8LowValueSubmitter.tsx",
 ]);
 const approvedWalletDependencyNames = new Set([
-  "@base-org/account",
   "@tanstack/react-query",
   "viem",
   "wagmi",
@@ -184,7 +183,10 @@ assertIncludes("package.json", packageJson, '"test:execution-result"');
 assertIncludes("package.json", packageJson, '"wagmi"');
 assertIncludes("package.json", packageJson, '"viem"');
 assertIncludes("package.json", packageJson, '"@tanstack/react-query"');
-assertIncludes("package.json", packageJson, '"@base-org/account"');
+assert(
+  !packageJson.includes('"@base-org/account"'),
+  "The retired Base Account SDK must not remain a direct dependency.",
+);
 assertIncludes("appConfig", appConfig, 'walletExecution: "disabled"');
 assert(
   !appConfig.includes("VITE_KYRA_ENABLE_WALLET") &&
@@ -361,8 +363,8 @@ for (
   const boundary of [
     "WagmiProvider",
     "QueryClientProvider",
-    "baseAccount(",
-    "chains: [base]",
+    "injected({ shimDisconnect: true })",
+    "id: currentProductChain.id",
     "storage: null",
     "reconnectOnMount={false}",
   ]
@@ -370,8 +372,9 @@ for (
   assertIncludes("WalletRuntimeProviders", walletRuntimeProviders, boundary);
 }
 assert(
-  !walletRuntimeProviders.includes("coinbaseWallet"),
-  "Wallet runtime providers must remain Base Account-only in Phase 7D.",
+  !walletRuntimeProviders.includes("coinbaseWallet") &&
+    !walletRuntimeProviders.includes("baseAccount("),
+  "Wallet runtime providers must remain chain-neutral after migration Batch 3.",
 );
 assert(
   !walletRuntimeProviders.includes("window.ethereum"),

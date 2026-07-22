@@ -79,7 +79,7 @@ includes(
 includes(
   "private context",
   context,
-  "Phase 7AX disabled-only route skeleton is complete locally",
+  "Supporting readiness packets are evidence under Phase 7",
 );
 includes("Phase 7AO decision", decisionPacket, "Decision: **NO-GO**.");
 includes("app config", appConfig, 'walletExecution: "disabled"');

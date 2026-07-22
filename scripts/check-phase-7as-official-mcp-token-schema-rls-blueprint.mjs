@@ -108,7 +108,7 @@ includes(
 includes(
   "private context",
   context,
-  "Phase 7AS official MCP token schema and RLS blueprint is complete",
+  "Supporting readiness packets are evidence under Phase 7",
 );
 
 includes("Phase 7B RLS audit", phase7b, "RLS enabled on every sensitive table.");

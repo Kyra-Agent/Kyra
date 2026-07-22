@@ -26,7 +26,7 @@ const registry = read(registryPath);
 const appConfig = read("src/config/appConfig.ts");
 const walletProviders = read("src/providers/WalletRuntimeProviders.tsx");
 const unsignedHandoff = read("src/types/unsignedTransactionHandoff.ts");
-const baseAccountConnection = read("src/types/baseAccountConnection.ts");
+const ownerWalletConnection = read("src/types/ownerWalletConnection.ts");
 const walletSigning = read("src/types/walletSigning.ts");
 
 for (const expected of [
@@ -52,9 +52,10 @@ for (const [label, source, expected] of [
   ["app config", appConfig, "network: currentProductChain.name"],
   ["app config", appConfig, 'cutoverStatus: "pending"'],
   ["app config", appConfig, 'walletExecution: "disabled"'],
-  ["wallet providers", walletProviders, "base.id !== currentProductChain.id"],
+  ["wallet providers", walletProviders, "id: currentProductChain.id"],
+  ["wallet providers", walletProviders, "currentProductChain.publicRpcUrl"],
   ["unsigned handoff", unsignedHandoff, "baseChainId = currentProductChain.id"],
-  ["Base Account binding", baseAccountConnection, "baseAccountChainId = currentProductChain.id"],
+  ["owner wallet binding", ownerWalletConnection, "ownerWalletChainId = currentProductChain.id"],
   ["wallet signing", walletSigning, "isCurrentProductChainId(chainId)"],
 ]) {
   assert(source.includes(expected), `${label} must include: ${expected}`);
@@ -89,7 +90,7 @@ for (const policyPath of [
 assert(
   !walletProviders.includes("robinhoodChain") &&
     !walletProviders.includes("robinhoodTestnetChain"),
-  "Robinhood must not enter the wallet runtime before the wallet migration batch.",
+  "Robinhood must not become the active wallet runtime before atomic cutover.",
 );
 
 console.log("Product chain abstraction checks passed.");
