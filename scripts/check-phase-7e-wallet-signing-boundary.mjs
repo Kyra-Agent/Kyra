@@ -241,7 +241,7 @@ for (
     'walletSignableActionKinds = ["base_reviewed_transaction"] as const',
     'String(handoff.actionKind) === "base_mcp_status_check"',
     "Read-only status checks cannot be signed.",
-    "baseChainId = 8453",
+    "baseChainId = currentProductChain.id",
     "gasPayer: WalletGasPayer",
     "connected_wallet",
     "privateKey?: never",

@@ -1,3 +1,4 @@
+import { currentProductChain } from "../config/productChains";
 import {
   baseChainId,
   isEvmAddress,
@@ -11,7 +12,7 @@ export const preparedActionAllowedKinds = [
 ] as const;
 
 export type PreparedActionKind = (typeof preparedActionAllowedKinds)[number];
-export type PreparedActionChain = "Base";
+export type PreparedActionChain = typeof currentProductChain.name;
 export type PreparedActionRisk = "read-only" | "review" | "blocked";
 export type PreparedActionSource =
   | "owner_dashboard"
@@ -103,7 +104,7 @@ export interface PreparedActionAllowlistResult {
 export type PreparedActionCanonicalInput =
   | {
     actionKind: "base_mcp_status_check";
-    chain: "Base";
+    chain: typeof currentProductChain.name;
     routeSummary: "Read-only Base capability check.";
     valueSummary: "No token spend, no gas request, no calldata.";
     risk: "read-only";
@@ -114,7 +115,7 @@ export type PreparedActionCanonicalInput =
   }
   | {
     actionKind: "base_reviewed_transaction";
-    chain: "Base";
+    chain: typeof currentProductChain.name;
     routeSummary: string;
     valueSummary: string;
     risk: "review";
@@ -155,7 +156,7 @@ export function reviewPreparedActionAllowlist(
       reasons: [],
       canonical: {
         actionKind: "base_mcp_status_check",
-        chain: "Base",
+        chain: currentProductChain.name,
         routeSummary: "Read-only Base capability check.",
         valueSummary: "No token spend, no gas request, no calldata.",
         risk: "read-only",
@@ -213,7 +214,7 @@ export function reviewPreparedActionAllowlist(
     reasons: [],
     canonical: {
       actionKind: "base_reviewed_transaction",
-      chain: "Base",
+      chain: currentProductChain.name,
       routeSummary: input.routeSummary.trim(),
       valueSummary: input.valueSummary.trim(),
       risk: "review",

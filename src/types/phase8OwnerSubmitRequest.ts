@@ -1,3 +1,4 @@
+import { currentProductChain } from "../config/productChains";
 import type { FrozenPreparedAction } from "./dualApprovalExecution";
 import { baseChainId, isEvmAddress, isHexData } from "./unsignedTransactionHandoff";
 
@@ -34,7 +35,7 @@ export function createPhase8OwnerSubmitRequest(
     return reject("frozen_action_required");
   }
 
-  if (frozenAction.chain !== "Base") {
+  if (frozenAction.chain !== currentProductChain.name) {
     return reject("base_chain_required");
   }
 

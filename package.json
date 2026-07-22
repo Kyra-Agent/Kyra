@@ -171,7 +171,9 @@
     "check:phase-10d": "node scripts/check-phase-10d-final-security-privacy-audit.mjs",
     "check:phase-10e": "node scripts/check-phase-10e-release-decision-closeout.mjs",
     "check:product-snapshot": "node scripts/check-product-readiness-snapshot.mjs",
-    "check:robinhood-migration": "node scripts/check-robinhood-chain-migration-blueprint.mjs"
+    "test:product-chains": "node scripts/test-product-chain-registry.mjs",
+    "check:chain-abstraction": "npm run test:product-chains && node scripts/check-product-chain-abstraction.mjs",
+    "check:robinhood-migration": "node scripts/check-robinhood-chain-migration-blueprint.mjs && npm run check:chain-abstraction"
   },
   "dependencies": {
     "@base-org/account": "^2.5.6",

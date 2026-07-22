@@ -289,7 +289,7 @@ assertIncludes(
   faqData,
   "wallet prompts, signing, and onchain execution stay behind the owner-controlled approval path",
 );
-assertIncludes("DashboardPreview", dashboardPreview, "review drafted");
+assertIncludes("DashboardPreview", dashboardPreview, "review prepared");
 assertIncludes("DashboardPreview", dashboardPreview, "wallet approval");
 assertIncludes(
   "DashboardPreview",
@@ -320,9 +320,9 @@ for (
     `Phase 6C product copy must not imply live wallet execution: ${forbidden}`,
   );
 }
-assertIncludes("HeroConsole", heroConsole, "BASE ACTION review layer ready");
-assertIncludes("HeroConsole", heroConsole, "Wallet review");
-assertIncludes("HeroConsole", heroConsole, "Base protected");
+assertIncludes("HeroConsole", heroConsole, "Telegram live");
+assertIncludes("HeroConsole", heroConsole, "Owner review");
+assertIncludes("HeroConsole", heroConsole, "Risk guarded");
 assertIncludes(
   "SecuritySection",
   securitySection,
@@ -555,7 +555,7 @@ assertIncludes(
 for (
   const boundary of [
     "WalletUnsignedTransactionHandoff",
-    "baseChainId = 8453",
+    "baseChainId = currentProductChain.id",
     'walletSignableActionKinds = ["base_reviewed_transaction"] as const',
     "gasPayer: WalletGasPayer",
     "connected_wallet",

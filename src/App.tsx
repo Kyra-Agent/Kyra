@@ -13,6 +13,7 @@ import { SecuritySection } from "./components/SecuritySection";
 import { TemplatePicker } from "./components/TemplatePicker";
 import { WalletApprovalModal } from "./components/WalletApprovalModal";
 import { appConfig } from "./config/appConfig";
+import { currentProductChain } from "./config/productChains";
 import { Dashboard } from "./pages/Dashboard";
 import { PublicAgent } from "./pages/PublicAgent";
 import { kyraDataService } from "./services/kyraDataService";
@@ -749,7 +750,7 @@ function createDemoUnsignedHandoff(
     agentId: `${scenario.templateId}-demo`,
     actionKind: "base_reviewed_transaction",
     chainId: baseChainId,
-    chainName: "Base",
+    chainName: currentProductChain.name,
     to: "0x1111111111111111111111111111111111111111",
     valueWei: "0",
     data: "0x",

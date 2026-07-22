@@ -21,7 +21,22 @@ function assertEquals(actual, expected, message) {
 
 mkdirSync(outDir, { recursive: true });
 
-const source = readFileSync(sourcePath, "utf8");
+const source = readFileSync(sourcePath, "utf8").replace(
+  /import \{[\s\S]*?\} from "\.\.\/config\/productChains";/u,
+  [
+    'const baseLegacyChain = Object.freeze({ id: 8453, name: "Base" });',
+    "const currentProductChain = baseLegacyChain;",
+    "const normalizeEvmChainId = (value) => {",
+    "  if (typeof value === 'number') return Number.isSafeInteger(value) && value > 0 ? value : null;",
+    "  if (typeof value !== 'string') return null;",
+    "  const normalized = value.trim().toLowerCase();",
+    "  if (!/^(?:0x[0-9a-f]+|[1-9]\\d*)$/.test(normalized)) return null;",
+    "  const parsed = Number(BigInt(normalized));",
+    "  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;",
+    "};",
+    "const isCurrentProductChainId = (value) => normalizeEvmChainId(value) === currentProductChain.id;",
+  ].join("\n"),
+);
 const transpiled = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.ES2020,

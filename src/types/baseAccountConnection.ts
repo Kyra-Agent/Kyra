@@ -1,4 +1,6 @@
-export const baseAccountChainId = 8453 as const;
+import { currentProductChain } from "../config/productChains";
+
+export const baseAccountChainId = currentProductChain.id;
 export const baseAccountConnectorId = "baseAccount" as const;
 
 export type BaseAccountConnectionFailureCode =

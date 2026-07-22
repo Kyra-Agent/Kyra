@@ -1,5 +1,25 @@
-import { evaluatePhase9ExecutionEligibility } from "../src/types/phase9ExecutionEligibility.ts";
-import { baseChainId } from "../src/types/unsignedTransactionHandoff.ts";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import ts from "typescript";
+
+const source = readFileSync(
+  resolve(process.cwd(), "src/types/phase9ExecutionEligibility.ts"),
+  "utf8",
+).replace(
+  'import { baseChainId } from "./unsignedTransactionHandoff";',
+  "const baseChainId = 8453;",
+);
+const transpiled = ts.transpileModule(source, {
+  compilerOptions: {
+    module: ts.ModuleKind.ES2020,
+    target: ts.ScriptTarget.ES2020,
+  },
+});
+const moduleUrl = `data:text/javascript;base64,${
+  Buffer.from(transpiled.outputText).toString("base64")
+}`;
+const { evaluatePhase9ExecutionEligibility } = await import(moduleUrl);
+const baseChainId = 8453;
 
 function assert(condition, message) {
   if (!condition) {

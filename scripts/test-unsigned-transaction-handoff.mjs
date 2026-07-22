@@ -21,7 +21,10 @@ function assertEquals(actual, expected, message) {
 
 mkdirSync(outDir, { recursive: true });
 
-const source = readFileSync(sourcePath, "utf8");
+const source = readFileSync(sourcePath, "utf8").replace(
+  'import { currentProductChain } from "../config/productChains";',
+  'const currentProductChain = Object.freeze({ id: 8453, name: "Base" });',
+);
 const transpiled = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.ES2020,

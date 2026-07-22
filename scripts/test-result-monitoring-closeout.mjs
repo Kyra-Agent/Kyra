@@ -28,16 +28,23 @@ function stripImport(source, specifier) {
 
 mkdirSync(outDir, { recursive: true });
 
+const productChainsSource = readFileSync(
+  resolve(root, "src/config/productChains.ts"),
+  "utf8",
+);
 const walletSigningSource = readFileSync(
   resolve(root, "src/types/walletSigning.ts"),
   "utf8",
+).replace(
+  /import \{[\s\S]*?\} from "\.\.\/config\/productChains";/u,
+  "",
 );
 const resultMonitoringSource = stripImport(
   readFileSync(resolve(root, "src/types/resultMonitoringCloseout.ts"), "utf8"),
   "./walletSigning",
 );
 const transpiled = ts.transpileModule(
-  `${walletSigningSource}\n${resultMonitoringSource}`,
+  `${productChainsSource}\n${walletSigningSource}\n${resultMonitoringSource}`,
   {
     compilerOptions: {
       module: ts.ModuleKind.ES2020,

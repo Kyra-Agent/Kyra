@@ -9,7 +9,7 @@ const snapshot = readFileSync("docs/product-readiness-snapshot.md", "utf8");
 
 for (const expected of [
   "# Robinhood Chain Migration Blueprint",
-  "Runtime migration has not",
+  "Runtime cutover has not",
   "Chain ID | `4663`",
   "Hex chain ID | `0x1237`",
   "testnet `eth_chainId` returned `0xb626`",
@@ -17,7 +17,7 @@ for (const expected of [
   "does not document an official Robinhood MCP",
   "service equivalent to the former Base MCP lane.",
   "The user's EVM wallet remains the signing and submission authority.",
-  "No chain ID, RPC URL, explorer URL, or chain name may remain duplicated",
+  "No chain ID, RPC URL, or explorer URL may remain duplicated",
   "no provider API key in Vite variables",
   "Historical Base records remain immutable historical evidence.",
   "User wallet authority and Telegram bot-token privacy remain priority one.",
@@ -25,6 +25,9 @@ for (const expected of [
   "Base-only dependency chain `@base-org/account`",
   "audit must return clean before Robinhood Chain cutover",
   "### Batch 1 - Evidence and architecture",
+  "Status: locally complete and verified; not deployed",
+  "currentProductChain` remains Base",
+  "npm run check:chain-abstraction",
   "### Batch 6 - Controlled mainnet cutover",
   "## Cutover Gates",
   "## Rollback",

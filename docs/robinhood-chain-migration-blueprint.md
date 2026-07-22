@@ -2,9 +2,9 @@
 
 Date: 2026-07-22
 
-Status: Batch 1 architecture and evidence complete. Runtime migration has not
-started, production behavior is unchanged, and no Robinhood Chain capability
-may be described as live yet.
+Status: Batch 1 architecture and Batch 2 chain abstraction are complete
+locally. Runtime cutover has not started, production behavior is unchanged,
+and no Robinhood Chain capability may be described as live yet.
 
 ## Decision
 
@@ -111,8 +111,10 @@ Supabase functions, tests, and public copy:
 - public RPC: development, health evidence, and manual fallback diagnostics only
 - testnet chain ID: `46630`
 
-No chain ID, RPC URL, explorer URL, or chain name may remain duplicated across
-transaction policy files after the abstraction batch closes.
+No chain ID, RPC URL, or explorer URL may remain duplicated across active
+source files after the abstraction batch closes. Base-specific compatibility
+names remain explicit until the wallet and backend migration batches replace
+their underlying contracts.
 
 ### Wallet connection
 
@@ -244,10 +246,34 @@ No runtime behavior changes.
 
 ### Batch 2 - Chain abstraction
 
+Status: locally complete and verified; not deployed and not a production
+cutover.
+
 - add canonical Robinhood Chain mainnet/testnet definitions
 - replace duplicated Base chain constants in active domain code
 - add chain mismatch, drift, and fail-closed tests
 - keep wallet signing and production submitter default-off
+
+Implemented evidence:
+
+- `src/config/productChains.ts` is the only active source of Base and Robinhood
+  Chain numeric IDs, hex IDs, public diagnostic RPC URLs, and explorer URLs
+- `currentProductChain` remains Base while `migrationTargetChain` is Robinhood
+  Chain, preventing an implicit production cutover
+- handoff, wallet binding, wallet network validation, Phase 8 policy, Phase 9
+  eligibility, app config, and connector guards consume the registry
+- malformed, decimal, hexadecimal, wrong-chain, current-chain, and migration-
+  target inputs are covered by fail-closed tests
+- `npm run check:chain-abstraction` guards against duplicated chain constants
+  and confirms wallet execution stays disabled
+
+Compatibility intentionally retained for Batch 3 and Batch 4:
+
+- the Base Account connector is still the production wallet connector
+- `base_*` action kinds, Base MCP function names, stored Base records, and
+  current Base-facing copy remain unchanged
+- Robinhood Chain is not present in the wallet runtime and cannot be selected,
+  signed, submitted, or advertised as live
 
 ### Batch 3 - Wallet migration
 

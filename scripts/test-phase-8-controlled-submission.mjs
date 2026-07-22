@@ -27,9 +27,12 @@ function stripImports(source) {
 
 mkdirSync(outDir, { recursive: true });
 
-const source = stripImports(
-  readFileSync(resolve(root, "src/types/phase8ControlledSubmission.ts"), "utf8"),
-);
+const source = [
+  'const currentProductChain = Object.freeze({ id: 8453, name: "Base" });',
+  stripImports(
+    readFileSync(resolve(root, "src/types/phase8ControlledSubmission.ts"), "utf8"),
+  ),
+].join("\n");
 const transpiled = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.ES2020,

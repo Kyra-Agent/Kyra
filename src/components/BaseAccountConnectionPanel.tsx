@@ -6,8 +6,8 @@ import {
   useConnectors,
   useDisconnect,
 } from "wagmi";
-import { base } from "wagmi/chains";
 import { appConfig } from "../config/appConfig";
+import { currentProductChain } from "../config/productChains";
 import {
   baseAccountConnectorId,
   bindingMatchesTarget,
@@ -221,7 +221,7 @@ export function BaseAccountConnectionPanel({
       setMessage("Waiting for explicit Base Account confirmation...");
       const result = await connectMutation.connectAsync({
         connector,
-        chainId: base.id,
+        chainId: currentProductChain.id,
       });
 
       if (requestSequence !== requestSequenceRef.current) {
@@ -229,7 +229,7 @@ export function BaseAccountConnectionPanel({
         return;
       }
 
-      if (result.chainId !== base.id) {
+      if (result.chainId !== currentProductChain.id) {
         disconnectMutation.disconnect();
         setBinding(null);
         setUiState("error");

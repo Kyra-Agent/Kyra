@@ -1,3 +1,5 @@
+import { baseChainId } from "./unsignedTransactionHandoff";
+
 export type Phase8UserSafeTransactionPolicyStatus =
   | "ready_for_owner_review"
   | "blocked";
@@ -43,8 +45,6 @@ export interface Phase8UserSafeTransactionPolicyResult {
   reasons: Phase8UserSafeTransactionPolicyReason[];
   message: string;
 }
-
-const baseChainId = 8453;
 
 const blockMessages: Record<Phase8UserSafeTransactionPolicyReason, string> = {
   owner_session_required:

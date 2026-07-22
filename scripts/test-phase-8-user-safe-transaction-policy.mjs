@@ -20,7 +20,13 @@ function assertEquals(actual, expected, message) {
 
 mkdirSync(outDir, { recursive: true });
 
-const source = readFileSync(resolve(root, "src/types/phase8UserSafeTransactionPolicy.ts"), "utf8");
+const source = readFileSync(
+  resolve(root, "src/types/phase8UserSafeTransactionPolicy.ts"),
+  "utf8",
+).replace(
+  'import { baseChainId } from "./unsignedTransactionHandoff";',
+  "const baseChainId = 8453;",
+);
 const transpiled = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.ES2020,

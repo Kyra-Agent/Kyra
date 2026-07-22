@@ -67,7 +67,7 @@ for (
     "ensureFreshAuthSession",
     "async function handleConnect()",
     "connectMutation.connectAsync",
-    "chainId: base.id",
+    "chainId: currentProductChain.id",
     "createBaseAccountConnectionBinding",
     "bindingMatchesTarget",
     "connectionMatchesBinding",
@@ -102,7 +102,7 @@ for (
 
 for (
   const expected of [
-    "baseAccountChainId = 8453",
+    "baseAccountChainId = currentProductChain.id",
     'baseAccountConnectorId = "baseAccount"',
     "canonicalUuidPattern",
     "addressPattern",

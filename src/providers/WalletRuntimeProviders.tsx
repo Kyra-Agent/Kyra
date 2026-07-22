@@ -4,12 +4,17 @@ import { createConfig, http, WagmiProvider } from "wagmi";
 import { base } from "wagmi/chains";
 import { baseAccount } from "wagmi/connectors";
 import { appConfig } from "../config/appConfig";
+import { currentProductChain } from "../config/productChains";
 
 interface WalletRuntimeProvidersProps {
   children: ReactNode;
 }
 
 const queryClient = new QueryClient();
+
+if (base.id !== currentProductChain.id) {
+  throw new Error("Configured wallet chain does not match the Kyra runtime chain.");
+}
 
 const walletConfig = createConfig({
   chains: [base],

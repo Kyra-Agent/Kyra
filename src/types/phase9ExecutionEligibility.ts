@@ -1,4 +1,4 @@
-const baseChainId = 8453;
+import { baseChainId } from "./unsignedTransactionHandoff";
 
 export type Phase9ExecutionEligibilityStatus =
   | "blocked"

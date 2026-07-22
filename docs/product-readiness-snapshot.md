@@ -3,8 +3,9 @@
 ## Active Migration Notice
 
 Kyra's existing Base release remains the current deployed product while a
-Robinhood Chain migration is prepared. Batch 1 is documentation and architecture
-only; Robinhood Chain is not yet an advertised live Kyra transaction lane.
+Robinhood Chain migration is prepared. Batch 1 evidence and Batch 2 chain
+abstraction are complete locally, but the wallet runtime remains Base-only and
+Robinhood Chain is not yet an advertised live Kyra transaction lane.
 
 The migration is governed by
 `docs/robinhood-chain-migration-blueprint.md`. It preserves the existing

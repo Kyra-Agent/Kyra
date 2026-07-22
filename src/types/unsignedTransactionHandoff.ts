@@ -1,4 +1,6 @@
-export const baseChainId = 8453;
+import { currentProductChain } from "../config/productChains";
+
+export const baseChainId = currentProductChain.id;
 export const walletUnsignedTransactionHandoffVersion = 1;
 export const walletSignableActionKinds = ["base_reviewed_transaction"] as const;
 
@@ -15,7 +17,7 @@ export interface WalletUnsignedTransactionHandoff {
   agentId: string;
   actionKind: WalletSignableActionKind;
   chainId: typeof baseChainId;
-  chainName: "Base";
+  chainName: typeof currentProductChain.name;
   to: `0x${string}`;
   valueWei: string;
   data: `0x${string}`;
@@ -55,7 +57,10 @@ export function validateUnsignedTransactionHandoff(
     return reject("Read-only status checks cannot be signed.");
   }
 
-  if (handoff.chainId !== baseChainId || handoff.chainName !== "Base") {
+  if (
+    handoff.chainId !== baseChainId ||
+    handoff.chainName !== currentProductChain.name
+  ) {
     return reject("Wallet handoff must target Base.");
   }
 

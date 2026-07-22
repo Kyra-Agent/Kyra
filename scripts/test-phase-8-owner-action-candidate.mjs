@@ -1,6 +1,29 @@
 import { strict as assert } from "node:assert";
-import { createPhase8OwnerActionCandidate } from "../src/types/phase8OwnerActionCandidate.ts";
-import { baseChainId } from "../src/types/unsignedTransactionHandoff.ts";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import ts from "typescript";
+
+const source = readFileSync(
+  resolve(process.cwd(), "src/types/phase8OwnerActionCandidate.ts"),
+  "utf8",
+).replace(
+  'import { currentProductChain } from "../config/productChains";',
+  'const currentProductChain = Object.freeze({ id: 8453, name: "Base" });',
+).replace(
+  'import { baseChainId } from "./unsignedTransactionHandoff";',
+  "const baseChainId = 8453;",
+);
+const transpiled = ts.transpileModule(source, {
+  compilerOptions: {
+    module: ts.ModuleKind.ES2020,
+    target: ts.ScriptTarget.ES2020,
+  },
+});
+const moduleUrl = `data:text/javascript;base64,${
+  Buffer.from(transpiled.outputText).toString("base64")
+}`;
+const { createPhase8OwnerActionCandidate } = await import(moduleUrl);
+const baseChainId = 8453;
 
 const address = "0x1111111111111111111111111111111111111111";
 

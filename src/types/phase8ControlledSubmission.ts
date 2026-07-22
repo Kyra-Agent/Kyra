@@ -1,3 +1,4 @@
+import { currentProductChain } from "../config/productChains";
 import type { Phase8WalletPromptOpeningResult } from "./phase8WalletPromptOpening";
 import type { FrozenPreparedAction } from "./dualApprovalExecution";
 
@@ -74,7 +75,7 @@ export interface Phase8ControlledSubmissionInput {
   workspaceId: string;
   selectedAgentId: string;
   frozenAction: FrozenPreparedAction | null;
-  chain: "Base" | "Base Sepolia" | "Other";
+  chain: typeof currentProductChain.name | "Base Sepolia" | "Other";
   baseAccountApprovalRecorded: boolean;
   submissionIntent: Phase8ControlledSubmissionIntent;
   submissionState: Phase8ControlledSubmissionState;
@@ -219,7 +220,7 @@ export function evaluatePhase8ControlledSubmission(
     reasons.push("no_calldata_required");
   }
 
-  if (input.chain !== "Base") {
+  if (input.chain !== currentProductChain.name) {
     reasons.push("base_chain_required");
   }
 

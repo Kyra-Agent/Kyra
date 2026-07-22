@@ -1,3 +1,5 @@
+import { baseChainId } from "./unsignedTransactionHandoff";
+
 export type Phase8LowValueTransactionReadinessStatus =
   | "ready_for_low_value_review"
   | "blocked";
@@ -48,7 +50,6 @@ export interface Phase8LowValueTransactionReadinessResult {
   message: string;
 }
 
-const baseChainId = 8453;
 const maxLowValueWei = 100_000_000_000_000n;
 
 const blockMessages: Record<Phase8LowValueTransactionReadinessReason, string> = {

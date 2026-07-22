@@ -23,10 +23,16 @@ mkdirSync(outDir, { recursive: true });
 const unsignedSource = readFileSync(
   resolve(root, "src/types/unsignedTransactionHandoff.ts"),
   "utf8",
+).replace(
+  'import { currentProductChain } from "../config/productChains";',
+  'const currentProductChain = Object.freeze({ id: 8453, name: "Base" });',
 );
 const preparedSource = readFileSync(
   resolve(root, "src/types/preparedAction.ts"),
   "utf8",
+).replace(
+  'import { currentProductChain } from "../config/productChains";',
+  "",
 ).replace(
   /import\s+\{[\s\S]*?\}\s+from\s+"\.\/unsignedTransactionHandoff";/u,
   "",

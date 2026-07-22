@@ -79,7 +79,7 @@ for (const expected of [
   includes("README", readme, expected);
 }
 
-includes("context", context, "Controlled Live Transaction - implementation closeout complete through Batch 25 production closeout.");
+includes("context", context, "Controlled Live Transaction - complete as owner-controlled execution architecture.");
 
 for (const expected of [
   "evaluatePhase8UserSafeTransactionPolicy",

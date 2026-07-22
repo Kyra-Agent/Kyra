@@ -1,3 +1,8 @@
+import {
+  currentProductChain,
+  migrationTargetChain,
+} from "./productChains";
+
 function readEnv(key: string): string {
   return import.meta.env[key] || "";
 }
@@ -44,7 +49,14 @@ export const appConfig = {
   appName: "Kyra Agent",
   mode: requestedDataProvider === "supabase" ? "backend-demo" : "frontend-demo",
   dataProvider: requestedDataProvider,
-  network: "Base",
+  network: currentProductChain.name,
+  chain: {
+    currentKey: currentProductChain.key,
+    currentId: currentProductChain.id,
+    migrationTargetKey: migrationTargetChain.key,
+    migrationTargetId: migrationTargetChain.id,
+    cutoverStatus: "pending",
+  },
   publishTarget: "vercel",
   supabase: {
     url: supabaseUrl,

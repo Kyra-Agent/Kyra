@@ -9,6 +9,10 @@ the complete historical product roadmap; the migration uses six grouped batches
 and does not create Phase 11. See
 `docs/robinhood-chain-migration-blueprint.md`.
 
+Migration status: Batch 1 evidence and Batch 2 chain abstraction are complete
+locally. Base remains the deployed runtime; Robinhood wallet, backend, testnet,
+and mainnet cutover work have not started.
+
 This document resolves conflicting wording across older phase plans and
 closeout notes. If another document disagrees with this roadmap about product
 sequence, phase status, or the meaning of "live", this roadmap wins.

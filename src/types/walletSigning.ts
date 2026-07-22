@@ -1,3 +1,10 @@
+import {
+  baseLegacyChain,
+  currentProductChain,
+  isCurrentProductChainId,
+  normalizeEvmChainId,
+} from "../config/productChains";
+
 export type WalletSigningState =
   | "not_ready"
   | "preview_ready"
@@ -155,9 +162,16 @@ export function createWalletSigningFailure(
   };
 }
 
-export function isBaseWalletNetwork(chainId: unknown): chainId is 8453 {
-  return chainId === 8453 || chainId === "8453" ||
-    String(chainId).toLowerCase() === "0x2105";
+export function isCurrentWalletNetwork(
+  chainId: unknown,
+): chainId is typeof currentProductChain.id {
+  return isCurrentProductChainId(chainId);
+}
+
+export function isBaseWalletNetwork(
+  chainId: unknown,
+): chainId is typeof baseLegacyChain.id {
+  return normalizeEvmChainId(chainId) === baseLegacyChain.id;
 }
 
 export function isTransactionHash(value: unknown): value is `0x${string}` {

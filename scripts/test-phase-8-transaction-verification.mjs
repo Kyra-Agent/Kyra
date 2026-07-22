@@ -24,9 +24,16 @@ function stripImports(source) {
 
 mkdirSync(outDir, { recursive: true });
 
-const walletSigningSource = readFileSync(resolve(root, "src/types/walletSigning.ts"), "utf8");
+const productChainsSource = readFileSync(resolve(root, "src/config/productChains.ts"), "utf8");
+const walletSigningSource = readFileSync(
+  resolve(root, "src/types/walletSigning.ts"),
+  "utf8",
+).replace(
+  /import \{[\s\S]*?\} from "\.\.\/config\/productChains";/u,
+  "",
+);
 const source = stripImports(readFileSync(resolve(root, "src/types/phase8TransactionVerification.ts"), "utf8"));
-const transpiled = ts.transpileModule(`${walletSigningSource}\n${source}`, {
+const transpiled = ts.transpileModule(`${productChainsSource}\n${walletSigningSource}\n${source}`, {
   compilerOptions: {
     module: ts.ModuleKind.ES2020,
     target: ts.ScriptTarget.ES2020,

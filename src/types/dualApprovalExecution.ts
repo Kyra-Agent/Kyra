@@ -1,5 +1,6 @@
 import type {
   PreparedActionCanonicalInput,
+  PreparedActionChain,
   PreparedActionKind,
 } from "./preparedAction";
 import type {
@@ -42,7 +43,7 @@ export interface FrozenPreparedAction {
   readonly approvalId: string;
   readonly approvedAt: string;
   readonly actionKind: PreparedActionKind;
-  readonly chain: "Base";
+  readonly chain: PreparedActionChain;
   readonly recipient: `0x${string}`;
   readonly valueWei: string;
   readonly data: `0x${string}`;
