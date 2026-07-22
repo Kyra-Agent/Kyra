@@ -3264,6 +3264,18 @@ h2 {
   color: var(--text);
   overflow-wrap: anywhere;
 }
+.base-account-binding-grid .owner-wallet-provider-binding {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 46px;
+  border-color: rgba(138, 230, 177, 0.28);
+  background: rgba(138, 230, 177, 0.055);
+}
+
+.owner-wallet-provider-binding strong {
+  text-align: right;
+}
 
 .base-account-connection > p {
   min-height: 2.8em;
@@ -3293,6 +3305,17 @@ h2 {
   color: var(--text-muted);
   font-size: 0.76rem;
 }
+.owner-wallet-provider-select > span {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.owner-wallet-provider-select small {
+  color: var(--muted);
+  text-align: right;
+}
 
 .owner-wallet-provider-select select {
   width: 100%;
@@ -3302,6 +3325,12 @@ h2 {
   background: var(--surface-deep);
   color: var(--text);
   padding: 0 12px;
+  color-scheme: dark;
+}
+
+.owner-wallet-provider-select option {
+  background: var(--surface-deep);
+  color: var(--text);
 }
 
 .wallet-signing-boundary {
@@ -5653,6 +5682,16 @@ h2 {
   .base-account-state,
   .wallet-signing-boundary-header > span:last-child {
     width: fit-content;
+  }
+
+  .owner-wallet-provider-select > span {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .owner-wallet-provider-select small {
+    text-align: left;
   }
 
   .base-account-actions {

@@ -114,6 +114,9 @@ export function OwnerWalletConnectionPanel({
   const connector = walletConnectors.find((item) =>
     item.id === selectedConnectorId
   ) ?? walletConnectors[0];
+  const activeProviderName = binding
+    ? formatWalletProviderName(connection.connector?.name ?? connector?.name)
+    : null;
   const canConnect = Boolean(
     appConfig.integrations.walletConnection === "owner_click_only" &&
       target &&
@@ -380,11 +383,20 @@ export function OwnerWalletConnectionPanel({
           Execution
           <strong>Disabled</strong>
         </span>
+        {activeProviderName && (
+          <span className="owner-wallet-provider-binding">
+            Wallet provider
+            <strong>{activeProviderName}</strong>
+          </span>
+        )}
       </div>
 
       {walletConnectors.length > 1 && !binding && (
         <label className="owner-wallet-provider-select">
-          Wallet provider
+          <span>
+            Wallet provider
+            <small>Choose which installed wallet Kyra should open.</small>
+          </span>
           <select
             value={connector?.id ?? ""}
             onChange={(event) => setSelectedConnectorId(event.target.value)}
@@ -460,4 +472,13 @@ function classifyConnectionError(
 
 function formatUiState(state: ConnectionUiState) {
   return state.replace(/_/gu, " ");
+}
+
+function formatWalletProviderName(value: unknown) {
+  if (typeof value !== "string") return "Connected EVM wallet";
+
+  const normalized = value.trim().replace(/\s+/gu, " ");
+  return /^[A-Za-z0-9][A-Za-z0-9 ._()+-]{0,47}$/u.test(normalized)
+    ? normalized
+    : "Connected EVM wallet";
 }
