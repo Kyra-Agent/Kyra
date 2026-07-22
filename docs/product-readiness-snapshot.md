@@ -1,5 +1,16 @@
 # Product Readiness Snapshot
 
+## Active Migration Notice
+
+Kyra's existing Base release remains the current deployed product while a
+Robinhood Chain migration is prepared. Batch 1 is documentation and architecture
+only; Robinhood Chain is not yet an advertised live Kyra transaction lane.
+
+The migration is governed by
+`docs/robinhood-chain-migration-blueprint.md`. It preserves the existing
+10-phase roadmap, user-owned wallet authority, explicit dual approval,
+Telegram read-only execution boundary, and private owner-only evidence.
+
 Status: product-ready snapshot for Kyra Agent. Public execution remains approval-first and must not be widened without explicit release approval.
 
 This snapshot is the compact operator view of Kyra after the public product polish pass. It is not a new product phase and does not replace the canonical roadmap. It summarizes what is ready, what is protected, what evidence must stay green, and what remains intentionally blocked.

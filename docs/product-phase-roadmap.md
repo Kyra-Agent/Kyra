@@ -4,6 +4,11 @@ Date: 2026-06-25
 
 Status: canonical source of truth for product phases and execution flow.
 
+Active release track: Robinhood Chain migration. The existing 10 phases remain
+the complete historical product roadmap; the migration uses six grouped batches
+and does not create Phase 11. See
+`docs/robinhood-chain-migration-blueprint.md`.
+
 This document resolves conflicting wording across older phase plans and
 closeout notes. If another document disagrees with this roadmap about product
 sequence, phase status, or the meaning of "live", this roadmap wins.
@@ -66,6 +71,9 @@ execution.
 
 This is the only active roadmap. Older Phase 7A-Z documents remain supporting
 evidence packets, not extra product phases.
+
+The phase count remains fixed at ten. Post-release chain migration work is
+tracked as release batches, not additional phases.
 
 | Phase | Name | Product outcome | Current status |
 | --- | --- | --- | --- |
