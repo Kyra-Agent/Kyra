@@ -112,6 +112,14 @@ export interface ResetSupabaseDemoWorkspaceResult {
   failureKind?: "session" | "admin" | "backend" | "configuration" | "unknown";
 }
 
+export interface RemoveSupabaseAgentResult {
+  ok: boolean;
+  message: string;
+  remainingCount: number | null;
+  code?: string;
+  failureKind?: "session" | "protected" | "backend" | "configuration" | "unknown";
+}
+
 interface ResetDemoWorkspaceFunctionResponse {
   ok?: boolean;
   status?: string;
@@ -791,6 +799,137 @@ export async function resetSupabaseDemoWorkspace(
         ? getResetFailureMessage(503, "function_error", error.message)
         : "Kyra reset backend is unavailable. No demo workspace records were deleted.",
       recordsRemoved: false,
+      code: "function_error",
+      failureKind: "backend",
+    };
+  }
+}
+
+interface RemoveAgentFunctionResponse {
+  ok?: boolean;
+  status?: string;
+  message?: string;
+  quota?: {
+    used?: number;
+  };
+}
+
+function parseRemoveAgentFunctionResponse(text: string): RemoveAgentFunctionResponse {
+  if (!text) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text) as RemoveAgentFunctionResponse;
+  } catch {
+    return {
+      message: "Agent removal backend returned an invalid response.",
+    };
+  }
+}
+
+function getRemoveAgentFailureKind(statusCode: number, code: string) {
+  if (statusCode === 401 || code === "unauthorized") {
+    return "session" as const;
+  }
+
+  if (
+    statusCode === 409 ||
+    code === "telegram_disconnect_required" ||
+    code === "execution_history_present" ||
+    code === "agent_active"
+  ) {
+    return "protected" as const;
+  }
+
+  if (code === "missing_env" || code === "function_not_configured") {
+    return "configuration" as const;
+  }
+
+  if (statusCode === 404 || statusCode >= 500) {
+    return "backend" as const;
+  }
+
+  return "unknown" as const;
+}
+
+export async function removeSupabaseAgent(
+  session: KyraAuthSession | null,
+  agentId: string,
+): Promise<RemoveSupabaseAgentResult> {
+  if (!session) {
+    return {
+      ok: false,
+      message: "Sign in before removing an agent.",
+      remainingCount: null,
+      code: "sign_in_required",
+      failureKind: "session",
+    };
+  }
+
+  if (!appConfig.functions.removeAgentConfigured) {
+    return {
+      ok: false,
+      message: "Agent removal backend is not configured.",
+      remainingCount: null,
+      code: "function_not_configured",
+      failureKind: "configuration",
+    };
+  }
+
+  try {
+    const response = await fetch(appConfig.functions.removeAgentUrl, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        apikey: getSupabaseApiKey(),
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      body: JSON.stringify({
+        agentId,
+        confirmation: "remove_agent",
+      }),
+    });
+    const text = await response.text();
+    const payload = parseRemoveAgentFunctionResponse(text);
+
+    if (!response.ok || payload.ok === false) {
+      const code = payload.status ??
+        (response.status === 404 ? "function_not_found" : "function_error");
+      const failureKind = getRemoveAgentFailureKind(response.status, code);
+      const fallback = sanitizeSupabaseMessage(
+        payload.message ?? "Agent removal backend is unavailable.",
+      );
+
+      return {
+        ok: false,
+        message: fallback || (
+          failureKind === "protected"
+            ? "Kyra protected this agent from removal."
+            : "Kyra could not safely remove this agent."
+        ),
+        remainingCount: null,
+        code,
+        failureKind,
+      };
+    }
+
+    return {
+      ok: true,
+      message: payload.message ?? "Agent removed. One agent slot is now available.",
+      remainingCount: typeof payload.quota?.used === "number"
+        ? payload.quota.used
+        : null,
+      code: "removed",
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error
+        ? sanitizeSupabaseMessage(error.message)
+        : "Agent removal backend is unavailable.",
+      remainingCount: null,
       code: "function_error",
       failureKind: "backend",
     };

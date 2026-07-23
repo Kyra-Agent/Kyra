@@ -2668,6 +2668,36 @@ h2 {
   scrollbar-width: thin;
 }
 
+.dashboard-agent-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  gap: 0.45rem;
+  min-width: min(28rem, 90vw);
+}
+
+.dashboard-agent-item .dashboard-agent-pill {
+  width: 100%;
+  min-width: 0;
+}
+
+.dashboard-agent-remove {
+  width: 42px;
+  height: 100%;
+  min-height: 64px;
+  border-color: rgba(255, 111, 125, 0.22);
+  color: #ffb0b8;
+}
+
+.dashboard-agent-remove:hover:not(:disabled) {
+  border-color: rgba(255, 111, 125, 0.5);
+  background: rgba(255, 111, 125, 0.09);
+}
+
+.dashboard-agent-remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .dashboard-agent-pill {
   display: grid;
   grid-template-columns: minmax(9.5rem, 1fr) auto;
@@ -5790,6 +5820,10 @@ h2 {
 
   .dashboard-topbar h1 {
     font-size: 2.35rem;
+  }
+
+  .dashboard-agent-item {
+    min-width: min(25rem, 92vw);
   }
 
   .dashboard-agent-pill {

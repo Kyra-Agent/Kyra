@@ -11,6 +11,7 @@ const functionEntrypoints = [
   "supabase/functions/official-mcp-status/index.ts",
   "supabase/functions/official-mcp-token-broker/index.ts",
   "supabase/functions/reset-demo-workspace/index.ts",
+  "supabase/functions/remove-agent/index.ts",
   "supabase/functions/telegram-connect/index.ts",
   "supabase/functions/telegram-dashboard-status/index.ts",
   "supabase/functions/telegram-disconnect/index.ts",
@@ -20,6 +21,7 @@ const functionEntrypoints = [
 
 const expectedFunctionJwtVerification = new Map([
   ["functions.base-mcp-prepare", true],
+  ["functions.remove-agent", true],
   ["functions.telegram-connect", true],
   ["functions.telegram-dashboard-status", true],
   ["functions.telegram-disconnect", true],

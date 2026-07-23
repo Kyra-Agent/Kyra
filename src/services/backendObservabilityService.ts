@@ -1,6 +1,6 @@
 import { sanitizeSupabaseMessage } from "./supabaseRestClient";
 
-export type BackendEventKind = "deploy" | "reset" | "dashboard-refresh" | "function-health";
+export type BackendEventKind = "deploy" | "reset" | "agent-remove" | "dashboard-refresh" | "function-health";
 export type BackendEventStatus = "running" | "success" | "error" | "blocked" | "info";
 
 export interface BackendEvent {

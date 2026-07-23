@@ -17,6 +17,9 @@ const deployFunctionUrl =
 const resetDemoWorkspaceFunctionUrl =
   readEnv("VITE_KYRA_RESET_FUNCTION_URL") ||
   (supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/reset-demo-workspace` : "");
+const removeAgentFunctionUrl =
+  readEnv("VITE_KYRA_REMOVE_AGENT_FUNCTION_URL") ||
+  (supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/remove-agent` : "");
 const telegramConnectFunctionUrl =
   readEnv("VITE_KYRA_TELEGRAM_CONNECT_FUNCTION_URL") ||
   (supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/telegram-connect` : "");
@@ -72,6 +75,8 @@ export const appConfig = {
     deployAgentConfigured: Boolean(deployFunctionUrl && supabaseConfigured),
     resetDemoWorkspaceUrl: resetDemoWorkspaceFunctionUrl,
     resetDemoWorkspaceConfigured: Boolean(resetDemoWorkspaceFunctionUrl && supabaseConfigured),
+    removeAgentUrl: removeAgentFunctionUrl,
+    removeAgentConfigured: Boolean(removeAgentFunctionUrl && supabaseConfigured),
     telegramConnectUrl: telegramConnectFunctionUrl,
     telegramConnectConfigured: Boolean(telegramConnectFunctionUrl && supabaseConfigured),
     telegramLinkUrl: telegramLinkFunctionUrl,

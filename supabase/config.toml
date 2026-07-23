@@ -31,6 +31,11 @@ verify_jwt = false
 [functions.chain-action-prepare]
 verify_jwt = true
 
+# Agent removal is owner-scoped and calls an atomic service-only RPC after
+# validating the signed-in account session.
+[functions.remove-agent]
+verify_jwt = true
+
 # Telegram disconnect is called by a signed-in dashboard user. Keep Supabase
 # gateway JWT verification enabled in addition to future function ownership
 # validation and operator action checks.

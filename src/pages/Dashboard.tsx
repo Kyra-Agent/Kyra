@@ -44,6 +44,7 @@ import {
 } from "../services/deployFunctionHealthService";
 import {
   fetchSupabaseDashboardData,
+  removeSupabaseAgent,
   resetSupabaseDemoWorkspace,
   type SupabaseDashboardData,
   type SupabaseDashboardStatus,
@@ -780,6 +781,13 @@ export function Dashboard({
     "Admin actions are scoped to this signed-in workspace.",
   );
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [removeAgentConfirmId, setRemoveAgentConfirmId] = useState<string | null>(null);
+  const [agentRemovalStatus, setAgentRemovalStatus] = useState<
+    "idle" | "running" | "success" | "error"
+  >("idle");
+  const [agentRemovalMessage, setAgentRemovalMessage] = useState(
+    "Select an agent to manage its workspace slot.",
+  );
   const [activeDashboardSectionId, setActiveDashboardSectionId] = useState<
     DashboardSectionId
   >(() =>
@@ -1010,6 +1018,10 @@ export function Dashboard({
   const agentRecords = useMemo(
     () => dashboardData?.agentInstances ?? [],
     [dashboardData?.agentInstances],
+  );
+  const agentPendingRemoval = useMemo(
+    () => agentRecords.find((agent) => agent.id === removeAgentConfirmId) ?? null,
+    [agentRecords, removeAgentConfirmId],
   );
   const dashboardAgentIdsKey = useMemo(
     () => agentRecords.map((agent) => agent.id).join(","),
@@ -2371,6 +2383,7 @@ export function Dashboard({
     },
   ];
   const isAdminActionRunning = adminActionStatus === "running";
+  const isAgentRemovalRunning = agentRemovalStatus === "running";
   const usingChainActionPrepare = currentProductChain.key !== "base";
   const prepareFunctionConfigured = usingChainActionPrepare
     ? appConfig.functions.chainActionPrepareConfigured
@@ -2610,6 +2623,82 @@ export function Dashboard({
       source: "admin actions",
     });
     setDashboardReloadKey((key) => key + 1);
+  }
+
+  function handleOpenAgentRemoval(agentId: string) {
+    if (!authSession || isAgentRemovalRunning) {
+      return;
+    }
+
+    setAgentRemovalStatus("idle");
+    setAgentRemovalMessage("Confirm which agent workspace slot should be removed.");
+    setRemoveAgentConfirmId(agentId);
+  }
+
+  function handleCloseAgentRemoval() {
+    if (isAgentRemovalRunning) {
+      return;
+    }
+
+    setRemoveAgentConfirmId(null);
+  }
+
+  async function handleConfirmAgentRemoval() {
+    if (
+      !authSession ||
+      !agentPendingRemoval ||
+      isAgentRemovalRunning ||
+      !appConfig.functions.removeAgentConfigured
+    ) {
+      return;
+    }
+
+    setAgentRemovalStatus("running");
+    setAgentRemovalMessage(`Checking ${agentPendingRemoval.displayName} safety state...`);
+    recordBackendEvent({
+      kind: "agent-remove",
+      status: "running",
+      message: "Owner-scoped agent removal requested.",
+      source: "remove-agent",
+    });
+
+    const freshAuth = await ensureFreshAuthSession(authSession);
+    syncFreshAuthSession(authSession, freshAuth);
+
+    if (!freshAuth.session) {
+      setAgentRemovalStatus("error");
+      setAgentRemovalMessage(freshAuth.message);
+      setRemoveAgentConfirmId(null);
+      recordBackendEvent({
+        kind: "agent-remove",
+        status: "blocked",
+        message: freshAuth.message,
+        source: "account session",
+        code: "session_refresh_failed",
+      });
+      return;
+    }
+
+    const removedAgentId = agentPendingRemoval.id;
+    const result = await removeSupabaseAgent(freshAuth.session, removedAgentId);
+
+    setAgentRemovalStatus(result.ok ? "success" : "error");
+    setAgentRemovalMessage(result.message);
+    setRemoveAgentConfirmId(null);
+    recordBackendEvent({
+      kind: "agent-remove",
+      status: result.ok ? "success" : result.failureKind === "protected" ? "blocked" : "error",
+      message: result.message,
+      source: "remove-agent",
+      code: result.code,
+    });
+
+    if (result.ok) {
+      if (selectedDashboardAgentId === removedAgentId) {
+        setSelectedDashboardAgentId(null);
+      }
+      setDashboardReloadKey((key) => key + 1);
+    }
   }
 
   function handleSelectDashboardAgent(agentId: string) {
@@ -2912,34 +3001,57 @@ export function Dashboard({
                     telegramSession;
 
                   return (
-                    <button
-                      className={`dashboard-agent-pill ${
-                        selected ? "is-active" : ""
-                      }`}
-                      type="button"
+                    <div
+                      className="dashboard-agent-item"
                       key={agent.id}
-                      onClick={() =>
-                        handleSelectDashboardAgent(agent.id)}
-                      aria-pressed={selected}
-                      aria-label={`View ${agent.displayName} dashboard`}
+                      role="listitem"
                     >
-                      <span>
-                        <strong>{agent.displayName}</strong>
-                        <small>{template.name}</small>
-                      </span>
-                      <span>
-                        <small>{agent.handle}</small>
-                        <em>
-                          {getTelegramSessionLabel(
-                            telegramStatus,
-                            agent.telegramStatus,
-                          )}
-                        </em>
-                      </span>
-                    </button>
+                      <button
+                        className={`dashboard-agent-pill ${
+                          selected ? "is-active" : ""
+                        }`}
+                        type="button"
+                        onClick={() =>
+                          handleSelectDashboardAgent(agent.id)}
+                        aria-pressed={selected}
+                        aria-label={`View ${agent.displayName} dashboard`}
+                      >
+                        <span>
+                          <strong>{agent.displayName}</strong>
+                          <small>{template.name}</small>
+                        </span>
+                        <span>
+                          <small>{agent.handle}</small>
+                          <em>
+                            {getTelegramSessionLabel(
+                              telegramStatus,
+                              agent.telegramStatus,
+                            )}
+                          </em>
+                        </span>
+                      </button>
+                      <button
+                        aria-label={`Remove ${agent.displayName}`}
+                        className="icon-button dashboard-agent-remove"
+                        disabled={isAgentRemovalRunning}
+                        onClick={() => handleOpenAgentRemoval(agent.id)}
+                        title={`Remove ${agent.displayName}`}
+                        type="button"
+                      >
+                        <Trash2 size={17} />
+                      </button>
+                    </div>
                   );
                 })}
               </div>
+              {agentRemovalStatus !== "idle"
+                ? (
+                  <div className={`admin-action-note admin-action-${agentRemovalStatus}`}>
+                    <ShieldCheck size={15} />
+                    <span>{agentRemovalMessage}</span>
+                  </div>
+                )
+                : null}
             </section>
           )
           : null}
@@ -4874,6 +4986,90 @@ export function Dashboard({
           </>
         )}
       </section>
+
+      {removeAgentConfirmId && agentPendingRemoval && authSession
+        ? (
+          <div className="modal-backdrop" role="presentation">
+            <section
+              aria-labelledby="remove-agent-title"
+              aria-modal="true"
+              className="approval-modal reset-confirm-modal"
+              role="dialog"
+            >
+              <div className="modal-header">
+                <div>
+                  <span className="demo-badge compact">
+                    <Trash2 size={14} />
+                    Agent workspace slot
+                  </span>
+                  <h3 id="remove-agent-title">
+                    Remove {agentPendingRemoval.displayName}?
+                  </h3>
+                </div>
+                <button
+                  aria-label="Close remove agent confirmation"
+                  className="icon-button"
+                  disabled={isAgentRemovalRunning}
+                  onClick={handleCloseAgentRemoval}
+                  type="button"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <p className="reset-confirm-copy">
+                This removes only the selected agent and frees one workspace
+                slot. Kyra will refuse the request if Telegram credentials,
+                active execution, or protected transaction evidence still
+                belong to this agent.
+              </p>
+              <div className="reset-scope-grid">
+                <span>
+                  Agent
+                  <strong>{agentPendingRemoval.displayName}</strong>
+                </span>
+                <span>
+                  Public handle
+                  <strong>{agentPendingRemoval.handle}</strong>
+                </span>
+                <span>
+                  Other agents
+                  <strong>Not touched</strong>
+                </span>
+                <span>
+                  Wallet funds
+                  <strong>Not touched</strong>
+                </span>
+              </div>
+              <div className="approval-warning reset-confirm-warning">
+                <ShieldCheck size={17} />
+                Disconnect Telegram first if this agent has a live bot. Agents
+                with protected execution evidence cannot be removed.
+              </div>
+              <div className="modal-actions">
+                <button
+                  className="button button-ghost"
+                  disabled={isAgentRemovalRunning}
+                  onClick={handleCloseAgentRemoval}
+                  type="button"
+                >
+                  Cancel
+                </button>
+                <button
+                  className="button button-primary admin-action-danger"
+                  disabled={isAgentRemovalRunning ||
+                    !appConfig.functions.removeAgentConfigured}
+                  onClick={handleConfirmAgentRemoval}
+                  type="button"
+                >
+                  <Trash2 size={16} />
+                  {isAgentRemovalRunning ? "Checking..." : "Remove agent"}
+                </button>
+              </div>
+            </section>
+          </div>
+        )
+        : null}
 
       {resetConfirmOpen && isAdmin? (
           <div className="modal-backdrop" role="presentation">
