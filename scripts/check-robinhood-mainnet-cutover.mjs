@@ -72,6 +72,12 @@ includes(
   functionEnvExample,
   "KYRA_ROBINHOOD_MAINNET_DEPLOY_ENABLED=false",
 );
+for (const expected of [
+  "KYRA_ROBINHOOD_MAINNET_RPC_URL=",
+  "KYRA_ROBINHOOD_MAINNET_RPC_ALLOWED_HOSTS=",
+]) {
+  includes("backend mainnet defaults", functionEnvExample, expected);
+}
 includes(
   "mainnet deploy gate",
   deployAgent,
@@ -80,6 +86,21 @@ includes(
 includes("mainnet deploy gate", deployAgent, '"chain_release_locked"');
 includes("provider policy", chainStatusConfig, '"managed_private"');
 includes("provider policy", chainStatusConfig, "KYRA_CHAIN_RPC_ALLOWED_HOSTS");
+includes(
+  "mainnet provider isolation",
+  chainStatusConfig,
+  "KYRA_ROBINHOOD_MAINNET_RPC_URL",
+);
+includes(
+  "mainnet provider isolation",
+  chainStatusConfig,
+  "KYRA_ROBINHOOD_MAINNET_RPC_ALLOWED_HOSTS",
+);
+includes(
+  "mainnet provider isolation",
+  chainStatusConfig,
+  'chain.key === "robinhood_mainnet"',
+);
 includes("provider policy", chainStatusCore, 'hostname === "rpc.mainnet.chain.robinhood.com"');
 
 for (const expected of [
@@ -104,7 +125,7 @@ for (const expected of [
   "No wallet private key, Telegram token, provider key, wallet address, or transaction hash",
   "## Rollback",
   "## Live Configuration Audit",
-  "`KYRA_CHAIN_RPC_ALLOWED_HOSTS` is not configured yet",
+  "`KYRA_ROBINHOOD_MAINNET_RPC_ALLOWED_HOSTS` is not configured yet",
   "`KYRA_ROBINHOOD_MAINNET_DEPLOY_ENABLED` is not configured yet",
   "no accidental mainnet deploy or public cutover is active",
   "owner_release_approved",

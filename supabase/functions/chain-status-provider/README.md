@@ -10,7 +10,10 @@ It accepts one authenticated server-to-server `chain_status_check`, calls only
 - `KYRA_CHAIN_PROVIDER_SHARED_SECRET` is backend-only and at least 32 chars.
 - `KYRA_CHAIN_KEY` and `KYRA_CHAIN_ID` must match the reviewed registry.
 - `KYRA_CHAIN_RPC_PROVIDER=managed_private` requires an exact hostname in
-  `KYRA_CHAIN_RPC_ALLOWED_HOSTS` and rejects Robinhood public RPC hosts.
+  the chain-scoped allowlist and rejects Robinhood public RPC hosts.
+- Robinhood mainnet reads only `KYRA_ROBINHOOD_MAINNET_RPC_URL` and
+  `KYRA_ROBINHOOD_MAINNET_RPC_ALLOWED_HOSTS`; it never falls back to the
+  generic/testnet RPC secrets.
 - `KYRA_CHAIN_RPC_PROVIDER=robinhood_public_testnet` accepts only the official
   Robinhood testnet RPC and cannot serve mainnet.
 - The function accepts no owner, wallet, Telegram, calldata, signature, token,

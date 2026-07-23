@@ -11,6 +11,10 @@ export const chainStatusProviderRpcUrlEnvKey = "KYRA_CHAIN_RPC_URL";
 export const chainStatusProviderKindEnvKey = "KYRA_CHAIN_RPC_PROVIDER";
 export const chainStatusProviderAllowedHostsEnvKey =
   "KYRA_CHAIN_RPC_ALLOWED_HOSTS";
+export const robinhoodMainnetRpcUrlEnvKey =
+  "KYRA_ROBINHOOD_MAINNET_RPC_URL";
+export const robinhoodMainnetAllowedHostsEnvKey =
+  "KYRA_ROBINHOOD_MAINNET_RPC_ALLOWED_HOSTS";
 export const chainStatusProviderChainKeyEnvKey = "KYRA_CHAIN_KEY";
 export const chainStatusProviderChainIdEnvKey = "KYRA_CHAIN_ID";
 
@@ -45,8 +49,14 @@ export function createChainStatusProviderRuntimeConfig(
   const providerKind = readProviderKind(
     getOptionalEnv(chainStatusProviderKindEnvKey),
   );
+  const rpcUrlEnvKey = chain.key === "robinhood_mainnet"
+    ? robinhoodMainnetRpcUrlEnvKey
+    : chainStatusProviderRpcUrlEnvKey;
+  const allowedHostsEnvKey = chain.key === "robinhood_mainnet"
+    ? robinhoodMainnetAllowedHostsEnvKey
+    : chainStatusProviderAllowedHostsEnvKey;
   const allowedRpcHosts = parseAllowedRpcHosts(
-    getOptionalEnv(chainStatusProviderAllowedHostsEnvKey),
+    getOptionalEnv(allowedHostsEnvKey),
   );
 
   return {
@@ -54,7 +64,7 @@ export function createChainStatusProviderRuntimeConfig(
     expectedBearerSecret: getOptionalEnv(
       chainStatusProviderSecretEnvKey,
     ).trim(),
-    rpcUrl: getOptionalEnv(chainStatusProviderRpcUrlEnvKey).trim(),
+    rpcUrl: getOptionalEnv(rpcUrlEnvKey).trim(),
     providerKind,
     allowedRpcHosts,
     chain,

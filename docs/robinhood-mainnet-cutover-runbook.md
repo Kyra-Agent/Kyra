@@ -1,6 +1,6 @@
 # Robinhood Chain Mainnet Cutover Runbook
 
-Date: 2026-07-23
+Date: 2026-07-24
 
 Status: Batch 6 software readiness is implemented locally. Public production
 remains on Base. Robinhood Chain mainnet stays blocked until every owner and
@@ -8,7 +8,7 @@ infrastructure gate in this runbook passes.
 
 ## Verified Network Contract
 
-The official Robinhood Chain documentation was checked on 2026-07-23:
+The official Robinhood Chain documentation was checked on 2026-07-24:
 
 - chain ID: `4663` (`0x1237`)
 - native gas token: ETH
@@ -52,8 +52,8 @@ Required backend names for the controlled window:
 - `KYRA_CHAIN_STATUS_PROVIDER_ENABLED`
 - `KYRA_CHAIN_PROVIDER_SHARED_SECRET`
 - `KYRA_CHAIN_RPC_PROVIDER=managed_private`
-- `KYRA_CHAIN_RPC_URL`
-- `KYRA_CHAIN_RPC_ALLOWED_HOSTS`
+- `KYRA_ROBINHOOD_MAINNET_RPC_URL`
+- `KYRA_ROBINHOOD_MAINNET_RPC_ALLOWED_HOSTS`
 - `KYRA_CHAIN_KEY=robinhood_mainnet`
 - `KYRA_CHAIN_ID=4663`
 - `KYRA_CHAIN_ACTION_PREPARE_ENABLED`
@@ -124,11 +124,11 @@ or policy checks fail:
 
 ## Live Configuration Audit
 
-Checked on 2026-07-23 without reading or exporting secret values:
+Checked on 2026-07-24 without reading or exporting secret values:
 
 - Netlify still uses the normal Base build and has no Robinhood mainnet release markers
 - Supabase has the chain foundation secret names used by the testnet lane
-- `KYRA_CHAIN_RPC_ALLOWED_HOSTS` is not configured yet
+- `KYRA_ROBINHOOD_MAINNET_RPC_ALLOWED_HOSTS` is not configured yet
 - `KYRA_ROBINHOOD_MAINNET_DEPLOY_ENABLED` is not configured yet
 - no accidental mainnet deploy or public cutover is active
 

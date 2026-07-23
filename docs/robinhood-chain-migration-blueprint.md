@@ -404,6 +404,8 @@ Status: Batch 6 software readiness is implemented locally. The frontend now has
 a four-marker fail-closed Robinhood mainnet build mode, the wallet runtime consumes
 only the selected chain, production CSP permits bounded official RPC reads, and a
 dedicated automated checker plus owner runbook define the cutover and rollback.
+Mainnet provider credentials use chain-scoped secret names and cannot fall back
+to the generic/testnet RPC lane.
 Base remains the production fallback. A Kyra-owned managed production RPC, live
 provider configuration, desktop/mobile owner verification, explicit mainnet release
 approval, one controlled receipt, and rollback exercise remain required.
