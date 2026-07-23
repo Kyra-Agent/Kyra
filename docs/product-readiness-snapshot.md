@@ -10,7 +10,9 @@ Robinhood Chain Testnet workflow on 2026-07-23. Network status, provider-labelle
 wallet connection, reviewed zero-value submission, receipt monitoring, and
 sanitized owner-only closeout passed without recording a wallet address or
 transaction hash in the repository. A Kyra-owned production RPC endpoint and
-Batch 6 controlled mainnet cutover are still required. Base therefore remains
+Batch 6 controlled mainnet cutover are still required. Batch 6 software
+readiness is implemented locally, while provider setup, owner approval, one
+controlled receipt, and rollback exercise remain open. Base therefore remains
 the active public chain.
 Robinhood Chain is not yet an advertised live Kyra transaction lane.
 

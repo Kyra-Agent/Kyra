@@ -25,7 +25,7 @@ for (const expected of [
   "defineChain",
   "id: productChain.id",
   "productChain.publicRpcUrl",
-  'currentProductChain.key === "robinhood_testnet"',
+  "createWalletRuntimeConfig(currentProductChain)",
   "injected({ shimDisconnect: true })",
   "multiInjectedProviderDiscovery: true",
   "storage: null",

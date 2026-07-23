@@ -48,8 +48,20 @@ try {
       mode: "robinhood-testnet",
       requestedTarget: "robinhood_testnet",
       testnetWindow: "owner_testnet_window",
+      mainnetWindow: "disabled",
+      releaseApproval: "disabled",
     }).key,
     "robinhood_testnet",
+  );
+  assertEquals(
+    chains.selectProductChainForRuntime({
+      mode: "robinhood-mainnet",
+      requestedTarget: "robinhood_mainnet",
+      testnetWindow: "disabled",
+      mainnetWindow: "owner_mainnet_cutover",
+      releaseApproval: "owner_release_approved",
+    }).key,
+    "robinhood_mainnet",
   );
   for (const selection of [
     {
@@ -66,6 +78,20 @@ try {
       mode: "robinhood-testnet",
       requestedTarget: "robinhood_testnet",
       testnetWindow: "disabled",
+    },
+    {
+      mode: "robinhood-mainnet",
+      requestedTarget: "robinhood_mainnet",
+      testnetWindow: "disabled",
+      mainnetWindow: "owner_mainnet_cutover",
+      releaseApproval: "disabled",
+    },
+    {
+      mode: "production",
+      requestedTarget: "robinhood_mainnet",
+      testnetWindow: "disabled",
+      mainnetWindow: "owner_mainnet_cutover",
+      releaseApproval: "owner_release_approved",
     },
   ]) {
     assertEquals(

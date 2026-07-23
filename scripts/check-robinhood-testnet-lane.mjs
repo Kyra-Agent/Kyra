@@ -43,18 +43,16 @@ for (const expected of [
   includes("chain registry", registry, expected);
 }
 
-for (const forbidden of [
-  'selection.requestedTarget === "robinhood_mainnet"',
-  'return robinhoodChain;',
-  "VITE_KYRA_ROBINHOOD_MAINNET",
+for (const expected of [
+  'selection.mode === "robinhood-mainnet"',
+  'selection.mainnetWindow === "owner_mainnet_cutover"',
+  'selection.releaseApproval === "owner_release_approved"',
 ]) {
-  excludes("runtime-selectable chain registry", registry, forbidden);
+  includes("separately gated mainnet selector", registry, expected);
 }
 
 for (const expected of [
-  "robinhoodTestnetChain",
-  'currentProductChain.key === "robinhood_testnet"',
-  "createWalletRuntimeConfig(baseLegacyChain)",
+  "createWalletRuntimeConfig(currentProductChain)",
   "storage: null",
   "reconnectOnMount={false}",
 ]) {

@@ -16,8 +16,11 @@ provider-labelled wallet connection, agent binding, frozen zero-value review,
 explicit wallet confirmation, submission, receipt monitoring, and sanitized
 owner-only closeout. The repository records no wallet address or transaction
 hash. Base remains the public production runtime. A Kyra-owned production RPC
-secret and controlled Batch 6 mainnet cutover remain pending. Robinhood wallet
-and transaction support are not yet public live claims.
+secret and controlled Batch 6 mainnet cutover remain pending. Batch 6 software
+readiness is implemented locally with a fail-closed mainnet build mode and a
+dedicated cutover runbook; provider setup, owner approval, one controlled receipt,
+and rollback exercise remain open. Robinhood wallet and transaction support are
+not yet public live claims.
 
 This document resolves conflicting wording across older phase plans and
 closeout notes. If another document disagrees with this roadmap about product

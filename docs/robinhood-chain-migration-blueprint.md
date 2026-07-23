@@ -400,6 +400,16 @@ Owner-confirmed manual evidence on 2026-07-23:
 
 ### Batch 6 - Controlled mainnet cutover
 
+Status: Batch 6 software readiness is implemented locally. The frontend now has
+a four-marker fail-closed Robinhood mainnet build mode, the wallet runtime consumes
+only the selected chain, production CSP permits bounded official RPC reads, and a
+dedicated automated checker plus owner runbook define the cutover and rollback.
+Base remains the production fallback. A Kyra-owned managed production RPC, live
+provider configuration, desktop/mobile owner verification, explicit mainnet release
+approval, one controlled receipt, and rollback exercise remain required.
+
+Runbook: `docs/robinhood-mainnet-cutover-runbook.md`
+
 - freeze one reviewed low-value mainnet action
 - require explicit owner release approval
 - complete one controlled mainnet transaction and receipt closeout

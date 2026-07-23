@@ -59,6 +59,7 @@ export const appConfig = {
     migrationTargetId: migrationTargetChain.id,
     cutoverStatus: "pending",
     testnetEvidenceMode: currentProductChain.key === "robinhood_testnet",
+    mainnetCutoverMode: currentProductChain.key === "robinhood_mainnet",
   },
   publishTarget: "vercel",
   supabase: {

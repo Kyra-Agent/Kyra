@@ -4,10 +4,8 @@ import { createConfig, http, WagmiProvider } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { defineChain } from "viem";
 import {
-  baseLegacyChain,
   currentProductChain,
   type ProductChainDefinition,
-  robinhoodTestnetChain,
 } from "../config/productChains";
 
 interface WalletRuntimeProvidersProps {
@@ -50,9 +48,7 @@ function createWalletRuntimeConfig<
   });
 }
 
-const walletConfig = currentProductChain.key === "robinhood_testnet"
-  ? createWalletRuntimeConfig(robinhoodTestnetChain)
-  : createWalletRuntimeConfig(baseLegacyChain);
+const walletConfig = createWalletRuntimeConfig(currentProductChain);
 
 export function WalletRuntimeProviders({
   children,

@@ -41,6 +41,10 @@ for (const expected of [
   'selection.mode === "robinhood-testnet"',
   'selection.requestedTarget === "robinhood_testnet"',
   'selection.testnetWindow === "owner_testnet_window"',
+  'selection.mode === "robinhood-mainnet"',
+  'selection.requestedTarget === "robinhood_mainnet"',
+  'selection.mainnetWindow === "owner_mainnet_cutover"',
+  'selection.releaseApproval === "owner_release_approved"',
   'return baseLegacyChain',
   'export const migrationTargetChain = robinhoodChain',
   'productionRpcPolicy: "backend_secret_required"',
@@ -55,10 +59,11 @@ for (const [label, source, expected] of [
   ["app config", appConfig, "network: currentProductChain.name"],
   ["app config", appConfig, 'cutoverStatus: "pending"'],
   ["app config", appConfig, 'testnetEvidenceMode: currentProductChain.key === "robinhood_testnet"'],
+  ["app config", appConfig, 'mainnetCutoverMode: currentProductChain.key === "robinhood_mainnet"'],
   ["app config", appConfig, 'walletExecution: "disabled"'],
   ["wallet providers", walletProviders, "id: productChain.id"],
   ["wallet providers", walletProviders, "productChain.publicRpcUrl"],
-  ["wallet providers", walletProviders, 'currentProductChain.key === "robinhood_testnet"'],
+  ["wallet providers", walletProviders, "createWalletRuntimeConfig(currentProductChain)"],
   ["unsigned handoff", unsignedHandoff, "baseChainId = currentProductChain.id"],
   ["owner wallet binding", ownerWalletConnection, "ownerWalletChainId = currentProductChain.id"],
   ["wallet signing", walletSigning, "isCurrentProductChainId(chainId)"],
@@ -93,9 +98,10 @@ for (const policyPath of [
 }
 
 assert(
-  !walletProviders.includes("robinhoodChain") &&
-    walletProviders.includes("robinhoodTestnetChain"),
-  "Wallet runtime may expose the gated testnet chain but never mainnet before cutover.",
+  !walletProviders.includes("baseLegacyChain") &&
+    !walletProviders.includes("robinhoodTestnetChain") &&
+    !walletProviders.includes("robinhoodChain"),
+  "Wallet runtime must consume only the fully gated current product chain.",
 );
 
 console.log("Product chain abstraction checks passed.");

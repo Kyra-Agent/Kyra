@@ -24,6 +24,7 @@
   "scripts": {
     "dev": "vite --host localhost",
     "dev:robinhood-testnet": "vite --mode robinhood-testnet --host localhost",
+    "dev:robinhood-mainnet": "vite --mode robinhood-mainnet --host localhost",
     "check:phase-6b": "node scripts/check-phase-6b-review-packet.mjs",
     "check:phase-6c": "node scripts/check-phase-6c-wallet-handoff.mjs",
     "test:wallet-signing": "node scripts/test-wallet-signing-state.mjs",
@@ -134,6 +135,7 @@
     "check:phase-6": "npm run check:privacy && npm run check:base-mcp && npm run check:prepared-actions && npm run check:supabase-copy && npm run check:phase-6b && npm run check:phase-6c && npm run test:unsigned-handoff && npm run test:wallet-signing && npm run test:risk-review && npm run test:execution-result && npm run check:functions",
     "build": "tsc && vite build",
     "build:robinhood-testnet": "tsc && vite build --mode robinhood-testnet",
+    "build:robinhood-mainnet": "tsc && vite build --mode robinhood-mainnet",
     "preview": "vite preview --host localhost",
     "test:phase-8-funding-readiness": "node scripts/test-phase-8-funding-readiness.mjs",
     "test:phase-8-smoke-closeout": "node scripts/test-phase-8-smoke-closeout.mjs",
@@ -180,7 +182,8 @@
     "check:robinhood-testnet-lane": "npm run test:robinhood-testnet-closeout && node scripts/check-robinhood-testnet-lane.mjs",
     "test:robinhood-testnet-closeout": "node scripts/test-robinhood-testnet-closeout.mjs",
     "check:agent-chain-binding": "node scripts/check-agent-chain-binding.mjs",
-    "check:robinhood-migration": "node scripts/check-robinhood-chain-migration-blueprint.mjs && npm run check:chain-abstraction && npm run check:owner-wallet-migration && npm run check:chain-backend && npm run check:robinhood-testnet-lane && npm run check:agent-chain-binding",
+    "check:robinhood-migration": "node scripts/check-robinhood-chain-migration-blueprint.mjs && npm run check:chain-abstraction && npm run check:owner-wallet-migration && npm run check:chain-backend && npm run check:robinhood-testnet-lane && npm run check:agent-chain-binding && npm run check:robinhood-mainnet-cutover",
+    "check:robinhood-mainnet-cutover": "node scripts/check-robinhood-mainnet-cutover.mjs",
     "test:chain-backend": "node scripts/run-chain-backend-tests.mjs",
     "check:chain-backend": "npm run test:chain-backend && deno check supabase/functions/chain-status-provider/index.ts supabase/functions/chain-action-prepare/index.ts && node scripts/check-robinhood-chain-backend.mjs"
   },

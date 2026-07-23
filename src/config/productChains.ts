@@ -90,6 +90,8 @@ export interface ProductChainRuntimeSelection {
   mode: string;
   requestedTarget: string;
   testnetWindow: string;
+  mainnetWindow?: string;
+  releaseApproval?: string;
 }
 
 export function selectProductChainForRuntime(
@@ -103,6 +105,15 @@ export function selectProductChainForRuntime(
     return robinhoodTestnetChain;
   }
 
+  if (
+    selection.mode === "robinhood-mainnet" &&
+    selection.requestedTarget === "robinhood_mainnet" &&
+    selection.mainnetWindow === "owner_mainnet_cutover" &&
+    selection.releaseApproval === "owner_release_approved"
+  ) {
+    return robinhoodChain;
+  }
+
   return baseLegacyChain;
 }
 
@@ -113,12 +124,14 @@ function readBuildEnv(key: string) {
   return env?.[key] ?? "";
 }
 
-// Production remains Base. Batch 5 can select testnet only in its named local
-// Vite mode; Robinhood mainnet has no environment-selectable path before Batch 6.
+// Base remains the fail-closed default. Robinhood runtimes require a named Vite
+// mode plus their complete owner-controlled release markers.
 export const currentProductChain = selectProductChainForRuntime({
   mode: readBuildEnv("MODE"),
   requestedTarget: readBuildEnv("VITE_KYRA_CHAIN_RELEASE_TARGET"),
   testnetWindow: readBuildEnv("VITE_KYRA_ROBINHOOD_TESTNET_WINDOW"),
+  mainnetWindow: readBuildEnv("VITE_KYRA_ROBINHOOD_MAINNET_WINDOW"),
+  releaseApproval: readBuildEnv("VITE_KYRA_ROBINHOOD_MAINNET_RELEASE"),
 });
 export const migrationTargetChain = robinhoodChain;
 export const currentWalletDisplayName = currentProductChain.key === "base"
