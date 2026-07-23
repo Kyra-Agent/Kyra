@@ -2817,7 +2817,7 @@ export function Dashboard({
               <h1>Sign in to Kyra Console</h1>
               <p>
                 Use your account session to load private agent records, approval
-                queues, and owner-only transaction controls.
+                queues, and private transaction controls.
               </p>
             </div>
             <button
@@ -2869,7 +2869,9 @@ export function Dashboard({
           </span>
           <div>
             <strong>Kyra Console</strong>
-            <small>{workspace.name}</small>
+            <small>{workspace.name === "Kyra demo workspace"
+              ? "Private agent workspace"
+              : workspace.name}</small>
           </div>
         </div>
 
@@ -2969,7 +2971,7 @@ export function Dashboard({
                 }}
               >
                 <Trash2 size={16} />
-                Admin
+                Maintenance
               </a>
             )
             : null}
@@ -3071,8 +3073,8 @@ export function Dashboard({
               </div>
               <p>
                 Choose which deployed agent powers the dashboard panels below.
-                Telegram status, approvals, public route, and owner pairing
-                follow the selected agent.
+                Telegram status, approvals, and the public route follow the
+                selected agent.
               </p>
               <div className="dashboard-agent-strip" role="list">
                 {agentRecords.map((agent) => {
@@ -3645,12 +3647,12 @@ export function Dashboard({
                 id="admin-actions"
               >
                 <div className="panel-title">
-                  <span>Admin actions</span>
-                  <span>{authSession ? "workspace owner" : "locked"}</span>
+                  <span>Workspace maintenance</span>
+                  <span>{authSession ? "private tools" : "locked"}</span>
                 </div>
                 <p className="admin-actions-copy">
-                  Reset the signed-in workspace when quota testing needs a
-                  clean slate.
+                  Optional tools for quota testing. These controls are separate
+                  from the normal agent and chain workflow.
                 </p>
                 <div className="admin-action-metrics">
                   <article>
