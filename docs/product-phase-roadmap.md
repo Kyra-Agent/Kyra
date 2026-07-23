@@ -9,14 +9,14 @@ the complete historical product roadmap; the migration uses six grouped batches
 and does not create Phase 11. See
 `docs/robinhood-chain-migration-blueprint.md`.
 
-Migration status: Batches 1-4 are complete locally, and the reviewed Supabase
-migrations plus read-only chain functions are deployed. Base remains the public
-production runtime. Batch 5 automated work is complete locally: the Robinhood
-Chain Testnet owner workflow covers network status, provider-labelled wallet
-connection, agent binding, frozen zero-value review, controlled submission,
-refresh-safe receipt monitoring, and sanitized owner-only closeout. One manual
-owner wallet confirmation and confirmed testnet receipt, a Kyra-owned production
-RPC secret, and the controlled mainnet cutover remain pending. Robinhood wallet
+Migration status: Batches 1-5 are complete. The reviewed Supabase migrations
+and read-only chain functions are deployed, and the owner confirmed the full
+Robinhood Chain Testnet workflow on 2026-07-23, including network status,
+provider-labelled wallet connection, agent binding, frozen zero-value review,
+explicit wallet confirmation, submission, receipt monitoring, and sanitized
+owner-only closeout. The repository records no wallet address or transaction
+hash. Base remains the public production runtime. A Kyra-owned production RPC
+secret and controlled Batch 6 mainnet cutover remain pending. Robinhood wallet
 and transaction support are not yet public live claims.
 
 This document resolves conflicting wording across older phase plans and

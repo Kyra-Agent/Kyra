@@ -35,7 +35,8 @@ for (const expected of [
   "runtime flags remain disabled",
   "npm run check:chain-backend",
   "28 passing tests",
-  "Still required in Batch 5",
+  "Completed in Batch 5:",
+  "Owner-confirmed manual evidence on 2026-07-23:",
   "### Batch 6 - Controlled mainnet cutover",
   "## Cutover Gates",
   "## Rollback",
@@ -56,7 +57,7 @@ for (const expected of [
   "does not create Phase 11",
   "release batches, not additional phases",
   "docs/robinhood-chain-migration-blueprint.md",
-  "Batches 1-4 are complete locally",
+  "Batches 1-5 are complete.",
 ]) {
   includes("canonical roadmap migration state", roadmap, expected);
 }
@@ -66,7 +67,7 @@ for (const expected of [
   "Robinhood Chain is not yet an advertised live",
   "Kyra transaction lane.",
   "docs/robinhood-chain-migration-blueprint.md",
-  "Migration Batches 1-4 are complete",
+  "Migration Batches 1-5 are complete",
 ]) {
   includes("product snapshot migration state", snapshot, expected);
 }

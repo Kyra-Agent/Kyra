@@ -3,15 +3,15 @@
 ## Active Migration Notice
 
 Kyra's existing Base release remains the current deployed product while the
-Robinhood Chain migration advances through testnet closeout.
-Migration Batches 1-4 are complete locally and the reviewed database
-migrations plus read-only
-Edge Functions are deployed. Batch 5 automated work is complete locally: the
-owner-only testnet workflow now presents one clear progression from network
-status through provider-labelled wallet connection, reviewed zero-value submit,
-refresh-safe receipt monitoring, and sanitized closeout. One manual confirmed
-testnet receipt and a Kyra-owned production RPC endpoint are still required.
-Base therefore remains the active public chain.
+Robinhood Chain migration advances toward controlled mainnet cutover.
+Migration Batches 1-5 are complete: the reviewed database migrations plus read-only Edge
+Functions are deployed, automated gates pass, and the owner confirmed the full
+Robinhood Chain Testnet workflow on 2026-07-23. Network status, provider-labelled
+wallet connection, reviewed zero-value submission, receipt monitoring, and
+sanitized owner-only closeout passed without recording a wallet address or
+transaction hash in the repository. A Kyra-owned production RPC endpoint and
+Batch 6 controlled mainnet cutover are still required. Base therefore remains
+the active public chain.
 Robinhood Chain is not yet an advertised live Kyra transaction lane.
 
 The migration is governed by

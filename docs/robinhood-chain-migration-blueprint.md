@@ -2,17 +2,15 @@
 
 Date: 2026-07-23
 
-Status: Batches 1-4 are complete locally and the reviewed database migrations
-and read-only Edge Functions are deployed. Batch 5 now has a complete local,
-owner-only Robinhood Chain Testnet workflow: explicit network status check,
-provider-labelled wallet connection, frozen zero-value action review, controlled
-wallet submission, refresh-safe receipt monitoring, sanitized closeout, and a
-deterministic progress state machine. Signing and submission remain disabled in
-the backend and production runtime. The final manual wallet confirmation and
-one testnet receipt are still required before Batch 5 can close.
-Runtime cutover has not started, production behavior is unchanged, and
-Robinhood Chain
-transaction capability must not be described as publicly live yet.
+Status: Batches 1-5 are complete. The reviewed database migrations and
+read-only Edge Functions are deployed, and the owner confirmed the complete
+Robinhood Chain Testnet workflow on 2026-07-23: network status, provider-labelled
+wallet connection, frozen zero-value action review, explicit wallet confirmation,
+submission, receipt monitoring, and sanitized owner-only closeout all passed.
+No wallet address, provider payload, or transaction hash is stored in this
+repository. Signing and submission remain disabled in the backend and production
+runtime. Runtime cutover has not started, production behavior is unchanged, and
+Robinhood Chain transaction capability must not be described as publicly live yet.
 
 ## Decision
 
@@ -356,22 +354,27 @@ Implemented evidence:
   drift, response correlation, provider timeout, RLS/privacy contracts, and
   forbidden signing methods with 28 passing tests
 
-Still required in Batch 5:
+Completed in Batch 5:
 
-- run the owner-only testnet flow with a newly deployed Robinhood testnet agent
-  after the read-only chain status check succeeds
-- verify wallet compatibility, explicit wallet confirmation, one zero-value
-  self-send receipt, owner-only closeout, replay protection, and disconnect
+- the owner-only testnet flow passed with a Robinhood testnet agent after the
+  read-only chain status check succeeded
+- wallet compatibility, explicit wallet confirmation, one zero-value self-send,
+  receipt monitoring, owner-only closeout, replay protection, and disconnect
+  behavior were confirmed
+
+Still required before Batch 6:
+
 - create the Kyra-owned managed RPC secret before any production/mainnet use;
   the public Robinhood testnet RPC remains limited to bounded test evidence
 
 ### Batch 5 - Testnet closeout
 
-Status: automated checks and the local owner workflow are complete. Provider
-identity is visible, legacy Base-only panels are suppressed in testnet mode,
-and receipt monitoring resumes from owner-scoped browser-session evidence after
-refresh. The manual owner wallet confirmation, one zero-value receipt, and the
-final sanitized closeout record remain pending.
+Status: complete. Automated checks pass, the local owner workflow is complete,
+and the owner confirmed the end-to-end Robinhood Chain Testnet smoke on
+2026-07-23. Provider identity remains visible, legacy Base-only panels are
+suppressed in testnet mode, and receipt monitoring resumes from owner-scoped
+browser-session evidence after refresh. The sanitized repository evidence
+intentionally excludes the wallet address and transaction hash.
 
 - keep the deployed migration behind bounded runtime flags
 - complete one owner-controlled Robinhood Chain testnet transaction
@@ -386,6 +389,14 @@ Implemented local evidence:
 - owner-scoped receipt recovery and status reconciliation after page refresh
 - legacy production panels hidden from the isolated testnet workflow
 - automated state-machine, persistence, privacy, chain, and build checks
+Owner-confirmed manual evidence on 2026-07-23:
+
+- private owner sign-in and selected testnet agent binding passed
+- owner-scoped network status preparation passed
+- wallet provider visibility and wallet connection passed
+- explicit zero-value wallet confirmation and submission passed
+- receipt and sanitized owner-only closeout completed
+- no wallet address, transaction hash, provider payload, or secret was copied into repository evidence
 
 ### Batch 6 - Controlled mainnet cutover
 
