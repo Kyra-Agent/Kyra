@@ -71,6 +71,7 @@ includes(
   "backend defaults",
   functionEnvExample,
   "KYRA_ROBINHOOD_MAINNET_DEPLOY_ENABLED=false",
+  "no accidental mainnet transaction gate or public cutover is active",
 );
 for (const expected of [
   "KYRA_ROBINHOOD_MAINNET_RPC_URL=",
@@ -125,15 +126,16 @@ for (const expected of [
   "No wallet private key, Telegram token, provider key, wallet address, or transaction hash",
   "## Rollback",
   "## Live Configuration Audit",
-  "`KYRA_ROBINHOOD_MAINNET_RPC_ALLOWED_HOSTS` is not configured yet",
-  "`KYRA_ROBINHOOD_MAINNET_DEPLOY_ENABLED` is not configured yet",
-  "no accidental mainnet deploy or public cutover is active",
+  "scoped Robinhood mainnet RPC URL and hostname allowlist exist in Supabase",
+  "KYRA_CHAIN_ACTION_PREPARE_ENABLED=false",
+  "KYRA_ROBINHOOD_MAINNET_DEPLOY_ENABLED=true (agent deployment only; no signing or submission)",
+  "no accidental mainnet transaction gate or public cutover is active",
   "owner_release_approved",
 ]) {
   includes("cutover runbook", runbook, expected);
 }
 
-includes("migration blueprint", blueprint, "Batch 6 software readiness");
-includes("migration blueprint", blueprint, "Kyra-owned managed production RPC");
+includes("migration blueprint", blueprint, "Batch 6 software hardening");
+includes("migration blueprint", blueprint, "Kyra-owned managed RPC");
 
 console.log("Robinhood mainnet cutover readiness checks passed.");

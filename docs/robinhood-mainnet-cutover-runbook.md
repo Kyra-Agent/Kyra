@@ -2,8 +2,9 @@
 
 Date: 2026-07-24
 
-Status: Batch 6 software readiness is implemented locally. Public production
-remains on Base. Robinhood Chain mainnet stays blocked until every owner and
+Status: software hardening is committed and the managed mainnet provider has
+passed an authenticated read-only chain-ID check. Public production remains on
+Base. Robinhood Chain transactions stay blocked until every owner and
 infrastructure gate in this runbook passes.
 
 ## Verified Network Contract
@@ -127,16 +128,17 @@ or policy checks fail:
 Checked on 2026-07-24 without reading or exporting secret values:
 
 - Netlify still uses the normal Base build and has no Robinhood mainnet release markers
-- Supabase has the chain foundation secret names used by the testnet lane
-- `KYRA_ROBINHOOD_MAINNET_RPC_ALLOWED_HOSTS` is not configured yet
-- `KYRA_ROBINHOOD_MAINNET_DEPLOY_ENABLED` is not configured yet
-- no accidental mainnet deploy or public cutover is active
+- scoped Robinhood mainnet RPC URL and hostname allowlist exist in Supabase; values were not read or exported
+- deployed chain-status-provider returned exact chain ID 4663 in authenticated read-only mode
+- KYRA_CHAIN_ACTION_PREPARE_ENABLED=false
+- KYRA_ROBINHOOD_MAINNET_DEPLOY_ENABLED=true (agent deployment only; no signing or submission)
+- no accidental mainnet transaction gate or public cutover is active
 
 ## Current Decision
 
-Software readiness: ready locally.
+Software and read-only provider readiness: verified.
 
-Release decision: blocked pending a Kyra-owned managed production RPC, owner
-mainnet approval, desktop/mobile verification, one controlled mainnet receipt,
-and rollback exercise. Robinhood Chain must not be advertised as Kyra's live
-transaction lane before those gates pass.
+Release decision: blocked pending owner desktop/mobile verification, explicit
+mainnet approval, one controlled mainnet receipt, and rollback exercise.
+Robinhood Chain must not be advertised as Kyra's live transaction lane before
+those gates pass.

@@ -400,15 +400,17 @@ Owner-confirmed manual evidence on 2026-07-23:
 
 ### Batch 6 - Controlled mainnet cutover
 
-Status: Batch 6 software readiness is implemented locally. The frontend now has
-a four-marker fail-closed Robinhood mainnet build mode, the wallet runtime consumes
-only the selected chain, production CSP permits bounded official RPC reads, and a
-dedicated automated checker plus owner runbook define the cutover and rollback.
-Mainnet provider credentials use chain-scoped secret names and cannot fall back
-to the generic/testnet RPC lane.
-Base remains the production fallback. A Kyra-owned managed production RPC, live
-provider configuration, desktop/mobile owner verification, explicit mainnet release
-approval, one controlled receipt, and rollback exercise remain required.
+Status: Batch 6 software hardening is committed. The frontend has a four-marker
+fail-closed Robinhood mainnet build mode, the wallet runtime consumes only the
+selected chain, production CSP permits bounded official RPC reads, and the
+automated checker plus owner runbook define cutover and rollback. Mainnet
+provider credentials use chain-scoped secret names and cannot fall back to the
+generic/testnet RPC lane. On 2026-07-24, the Kyra-owned managed RPC was stored
+only in scoped Supabase secrets and the deployed provider returned exact
+robinhood_mainnet chain ID 4663 in read-only mode. The owner-only mainnet agent deployment gate is enabled for exact chain binding.
+Chain action preparation, signing, and submission remain disabled. Base remains the production fallback.
+Desktop/mobile owner verification, explicit mainnet release approval, one
+controlled receipt, and rollback exercise remain required.
 
 Runbook: `docs/robinhood-mainnet-cutover-runbook.md`
 
