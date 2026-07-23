@@ -112,6 +112,35 @@ export function createPhase8PersistedExecutionResult(
   };
 }
 
+export function reconcilePhase8PersistedExecutionResult(
+  record: Phase8PersistedExecutionResult,
+  receiptStatus: "success" | "reverted" | null,
+  updatedAt = new Date().toISOString(),
+): Phase8PersistedExecutionResult {
+  if (!receiptStatus) {
+    return record;
+  }
+
+  const status: Phase8PersistedResultStatus = receiptStatus === "success"
+    ? "confirmed"
+    : "failed";
+
+  if (record.status === status) {
+    return record;
+  }
+
+  return {
+    ...record,
+    status,
+    label: getPhase8ResultLabel(status),
+    summary: getPhase8ResultSummary(status),
+    failureReason: status === "failed"
+      ? "Controlled transaction reverted without exposing provider internals."
+      : null,
+    updatedAt,
+  };
+}
+
 export function mapPhase8PersistedResultToDemoExecutionResult(
   record: Phase8PersistedExecutionResult,
 ): DemoExecutionResult {

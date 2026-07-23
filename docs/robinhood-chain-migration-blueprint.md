@@ -3,14 +3,16 @@
 Date: 2026-07-23
 
 Status: Batches 1-4 are complete locally and the reviewed database migrations
-and read-only Edge Functions are deployed. The chain-status preparation lane is
-owner-scoped, rate-limited, and enabled only for bounded read-only checks;
-signing and submission remain disabled in the backend. Batch 5 automated
-Robinhood Chain testnet checks and the local owner-only zero-value lane are
-ready, while the manual wallet prompt, transaction receipt, and closeout
-remain pending. Runtime cutover has not started, production behavior is
-unchanged, and no Robinhood Chain transaction capability may be described as
-live yet.
+and read-only Edge Functions are deployed. Batch 5 now has a complete local,
+owner-only Robinhood Chain Testnet workflow: explicit network status check,
+provider-labelled wallet connection, frozen zero-value action review, controlled
+wallet submission, refresh-safe receipt monitoring, sanitized closeout, and a
+deterministic progress state machine. Signing and submission remain disabled in
+the backend and production runtime. The final manual wallet confirmation and
+one testnet receipt are still required before Batch 5 can close.
+Runtime cutover has not started, production behavior is unchanged, and
+Robinhood Chain
+transaction capability must not be described as publicly live yet.
 
 ## Decision
 
@@ -365,14 +367,25 @@ Still required in Batch 5:
 
 ### Batch 5 - Testnet closeout
 
-Status: automated checks and local UI/runtime lane are ready; the manual owner
-wallet prompt, zero-value receipt, and sanitized closeout evidence are pending.
+Status: automated checks and the local owner workflow are complete. Provider
+identity is visible, legacy Base-only panels are suppressed in testnet mode,
+and receipt monitoring resumes from owner-scoped browser-session evidence after
+refresh. The manual owner wallet confirmation, one zero-value receipt, and the
+final sanitized closeout record remain pending.
 
 - keep the deployed migration behind bounded runtime flags
 - complete one owner-controlled Robinhood Chain testnet transaction
 - verify wallet prompt, chain ID, receipt, owner-only result, replay protection,
   rate limits, rollback, emergency disable, and public privacy
 - record sanitized evidence without exposing wallet internals
+Implemented local evidence:
+
+- one deterministic owner workflow from sign-in through receipt closeout
+- explicit wallet provider identity in disconnected and connected states
+- zero-value, self-send-only request with no calldata, approval, swap, or token spend
+- owner-scoped receipt recovery and status reconciliation after page refresh
+- legacy production panels hidden from the isolated testnet workflow
+- automated state-machine, persistence, privacy, chain, and build checks
 
 ### Batch 6 - Controlled mainnet cutover
 

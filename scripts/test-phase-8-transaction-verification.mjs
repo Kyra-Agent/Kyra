@@ -88,7 +88,7 @@ try {
   });
   assertEquals(confirmed.status, "confirmed");
   assertEquals(confirmed.canPromoteToConfirmed, true);
-  assert(confirmed.confirmationId.startsWith("base-receipt-"));
+  assert(confirmed.confirmationId.startsWith("receipt-"));
   assertEquals(confirmed.txHashLabel, "0xeeeeeeee...eeeeeeee");
 
   const reverted = evaluatePhase8TransactionVerification({

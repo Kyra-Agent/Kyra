@@ -11,12 +11,13 @@ and does not create Phase 11. See
 
 Migration status: Batches 1-4 are complete locally, and the reviewed Supabase
 migrations plus read-only chain functions are deployed. Base remains the public
-production runtime. The Robinhood testnet frontend, owner-wallet connector,
-agent-chain binding, read-only status preparation, and automated execution gates
-are ready for a manual owner-only zero-value smoke. That receipt evidence, a
-Kyra-owned production RPC secret, and the controlled mainnet cutover remain
-pending. Robinhood wallet and transaction support are not yet public live
-claims.
+production runtime. Batch 5 automated work is complete locally: the Robinhood
+Chain Testnet owner workflow covers network status, provider-labelled wallet
+connection, agent binding, frozen zero-value review, controlled submission,
+refresh-safe receipt monitoring, and sanitized owner-only closeout. One manual
+owner wallet confirmation and confirmed testnet receipt, a Kyra-owned production
+RPC secret, and the controlled mainnet cutover remain pending. Robinhood wallet
+and transaction support are not yet public live claims.
 
 This document resolves conflicting wording across older phase plans and
 closeout notes. If another document disagrees with this roadmap about product

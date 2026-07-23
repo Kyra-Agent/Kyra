@@ -26,6 +26,10 @@ const envExample = read(".env.example");
 const gitignore = read(".gitignore");
 const packageJson = read("package.json");
 const netlify = read("netlify.toml");
+const dashboard = read("src/pages/Dashboard.tsx");
+const closeout = read("src/types/robinhoodTestnetCloseout.ts");
+const resultPersistence = read("src/types/phase8ResultPersistence.ts");
+const styles = read("src/styles.css");
 
 for (const expected of [
   'selection.mode === "robinhood-testnet"',
@@ -80,6 +84,46 @@ for (const forbidden of [
   "robinhood_testnet",
 ]) {
   excludes("Netlify production config", netlify, forbidden);
+}
+
+for (const expected of [
+  "evaluateRobinhoodTestnetCloseout",
+  "Check testnet status",
+  "Open transaction review",
+  "Continue to wallet confirmation",
+  "Zero value, no calldata, no token approval, no swap, no Telegram execution.",
+  "is-robinhood-testnet",
+  "Testnet transaction setup",
+  "phase8ScopedPersistedResult",
+]) {
+  includes("owner dashboard testnet workflow", dashboard, expected);
+}
+
+for (const expected of [
+  '"check_chain_status"',
+  '"connect_wallet"',
+  '"open_review_window"',
+  '"submit_transaction"',
+  '"wait_for_receipt"',
+  '"complete"',
+]) {
+  includes("testnet closeout state machine", closeout, expected);
+}
+
+for (const expected of [
+  "reconcilePhase8PersistedExecutionResult",
+  'receiptStatus: "success" | "reverted" | null',
+  'receiptStatus === "success"',
+]) {
+  includes("testnet receipt persistence", resultPersistence, expected);
+}
+for (const expected of [
+  ".robinhood-testnet-closeout",
+  ".prepared-action-panel.is-robinhood-testnet .prepared-action-policy-panel",
+  ".execution-result-panel.is-robinhood-testnet .phase-9-closeout-panel",
+  ".execution-result-panel.is-robinhood-testnet .execution-result-list",
+]) {
+  includes("testnet workflow styles", styles, expected);
 }
 
 console.log("Robinhood owner-only testnet lane checks passed.");

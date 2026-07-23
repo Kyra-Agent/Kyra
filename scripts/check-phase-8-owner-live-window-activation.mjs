@@ -157,7 +157,7 @@ for (const expected of [
   "createPhase8OwnerActionCandidate",
   "baseAccountAddress: baseAccountConnectionStatus.address",
   "providerStatus: phase8TransactionVerification.status === \"confirmed\"",
-  "txHash: phase8TransactionVerification.txHash ?? phase8SubmitterResult?.txHash ?? null",
+  "txHash: phase8TransactionVerification.txHash ?? phase8SubmittedTxHash",
   "resultEvents: phase8SubmitterResult ? [phase8SubmitterResult] : []",
   "onResultCloseout={handlePhase8ResultCloseout}",
   "phase8OwnerArming",

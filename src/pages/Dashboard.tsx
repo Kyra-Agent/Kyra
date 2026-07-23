@@ -99,6 +99,7 @@ import { createPhase8OwnerActionCandidate } from "../types/phase8OwnerActionCand
 import { evaluatePhase8RuntimeEnablementPreflight } from "../types/phase8RuntimeEnablementPreflight";
 import { evaluatePhase8SmokeCloseout } from "../types/phase8SmokeCloseout";
 import { evaluatePhase8TransactionVerification } from "../types/phase8TransactionVerification";
+import { evaluateRobinhoodTestnetCloseout } from "../types/robinhoodTestnetCloseout";
 import { evaluatePhase8SecurityAbuseHardening } from "../types/phase8SecurityAbuseHardening";
 import { evaluatePhase8ProductionCloseout } from "../types/phase8ProductionCloseout";
 import { evaluatePhase9ExecutionEligibility } from "../types/phase9ExecutionEligibility";
@@ -116,6 +117,7 @@ import {
   createPhase8PersistedExecutionResult,
   getPhase8ResultPersistenceFailureMessage,
   mapPhase8PersistedResultToDemoExecutionResult,
+  reconcilePhase8PersistedExecutionResult,
   type Phase8PersistedExecutionResult,
 } from "../types/phase8ResultPersistence";
 import {
@@ -848,18 +850,6 @@ export function Dashboard({
       refetchInterval: 15_000,
     },
   });
-  const phase8SubmittedTxHash = isTransactionHash(phase8SubmitterResult?.txHash)
-    ? phase8SubmitterResult.txHash
-    : null;
-  const phase8TransactionReceipt = useWaitForTransactionReceipt({
-    hash: phase8SubmittedTxHash ?? undefined,
-    chainId: baseChainId,
-    query: {
-      enabled: Boolean(phase8SubmittedTxHash),
-      refetchInterval: 15_000,
-    },
-  });
-
   useEffect(() => {
     return subscribeBackendEvents(() => setBackendEvents(getBackendEvents()));
   }, []);
@@ -1366,6 +1356,53 @@ export function Dashboard({
     );
   }, [authSession?.user.id]);
 
+  const phase8ScopedPersistedResult = useMemo(
+    () =>
+      phase8PersistedResults.find(
+        (record) =>
+          record.ownerUserId === authSession?.user.id &&
+          record.workspaceId === dashboardData?.workspace.id &&
+          record.agentId === agentRecord?.id,
+      ) ?? null,
+    [
+      agentRecord?.id,
+      authSession?.user.id,
+      dashboardData?.workspace.id,
+      phase8PersistedResults,
+    ],
+  );
+  const phase8SubmittedTxHash = isTransactionHash(phase8SubmitterResult?.txHash)
+    ? phase8SubmitterResult.txHash
+    : isTransactionHash(phase8ScopedPersistedResult?.txHash)
+    ? phase8ScopedPersistedResult.txHash
+    : null;
+  const phase8TransactionReceipt = useWaitForTransactionReceipt({
+    hash: phase8SubmittedTxHash ?? undefined,
+    chainId: baseChainId,
+    query: {
+      enabled: Boolean(phase8SubmittedTxHash),
+      refetchInterval: 15_000,
+    },
+  });
+  useEffect(() => {
+    const receiptStatus = phase8TransactionReceipt.data?.status ?? null;
+    if (!phase8ScopedPersistedResult || !receiptStatus) {
+      return;
+    }
+
+    const reconciled = reconcilePhase8PersistedExecutionResult(
+      phase8ScopedPersistedResult,
+      receiptStatus,
+    );
+    if (reconciled === phase8ScopedPersistedResult) {
+      return;
+    }
+
+    setPhase8PersistedResults(
+      savePhase8PersistedExecutionResult(reconciled),
+    );
+  }, [phase8ScopedPersistedResult, phase8TransactionReceipt.data?.status]);
+
   function handlePhase8ResultCloseout(
     event: Phase8ControlledSubmissionResultEvent,
   ) {
@@ -1442,14 +1479,21 @@ export function Dashboard({
       ...baseExecutionResults,
     ]
     : baseExecutionResults;
+  const phase8PreparedActionId = phase8FrozenAction?.requestId ??
+    phase8ScopedPersistedResult?.preparedActionId ??
+    executionResults[0]?.preparedActionId ??
+    "";
+  const phase8EffectiveResultState = phase8SubmitterResult?.state ??
+    phase8ScopedPersistedResult?.status ??
+    null;
   const phase8TransactionVerification = useMemo(
     () =>
       evaluatePhase8TransactionVerification({
         ownerUserId: authSession?.user.id ?? "",
         workspaceId: dashboardData?.workspace.id ?? "",
         agentId: agentRecord?.id ?? "",
-        preparedActionId: phase8FrozenAction?.requestId ?? executionResults[0]?.preparedActionId ?? "",
-        txHash: phase8SubmitterResult?.txHash ?? null,
+        preparedActionId: phase8PreparedActionId,
+        txHash: phase8SubmittedTxHash,
         receiptStatus: phase8TransactionReceipt.data?.status ?? null,
         receiptLoading: phase8TransactionReceipt.isLoading || phase8TransactionReceipt.isFetching,
         receiptError: phase8TransactionReceipt.isError,
@@ -1458,11 +1502,9 @@ export function Dashboard({
     [
       agentRecord?.id,
       authSession?.user.id,
-      selectedAgentReadyForExecution,
       dashboardData?.workspace.id,
-      executionResults,
-      phase8FrozenAction?.requestId,
-      phase8SubmitterResult?.txHash,
+      phase8PreparedActionId,
+      phase8SubmittedTxHash,
       phase8TransactionReceipt.data?.status,
       phase8TransactionReceipt.isError,
       phase8TransactionReceipt.isFetching,
@@ -1475,15 +1517,15 @@ export function Dashboard({
         ownerUserId: authSession?.user.id ?? "",
         workspaceId: dashboardData?.workspace.id ?? "",
         agentId: agentRecord?.id ?? "",
-        preparedActionId: phase8FrozenAction?.requestId ?? executionResults[0]?.preparedActionId ?? "",
+        preparedActionId: phase8PreparedActionId,
         providerStatus: phase8TransactionVerification.status === "confirmed"
           ? "confirmed"
           : phase8TransactionVerification.status === "failed"
           ? "provider_failed"
-          : phase8SubmitterResult
+          : phase8EffectiveResultState
           ? "provider_submitted"
           : "not_started",
-        txHash: phase8TransactionVerification.txHash ?? phase8SubmitterResult?.txHash ?? null,
+        txHash: phase8TransactionVerification.txHash ?? phase8SubmittedTxHash,
         confirmationId: phase8TransactionVerification.confirmationId,
         failureCode: phase8TransactionVerification.status === "failed" ? "submission_failed" : null,
         disconnectRequested: false,
@@ -1507,20 +1549,20 @@ export function Dashboard({
         ownerUserId: authSession?.user.id ?? "",
         workspaceId: dashboardData?.workspace.id ?? "",
         agentId: agentRecord?.id ?? "",
-        preparedActionId: phase8FrozenAction?.requestId ?? executionResults[0]?.preparedActionId ?? "",
+        preparedActionId: phase8PreparedActionId,
         status: phase8TransactionVerification.status === "confirmed"
           ? "confirmed"
           : phase8TransactionVerification.status === "failed"
           ? "failed"
-          : phase8SubmitterResult?.state === "submitted"
+          : phase8EffectiveResultState === "submitted"
           ? "submitted"
-          : phase8SubmitterResult?.state === "confirmed"
+          : phase8EffectiveResultState === "confirmed"
           ? "confirmed"
-          : phase8SubmitterResult?.state === "failed"
+          : phase8EffectiveResultState === "failed"
           ? "failed"
           : "not_started",
         ownerOnly: resultMonitoringCloseout.ownerOnly,
-        txHash: phase8TransactionVerification.txHash ?? phase8SubmitterResult?.txHash ?? resultMonitoringCloseout.txHash,
+        txHash: phase8TransactionVerification.txHash ?? phase8SubmittedTxHash ?? resultMonitoringCloseout.txHash,
         confirmationId: phase8TransactionVerification.confirmationId ?? resultMonitoringCloseout.confirmationId,
         sanitizedFailureReason: phase8TransactionVerification.sanitizedFailureReason ?? resultMonitoringCloseout.sanitizedFailureReason,
         visibleInPublicProfile: false,
@@ -2177,6 +2219,30 @@ export function Dashboard({
       baseAccountConnectionStatus.connected,
       phase8ControlledSubmission,
       phase8OwnerLiveWindowActivation,
+    ],
+  );
+  const robinhoodTestnetCloseout = useMemo(
+    () =>
+      evaluateRobinhoodTestnetCloseout({
+        enabled: appConfig.chain.testnetEvidenceMode,
+        ownerSignedIn: Boolean(authSession),
+        selectedAgent: selectedAgentMatchesRuntime,
+        chainStatusPrepared: selectedChainActionPrepared,
+        walletConnected: runtimeBoundWalletConnected,
+        reviewedActionReady: Boolean(phase8FrozenAction),
+        ownerWindowArmed: Boolean(activePhase8OwnerArming),
+        submitterReady: phase8RuntimeEnablementPreflight.runtimeSubmitterEnabled,
+        transactionStatus: phase8TransactionVerification.status,
+      }),
+    [
+      activePhase8OwnerArming,
+      authSession,
+      phase8FrozenAction,
+      phase8RuntimeEnablementPreflight.runtimeSubmitterEnabled,
+      phase8TransactionVerification.status,
+      runtimeBoundWalletConnected,
+      selectedAgentMatchesRuntime,
+      selectedChainActionPrepared,
     ],
   );
   const backendTables = dashboardData?.backendTables ?? [];
@@ -3076,8 +3142,8 @@ export function Dashboard({
 
           <section className="dashboard-panel">
             <div className="panel-title">
-              <span>Wallet policy</span>
-              <span>{walletReadiness.state.replace(/_/g, " ")}</span>
+              <span>{appConfig.chain.testnetEvidenceMode ? "Testnet transaction setup" : "Wallet policy"}</span>
+              <span>{appConfig.chain.testnetEvidenceMode ? robinhoodTestnetCloseout.status.replace(/_/g, " ") : walletReadiness.state.replace(/_/g, " ")}</span>
             </div>
             <OwnerWalletConnectionPanel
               session={authSession}
@@ -3088,6 +3154,121 @@ export function Dashboard({
               onConnectionStateChange={setBaseAccountConnectionStatus}
               onSessionChange={onAuthSessionChange}
             />
+            {appConfig.chain.testnetEvidenceMode ? (
+              <div
+                className={"robinhood-testnet-closeout status-" + robinhoodTestnetCloseout.status}
+              >
+                <div className="robinhood-testnet-closeout-header">
+                  <span className="queue-icon">
+                    <ShieldCheck size={16} />
+                  </span>
+                  <div>
+                    <small>Robinhood Chain Testnet</small>
+                    <strong>{robinhoodTestnetCloseout.label}</strong>
+                  </div>
+                  <span>owner only</span>
+                </div>
+                <div className="robinhood-testnet-closeout-steps">
+                  {robinhoodTestnetCloseout.steps.map((step, index) => {
+                    const StepIcon = step.status === "complete"
+                      ? CheckCircle2
+                      : step.status === "failed"
+                      ? X
+                      : step.status === "current"
+                      ? Clock3
+                      : LockKeyhole;
+
+                    return (
+                      <article
+                        className={"testnet-step step-" + step.status}
+                        key={step.key}
+                      >
+                        <span className="testnet-step-index">
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+                        <StepIcon size={16} />
+                        <div>
+                          <strong>{step.label}</strong>
+                          <small>{step.detail}</small>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+                <p aria-live="polite">{robinhoodTestnetCloseout.message}</p>
+                <div className="robinhood-testnet-closeout-actions">
+                  {robinhoodTestnetCloseout.nextAction === "check_chain_status" ? (
+                    <button
+                      className="button button-primary"
+                      disabled={!canRunBaseMcpStatusCheck}
+                      onClick={handleBaseMcpStatusCheck}
+                      type="button"
+                    >
+                      <Server size={16} />
+                      {baseMcpStatusState === "checking"
+                        ? "Checking network"
+                        : "Check testnet status"}
+                    </button>
+                  ) : null}
+                  {robinhoodTestnetCloseout.nextAction === "open_review_window" ? (
+                    <button
+                      className="button button-primary"
+                      disabled={!phase8FrozenAction}
+                      onClick={armPhase8OwnerLiveWindow}
+                      type="button"
+                    >
+                      <ShieldCheck size={16} />
+                      Open transaction review
+                    </button>
+                  ) : null}
+                  {robinhoodTestnetCloseout.nextAction === "submit_transaction" ? (
+                    <a className="button button-primary" href="#robinhood-testnet-submit">
+                      <WalletCards size={16} />
+                      Continue to wallet confirmation
+                    </a>
+                  ) : null}
+                  {robinhoodTestnetCloseout.nextAction === "retry_transaction" ? (
+                    <button
+                      className="button button-ghost"
+                      onClick={resetPhase8OwnerLiveWindow}
+                      type="button"
+                    >
+                      <RotateCcw size={16} />
+                      Reset transaction review
+                    </button>
+                  ) : null}
+                  {robinhoodTestnetCloseout.nextAction === "complete" &&
+                    phase8TransactionVerification.txHash ? (
+                    <a
+                      className="button button-ghost"
+                      href={currentProductChain.explorerUrl + "/tx/" + phase8TransactionVerification.txHash}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <ExternalLink size={16} />
+                      View verified receipt
+                    </a>
+                  ) : null}
+                  {robinhoodTestnetCloseout.nextAction === "connect_wallet" ? (
+                    <small>Use the wallet connection control directly above.</small>
+                  ) : null}
+                  {robinhoodTestnetCloseout.nextAction === "sign_in" ? (
+                    <small>Use the account panel to start a private owner session.</small>
+                  ) : null}
+                  {robinhoodTestnetCloseout.nextAction === "select_agent" ? (
+                    <small>Select a deployed Robinhood Chain Testnet agent at the top of the dashboard.</small>
+                  ) : null}
+                  {robinhoodTestnetCloseout.nextAction === "wait_for_receipt" ? (
+                    <small>Receipt monitoring is active. Keep this owner session open.</small>
+                  ) : null}
+                </div>
+                <small className="robinhood-testnet-closeout-note">
+                  Zero value, no calldata, no token approval, no swap, no Telegram execution.
+                  Wallet keys never enter Kyra.
+                </small>
+              </div>
+            ) : (
+              <>
             <div
               className={`wallet-signing-boundary ${
                 walletPromptEligibility.eligible ? "is-ready" : "is-blocked"
@@ -3222,6 +3403,8 @@ export function Dashboard({
                   </div>
                 )}
             </div>
+              </>
+            )}
           </section>
 
           {isAdmin
@@ -3421,7 +3604,7 @@ export function Dashboard({
                             deploy-agent{" "}
                             {getDeployFunctionHealthLabel(deployFunctionStatus)}
                           </span>
-                          <span>onchain execution disabled</span>
+                          <span>{appConfig.chain.testnetEvidenceMode ? "owner-only testnet execution" : "onchain execution disabled"}</span>
                         </div>
                       </div>
                     </details>
@@ -3483,11 +3666,11 @@ export function Dashboard({
                 max {demoAgentLimits.maxAgentsPerWorkspace} agents
               </span>
               <span>approval-first workflows</span>
-              <span>onchain execution disabled</span>
+              <span>{appConfig.chain.testnetEvidenceMode ? "owner-only testnet execution" : "onchain execution disabled"}</span>
             </div>
           </section>
 
-          <section className="dashboard-panel prepared-action-panel">
+          <section className={"dashboard-panel prepared-action-panel" + (appConfig.chain.testnetEvidenceMode ? " is-robinhood-testnet" : "")}>
             <div className="panel-title">
               <span>{usingChainActionPrepare ? `${currentProductChain.name} prep` : "Base MCP prep"}</span>
               <span>{preparedActionPreview.status.replace(/_/g, " ")}</span>
@@ -3496,7 +3679,7 @@ export function Dashboard({
               <ShieldCheck size={16} />
               <span>
                 {usingChainActionPrepare
-                  ? `${currentProductChain.name} testnet preparation is read-only. Wallet prompts, signing, and transaction submission remain blocked.`
+                  ? `${currentProductChain.name} status preparation is read-only. Transaction review and wallet confirmation remain isolated in the owner-only testnet window.`
                   : "Official Base MCP wallet authority is blocked until provider metadata, least-privilege scope, tool mapping, and approval behavior are verified."}
               </span>
             </div>
@@ -3504,7 +3687,11 @@ export function Dashboard({
               <article>
                 <small>Action allowlist</small>
                 <strong>
-                  {preparedActionAllowlistReview.allowed
+                  {appConfig.chain.testnetEvidenceMode
+                    ? selectedChainActionPrepared
+                      ? "status route ready"
+                      : "status check required"
+                    : preparedActionAllowlistReview.allowed
                     ? "review schema ready"
                     : "execution locked"}
                 </strong>
@@ -3515,7 +3702,7 @@ export function Dashboard({
               </article>
               <article>
                 <small>Allowed kinds</small>
-                <strong>status check, reviewed transaction</strong>
+                <strong>{appConfig.chain.testnetEvidenceMode ? "read-only status check" : "status check, reviewed transaction"}</strong>
               </article>
               <article>
                 <small>Token spend</small>
@@ -3688,10 +3875,10 @@ export function Dashboard({
             </div>
           </section>
 
-          <section className="dashboard-panel execution-result-panel">
+          <section className={"dashboard-panel execution-result-panel" + (appConfig.chain.testnetEvidenceMode ? " is-robinhood-testnet" : "")}>
             <div className="panel-title">
-              <span>Execution audit trail</span>
-              <span>owner-only</span>
+              <span>{appConfig.chain.testnetEvidenceMode ? "Testnet transaction" : "Execution audit trail"}</span>
+              <span>{appConfig.chain.testnetEvidenceMode ? robinhoodTestnetCloseout.label : "owner-only"}</span>
             </div>
             <div className="controlled-live-gate-panel">
               <div className="controlled-live-gate-header">
@@ -4031,7 +4218,7 @@ export function Dashboard({
                   </small>
                 )}
             </div>
-            <div className="phase-8-live-window-activation-panel">
+            <div className="phase-8-live-window-activation-panel" id="robinhood-testnet-review">
               <div className="phase-8-live-window-activation-header">
                 <span>Transaction review window</span>
                 <strong>{phase8OwnerLiveWindowActivation.status}</strong>
@@ -4187,7 +4374,8 @@ export function Dashboard({
                   </small>
                 )}
             </div>
-            <Phase8ControlledSubmitter
+            <div id="robinhood-testnet-submit">
+              <Phase8ControlledSubmitter
               submission={phase8ControlledSubmission}
               activation={phase8OwnerLiveWindowActivation}
               preflight={phase8RuntimeEnablementPreflight}
@@ -4195,7 +4383,8 @@ export function Dashboard({
               submissionNonce={activePhase8OwnerArming?.submissionNonce ?? null}
               frozenAction={phase8FrozenAction}
               onResultCloseout={handlePhase8ResultCloseout}
-            />
+              />
+            </div>
             <div className="result-monitoring-panel">
               <div className="result-monitoring-header">
                 <span>Result monitoring</span>

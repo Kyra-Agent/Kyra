@@ -243,7 +243,9 @@ assert(
   dashboardPage.includes("const canViewOperationalReadiness = isAdmin") &&
     dashboardPage.includes("{canViewOperationalReadiness") &&
     dashboardPage.includes("className=\"dashboard-panel backend-readiness-panel\"") &&
-    dashboardPage.includes("className=\"dashboard-panel execution-result-panel\""),
+    dashboardPage.includes(
+      'className={"dashboard-panel execution-result-panel" + (appConfig.chain.testnetEvidenceMode ? " is-robinhood-testnet" : "")}',
+    ),
   "Dashboard phase/readiness operations must render only for owner/admin readiness access.",
 );
 assert(

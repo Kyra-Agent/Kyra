@@ -54,6 +54,7 @@ try {
     createPhase8PersistedExecutionResult,
     getPhase8ResultPersistenceFailureMessage,
     mapPhase8PersistedResultToDemoExecutionResult,
+    reconcilePhase8PersistedExecutionResult,
   } = await import(`file:///${outputPath.replace(/\\/g, "/")}`);
 
   const txHash =
@@ -88,6 +89,25 @@ try {
   assertEquals(demo.status, "submitted");
   assertEquals(demo.txHashLabel, "0xcccccccc...cccccccc");
 
+  const reconciledConfirmed = reconcilePhase8PersistedExecutionResult(
+    persisted.record,
+    "success",
+    "2026-07-05T01:05:00.000Z",
+  );
+  assertEquals(reconciledConfirmed.status, "confirmed");
+  assertEquals(reconciledConfirmed.failureReason, null);
+  assertEquals(reconciledConfirmed.updatedAt, "2026-07-05T01:05:00.000Z");
+
+  const reconciledFailed = reconcilePhase8PersistedExecutionResult(
+    persisted.record,
+    "reverted",
+    "2026-07-05T01:06:00.000Z",
+  );
+  assertEquals(reconciledFailed.status, "failed");
+  assertEquals(
+    reconciledFailed.failureReason,
+    "Controlled transaction reverted without exposing provider internals.",
+  );
   const confirmed = createPhase8PersistedExecutionResult({
     ...baseInput,
     event: { ...event, state: "confirmed" },

@@ -139,7 +139,7 @@ function buildResult(input: {
     txHash: input.txHash,
     txHashLabel: maskHash(input.txHash),
     confirmationId: input.status === "confirmed" && input.txHash
-      ? `base-receipt-${input.txHash.slice(2, 10)}`
+      ? `receipt-${input.txHash.slice(2, 10)}`
       : null,
     sanitizedFailureReason: failureReason,
     canPromoteToConfirmed: input.status === "confirmed",

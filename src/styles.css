@@ -3410,6 +3410,186 @@ h2 {
   line-height: 1.4;
 }
 
+.robinhood-testnet-closeout {
+  display: grid;
+  gap: 0.9rem;
+  margin-bottom: 0.75rem;
+  padding: 1rem;
+  border: 1px solid rgba(70, 180, 255, 0.34);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(24, 72, 118, 0.14), rgba(8, 18, 31, 0.78)),
+    var(--surface-deep);
+}
+
+.robinhood-testnet-closeout.status-complete {
+  border-color: rgba(80, 222, 157, 0.44);
+  background:
+    linear-gradient(135deg, rgba(24, 120, 78, 0.13), rgba(8, 18, 31, 0.78)),
+    var(--surface-deep);
+}
+
+.robinhood-testnet-closeout.status-failed {
+  border-color: rgba(255, 105, 120, 0.42);
+}
+
+.robinhood-testnet-closeout-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.robinhood-testnet-closeout-header small,
+.robinhood-testnet-closeout-header strong {
+  display: block;
+}
+
+.robinhood-testnet-closeout-header small {
+  color: var(--muted);
+}
+
+.robinhood-testnet-closeout-header > span:last-child {
+  padding: 0.28rem 0.48rem;
+  border: 1px solid rgba(80, 222, 157, 0.25);
+  border-radius: 999px;
+  color: #8ae6b1;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.robinhood-testnet-closeout-steps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.testnet-step {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 66px;
+  padding: 0.62rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(8, 17, 29, 0.62);
+  color: var(--muted);
+}
+
+.testnet-step-index {
+  color: #6f8298;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+}
+
+.testnet-step div {
+  min-width: 0;
+}
+
+.testnet-step strong,
+.testnet-step small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.testnet-step strong {
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+.testnet-step small {
+  margin-top: 0.14rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.testnet-step.step-complete {
+  border-color: rgba(80, 222, 157, 0.25);
+}
+
+.testnet-step.step-complete > svg {
+  color: #50de9d;
+}
+
+.testnet-step.step-current {
+  border-color: rgba(70, 180, 255, 0.5);
+  background: rgba(35, 103, 170, 0.13);
+}
+
+.testnet-step.step-current > svg {
+  color: #7bc9ff;
+}
+
+.testnet-step.step-failed {
+  border-color: rgba(255, 105, 120, 0.45);
+}
+
+.testnet-step.step-failed > svg {
+  color: #ff6978;
+}
+
+.robinhood-testnet-closeout > p,
+.robinhood-testnet-closeout-note {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.robinhood-testnet-closeout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.robinhood-testnet-closeout-actions .button {
+  justify-content: center;
+  min-height: 42px;
+}
+
+.robinhood-testnet-closeout-actions > small {
+  color: #b9c9db;
+}
+
+.robinhood-testnet-closeout-note {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.prepared-action-panel.is-robinhood-testnet .prepared-action-policy-panel,
+.prepared-action-panel.is-robinhood-testnet .dual-approval-panel {
+  display: none;
+}
+
+.execution-result-panel.is-robinhood-testnet .controlled-live-gate-panel,
+.execution-result-panel.is-robinhood-testnet .execution-launch-panel,
+.execution-result-panel.is-robinhood-testnet .phase-8-execution-panel,
+.execution-result-panel.is-robinhood-testnet .phase-8-live-window-panel,
+.execution-result-panel.is-robinhood-testnet .phase-8-wallet-prompt-panel,
+.execution-result-panel.is-robinhood-testnet .phase-8-submission-panel,
+.execution-result-panel.is-robinhood-testnet .phase-8-user-policy-panel,
+.execution-result-panel.is-robinhood-testnet .phase-8-user-flow-panel,
+.execution-result-panel.is-robinhood-testnet .phase-8-security-hardening-panel,
+.execution-result-panel.is-robinhood-testnet .phase-8-low-value-panel,
+.execution-result-panel.is-robinhood-testnet .phase-8-low-value-request-panel,
+.execution-result-panel.is-robinhood-testnet .phase-8-low-value-submitter,
+.execution-result-panel.is-robinhood-testnet .phase-8-production-closeout-panel,
+.execution-result-panel.is-robinhood-testnet .phase-9-execution-eligibility-panel,
+.execution-result-panel.is-robinhood-testnet .phase-9-abuse-rate-limit-panel,
+.execution-result-panel.is-robinhood-testnet .phase-9-incident-controls-panel,
+.execution-result-panel.is-robinhood-testnet .phase-9-monitoring-support-panel,
+.execution-result-panel.is-robinhood-testnet .phase-9-public-privacy-panel,
+.execution-result-panel.is-robinhood-testnet .phase-9-closeout-panel,
+.execution-result-panel.is-robinhood-testnet .execution-result-list {
+  display: none;
+}
+
+#robinhood-testnet-review,
+#robinhood-testnet-submit {
+  scroll-margin-top: 7rem;
+}
 .wallet-readiness-header {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -6973,4 +7153,28 @@ h2 {
 .phase-8-low-value-submitter small {
   color: #9fb2c7;
   font-family: var(--font-mono);
+}
+
+@media (max-width: 720px) {
+  .robinhood-testnet-closeout {
+    padding: 0.82rem;
+  }
+
+  .robinhood-testnet-closeout-header {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .robinhood-testnet-closeout-header > span:last-child {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .robinhood-testnet-closeout-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .robinhood-testnet-closeout-actions,
+  .robinhood-testnet-closeout-actions .button {
+    width: 100%;
+  }
 }
