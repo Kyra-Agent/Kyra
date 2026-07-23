@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   Terminal,
   Trash2,
+  Unplug,
   WalletCards,
   X,
 } from "lucide-react";
@@ -69,6 +70,7 @@ import {
   fetchTelegramDashboardStatuses,
   type TelegramDashboardStatusRecord,
 } from "../services/telegramDashboardStatusService";
+import { revokeTelegramAgentConnection } from "../services/telegramDisconnectService";
 import {
   prepareBaseMcpStatusCheck,
   type BaseMcpDashboardStatus,
@@ -788,6 +790,13 @@ export function Dashboard({
   const [agentRemovalMessage, setAgentRemovalMessage] = useState(
     "Select an agent to manage its workspace slot.",
   );
+  const [telegramDisconnectConfirmId, setTelegramDisconnectConfirmId] = useState<string | null>(
+    null,
+  );
+  const [telegramDisconnectStatus, setTelegramDisconnectStatus] = useState<
+    "idle" | "running" | "success" | "error"
+  >("idle");
+  const [telegramDisconnectMessage, setTelegramDisconnectMessage] = useState("");
   const [activeDashboardSectionId, setActiveDashboardSectionId] = useState<
     DashboardSectionId
   >(() =>
@@ -1022,6 +1031,10 @@ export function Dashboard({
   const agentPendingRemoval = useMemo(
     () => agentRecords.find((agent) => agent.id === removeAgentConfirmId) ?? null,
     [agentRecords, removeAgentConfirmId],
+  );
+  const telegramDisconnectAgent = useMemo(
+    () => agentRecords.find((agent) => agent.id === telegramDisconnectConfirmId) ?? null,
+    [agentRecords, telegramDisconnectConfirmId],
   );
   const dashboardAgentIdsKey = useMemo(
     () => agentRecords.map((agent) => agent.id).join(","),
@@ -2384,6 +2397,7 @@ export function Dashboard({
   ];
   const isAdminActionRunning = adminActionStatus === "running";
   const isAgentRemovalRunning = agentRemovalStatus === "running";
+  const isTelegramDisconnectRunning = telegramDisconnectStatus === "running";
   const usingChainActionPrepare = currentProductChain.key !== "base";
   const prepareFunctionConfigured = usingChainActionPrepare
     ? appConfig.functions.chainActionPrepareConfigured
@@ -2697,6 +2711,85 @@ export function Dashboard({
       if (selectedDashboardAgentId === removedAgentId) {
         setSelectedDashboardAgentId(null);
       }
+      setDashboardReloadKey((key) => key + 1);
+    }
+  }
+
+  function handleOpenTelegramDisconnect() {
+    if (!authSession || !agentRecord || !selectedTelegramActive || isTelegramDisconnectRunning) {
+      return;
+    }
+
+    setTelegramDisconnectStatus("idle");
+    setTelegramDisconnectMessage("");
+    setTelegramDisconnectConfirmId(agentRecord.id);
+  }
+
+  function handleCloseTelegramDisconnect() {
+    if (isTelegramDisconnectRunning) {
+      return;
+    }
+
+    setTelegramDisconnectConfirmId(null);
+  }
+
+  async function handleConfirmTelegramDisconnect() {
+    if (
+      !authSession ||
+      !telegramDisconnectAgent ||
+      isTelegramDisconnectRunning ||
+      !appConfig.functions.telegramDisconnectConfigured
+    ) {
+      return;
+    }
+
+    setTelegramDisconnectStatus("running");
+    setTelegramDisconnectMessage(
+      `Revoking ${telegramDisconnectAgent.displayName} Telegram connection...`,
+    );
+    recordBackendEvent({
+      kind: "telegram-disconnect",
+      status: "running",
+      message: "Owner-scoped Telegram revoke requested.",
+      source: "telegram-disconnect",
+    });
+
+    const freshAuth = await ensureFreshAuthSession(authSession);
+    syncFreshAuthSession(authSession, freshAuth);
+
+    if (!freshAuth.session) {
+      setTelegramDisconnectStatus("error");
+      setTelegramDisconnectMessage(freshAuth.message);
+      setTelegramDisconnectConfirmId(null);
+      recordBackendEvent({
+        kind: "telegram-disconnect",
+        status: "blocked",
+        message: freshAuth.message,
+        source: "account session",
+        code: "session_refresh_failed",
+      });
+      return;
+    }
+
+    const result = await revokeTelegramAgentConnection({
+      session: freshAuth.session,
+      agentId: telegramDisconnectAgent.id,
+    });
+
+    setTelegramDisconnectStatus(result.ok ? "success" : "error");
+    setTelegramDisconnectMessage(result.message);
+    setTelegramDisconnectConfirmId(null);
+    recordBackendEvent({
+      kind: "telegram-disconnect",
+      status: result.ok ? "success" : "error",
+      message: result.message,
+      source: "telegram-disconnect",
+      code: result.status,
+    });
+
+    if (result.ok) {
+      setAgentRemovalStatus("idle");
+      setAgentRemovalMessage("Telegram revoked. This agent can now be removed safely.");
       setDashboardReloadKey((key) => key + 1);
     }
   }
@@ -3188,6 +3281,32 @@ export function Dashboard({
                       )
                       : null}
                   </div>
+                  {selectedTelegramActive
+                    ? (
+                      <div className="telegram-disconnect-actions">
+                        <button
+                          className="button button-ghost telegram-disconnect-button"
+                          disabled={isTelegramDisconnectRunning ||
+                            !appConfig.functions.telegramDisconnectConfigured}
+                          onClick={handleOpenTelegramDisconnect}
+                          type="button"
+                        >
+                          <Unplug size={16} />
+                          Disconnect Telegram
+                        </button>
+                        <small>
+                          Stops this bot and revokes its backend-only Telegram credentials.
+                        </small>
+                      </div>
+                    )
+                    : null}
+                  {telegramDisconnectStatus !== "idle"
+                    ? (
+                      <p className={`telegram-connect-message telegram-disconnect-${telegramDisconnectStatus}`}>
+                        {telegramDisconnectMessage}
+                      </p>
+                    )
+                    : null}
                 </>
               )
               : (
@@ -4986,6 +5105,89 @@ export function Dashboard({
           </>
         )}
       </section>
+
+      {telegramDisconnectConfirmId && telegramDisconnectAgent && authSession
+        ? (
+          <div className="modal-backdrop" role="presentation">
+            <section
+              aria-labelledby="telegram-disconnect-title"
+              aria-modal="true"
+              className="approval-modal reset-confirm-modal"
+              role="dialog"
+            >
+              <div className="modal-header">
+                <div>
+                  <span className="demo-badge compact">
+                    <Unplug size={14} />
+                    Telegram connection
+                  </span>
+                  <h3 id="telegram-disconnect-title">
+                    Disconnect {telegramDisconnectAgent.displayName}?
+                  </h3>
+                </div>
+                <button
+                  aria-label="Close Telegram disconnect confirmation"
+                  className="icon-button"
+                  disabled={isTelegramDisconnectRunning}
+                  onClick={handleCloseTelegramDisconnect}
+                  type="button"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <p className="reset-confirm-copy">
+                Kyra will stop Telegram delivery, unregister the webhook, and revoke the
+                backend token reference for this agent. The agent record remains until
+                you remove it separately.
+              </p>
+              <div className="reset-scope-grid">
+                <span>
+                  Agent
+                  <strong>{telegramDisconnectAgent.displayName}</strong>
+                </span>
+                <span>
+                  Bot handle
+                  <strong>{telegramDisconnectAgent.handle}</strong>
+                </span>
+                <span>
+                  Other agents
+                  <strong>Not touched</strong>
+                </span>
+                <span>
+                  Wallet funds
+                  <strong>Not touched</strong>
+                </span>
+              </div>
+              <div className="approval-warning reset-confirm-warning">
+                <ShieldCheck size={17} />
+                Reconnecting this bot later requires a fresh owner-approved BotFather
+                token flow.
+              </div>
+              <div className="modal-actions">
+                <button
+                  className="button button-ghost"
+                  disabled={isTelegramDisconnectRunning}
+                  onClick={handleCloseTelegramDisconnect}
+                  type="button"
+                >
+                  Cancel
+                </button>
+                <button
+                  className="button button-primary admin-action-danger"
+                  disabled={isTelegramDisconnectRunning ||
+                    !appConfig.functions.telegramDisconnectConfigured}
+                  onClick={handleConfirmTelegramDisconnect}
+                  type="button"
+                >
+                  <Unplug size={16} />
+                  {isTelegramDisconnectRunning ? "Revoking..." : "Disconnect & revoke"}
+                </button>
+              </div>
+            </section>
+          </div>
+        )
+        : null}
 
       {removeAgentConfirmId && agentPendingRemoval && authSession
         ? (

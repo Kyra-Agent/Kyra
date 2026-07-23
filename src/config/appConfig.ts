@@ -29,6 +29,9 @@ const telegramLinkFunctionUrl =
 const telegramDashboardStatusFunctionUrl =
   readEnv("VITE_KYRA_TELEGRAM_DASHBOARD_STATUS_FUNCTION_URL") ||
   (supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/telegram-dashboard-status` : "");
+const telegramDisconnectFunctionUrl =
+  readEnv("VITE_KYRA_TELEGRAM_DISCONNECT_FUNCTION_URL") ||
+  (supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/telegram-disconnect` : "");
 const baseMcpPrepareFunctionUrl =
   supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/base-mcp-prepare` : "";
 const chainActionPrepareFunctionUrl =
@@ -85,6 +88,8 @@ export const appConfig = {
     telegramDashboardStatusConfigured: Boolean(
       telegramDashboardStatusFunctionUrl && supabaseConfigured,
     ),
+    telegramDisconnectUrl: telegramDisconnectFunctionUrl,
+    telegramDisconnectConfigured: Boolean(telegramDisconnectFunctionUrl && supabaseConfigured),
     baseMcpPrepareUrl: baseMcpPrepareFunctionUrl,
     baseMcpPrepareConfigured: Boolean(
       baseMcpPrepareFunctionUrl && supabaseConfigured,

@@ -2661,18 +2661,16 @@ h2 {
 }
 
 .dashboard-agent-strip {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
   gap: 0.65rem;
-  overflow-x: auto;
-  padding-bottom: 0.15rem;
-  scrollbar-width: thin;
 }
 
 .dashboard-agent-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 42px;
   gap: 0.45rem;
-  min-width: min(28rem, 90vw);
+  min-width: 0;
 }
 
 .dashboard-agent-item .dashboard-agent-pill {
@@ -2703,7 +2701,7 @@ h2 {
   grid-template-columns: minmax(9.5rem, 1fr) auto;
   align-items: center;
   gap: 0.75rem;
-  min-width: min(25rem, 82vw);
+  min-width: 0;
   padding: 0.82rem 0.9rem;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -2917,6 +2915,41 @@ h2 {
   color: var(--muted);
   font-size: 0.86rem;
   line-height: 1.45;
+}
+
+.telegram-disconnect-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0.8rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.telegram-disconnect-actions small {
+  flex: 1 1 16rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.telegram-disconnect-button {
+  min-height: 40px;
+  border-color: rgba(255, 111, 125, 0.3);
+  color: #ffb0b8;
+}
+
+.telegram-disconnect-button:hover:not(:disabled) {
+  border-color: rgba(255, 111, 125, 0.58);
+  background: rgba(255, 111, 125, 0.09);
+}
+
+.telegram-disconnect-success {
+  color: var(--green);
+}
+
+.telegram-disconnect-error {
+  color: #ffb0b8;
 }
 
 .telegram-status-readout {
@@ -5820,10 +5853,6 @@ h2 {
 
   .dashboard-topbar h1 {
     font-size: 2.35rem;
-  }
-
-  .dashboard-agent-item {
-    min-width: min(25rem, 92vw);
   }
 
   .dashboard-agent-pill {
