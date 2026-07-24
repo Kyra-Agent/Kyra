@@ -15,7 +15,7 @@ const doc = read("docs/phase-7AA-provider-candidate-intake-gate.md");
 const phase7Audit = read("docs/phase-7-pre-execution-audit.md");
 const entryCheck = read("scripts/check-phase-7-entry.mjs");
 const packageJson = read("package.json");
-const readme = read("README.md");
+const roadmap = read("docs/product-phase-roadmap.md");
 const phase7Z = read("docs/phase-7Z-provider-selection-sandbox.md");
 const phase7V = read("docs/phase-7V-provider-candidate-dossier.md");
 const runtime = read("supabase/functions/base-mcp-prepare/runtime-config.ts");
@@ -109,7 +109,7 @@ for (
   ]
 ) includes("package scripts", packageJson, value);
 
-includes("README", readme, "Base MCP remains an optional provider adapter track");
+includes("product roadmap", roadmap, "an explicit legacy rollback and historical compatibility lane.");
 includes(
   "Phase 7Z sandbox",
   phase7Z,

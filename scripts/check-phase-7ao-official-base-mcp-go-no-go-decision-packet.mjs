@@ -84,7 +84,7 @@ includes(
 includes(
   "private context",
   context,
-  "Supporting readiness packets are evidence under Phase 7",
+  "The primary product target is Robinhood Chain mainnet, chain ID `4663`.",
 );
 includes("unblock matrix", unblock, "Hard No-Go Conditions");
 includes("evidence refresh", refresh, "Keep Phase 7C blocked.");

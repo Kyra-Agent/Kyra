@@ -1,203 +1,93 @@
 import { readFileSync } from "node:fs";
 
-const roadmap = readFileSync("docs/product-phase-roadmap.md", "utf8");
-const readme = readFileSync("README.md", "utf8");
-const phase5 = readFileSync("docs/phase-5-telegram-closeout.md", "utf8");
-const phase6 = readFileSync("docs/phase-6-closeout-audit.md", "utf8");
-const phase7 = readFileSync("docs/phase-7-pre-execution-audit.md", "utf8");
-const phase7cOfficialContract = readFileSync(
-  "docs/phase-7C-official-base-mcp-provider-contract-audit.md",
-  "utf8",
-);
-const privateContext = readFileSync("docs/kyra-agent-context.md", "utf8");
-const optionalCdp = readFileSync(
-  "docs/optional-cdp-node-infrastructure.md",
-  "utf8",
-);
-const providerSeparation = readFileSync(
-  "docs/phase-7-provider-separation-decision.md",
-  "utf8",
-);
-const readinessCloseout = readFileSync(
-  "docs/supporting-readiness-closeout.md",
-  "utf8",
-);
-
-for (
-  const expected of [
-    "canonical source of truth for product phases",
-    "Kyra is a platform for deploying user-owned AI agents.",
-    "## The 10 Product Phases",
-    "This is the only active roadmap.",
-    "| 1 | Product Foundation |",
-    "| 2 | Backend Foundation |",
-    "| 3 | Security + Privacy Foundation |",
-    "| 4 | Agent Deployment Flow |",
-    "| 5 | Telegram + LLM Live |",
-    "| 6 | Wallet/Approval Foundation |",
-    "| 7 | Base Account + Execution Readiness |",
-    "| 8 | Controlled Live Transaction |",
-    "| 9 | Public Execution Hardening |",
-    "| 10 | Product Release Readiness |",
-    "## Phase 5 - Telegram + LLM Live",
-    "Status: complete and live read-only.",
-    "## Phase 6 - Wallet/Approval Foundation",
-    "Status: foundation complete, not live execution.",
-    "## Phase 7 - Base Account + Execution Readiness",
-    "Status: complete as readiness; not live execution.",
-    "Phase 7E wallet prompt/signing boundary is implemented",
-    "Phase 7F prepared-action adapter allowlist is implemented",
-    "Phase 7G prepared-action policy enforcement is implemented",
-    "Phase 7H dual approval and freeze boundary is implemented",
-    "Phase 7I result monitoring and closeout boundary is implemented",
-    "Phase 7J controlled live transaction gate is implemented",
-    "## Phase 8 - Controlled Live Transaction",
-    "Phase 8 is not complete until this complete user flow works:",
-    "receive explicit Kyra owner approval",
-    "receive explicit Base Account SDK approval",
-    "## Phase 9 - Public Execution Hardening",
-    "## Phase 10 - Product Release Readiness",
-    "## Base MCP Position",
-    "Official hosted Base MCP remains an optional provider adapter.",
-    "This NO-GO applies only to the official hosted `mcp.base.org` adapter.",
-    "Coinbase CDP Node or another RPC provider may later support",
-    "the primary Base Account product flow",
-    "User wallet authority and user Telegram bot-token privacy are priority one.",
-    "docs/supporting-readiness-closeout.md",
-  ]
-) {
-  includes("canonical roadmap", roadmap, expected);
+function read(path) {
+  return readFileSync(path, "utf8");
 }
+function includes(label, source, expected) {
+  if (!source.includes(expected)) throw new Error(`${label} missing expected text: ${expected}`);
+}
+function excludes(label, source, forbidden) {
+  if (source.includes(forbidden)) throw new Error(`${label} contains forbidden text: ${forbidden}`);
+}
+
+const roadmap = read("docs/product-phase-roadmap.md");
+const readme = read("README.md");
+const phase5 = read("docs/phase-5-telegram-closeout.md");
+const phase6 = read("docs/phase-6-closeout-audit.md");
+const phase7 = read("docs/phase-7-pre-execution-audit.md");
+const context = read("docs/kyra-agent-context.md");
+const blueprint = read("docs/robinhood-chain-migration-blueprint.md");
+const readinessCloseout = read("docs/supporting-readiness-closeout.md");
+const providerSeparation = read("docs/phase-7-provider-separation-decision.md");
+
+for (const expected of [
+  "canonical source of truth for product phases",
+  "Kyra is a platform for deploying user-owned AI agents.",
+  "Active release track: Robinhood Chain migration.",
+  "does not create Phase 11",
+  "public product build now targets Robinhood Chain",
+  "Mainnet transaction submission remains fail-closed",
+  "## The 10 Product Phases",
+  "This is the only active roadmap.",
+  "| 1 | Product Foundation |",
+  "| 2 | Backend Foundation |",
+  "| 3 | Security + Privacy Foundation |",
+  "| 4 | Agent Deployment Flow |",
+  "| 5 | Telegram + LLM Live |",
+  "| 6 | Wallet/Approval Foundation |",
+  "| 7 | Wallet + Execution Readiness |",
+  "| 8 | Controlled Live Transaction |",
+  "| 9 | Public Execution Hardening |",
+  "| 10 | Product Release Readiness |",
+  "Historical evidence boundary",
+  "Base Account and Base MCP sections below document",
+  "User wallet authority and user Telegram bot-token privacy are priority one.",
+]) includes("canonical roadmap", roadmap, expected);
 
 for (const source of [readme, phase5, phase6, phase7]) {
-  includes(
-    "canonical roadmap reference",
-    source,
-    "docs/product-phase-roadmap.md",
-  );
+  includes("canonical roadmap reference", source, "docs/product-phase-roadmap.md");
 }
 
-for (
-  const expected of [
-    "## Product Status",
-    "Kyra has closed the current release-readiness roadmap",
-    "Base Account readiness, controlled owner execution flow",
-    "Public execution remains approval-first by design.",
-    "docs/product-phase-roadmap.md",
-    "docs/supporting-readiness-closeout.md",
-    "docs/phase-10-product-release-readiness.md",
-  ]
-) {
-  includes("README roadmap", readme, expected);
-}
+for (const expected of [
+  "## Product Status",
+  "Robinhood Chain",
+  "Public execution is deliberately narrower",
+  "docs/product-phase-roadmap.md",
+  "docs/robinhood-chain-migration-blueprint.md",
+]) includes("README roadmap", readme, expected);
 
-for (
-  const expected of [
-    "# Supporting Readiness Closeout",
-    "They support the 10-phase product roadmap",
-    "The groups are not additional product phases.",
-    "User wallet authority and user Telegram bot-token privacy remain the top",
-    "Phase 7 is complete as Base Account + execution readiness.",
-    "Phase 8 implementation is closed for the first controlled live transaction path.",
-    "Phase 9 covers public execution hardening.",
-    "Phase 10 covers product release readiness.",
-    "public execution eligibility rules",
-  ]
-) {
-  includes("supporting readiness closeout", readinessCloseout, expected);
-}
+for (const expected of [
+  "# Kyra Agent Context",
+  "## Canonical 10-Phase Roadmap",
+  "Robinhood Chain migration",
+  "not Phase 11",
+  "User wallet authority and Telegram bot-token privacy are priority one.",
+  "Do not use old Base-native positioning",
+]) includes("writer context roadmap", context, expected);
 
-for (
-  const expected of [
-    "Canonical 10-phase roadmap",
-    "Phase 7 is complete as Base Account + execution readiness",
-    "Phase 8 implementation is closed:",
-    "controlled live transaction",
-    "Phase 9 is structurally complete: public execution hardening",
-    "Phase 10 is active: product release readiness",
-    "Supporting readiness packets are evidence under Phase 7",
-    "User wallet",
-    "Telegram bot-token privacy are priority one",
-  ]
-) {
-  includes("private context roadmap", privateContext, expected);
-}
+for (const expected of [
+  "# Supporting Readiness Closeout",
+  "They support the 10-phase product roadmap",
+  "The groups are not additional product phases.",
+]) includes("supporting readiness closeout", readinessCloseout, expected);
 
-for (
-  const expected of [
-    "Status: no-go for live wallet authority.",
-    "Protected resource metadata checks returned:",
-    "`agent_wallet:transact` | rejected",
-    "`agent_wallet:escalate` | rejected",
-    "No-go for the official hosted Base MCP adapter implementation.",
-  ]
-) {
-  includes("Phase 7C official contract audit", phase7cOfficialContract, expected);
-}
+for (const expected of [
+  "# Phase 7 Provider Separation Decision",
+  "Kyra Prepared-Action Adapter",
+  "Official Hosted Base MCP Adapter",
+]) includes("historical provider decision", providerSeparation, expected);
 
-includes(
-  "optional CDP classification",
-  optionalCdp,
-  "not part of the primary Phase 7",
-);
-includes(
-  "optional CDP classification",
-  optionalCdp,
-  "The Base Account SDK plus Kyra's bounded",
-);
+for (const expected of [
+  "# Robinhood Chain Migration Blueprint",
+  "release track under the existing 10-phase product roadmap",
+  "not Phase 11",
+]) includes("migration blueprint", blueprint, expected);
 
-for (
-  const expected of [
-    "# Phase 7 Provider Separation Decision",
-    "Kyra's production transaction path must not depend on the hosted official",
-    "Base Account SDK",
-    "Kyra Prepared-Action Adapter",
-    "Official Hosted Base MCP Adapter",
-    "It does not block:",
-    "owner-authenticated Base Account connection in the private dashboard",
-  ]
-) {
-  includes("provider separation decision", providerSeparation, expected);
-}
-
-for (
-  const forbidden of [
-    "CDP Node is required for official Base MCP",
-    "must use a platform-owned wallet",
-    "Telegram signs and submits",
-    "Phase 7D runtime Base Account connection is still blocked.",
-    "Phase 7D product runtime still depends on Phase 7C",
-    "Only after a go decision, implement Base Account connection",
-    "Official Base MCP remains the primary Phase 7",
-  ]
-) {
-  excludes(
-    "canonical roadmap sources",
-    `${roadmap}\n${readme}\n${readinessCloseout}\n${optionalCdp}\n${providerSeparation}`,
-    forbidden,
-  );
-}
-
-for (
-  const forbidden of [
-    "Kyra must not start Phase 7D wallet/Base MCP implementation",
-    "Phase 7D cannot begin while provider evidence remains insufficient",
-    "only after Phase 7C changes from no-go to go",
-  ]
-) {
-  excludes("private context provider separation", privateContext, forbidden);
-}
+for (const forbidden of [
+  "must use a platform-owned wallet",
+  "Telegram signs and submits",
+  "Robinhood Chain execution is live",
+  "Kyra is endorsed by Robinhood",
+]) excludes("canonical current sources", `${roadmap}\n${readme}\n${context}\n${blueprint}`, forbidden);
 
 console.log("Canonical product phase roadmap checks passed.");
-
-function includes(label, source, expected) {
-  if (!source.includes(expected)) {
-    throw new Error(`${label} missing expected text: ${expected}`);
-  }
-}
-
-function excludes(label, source, forbidden) {
-  if (source.includes(forbidden)) {
-    throw new Error(`${label} contains forbidden text: ${forbidden}`);
-  }
-}

@@ -91,7 +91,7 @@ includes(
 includes(
   "private context",
   context,
-  "Supporting readiness packets are evidence under Phase 7",
+  "The primary product target is Robinhood Chain mainnet, chain ID `4663`.",
 );
 includes("Phase 7AO decision", decisionPacket, "Decision: **NO-GO**.");
 includes("Phase 7AX skeleton", skeletonDoc, "Phase 7AX result: `disabled_safe`.");

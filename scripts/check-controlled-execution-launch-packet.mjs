@@ -137,7 +137,7 @@ for (
     "evaluateExecutionLaunchReadiness",
     "executionLaunchReadiness",
     "Execution launch packet",
-    "Base Account",
+    "currentWalletDisplayName",
     "optional disabled",
     "wallet prompt, signing, and submission",
   ]

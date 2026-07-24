@@ -239,7 +239,7 @@ assertIncludes(
 );
 assertIncludes("template data", templateData, "swap reviews");
 assertIncludes("template data", templateData, "transfer reviews");
-assertIncludes("template data", templateData, "approval-first Base readiness");
+assertIncludes("template data", templateData, "approval-first ${currentProductChain.name} readiness");
 assertIncludes("template data", templateData, "review 10 USDC to ETH swap");
 assertIncludes(
   "Supabase Kyra repository",
@@ -266,7 +266,7 @@ assertIncludes("demo scenarios", demoScenarioData, "token_swap_review");
 assertIncludes(
   "demo scenarios",
   demoScenarioData,
-  "BASE ACTION review draft created",
+  "CHAIN ACTION review draft created",
 );
 assertIncludes("demo scenarios", demoScenarioData, "wallet_execution_disabled");
 assertIncludes("demo backend data", demoBackendData, "Swap review draft");
@@ -330,7 +330,7 @@ assertIncludes(
   securitySection,
   "Wallet approval gate required",
 );
-assertIncludes("App", app, "explicit owner approval");
+assertIncludes("App", app, "explicit user and wallet approval");
 assertIncludes("dashboard", dashboard, "Provider stack");
 assertIncludes("dashboard", dashboard, "Prompt access");
 assertIncludes("dashboard", dashboard, "No automatic wallet prompt");
@@ -543,7 +543,7 @@ assertIncludes(
 assertIncludes(
   "wallet signing state model",
   walletSigningTypes,
-  "Wallet must be connected to Base.",
+  "Wallet must be connected to ${currentProductChain.name}.",
 );
 assertIncludes(
   "wallet signing state model",

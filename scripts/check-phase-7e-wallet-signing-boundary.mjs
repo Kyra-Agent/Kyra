@@ -197,7 +197,7 @@ for (
     "Submitted actions require a transaction hash.",
     "Rejected actions must not include a transaction hash.",
     "Failed actions before submission must not include a transaction hash.",
-    "Wallet must be connected to Base.",
+    "Wallet must be connected to ${currentProductChain.name}.",
     "isBaseWalletNetwork",
     "isTransactionHash",
   ]

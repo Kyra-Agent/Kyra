@@ -200,7 +200,8 @@ assertNotIncludes("Base MCP dependencies", baseMcpDependencies, "storePreparedAc
 assertIncludes("app config", appConfig, 'walletExecution: "disabled"');
 assertIncludes("wallet boundary", walletBoundary, 'appConfig.integrations.walletExecution === "disabled"');
 
-assertIncludes("netlify.toml", netlifyConfig, 'command = "npm run build"');
+assertIncludes("netlify.toml", netlifyConfig, 'command = "npm run build:robinhood-mainnet"');
+assertNotIncludes("netlify.toml", netlifyConfig, 'command = "npm run build"');
 assertIncludes("netlify.toml", netlifyConfig, 'publish = "dist"');
 assertIncludes("netlify.toml", netlifyConfig, "X-Frame-Options");
 assertIncludes("netlify.toml", netlifyConfig, "X-Content-Type-Options");

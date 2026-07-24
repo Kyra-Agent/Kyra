@@ -2,21 +2,14 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = process.cwd();
-
 function read(path) {
   return readFileSync(resolve(root, path), "utf8");
 }
-
 function includes(label, source, expected) {
-  if (!source.includes(expected)) {
-    throw new Error(`${label} must include: ${expected}`);
-  }
+  if (!source.includes(expected)) throw new Error(`${label} must include: ${expected}`);
 }
-
 function excludes(label, source, forbidden) {
-  if (source.includes(forbidden)) {
-    throw new Error(`${label} must exclude: ${forbidden}`);
-  }
+  if (source.includes(forbidden)) throw new Error(`${label} must exclude: ${forbidden}`);
 }
 
 const chains = read("src/config/productChains.ts");
@@ -39,20 +32,10 @@ for (const expected of [
   'selection.releaseApproval === "owner_release_approved"',
   "return robinhoodChain",
   "return baseLegacyChain",
-]) {
-  includes("mainnet runtime selector", chains, expected);
-}
+]) includes("mainnet runtime selector", chains, expected);
 
-includes(
-  "app config",
-  appConfig,
-  'mainnetCutoverMode: currentProductChain.key === "robinhood_mainnet"',
-);
-includes(
-  "wallet runtime",
-  walletRuntime,
-  "createWalletRuntimeConfig(currentProductChain)",
-);
+includes("app config", appConfig, 'mainnetCutoverMode: currentProductChain.key === "robinhood_mainnet"');
+includes("wallet runtime", walletRuntime, "createWalletRuntimeConfig(currentProductChain)");
 excludes("wallet runtime", walletRuntime, "createWalletRuntimeConfig(robinhoodChain)");
 
 for (const expected of [
@@ -61,81 +44,50 @@ for (const expected of [
   "VITE_KYRA_ROBINHOOD_MAINNET_RELEASE=disabled",
   "VITE_KYRA_PHASE8_CONTROLLED_SUBMISSION=disabled",
   "VITE_KYRA_PHASE8_LOW_VALUE_SUBMISSION=disabled",
-]) {
-  includes("frontend defaults", envExample, expected);
-}
+]) includes("frontend fail-closed defaults", envExample, expected);
+
 excludes("frontend defaults", envExample, "VITE_KYRA_CHAIN_RPC_URL");
 excludes("frontend defaults", envExample, "VITE_KYRA_CHAIN_PROVIDER_SHARED_SECRET");
-
-includes(
-  "backend defaults",
-  functionEnvExample,
-  "KYRA_ROBINHOOD_MAINNET_DEPLOY_ENABLED=false",
-  "no accidental mainnet transaction gate or public cutover is active",
-);
+includes("backend defaults", functionEnvExample, "KYRA_ROBINHOOD_MAINNET_DEPLOY_ENABLED=false");
 for (const expected of [
   "KYRA_ROBINHOOD_MAINNET_RPC_URL=",
   "KYRA_ROBINHOOD_MAINNET_RPC_ALLOWED_HOSTS=",
-]) {
-  includes("backend mainnet defaults", functionEnvExample, expected);
-}
-includes(
-  "mainnet deploy gate",
-  deployAgent,
-  'Deno.env.get("KYRA_ROBINHOOD_MAINNET_DEPLOY_ENABLED") !== "true"',
-);
+]) includes("backend mainnet defaults", functionEnvExample, expected);
+
+includes("mainnet deploy gate", deployAgent, 'Deno.env.get("KYRA_ROBINHOOD_MAINNET_DEPLOY_ENABLED") !== "true"');
 includes("mainnet deploy gate", deployAgent, '"chain_release_locked"');
 includes("provider policy", chainStatusConfig, '"managed_private"');
 includes("provider policy", chainStatusConfig, "KYRA_CHAIN_RPC_ALLOWED_HOSTS");
-includes(
-  "mainnet provider isolation",
-  chainStatusConfig,
-  "KYRA_ROBINHOOD_MAINNET_RPC_URL",
-);
-includes(
-  "mainnet provider isolation",
-  chainStatusConfig,
-  "KYRA_ROBINHOOD_MAINNET_RPC_ALLOWED_HOSTS",
-);
-includes(
-  "mainnet provider isolation",
-  chainStatusConfig,
-  'chain.key === "robinhood_mainnet"',
-);
+includes("mainnet provider isolation", chainStatusConfig, "KYRA_ROBINHOOD_MAINNET_RPC_URL");
+includes("mainnet provider isolation", chainStatusConfig, "KYRA_ROBINHOOD_MAINNET_RPC_ALLOWED_HOSTS");
+includes("mainnet provider isolation", chainStatusConfig, 'chain.key === "robinhood_mainnet"');
 includes("provider policy", chainStatusCore, 'hostname === "rpc.mainnet.chain.robinhood.com"');
 
 for (const expected of [
   "https://rpc.mainnet.chain.robinhood.com",
   "https://rpc.testnet.chain.robinhood.com",
-  'command = "npm run build"',
-]) {
-  includes("Netlify boundary", netlify, expected);
-}
+  'command = "npm run build:robinhood-mainnet"',
+]) includes("Netlify boundary", netlify, expected);
 
 for (const expected of [
   '"dev:robinhood-mainnet"',
   '"build:robinhood-mainnet"',
   '"check:robinhood-mainnet-cutover"',
-]) {
-  includes("package scripts", packageJson, expected);
-}
+  '"check:robinhood-public-cutover"',
+]) includes("package scripts", packageJson, expected);
 
 for (const expected of [
   "# Robinhood Chain Mainnet Cutover Runbook",
-  "Public RPC is not a production provider",
-  "No wallet private key, Telegram token, provider key, wallet address, or transaction hash",
+  "Public RPC is not Kyra's production transaction provider.",
+  "Netlify production uses `npm run build:robinhood-mainnet`.",
+  "transaction flags disabled",
   "## Rollback",
   "## Live Configuration Audit",
-  "scoped Robinhood mainnet RPC URL and hostname allowlist exist in Supabase",
-  "KYRA_CHAIN_ACTION_PREPARE_ENABLED=false",
-  "KYRA_ROBINHOOD_MAINNET_DEPLOY_ENABLED=true (agent deployment only; no signing or submission)",
-  "no accidental mainnet transaction gate or public cutover is active",
-  "owner_release_approved",
-]) {
-  includes("cutover runbook", runbook, expected);
-}
+  "returned exact chain ID `4663`",
+  "Mainnet transaction execution: controlled and not yet a public live claim.",
+]) includes("cutover runbook", runbook, expected);
 
-includes("migration blueprint", blueprint, "Batch 6 software hardening");
-includes("migration blueprint", blueprint, "Kyra-owned managed RPC");
+includes("migration blueprint", blueprint, "public product cutover candidate");
+includes("migration blueprint", blueprint, "One bounded mainnet receipt");
 
 console.log("Robinhood mainnet cutover readiness checks passed.");

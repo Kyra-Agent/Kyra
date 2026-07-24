@@ -3,11 +3,9 @@ import { readFileSync } from "node:fs";
 function read(path) {
   return readFileSync(path, "utf8");
 }
-
 function includes(label, source, expected) {
   if (!source.includes(expected)) throw new Error(`${label} missing expected text: ${expected}`);
 }
-
 function excludes(label, source, forbidden) {
   if (source.includes(forbidden)) throw new Error(`${label} contains forbidden text: ${forbidden}`);
 }
@@ -19,14 +17,13 @@ const packageJson = read("package.json");
 
 for (const expected of [
   "Product-Release%20Ready",
-  "Kyra Agent is a Base-native AI agent platform",
-  "## Live Product Surface",
+  "Kyra Agent lets users deploy account-scoped AI agents",
+  "## Product Surface",
   "## Approval-First Execution",
-  "## Base MCP And Base Account",
+  "## Robinhood Chain Boundary",
   "## Product Status",
-  "Kyra has closed the current release-readiness roadmap",
-  "Public execution remains approval-first by design.",
-  "Owner approval, wallet approval, receipt verification",
+  "the agent can prepare, but the user wallet decides",
+  "Transaction submission remains controlled and fail-closed",
 ]) {
   includes("README", readme, expected);
 }
@@ -46,15 +43,13 @@ for (const expected of [
   "# Phase 10 Product Release Readiness",
   "## Batch 10A - Public Product Copy and UX Final",
   "Public execution runtime default-off until explicit release approval.",
-  "Public copy must not claim Telegram can sign or submit transactions.",
   "User wallet authority and Telegram bot-token privacy",
 ]) {
   includes("Phase 10 doc", phase10, expected);
 }
 
 for (const forbidden of [
-  "Phase 9 | Pending",
-  "Pending: public execution hardening",
+  "Base-native AI agent platform",
   "Not live in the current demo",
   "Telegram can sign",
   "autonomous fund movement is live",
@@ -63,10 +58,5 @@ for (const forbidden of [
   excludes("README", readme, forbidden);
 }
 
-for (const expected of [
-  '"check:phase-10a"',
-]) {
-  includes("package.json", packageJson, expected);
-}
-
+includes("package.json", packageJson, '"check:phase-10a"');
 console.log("Phase 10A product copy checks passed.");

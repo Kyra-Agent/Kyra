@@ -314,7 +314,7 @@ for (
     "createWalletSigningFailure",
     "walletSigningFailureMessages",
     "Wallet provider is unavailable.",
-    "Wallet must be connected to Base.",
+    "Wallet must be connected to ${currentProductChain.name}.",
     "Wallet signing failed safely.",
     "Failed actions require a sanitized reason.",
   ]

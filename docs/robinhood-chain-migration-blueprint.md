@@ -1,17 +1,19 @@
 # Robinhood Chain Migration Blueprint
 
-Date: 2026-07-23
+Date: 2026-07-24
 
-Status: Batches 1-5 are complete. The reviewed database migrations and
-read-only Edge Functions are deployed, and the owner confirmed the complete
-Robinhood Chain Testnet workflow on 2026-07-23: network status, provider-labelled
-wallet connection, frozen zero-value action review, explicit wallet confirmation,
-submission, receipt monitoring, and sanitized owner-only closeout all passed.
-No wallet address, provider payload, or transaction hash is stored in this
-repository. Signing and submission remain disabled in the backend and production
-runtime. Runtime cutover has not started, production behavior is unchanged, and
-Robinhood Chain transaction capability must not be described as publicly live yet.
+Status: Batches 1-5 are complete. Batch 6 software and provider preparation are
+complete, and the public Robinhood Chain cutover candidate is ready. The full
+Testnet workflow passed on 2026-07-23. On 2026-07-24, the managed mainnet
+provider returned exact chain ID 4663, mainnet agent deployment was enabled
+with exact chain binding, and normal user-account deployment plus desktop wallet
+connect/disconnect passed manual smoke testing. No wallet address, provider
+payload, credential, or transaction hash is stored in repository evidence.
 
+The public product build now targets Robinhood Chain while transaction
+submission remains disabled. A bounded mainnet receipt, sanitized private
+closeout, emergency disable check, and rollback exercise remain required before
+Robinhood Chain transaction execution may be described as publicly live.
 ## Decision
 
 Kyra will migrate its primary onchain lane from Base to Robinhood Chain while
@@ -400,18 +402,19 @@ Owner-confirmed manual evidence on 2026-07-23:
 
 ### Batch 6 - Controlled mainnet cutover
 
-Status: Batch 6 software hardening is committed. The frontend has a four-marker
-fail-closed Robinhood mainnet build mode, the wallet runtime consumes only the
-selected chain, production CSP permits bounded official RPC reads, and the
-automated checker plus owner runbook define cutover and rollback. Mainnet
-provider credentials use chain-scoped secret names and cannot fall back to the
-generic/testnet RPC lane. On 2026-07-24, the Kyra-owned managed RPC was stored
-only in scoped Supabase secrets and the deployed provider returned exact
-robinhood_mainnet chain ID 4663 in read-only mode. The owner-only mainnet agent deployment gate is enabled for exact chain binding.
-Chain action preparation, signing, and submission remain disabled. Base remains the production fallback.
-Desktop/mobile owner verification, explicit mainnet release approval, one
-controlled receipt, and rollback exercise remain required.
+Status: public product cutover candidate. The frontend has a four-marker
+fail-closed Robinhood mainnet mode, wallet runtime consumes only the selected
+chain, production CSP permits bounded official RPC reads, and managed provider
+credentials are isolated in chain-scoped Supabase secrets. The deployed provider
+returned exact `robinhood_mainnet` chain ID 4663. Exact-chain agent deployment,
+normal user-account deployment, and desktop wallet connect/disconnect are
+verified.
 
+Netlify is prepared to build Robinhood Chain as the public product target with
+transaction submission flags disabled. Base remains a legacy rollback and
+historical compatibility lane. One bounded mainnet receipt, sanitized closeout,
+emergency disable check, and rollback exercise remain required before public
+transaction-live claims.
 Runbook: `docs/robinhood-mainnet-cutover-runbook.md`
 
 - freeze one reviewed low-value mainnet action

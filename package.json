@@ -1,6 +1,6 @@
 {
   "name": "kyra-agent",
-  "description": "Base-native AI agent platform with approval-first onchain workflows.",
+  "description": "Robinhood Chain AI agent platform with approval-first onchain workflows.",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -10,7 +10,7 @@
     "url": "https://github.com/Kyra-Agent/Kyra.git"
   },
   "keywords": [
-    "base",
+    "robinhood-chain",
     "onchain",
     "ai-agent",
     "supabase",
@@ -184,6 +184,7 @@
     "check:agent-chain-binding": "node scripts/check-agent-chain-binding.mjs",
     "check:robinhood-migration": "node scripts/check-robinhood-chain-migration-blueprint.mjs && npm run check:chain-abstraction && npm run check:owner-wallet-migration && npm run check:chain-backend && npm run check:robinhood-testnet-lane && npm run check:agent-chain-binding && npm run check:robinhood-mainnet-cutover",
     "check:robinhood-mainnet-cutover": "node scripts/check-robinhood-mainnet-cutover.mjs",
+    "check:robinhood-public-cutover": "node scripts/check-robinhood-public-cutover.mjs",
     "test:chain-backend": "node scripts/run-chain-backend-tests.mjs",
     "check:chain-backend": "npm run test:chain-backend && deno check supabase/functions/chain-status-provider/index.ts supabase/functions/chain-action-prepare/index.ts && node scripts/check-robinhood-chain-backend.mjs"
   },

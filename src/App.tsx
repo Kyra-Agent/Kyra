@@ -600,7 +600,7 @@ function App() {
           PRODUCT READY
         </span>
         <p>
-          Public-ready agent workspace. Account records stay private, Telegram tokens stay backend-only, and every onchain action stays behind explicit owner approval.
+          Public-ready agent workspace. Account records stay private, Telegram tokens stay backend-only, and every onchain action stays behind explicit user and wallet approval.
         </p>
       </div>
 

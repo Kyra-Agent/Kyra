@@ -74,12 +74,12 @@ for (const expected of [
 
 for (const expected of [
   "Product Snapshot",
-  "Base Account",
+  "Robinhood Chain wallet",
 ]) {
   includes("README", readme, expected);
 }
 
-includes("context", context, "Controlled Live Transaction - complete as owner-controlled execution architecture.");
+includes("context", context, "Controlled Live Transaction Architecture - complete.");
 
 for (const expected of [
   "createPhase8LowValueSubmitRequest",

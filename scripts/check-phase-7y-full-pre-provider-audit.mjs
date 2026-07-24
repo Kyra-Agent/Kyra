@@ -51,7 +51,7 @@ const doc = read("docs/phase-7Y-full-pre-provider-audit.md");
 const phase7Audit = read("docs/phase-7-pre-execution-audit.md");
 const entryCheck = read("scripts/check-phase-7-entry.mjs");
 const packageJson = read("package.json");
-const readme = read("README.md");
+const roadmap = read("docs/product-phase-roadmap.md");
 const runtime = read("supabase/functions/base-mcp-prepare/runtime-config.ts");
 const dependencies = read(
   "supabase/functions/base-mcp-prepare/dependencies.ts",
@@ -158,7 +158,7 @@ for (
   ]
 ) includes("package scripts", packageJson, value);
 
-includes("README", readme, "release-readiness roadmap");
+includes("product roadmap", roadmap, "This is the only active roadmap.");
 includes("Phase 7X", phase7X, "Current decision: blocked.");
 
 includes("runtime gate", runtime, 'return value === "true"');

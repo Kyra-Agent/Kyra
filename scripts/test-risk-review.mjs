@@ -149,7 +149,7 @@ try {
     requiresWallet: true,
   });
   assertEquals(wrongChain.level, "blocked");
-  assertEquals(wrongChain.refusalReason, "Prepared action must target Base.");
+  assertEquals(wrongChain.refusalReason, "Prepared action must target the selected network.");
 } finally {
   rmSync(outDir, { recursive: true, force: true });
 }

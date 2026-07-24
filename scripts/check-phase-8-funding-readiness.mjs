@@ -73,7 +73,7 @@ for (const expected of [
 
 for (const expected of [
   "Product Snapshot",
-  "Base Account",
+  "Robinhood Chain wallet",
 ]) {
   includes("README", readme, expected);
 }

@@ -93,7 +93,7 @@ includes(
 includes(
   "private context",
   context,
-  "Supporting readiness packets are evidence under Phase 7",
+  "The primary product target is Robinhood Chain mainnet, chain ID `4663`.",
 );
 includes("decision packet", decisionPacket, "Decision: **NO-GO**.");
 includes("freeze guard", freezeGuard, "The official MCP freeze stays active while Phase 7AO is NO-GO.");

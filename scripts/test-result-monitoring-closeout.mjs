@@ -127,7 +127,7 @@ try {
     disconnectRequested: true,
   });
   assertEquals(failed.status, "closed_failed");
-  assertEquals(failed.sanitizedFailureReason, "Wallet must be connected to Base.");
+  assertEquals(failed.sanitizedFailureReason, "Wallet must be connected to the selected network.");
   assertEquals(failed.disconnectAllowed, true);
 
   const publicBlocked = evaluateResultMonitoringCloseout({

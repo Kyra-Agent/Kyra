@@ -135,22 +135,22 @@ assertIncludes(
 assertIncludes(
   "Kyra context",
   context,
-  "Supporting readiness packets are evidence under Phase 7",
+  "The Robinhood Chain migration is a grouped release track",
 );
 assertIncludes(
   "README",
   readme,
-  "Base Account readiness, controlled owner execution flow, public hardening, support operations, launch QA, final security/privacy review, and public product polish.",
+  "Robinhood Chain abstraction, and mainnet provider lane are implemented and verified.",
 );
 assertIncludes(
   "Kyra context",
   context,
-  "Phase 7 is complete as Base Account + execution readiness.",
+  "Wallet + Execution Readiness - complete as guarded readiness.",
 );
 assertIncludes(
   "Kyra context",
   context,
-  "Phase 8 implementation is closed",
+  "Controlled Live Transaction Architecture - complete.",
 );
 assertIncludes(
   "Dashboard",

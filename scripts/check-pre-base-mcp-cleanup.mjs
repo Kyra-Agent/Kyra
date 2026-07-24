@@ -53,7 +53,7 @@ excludes("app config", appConfig, 'baseMcp: "simulated"');
 includes(
   "repository runtime note",
   repositoryFactory,
-  "Onchain execution stays disabled until Base MCP approval gates are ready.",
+  "Onchain execution stays behind owner, wallet, policy, and release gates.",
 );
 excludes(
   "repository runtime note",

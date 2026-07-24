@@ -5,8 +5,8 @@
 <h1 align="center">Kyra Agent</h1>
 
 <p align="center">
-  Base-native AI agent platform for deploying Telegram-native agents with
-  approval-first onchain workflows.
+  Robinhood Chain AI agent platform for Telegram-native workflows,
+  private agent workspaces, and approval-first onchain actions.
 </p>
 
 <p align="center">
@@ -19,40 +19,40 @@
 
 <p align="center">
   <img alt="Product" src="https://img.shields.io/badge/Product-Release%20Ready-111827?style=for-the-badge" />
-  <img alt="Base" src="https://img.shields.io/badge/Base-Native-0052FF?style=for-the-badge" />
-  <img alt="Security" src="https://img.shields.io/badge/Security-Approval%20First-16A34A?style=for-the-badge" />
+  <img alt="Robinhood Chain" src="https://img.shields.io/badge/Robinhood%20Chain-EVM-16A34A?style=for-the-badge" />
+  <img alt="Security" src="https://img.shields.io/badge/Security-Approval%20First-2563EB?style=for-the-badge" />
 </p>
 
 ![Kyra Agent product preview](public/og-card.png)
 
 ## Product Snapshot
 
-Kyra Agent is a Base-native AI agent platform for creating user-owned agents that operate through Telegram, maintain private dashboard records, publish shareable agent profiles, and prepare onchain actions behind explicit owner and wallet approval.
+Kyra Agent lets users deploy account-scoped AI agents that operate through Telegram, maintain private dashboard records, and publish shareable agent profiles. Its onchain lane targets Robinhood Chain while wallet authority remains with the user.
 
-Kyra is designed for users and teams who want an agent interface without giving up wallet authority. Agents can understand intent, produce planning or risk context, and prepare bounded action reviews. Sensitive execution stays behind the owner dashboard, Base Account, approval gates, receipt checks, and privacy-safe logging.
+Agents can understand intent, produce planning and risk context, and prepare bounded action reviews. Telegram stays read-only for wallet operations. Signing and submission require the connected user wallet, explicit approval, policy checks, and a private dashboard flow.
 
-## Live Product Surface
+## Product Surface
 
 | Surface | What it provides |
 | --- | --- |
-| Agent deployment | Template-based agent creation with account-scoped persistence |
+| Agent deployment | Template-based agent creation with account-scoped backend persistence |
 | Dashboard | Private workspace for agents, Telegram state, wallet policy, and action readiness |
-| Public profiles | Shareable agent identity, capabilities, command examples, and safety policy |
+| Public profiles | Shareable agent identity, capabilities, commands, and safety policy |
 | Telegram | Live read-only commands and bounded natural-language planning |
 | LLM layer | Backend-only enrichment for eligible read-only replies |
-| Base Account | User-owned wallet connection and approval boundary |
-| Execution path | Controlled owner flow with approval, risk review, and sanitized result handling |
+| Robinhood Chain wallet | User-controlled EVM wallet connection and approval boundary |
+| Execution path | Controlled review flow with policy checks and sanitized result handling |
 
 ## What Kyra Can Do
 
-- Deploy agent profiles from clear templates.
+- Deploy agent profiles from focused templates and module stacks.
 - Persist signed-in agent records through the backend.
 - Publish private dashboard and public profile views.
 - Reply in Telegram with read-only commands and planning chat.
 - Convert risky wallet or transaction requests into review drafts.
-- Refuse Telegram-triggered execution while still producing useful plans, checklists, and risk reviews.
-- Require owner approval and wallet approval before any onchain action can move forward.
-- Preserve sanitized logs, support evidence, and release readiness records.
+- Bind prepared actions to Robinhood Chain and the selected deployed agent.
+- Require explicit user and wallet approval before an onchain action can proceed.
+- Preserve sanitized support, audit, and release evidence.
 
 ## Telegram Commands
 
@@ -63,11 +63,11 @@ Connected Telegram agents support a read-only command surface:
 | `/help` | Show available commands and examples |
 | `/status` | Report Telegram session and execution boundary |
 | `/agent` | Summarize the deployed agent role and focus |
-| `/actions` | Show available read-only actions and approval-required actions |
+| `/actions` | Show available read-only and approval-required actions |
 | `/modules` | Show the deployed template module stack |
 | `/policy` | Explain the wallet and onchain safety boundary |
 
-Natural prompts can produce campaign plans, market briefs, narrative maps, launch copy, community pulse summaries, and risk reviews. Swap, transfer, approval, contract, wallet, and Base MCP execution requests from Telegram are refused and converted into safe review output.
+Natural prompts can produce campaign plans, market briefs, narrative maps, launch copy, community pulse summaries, and risk reviews. Swap, transfer, approval, contract, wallet, and transaction requests from Telegram are refused and converted into safe review output.
 
 ## Agent Templates
 
@@ -80,7 +80,7 @@ Natural prompts can produce campaign plans, market briefs, narrative maps, launc
 | Strategist | Market and campaign intelligence agent |
 | Custom | User-defined workflow and safety limits |
 
-Templates are the product package. Kyra modules are the internal capability layer behind them.
+Templates are the user-facing package. Kyra modules are the internal capability layer behind them.
 
 | Module | Capability |
 | --- | --- |
@@ -92,15 +92,15 @@ Templates are the product package. Kyra modules are the internal capability laye
 
 ## Approval-First Execution
 
-Kyra is built around a simple rule: the agent can prepare, but the user wallet decides.
+Kyra follows one rule: the agent can prepare, but the user wallet decides.
 
 | Available surface | Protected boundary |
 | --- | --- |
 | Telegram read-only commands | Telegram-triggered wallet execution |
 | LLM-assisted planning replies | Hidden transaction submission |
 | Dashboard and public profiles | Seed phrase or private-key collection |
-| Base Account readiness | Autonomous fund movement |
-| Action review drafts | Contract calls without explicit owner approval |
+| Wallet connection readiness | Autonomous fund movement |
+| Action review drafts | Contract calls without explicit approval |
 | Sanitized result recording | Public exposure of wallet internals or tokens |
 
 Current safety guarantees:
@@ -111,25 +111,28 @@ Current safety guarantees:
 - No Telegram-triggered signing.
 - No public exposure of Telegram bot tokens.
 - No raw session tokens, provider payloads, or wallet internals in public views.
-- Owner approval, wallet approval, receipt verification, rollback readiness, and privacy checks stay part of the execution path.
+- Account, wallet, chain, agent, action, and approval drift fails closed.
+- Approval, risk review, receipt verification, rollback readiness, and privacy checks remain part of the execution path.
 
-## Base MCP And Base Account
+## Robinhood Chain Boundary
 
-Kyra's primary user transaction boundary is Base Account: the user connects their own account, reviews the prepared action, and remains the final approval gate.
+Robinhood Chain is Kyra's primary onchain target. Users connect a compatible EVM wallet in their private workspace, review the prepared action, and remain the final signing authority. Provider infrastructure supplies chain access but never replaces user consent or wallet authority.
 
-Base MCP remains an optional provider adapter track. It is not a blocker for Kyra's Base Account path, and it stays separated until provider metadata, scope semantics, consent, token lifecycle, revocation, rate limits, and owner approval are fully verified.
+The current public release supports agent deployment, private workspaces, Telegram read-only interaction, Robinhood Chain wallet connectivity, and approval-first action review. Transaction submission remains controlled and fail-closed until a bounded mainnet receipt and rollback check complete the release gate.
+
+Kyra is an independent product and does not imply affiliation with, sponsorship by, or endorsement from Robinhood.
 
 ## Product Status
 
-Kyra has closed the current release-readiness roadmap for agent deployment, Telegram-native interaction, wallet policy modeling, Base Account readiness, controlled owner execution flow, public hardening, support operations, launch QA, final security/privacy review, and public product polish.
+Kyra's product foundation, backend persistence, privacy boundaries, agent deployment, Telegram and LLM layer, wallet policy, testnet execution workflow, Robinhood Chain abstraction, and mainnet provider lane are implemented and verified.
 
-Public execution remains approval-first by design. Any widened transaction rollout must preserve the same owner dashboard, Base Account approval, risk review, receipt verification, emergency disable, and privacy-safe evidence requirements.
+Public execution is deliberately narrower than the rest of the product. Any transaction rollout must preserve user sign-in, selected-agent binding, user wallet approval, deterministic policy and NYX-05 review, receipt verification, emergency disable, and privacy-safe evidence.
 
 Detailed engineering evidence is tracked in:
 
 - [`docs/product-phase-roadmap.md`](docs/product-phase-roadmap.md)
-- [`docs/supporting-readiness-closeout.md`](docs/supporting-readiness-closeout.md)
-- [`docs/phase-10-product-release-readiness.md`](docs/phase-10-product-release-readiness.md)
+- [`docs/robinhood-chain-migration-blueprint.md`](docs/robinhood-chain-migration-blueprint.md)
+- [`docs/robinhood-mainnet-cutover-runbook.md`](docs/robinhood-mainnet-cutover-runbook.md)
 - [Product Readiness Snapshot](docs/product-readiness-snapshot.md)
 
 ## Product Principles
@@ -137,7 +140,7 @@ Detailed engineering evidence is tracked in:
 - User wallet authority first.
 - Telegram-native agent UX.
 - Backend-only handling for sensitive integrations.
-- Read-only by default; approval before execution.
+- Read-only by default; explicit approval before execution.
 - No custody, no seed phrases, no hidden signing.
 - Clear public copy, sanitized evidence, and explicit release controls.
 

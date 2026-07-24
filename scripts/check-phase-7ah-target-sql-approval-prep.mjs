@@ -15,7 +15,7 @@ const doc = read("docs/phase-7AH-target-sql-approval-prep.md");
 const phase7Audit = read("docs/phase-7-pre-execution-audit.md");
 const entryCheck = read("scripts/check-phase-7-entry.mjs");
 const packageJson = read("package.json");
-const readme = read("README.md");
+const roadmap = read("docs/product-phase-roadmap.md");
 const phase7AD = read("docs/phase-7AD-sql-verifier-final-approval-packet.md");
 const phase7U = read(
   "docs/phase-7U-target-supabase-rate-limit-verifier-readiness.md",
@@ -100,7 +100,7 @@ for (const value of ['"check:phase-7ah"', "npm run check:phase-7ah"]) {
   includes("package scripts", packageJson, value);
 }
 
-includes("README", readme, "Base MCP remains an optional provider adapter track");
+includes("product roadmap", roadmap, "an explicit legacy rollback and historical compatibility lane.");
 includes(
   "Phase 7AD",
   phase7AD,

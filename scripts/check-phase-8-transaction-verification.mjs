@@ -73,7 +73,7 @@ for (const expected of [
 
 for (const expected of [
   "Product Snapshot",
-  "receipt checks",
+  "receipt verification",
 ]) {
   includes("README", readme, expected);
 }

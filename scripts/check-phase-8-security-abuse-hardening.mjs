@@ -74,7 +74,7 @@ for (const expected of [
 
 for (const expected of [
   "Product Snapshot",
-  "approval-first onchain workflows",
+  "approval-first onchain actions",
 ]) {
   includes("README", readme, expected);
 }

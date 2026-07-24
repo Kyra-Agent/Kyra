@@ -61,7 +61,7 @@ for (const expected of [
 
 for (const expected of [
   "| 8 | Controlled Live Transaction",
-  "Complete: controlled live transaction implementation closeout",
+  "Complete as architecture; Robinhood mainnet receipt pending",
   "Batch 13 evidence",
   "src/types/phase8ResultPersistence.ts",
   "src/services/phase8ResultPersistenceStore.ts",
@@ -72,7 +72,7 @@ for (const expected of [
 
 for (const expected of [
   "Product Readiness Snapshot",
-  "Base-native AI agent platform",
+  "Robinhood Chain AI agent platform",
 ]) {
   includes("README", readme, expected);
 }

@@ -1,27 +1,26 @@
 # Kyra Agent Canonical Product Roadmap
 
-Date: 2026-07-23
+Date: 2026-07-24
 
 Status: canonical source of truth for product phases and execution flow.
 
 Active release track: Robinhood Chain migration. The existing 10 phases remain
-the complete historical product roadmap; the migration uses six grouped batches
-and does not create Phase 11. See
+the complete historical product roadmap; migration work uses six grouped release
+batches and does not create Phase 11. See
 `docs/robinhood-chain-migration-blueprint.md`.
 
-Migration status: Batches 1-5 are complete. The reviewed Supabase migrations
-and read-only chain functions are deployed, and the owner confirmed the full
-Robinhood Chain Testnet workflow on 2026-07-23, including network status,
-provider-labelled wallet connection, agent binding, frozen zero-value review,
-explicit wallet confirmation, submission, receipt monitoring, and sanitized
-owner-only closeout. The repository records no wallet address or transaction
-hash. Base remains the public production runtime. A Kyra-owned production RPC
-secret and controlled Batch 6 mainnet cutover remain pending. Batch 6 software
-readiness is implemented locally with a fail-closed mainnet build mode and a
-dedicated cutover runbook; provider setup, owner approval, one controlled receipt,
-and rollback exercise remain open. Robinhood wallet and transaction support are
-not yet public live claims.
+Migration status: Batches 1-5 and Batch 6 software/provider preparation are
+complete. The full Robinhood Chain Testnet workflow passed on 2026-07-23. On
+2026-07-24, the managed mainnet provider returned exact chain ID 4663, mainnet
+agent deployment was enabled with exact chain binding, and normal user-account
+agent deployment plus wallet connect/disconnect passed manual smoke testing.
+The public product build now targets Robinhood Chain. Base is retained only as
+an explicit legacy rollback and historical compatibility lane.
 
+Mainnet transaction submission remains fail-closed until one bounded receipt,
+sanitary private closeout, emergency disable check, and rollback exercise pass.
+Robinhood Chain product positioning must never imply affiliation with,
+sponsorship by, or endorsement from Robinhood.
 This document resolves conflicting wording across older phase plans and
 closeout notes. If another document disagrees with this roadmap about product
 sequence, phase status, or the meaning of "live", this roadmap wins.
@@ -37,7 +36,7 @@ Each deployed agent is bound to:
 - one agent instance
 - one template and module stack
 - one Telegram interface when connected
-- one owner-controlled Base Account connection when authorized
+- one user-controlled EVM wallet connection when authorized
 - one wallet policy and approval boundary
 - one private audit trail
 
@@ -51,17 +50,17 @@ User signs in
 -> user deploys an agent from a template
 -> agent receives its template-specific module stack
 -> user optionally connects a Telegram bot to that agent
--> user connects their own Base Account to that agent
+-> user connects their own EVM wallet to that agent on the selected chain
 -> Kyra's prepared-action adapter converts bounded intent into an action
 -> NYX-05 and deterministic policy produce a risk review
 -> owner reviews and approves or rejects in Kyra
--> Base Account SDK presents its own manual approval in the private dashboard
--> the user's Base Account submits the transaction
+-> the connected wallet presents its own manual approval in the private dashboard
+-> the user's wallet signs and submits the transaction
 -> Kyra records a sanitized owner-only result
 ```
 
-No implementation may skip ownership, policy review, Kyra approval, or Base
-Account approval.
+No implementation may skip account ownership, policy review, Kyra approval, or
+user-wallet approval.
 
 ## Status Vocabulary
 
@@ -96,16 +95,22 @@ tracked as release batches, not additional phases.
 | 4 | Agent Deployment Flow | Users can create agents from templates and module stacks. | Complete |
 | 5 | Telegram + LLM Live | Connected deployed agents reply in Telegram with read-only commands and LLM planning. | Complete, live read-only |
 | 6 | Wallet/Approval Foundation | Wallet readiness, approval policy, risk review, prepared-action models, and refusal boundaries. | Foundation complete |
-| 7 | Base Account + Execution Readiness | Owner Base Account connection, prompt locks, prepared-action allowlist, policy gates, dual approval model, result closeout model, production smoke freeze. | Complete as readiness; not live execution |
-| 8 | Controlled Live Transaction | One owner, one deployed agent, one low-risk prepared action, explicit Kyra approval, explicit Base Account approval, controlled submission, owner-only result. | Complete: controlled live transaction implementation closeout |
+| 7 | Wallet + Execution Readiness | User-controlled wallet connection, prompt locks, prepared-action allowlist, policy gates, dual approval model, result closeout model, production smoke freeze. | Complete as guarded readiness |
+| 8 | Controlled Live Transaction | One account, one deployed agent, one bounded prepared action, explicit Kyra approval, explicit wallet approval, controlled submission, private result. | Complete as architecture; Robinhood mainnet receipt pending |
 | 9 | Public Execution Hardening | Rate limits, rollback, incident controls, monitoring, privacy audits, abuse controls, and wider execution eligibility. | Structurally complete; runtime default-off |
 | 10 | Product Release Readiness | Public-ready copy, support ops, launch QA, production runbook, final audit, and release decision. | Complete for product release readiness; runtime execution gated |
+
+Historical evidence boundary: Base Account and Base MCP sections below document
+the previous release architecture. They remain immutable audit evidence and are
+not the active Robinhood Chain product path. Current implementation and public
+copy use the user-controlled EVM wallet and Robinhood Chain provider model.
+Legacy checker label retained for historical evidence: `Complete: controlled live transaction implementation closeout`.
 
 ## Phase 1 - Product Foundation
 
 Outcome:
 
-- Kyra is positioned as a Base-native AI agent console.
+- Kyra is positioned as a Robinhood Chain AI agent platform.
 - Public and private surfaces clearly separate product marketing, dashboard,
   and deployed-agent identity.
 - UI copy does not imply unsupported wallet execution.

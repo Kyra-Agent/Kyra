@@ -15,7 +15,7 @@ const doc = read("docs/phase-7AF-provider-candidate-submission-template.md");
 const phase7Audit = read("docs/phase-7-pre-execution-audit.md");
 const entryCheck = read("scripts/check-phase-7-entry.mjs");
 const packageJson = read("package.json");
-const readme = read("README.md");
+const roadmap = read("docs/product-phase-roadmap.md");
 const runtime = read("supabase/functions/base-mcp-prepare/runtime-config.ts");
 const dependencies = read(
   "supabase/functions/base-mcp-prepare/dependencies.ts",
@@ -94,7 +94,7 @@ for (const value of ['"check:phase-7af"', "npm run check:phase-7af"]) {
   includes("package scripts", packageJson, value);
 }
 
-includes("README", readme, "Base MCP remains an optional provider adapter track");
+includes("product roadmap", roadmap, "an explicit legacy rollback and historical compatibility lane.");
 includes("runtime gate", runtime, 'return value === "true"');
 excludes("dependencies", dependencies, "storePreparedActionSummary");
 excludes("provider adapter", providerAdapter, "walletAddress");
