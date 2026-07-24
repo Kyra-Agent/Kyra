@@ -33,7 +33,7 @@ const unsignedSource = readFileSync(
   "utf8",
 ).replace(
   'import { currentProductChain } from "../config/productChains";',
-  'const currentProductChain = Object.freeze({ id: 8453, name: "Base" });',
+  'const currentProductChain = Object.freeze({ id: 4663, name: "Robinhood Chain" });',
 );
 const gateSource = stripImport(
   stripImport(
@@ -57,13 +57,13 @@ writeFileSync(outputPath, transpiled.outputText);
 
 try {
   const {
-    baseChainId,
+    productChainId,
     evaluateControlledLiveTransactionGate,
     getControlledLiveTransactionBlockMessage,
   } = await import(`file:///${outputPath.replace(/\\/g, "/")}`);
 
   const dualApprovalReady = {
-    status: "base_account_prompt_locked",
+    status: "owner_wallet_prompt_locked",
     frozenAction: null,
     walletPromptAllowed: false,
     transactionSubmissionAllowed: false,
@@ -83,12 +83,12 @@ try {
     message: "No provider submission has been observed.",
   };
 
-  const baseInput = {
+  const baselineInput = {
     ownerUserId: "owner_7j",
     workspaceId: "workspace_7j",
     agentId: "agent_666",
-    baseAccountConnected: true,
-    chainId: baseChainId,
+    ownerWalletConnected: true,
+    chainId: productChainId,
     preparedActionCount: 1,
     actionAllowlisted: true,
     actionRisk: "low",
@@ -105,7 +105,7 @@ try {
     transactionSubmissionRuntimeEnabled: false,
   };
 
-  const ready = evaluateControlledLiveTransactionGate(baseInput);
+  const ready = evaluateControlledLiveTransactionGate(baselineInput);
   assertEquals(ready.status, "ready_for_live_window_approval");
   assertEquals(ready.ownerOnly, true);
   assertEquals(ready.walletPromptAllowed, false);
@@ -114,7 +114,7 @@ try {
   assertEquals(ready.reasons.length, 0);
 
   const approvedRuntimeLocked = evaluateControlledLiveTransactionGate({
-    ...baseInput,
+    ...baselineInput,
     liveWindowApproved: true,
   });
   assertEquals(
@@ -124,7 +124,7 @@ try {
   assertEquals(approvedRuntimeLocked.transactionSubmissionAllowed, false);
 
   const missingScope = evaluateControlledLiveTransactionGate({
-    ...baseInput,
+    ...baselineInput,
     ownerUserId: "",
     workspaceId: "",
     agentId: "",
@@ -134,13 +134,13 @@ try {
   assert(missingScope.reasons.includes("agent_scope_required"));
 
   const multiAction = evaluateControlledLiveTransactionGate({
-    ...baseInput,
+    ...baselineInput,
     preparedActionCount: 2,
   });
   assert(multiAction.reasons.includes("single_action_required"));
 
   const unsafeCandidate = evaluateControlledLiveTransactionGate({
-    ...baseInput,
+    ...baselineInput,
     actionAllowlisted: false,
     actionRisk: "medium",
   });
@@ -148,7 +148,7 @@ try {
   assert(unsafeCandidate.reasons.includes("low_risk_action_required"));
 
   const dualApprovalBlocked = evaluateControlledLiveTransactionGate({
-    ...baseInput,
+    ...baselineInput,
     dualApproval: {
       ...dualApprovalReady,
       walletPromptAllowed: true,
@@ -159,7 +159,7 @@ try {
   assert(dualApprovalBlocked.reasons.includes("dual_approval_required"));
 
   const resultMonitoringBlocked = evaluateControlledLiveTransactionGate({
-    ...baseInput,
+    ...baselineInput,
     resultMonitoring: {
       ...resultMonitoringReady,
       txHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -168,7 +168,7 @@ try {
   assert(resultMonitoringBlocked.reasons.includes("result_monitoring_required"));
 
   const missingSafety = evaluateControlledLiveTransactionGate({
-    ...baseInput,
+    ...baselineInput,
     rollbackReady: false,
     emergencyDisableReady: false,
     postTransactionAuditReady: false,
@@ -178,7 +178,7 @@ try {
   assert(missingSafety.reasons.includes("post_transaction_audit_required"));
 
   const publicTelegramBlocked = evaluateControlledLiveTransactionGate({
-    ...baseInput,
+    ...baselineInput,
     visibleInPublicProfile: true,
     telegramCanAuthorize: true,
   });
@@ -186,7 +186,7 @@ try {
   assert(publicTelegramBlocked.reasons.includes("telegram_authority_forbidden"));
 
   const runtimeMisconfigured = evaluateControlledLiveTransactionGate({
-    ...baseInput,
+    ...baselineInput,
     walletPromptRuntimeEnabled: true,
     walletSigningRuntimeEnabled: true,
     transactionSubmissionRuntimeEnabled: true,

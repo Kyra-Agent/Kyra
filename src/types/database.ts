@@ -7,7 +7,6 @@ export type Json =
   | Json[];
 
 export type KyraChainKey =
-  | "base"
   | "robinhood_mainnet"
   | "robinhood_testnet";
 
@@ -71,7 +70,6 @@ export interface KyraDatabase {
           network: KyraChainKey;
           chain_action_status: "disabled" | "ready" | "active" | "paused";
           telegram_status: "mocked" | "active" | "queued" | "review";
-          base_mcp_status: "mocked" | "active" | "queued" | "review";
           approval_policy_id: string | null;
           created_at: string;
           last_sync_at: string;
@@ -88,7 +86,6 @@ export interface KyraDatabase {
           network?: KyraChainKey;
           chain_action_status?: "disabled" | "ready" | "active" | "paused";
           telegram_status?: "mocked" | "active" | "queued" | "review";
-          base_mcp_status?: "mocked" | "active" | "queued" | "review";
           approval_policy_id?: string | null;
           created_at?: string;
           last_sync_at?: string;
@@ -172,7 +169,7 @@ export interface KyraDatabase {
           id: string;
           workspace_id: string;
           agent_id: string | null;
-          source: "agent_instances" | "telegram_sessions" | "base_mcp_routes" | "approval_requests";
+          source: "agent_instances" | "telegram_sessions" | "chain_action_routes" | "approval_requests";
           level: "info" | "notice" | "warning";
           message: string;
           created_at: string;
@@ -181,7 +178,7 @@ export interface KyraDatabase {
           id?: string;
           workspace_id: string;
           agent_id?: string | null;
-          source: "agent_instances" | "telegram_sessions" | "base_mcp_routes" | "approval_requests";
+          source: "agent_instances" | "telegram_sessions" | "chain_action_routes" | "approval_requests";
           level?: "info" | "notice" | "warning";
           message: string;
           created_at?: string;

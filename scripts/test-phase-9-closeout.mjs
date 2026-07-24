@@ -4,7 +4,7 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-const baseInput = {
+const baselineInput = {
   executionEligibilityReady: true,
   abuseRateLimitReady: true,
   incidentControlsReady: true,
@@ -13,7 +13,7 @@ const baseInput = {
   phase10ReadinessStarted: false,
 };
 
-const ready = evaluatePhase9Closeout(baseInput);
+const ready = evaluatePhase9Closeout(baselineInput);
 assert(ready.status === "structurally_complete", "Phase 9 should close structurally when 9A-9E are clean");
 assert(ready.phase9StructurallyComplete, "Phase 9 structural closeout should be true");
 assert(ready.canProceedToPhase10, "Phase 10 should be allowed after structural closeout");
@@ -23,7 +23,7 @@ assert(ready.reasons.length === 1 && ready.reasons.includes("phase10_readiness_r
 assert(ready.controls.length >= 7, "Phase 9 closeout should expose checklist evidence");
 
 const startedPhase10 = evaluatePhase9Closeout({
-  ...baseInput,
+  ...baselineInput,
   phase10ReadinessStarted: true,
 });
 assert(startedPhase10.status === "structurally_complete", "Phase 10 start should not reopen Phase 9");

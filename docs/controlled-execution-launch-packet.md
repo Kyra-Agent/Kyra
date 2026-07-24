@@ -1,121 +1,30 @@
 # Controlled Execution Launch Packet
 
-Date: 2026-06-25
-
-Status: implemented as an owner-only readiness packet. It sits under Phase 7.
-This is not a new product phase and does not enable live execution.
-
 ## Purpose
 
-This packet is the bridge between completed Phase 7 readiness and the future
-Phase 8 controlled live transaction window.
+This packet defines the only acceptable route from an agent recommendation to a Robinhood Chain transaction.
 
-It keeps the working flow compact:
+## Required Sequence
 
-```text
-owner signs in
--> owner selects one deployed agent
--> owner connects Base Account
--> Kyra checks the controlled-live gate
--> Kyra confirms production and Supabase health
--> owner may review a launch decision packet
--> wallet prompt, signing, and submission still stay disabled
-```
+1. The user signs in to a private Kyra workspace.
+2. The user selects a deployed agent.
+3. The user connects a compatible EVM wallet on the agent's Robinhood network.
+4. Kyra prepares an allowlisted action with bounded value and calldata.
+5. NYX-05 completes risk review.
+6. The owner reviews and explicitly approves the frozen action.
+7. A short-lived owner window is armed.
+8. The wallet displays its own confirmation prompt.
+9. The wallet signs and submits.
+10. Kyra records a sanitized receipt and closes the window.
 
-## Current Decision
+## Hard Blocks
 
-Base Account remains the primary transaction lane.
+- Telegram and public profiles cannot execute.
+- No private key, seed phrase, raw provider secret, or Telegram token enters browser state.
+- Agent, workspace, wallet, chain, action, approval, and receipt scopes must match.
+- Replay, stale timestamps, changed recipients, changed value, changed calldata, chain mismatch, or missing gas fail closed.
+- Emergency disable and disconnect invalidate the live window.
 
-Official hosted Base MCP remains optional and disabled while provider evidence
-is no-go. It must not become a hidden dependency for the Base Account primary
-lane.
+## Release Gate
 
-## Required Before Any Enablement Window
-
-- authenticated owner session
-- one selected deployed agent
-- one owner-click Base Account connection
-- Phase 7 controlled-live gate ready
-- official Base MCP not required
-- Telegram execution disabled
-- public execution state hidden
-- wallet execution runtime disabled
-- wallet signing runtime disabled
-- transaction submission runtime disabled
-- production deploy health green
-- Supabase health green
-- rollback ready
-- emergency disablement ready
-- post-transaction audit ready
-
-## Runtime Boundary
-
-This packet cannot:
-
-- open a wallet prompt
-- request a signature
-- submit a transaction
-- persist a transaction hash
-- call an official MCP tool
-- call a provider transaction endpoint
-- create or approve a prepared-action production row
-- expose wallet state on public profiles
-- allow Telegram to authorize execution
-
-## Implementation
-
-- `src/types/executionLaunchReadiness.ts`
-- `scripts/test-execution-launch-readiness.mjs`
-- `scripts/check-controlled-execution-launch-packet.mjs`
-- private dashboard execution launch evidence panel
-- `npm run check:execution-launch-readiness`
-
-The model returns `ready_for_owner_launch_decision` only when every prerequisite
-is present and every runtime execution switch is still disabled.
-
-If the owner decision is marked approved, the model returns
-`owner_approved_runtime_still_disabled`; this is intentional. Approval of the
-packet is not the same as enabling wallet prompt, signing, or submission.
-
-## Privacy Boundary
-
-The packet is owner-only and must not include:
-
-- private keys
-- seed phrases
-- Telegram bot tokens
-- OpenRouter keys
-- Supabase service-role keys
-- raw provider payloads
-- full wallet identifiers in public views
-- transaction hashes before observed provider submission
-
-User wallet authority and Telegram bot-token privacy remain the top security
-priority.
-
-## Verification
-
-Required local checks:
-
-```powershell
-npm run test:execution-launch-readiness
-npm run check:execution-launch-readiness
-npm run check:phase-7
-npm run build
-git diff --check
-```
-
-Production freeze evidence:
-
-- `docs/production-smoke-freeze-checkpoint.md`
-
-## Done Criteria
-
-- Launch readiness model exists.
-- Dashboard shows the owner-only launch packet state.
-- Base Account is the primary lane.
-- Official Base MCP remains optional and disabled while no-go.
-- Telegram and public routes cannot authorize execution.
-- Wallet prompt, signing, and transaction submission remain disabled.
-- Full Phase 7 checker includes the launch readiness guard.
-- Phase 8 remains the next phase before any live transaction can execute.
+Public submission is not claimed live until one bounded Robinhood mainnet receipt is verified, sanitized persistence is confirmed, rollback is exercised, and the release decision is recorded. Agent deployment, Telegram, wallet connection, risk review, and prepared-action review remain production-capable independently of that final submit gate.

@@ -1,5 +1,5 @@
 
-import { baseChainId } from "./unsignedTransactionHandoff";
+import { productChainId } from "./unsignedTransactionHandoff";
 
 export type Phase8UserSafeTransactionPolicyStatus =
   | "ready_for_owner_review"
@@ -9,8 +9,8 @@ export type Phase8UserSafeTransactionPolicyReason =
   | "owner_session_required"
   | "private_dashboard_required"
   | "agent_required"
-  | "base_account_required"
-  | "base_chain_required"
+  | "owner_wallet_required"
+  | "product_chain_required"
   | "prepared_action_required"
   | "unsupported_action_kind"
   | "non_zero_value_forbidden"
@@ -25,7 +25,7 @@ export interface Phase8UserSafeTransactionPolicyInput {
   ownerSignedIn: boolean;
   privateDashboard: boolean;
   selectedAgent: boolean;
-  baseAccountConnected: boolean;
+  ownerWalletConnected: boolean;
   chainId: number | null | undefined;
   preparedActionId: string | null | undefined;
   actionKind: string | null | undefined;
@@ -42,7 +42,7 @@ export interface Phase8UserSafeTransactionPolicyResult {
   status: Phase8UserSafeTransactionPolicyStatus;
   canEnterOwnerReview: boolean;
   maxValueWei: "0";
-  allowedActionKinds: readonly ["base_reviewed_transaction"];
+  allowedActionKinds: readonly ["robinhood_reviewed_transaction"];
   reasons: Phase8UserSafeTransactionPolicyReason[];
   message: string;
 }
@@ -54,9 +54,9 @@ const blockMessages: Record<Phase8UserSafeTransactionPolicyReason, string> = {
     "User-safe transaction review is restricted to the private owner dashboard.",
   agent_required:
     "A selected deployed agent is required before user-safe transaction review.",
-  base_account_required:
+  owner_wallet_required:
     "A connected owner wallet is required before user-safe transaction review.",
-  base_chain_required:
+  product_chain_required:
     "User-safe transaction review is restricted to the selected runtime network.",
   prepared_action_required:
     "A reviewed prepared action is required before user-safe transaction review.",
@@ -86,10 +86,10 @@ export function evaluatePhase8UserSafeTransactionPolicy(
   if (!input.ownerSignedIn) reasons.push("owner_session_required");
   if (!input.privateDashboard) reasons.push("private_dashboard_required");
   if (!input.selectedAgent) reasons.push("agent_required");
-  if (!input.baseAccountConnected) reasons.push("base_account_required");
-  if (input.chainId !== baseChainId) reasons.push("base_chain_required");
+  if (!input.ownerWalletConnected) reasons.push("owner_wallet_required");
+  if (input.chainId !== productChainId) reasons.push("product_chain_required");
   if (!input.preparedActionId?.trim()) reasons.push("prepared_action_required");
-  if (input.actionKind !== "base_reviewed_transaction") {
+  if (input.actionKind !== "robinhood_reviewed_transaction") {
     reasons.push("unsupported_action_kind");
   }
   if (input.valueWei !== "0") reasons.push("non_zero_value_forbidden");
@@ -107,7 +107,7 @@ export function evaluatePhase8UserSafeTransactionPolicy(
       status: "blocked",
       canEnterOwnerReview: false,
       maxValueWei: "0",
-      allowedActionKinds: ["base_reviewed_transaction"],
+      allowedActionKinds: ["robinhood_reviewed_transaction"],
       reasons: uniqueReasons,
       message: blockMessages[uniqueReasons[0]],
     };
@@ -117,7 +117,7 @@ export function evaluatePhase8UserSafeTransactionPolicy(
     status: "ready_for_owner_review",
     canEnterOwnerReview: true,
     maxValueWei: "0",
-    allowedActionKinds: ["base_reviewed_transaction"],
+    allowedActionKinds: ["robinhood_reviewed_transaction"],
     reasons: [],
     message:
       "User-safe transaction policy is ready for owner review under zero-value, no-calldata limits.",

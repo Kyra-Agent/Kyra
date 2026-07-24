@@ -1,8 +1,8 @@
 import { currentProductChain } from "../config/productChains";
 
-export const baseChainId = currentProductChain.id;
+export const productChainId = currentProductChain.id;
 export const walletUnsignedTransactionHandoffVersion = 1;
-export const walletSignableActionKinds = ["base_reviewed_transaction"] as const;
+export const walletSignableActionKinds = ["robinhood_reviewed_transaction"] as const;
 
 export type WalletSignableActionKind =
   (typeof walletSignableActionKinds)[number];
@@ -16,7 +16,7 @@ export interface WalletUnsignedTransactionHandoff {
   workspaceId: string;
   agentId: string;
   actionKind: WalletSignableActionKind;
-  chainId: typeof baseChainId;
+  chainId: typeof productChainId;
   chainName: typeof currentProductChain.name;
   to: `0x${string}`;
   valueWei: string;
@@ -53,12 +53,12 @@ export function validateUnsignedTransactionHandoff(
     return reject("Unsupported signable action kind.");
   }
 
-  if (String(handoff.actionKind) === "base_mcp_status_check") {
+  if (String(handoff.actionKind) === "chain_status_check") {
     return reject("Read-only status checks cannot be signed.");
   }
 
   if (
-    handoff.chainId !== baseChainId ||
+    handoff.chainId !== productChainId ||
     handoff.chainName !== currentProductChain.name
   ) {
     return reject(`Wallet handoff must target ${currentProductChain.name}.`);

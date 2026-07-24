@@ -101,7 +101,7 @@ grant select (
   mode,
   network,
   telegram_status,
-  base_mcp_status,
+  chain_action_status,
   created_at,
   last_sync_at,
   template_id

@@ -122,7 +122,7 @@ function buildControls(
     {
       label: "Abuse gate",
       status: input.abuseCanProceed ? "pass" : "blocked",
-      detail: "Batch 9B abuse and rate-limit hardening must be clean first.",
+      detail: "Abuse and rate-limit hardening must be clean first.",
     },
     {
       label: "Emergency disable",

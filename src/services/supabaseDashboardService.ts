@@ -57,7 +57,6 @@ const dashboardAgentInstanceColumns = [
   "network",
   "chain_action_status",
   "telegram_status",
-  "base_mcp_status",
   "approval_policy_id",
   "created_at",
   "last_sync_at",
@@ -197,6 +196,14 @@ function mapRecordStatus(
   return status === "review" ? "review" : status;
 }
 
+function mapChainActionRouteStatus(
+  status: AgentInstanceRow["chain_action_status"],
+): DemoRecordStatus {
+  if (status === "active") return "active";
+  if (status === "ready") return "review";
+  return "queued";
+}
+
 function mapWorkspace(
   row: WorkspaceRow,
   session: KyraAuthSession,
@@ -226,7 +233,7 @@ function mapAgent(row: AgentInstanceRow): DemoAgentInstance {
     network: chain?.name ?? "Unsupported network",
     chainActionStatus: row.chain_action_status,
     telegramStatus: mapRecordStatus(row.telegram_status),
-    baseMcpStatus: mapRecordStatus(row.base_mcp_status),
+    chainRouteStatus: mapChainActionRouteStatus(row.chain_action_status),
     approvalPolicyId: row.approval_policy_id ?? "",
     createdAt: row.created_at,
     lastSyncAt: row.last_sync_at,
@@ -415,7 +422,7 @@ function createPreparedActionPreview(
 ): DemoPreparedActionPreview {
   const basePreview = {
     id: "chain_status_check_preview",
-    actionKind: "base_mcp_status_check" as const,
+    actionKind: "chain_status_check" as const,
     title: currentProductChain.name + " status check",
     chain: currentProductChain.name,
     routeSummary:

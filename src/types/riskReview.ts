@@ -1,6 +1,6 @@
 
 import {
-  baseChainId,
+  productChainId,
   validateUnsignedTransactionHandoff,
   type WalletUnsignedTransactionHandoff,
   type WalletUnsignedTransactionHandoffValidation,
@@ -43,11 +43,11 @@ export interface PreparedActionRiskInput {
 }
 
 const supportedPreparedActionKinds = new Set([
-  "base_mcp_status_check",
-  "base_reviewed_transaction",
+  "chain_status_check",
+  "robinhood_reviewed_transaction",
 ]);
 
-const signablePreparedActionKinds = new Set(["base_reviewed_transaction"]);
+const signablePreparedActionKinds = new Set(["robinhood_reviewed_transaction"]);
 
 export function reviewPreparedActionRisk(
   input: PreparedActionRiskInput,
@@ -56,14 +56,14 @@ export function reviewPreparedActionRisk(
     return blockedRiskReview("Unsupported action type. Kyra fails closed.");
   }
 
-  if (input.actionKind === "base_mcp_status_check") {
+  if (input.actionKind === "chain_status_check") {
     return {
       level: "read-only",
       status: "ready",
       explicitApprovalRequired: false,
       permissions: ["read_context"],
       checks: [
-        "Read-only Base MCP status check.",
+        "Read-only chain action status check.",
         "No wallet prompt.",
         "No token spend.",
         "No calldata.",
@@ -74,7 +74,7 @@ export function reviewPreparedActionRisk(
   }
 
   if (!signablePreparedActionKinds.has(input.actionKind)) {
-    return blockedRiskReview("Action is not signable in Phase 6.");
+    return blockedRiskReview("Action is not signable under the current safety policy.");
   }
 
   if (input.validation && !input.validation.ok) {
@@ -83,7 +83,7 @@ export function reviewPreparedActionRisk(
     );
   }
 
-  if (input.chainId !== baseChainId) {
+  if (input.chainId !== productChainId) {
     return blockedRiskReview("Prepared action must target the selected network.");
   }
 

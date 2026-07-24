@@ -18,14 +18,14 @@ export type Phase8ControlledExecutionStatus =
 export type Phase8ControlledExecutionBlockReason =
   | "owner_session_required"
   | "selected_agent_required"
-  | "base_account_required"
+  | "owner_wallet_required"
   | "launch_packet_required"
   | "runtime_enablement_required"
   | "owner_click_required"
   | "frozen_action_required"
   | "zero_value_action_required"
   | "no_calldata_required"
-  | "base_account_prompt_required"
+  | "owner_wallet_prompt_required"
   | "result_monitoring_required"
   | "rollback_required"
   | "emergency_disable_required"
@@ -36,12 +36,12 @@ export type Phase8ControlledExecutionBlockReason =
 export interface Phase8ControlledExecutionInput {
   ownerSignedIn: boolean;
   selectedAgent: boolean;
-  baseAccountConnected: boolean;
+  ownerWalletConnected: boolean;
   executionLaunch: ExecutionLaunchReadinessResult;
   runtimeEnablement: "disabled" | "enabled";
   ownerClickedExecute: boolean;
   frozenAction: FrozenPreparedAction | null;
-  baseAccountPromptState:
+  ownerWalletPromptState:
     | "not_requested"
     | "opened"
     | "approved"
@@ -58,8 +58,8 @@ export interface Phase8ControlledExecutionInput {
 export interface Phase8ControlledExecutionResult {
   status: Phase8ControlledExecutionStatus;
   ownerOnly: true;
-  baseAccountPrimaryLane: true;
-  officialMcpRequired: false;
+  ownerWalletPrimaryLane: true;
+  hostedChainProviderRequired: false;
   walletPromptAllowed: boolean;
   transactionSubmissionAllowed: boolean;
   reasons: Phase8ControlledExecutionBlockReason[];
@@ -71,12 +71,12 @@ const blockMessages: Record<Phase8ControlledExecutionBlockReason, string> = {
     "Sign in before controlled execution can be attempted.",
   selected_agent_required:
     "Select one deployed agent before controlled execution.",
-  base_account_required:
+  owner_wallet_required:
     "Connect the owner's wallet before controlled execution.",
   launch_packet_required:
-    "Phase 8 requires an owner-approved launch packet.",
+    "Controlled execution requires an owner-approved launch packet.",
   runtime_enablement_required:
-    "Phase 8 runtime enablement must be explicitly enabled for the live window.",
+    "Controlled execution must be explicitly enabled for the live window.",
   owner_click_required:
     "Controlled execution requires an explicit owner click in the private dashboard.",
   frozen_action_required:
@@ -85,7 +85,7 @@ const blockMessages: Record<Phase8ControlledExecutionBlockReason, string> = {
     "The first controlled live action must be zero-value.",
   no_calldata_required:
     "The first controlled live action must not include calldata.",
-  base_account_prompt_required:
+  owner_wallet_prompt_required:
     "The wallet prompt must be opened and approved by the owner.",
   result_monitoring_required:
     "Owner-only result monitoring must be ready before submission.",
@@ -96,9 +96,9 @@ const blockMessages: Record<Phase8ControlledExecutionBlockReason, string> = {
   post_transaction_audit_required:
     "Post-transaction audit must be ready before controlled execution.",
   telegram_authority_forbidden:
-    "Telegram cannot authorize or execute Phase 8 transactions.",
+    "Telegram cannot authorize or execute controlled transactions.",
   public_visibility_forbidden:
-    "Phase 8 execution state must stay out of public profiles.",
+    "Controlled execution state must stay out of public profiles.",
 };
 
 export function evaluatePhase8ControlledExecution(
@@ -114,8 +114,8 @@ export function evaluatePhase8ControlledExecution(
     reasons.push("selected_agent_required");
   }
 
-  if (!input.baseAccountConnected) {
-    reasons.push("base_account_required");
+  if (!input.ownerWalletConnected) {
+    reasons.push("owner_wallet_required");
   }
 
   if (
@@ -180,8 +180,8 @@ export function evaluatePhase8ControlledExecution(
     return {
       status: "blocked",
       ownerOnly: true,
-      baseAccountPrimaryLane: true,
-      officialMcpRequired: false,
+      ownerWalletPrimaryLane: true,
+      hostedChainProviderRequired: false,
       walletPromptAllowed: false,
       transactionSubmissionAllowed: false,
       reasons: uniqueReasons,
@@ -189,7 +189,7 @@ export function evaluatePhase8ControlledExecution(
     };
   }
 
-  if (input.baseAccountPromptState === "approved") {
+  if (input.ownerWalletPromptState === "approved") {
     return {
       status: input.resultMonitoring.status === "closed_confirmed"
         ? "closed_confirmed"
@@ -197,8 +197,8 @@ export function evaluatePhase8ControlledExecution(
         ? "closed_failed"
         : "submitted_pending_confirmation",
       ownerOnly: true,
-      baseAccountPrimaryLane: true,
-      officialMcpRequired: false,
+      ownerWalletPrimaryLane: true,
+      hostedChainProviderRequired: false,
       walletPromptAllowed: true,
       transactionSubmissionAllowed: true,
       reasons: [],
@@ -207,12 +207,12 @@ export function evaluatePhase8ControlledExecution(
     };
   }
 
-  if (input.baseAccountPromptState === "opened") {
+  if (input.ownerWalletPromptState === "opened") {
     return {
       status: "wallet_prompt_opened",
       ownerOnly: true,
-      baseAccountPrimaryLane: true,
-      officialMcpRequired: false,
+      ownerWalletPrimaryLane: true,
+      hostedChainProviderRequired: false,
       walletPromptAllowed: true,
       transactionSubmissionAllowed: false,
       reasons: [],
@@ -222,14 +222,14 @@ export function evaluatePhase8ControlledExecution(
   }
 
   if (
-    input.baseAccountPromptState === "rejected" ||
-    input.baseAccountPromptState === "failed"
+    input.ownerWalletPromptState === "rejected" ||
+    input.ownerWalletPromptState === "failed"
   ) {
     return {
       status: "closed_failed",
       ownerOnly: true,
-      baseAccountPrimaryLane: true,
-      officialMcpRequired: false,
+      ownerWalletPrimaryLane: true,
+      hostedChainProviderRequired: false,
       walletPromptAllowed: false,
       transactionSubmissionAllowed: false,
       reasons: [],
@@ -241,13 +241,13 @@ export function evaluatePhase8ControlledExecution(
   return {
     status: "ready_for_owner_wallet_prompt",
     ownerOnly: true,
-    baseAccountPrimaryLane: true,
-    officialMcpRequired: false,
+    ownerWalletPrimaryLane: true,
+    hostedChainProviderRequired: false,
     walletPromptAllowed: true,
     transactionSubmissionAllowed: false,
     reasons: [],
     message:
-      "Phase 8 is ready for an explicit owner wallet prompt in the private dashboard.",
+      "Controlled execution is ready for an explicit owner wallet prompt in the private dashboard.",
   };
 }
 

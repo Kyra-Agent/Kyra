@@ -69,7 +69,7 @@ const seedTemplates = [
     name: "Operator",
     role: "Personal wallet readiness agent",
     summary:
-      "A private Telegram-native agent for wallet checks, swap reviews, transfer reviews, action logs, and approval-gated Base readiness.",
+      "A private Telegram-native agent for wallet checks, swap reviews, transfer reviews, action logs, and approval-gated Robinhood Chain readiness.",
     actions: [
       "balance",
       "swap review",
@@ -85,7 +85,7 @@ const seedTemplates = [
     name: "Scout",
     role: "Recon and launch monitor",
     summary:
-      "A research-forward agent that watches new launches, token activity, and Base ecosystem signals before summarizing what matters.",
+      "A research-forward agent that watches new launches, token activity, and Robinhood Chain ecosystem signals before summarizing what matters.",
     actions: [
       "launch monitor",
       "token scan",

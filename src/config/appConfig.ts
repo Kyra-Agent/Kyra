@@ -32,8 +32,6 @@ const telegramDashboardStatusFunctionUrl =
 const telegramDisconnectFunctionUrl =
   readEnv("VITE_KYRA_TELEGRAM_DISCONNECT_FUNCTION_URL") ||
   (supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/telegram-disconnect` : "");
-const baseMcpPrepareFunctionUrl =
-  supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/base-mcp-prepare` : "";
 const chainActionPrepareFunctionUrl =
   supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/chain-action-prepare` : "";
 const telegramConnectTokenInputEnabled =
@@ -63,11 +61,11 @@ export const appConfig = {
     currentId: currentProductChain.id,
     migrationTargetKey: migrationTargetChain.key,
     migrationTargetId: migrationTargetChain.id,
-    cutoverStatus: "pending",
+    cutoverStatus: "complete",
     testnetEvidenceMode: currentProductChain.key === "robinhood_testnet",
     mainnetCutoverMode: currentProductChain.key === "robinhood_mainnet",
   },
-  publishTarget: "vercel",
+  publishTarget: "netlify",
   supabase: {
     url: supabaseUrl,
     hasAnonKey: Boolean(supabaseAnonKey),
@@ -90,10 +88,6 @@ export const appConfig = {
     ),
     telegramDisconnectUrl: telegramDisconnectFunctionUrl,
     telegramDisconnectConfigured: Boolean(telegramDisconnectFunctionUrl && supabaseConfigured),
-    baseMcpPrepareUrl: baseMcpPrepareFunctionUrl,
-    baseMcpPrepareConfigured: Boolean(
-      baseMcpPrepareFunctionUrl && supabaseConfigured,
-    ),
     chainActionPrepareUrl: chainActionPrepareFunctionUrl,
     chainActionPrepareConfigured: Boolean(
       chainActionPrepareFunctionUrl && supabaseConfigured,
@@ -108,8 +102,8 @@ export const appConfig = {
     database: requestedDataProvider === "supabase" && supabaseConfigured ? "supabase" : "mock",
     deployApi: requestedDataProvider === "supabase" && deployFunctionUrl ? "edge preferred" : "edge scaffolded",
     telegram: telegramBackendConfigured ? "live read-only" : "read-only scaffold",
-    baseMcp: baseMcpPrepareFunctionUrl && supabaseConfigured
-      ? "custom read-only bridge"
+    chainActions: chainActionPrepareFunctionUrl && supabaseConfigured
+      ? "Robinhood Chain read-only bridge"
       : "read-only scaffold",
     walletConnection: "owner_click_only",
     walletExecution: "disabled",

@@ -55,12 +55,12 @@ try {
     agentId,
     approvalId: "approval_1",
     approvedAt: "2026-07-03T09:55:00.000Z",
-    actionKind: "base_reviewed_transaction",
-    chain: "Base",
+    actionKind: "robinhood_reviewed_transaction",
+    chain: "Robinhood Chain",
     recipient: "0x0000000000000000000000000000000000000000",
     valueWei: "0",
     data: "0x",
-    routeSummary: "Controlled zero-value Base execution check.",
+    routeSummary: "Controlled zero-value Robinhood Chain execution check.",
     valueSummary: "Zero-value first transaction.",
     freezeKey: "phase8-freeze",
     frozen: true,
@@ -112,7 +112,7 @@ try {
     message: "Prompt failed.",
     createdAt: "2026-07-03T10:00:04.000Z",
   };
-  const baseInput = {
+  const baselineInput = {
     liveWindowPreparation,
     ownerUserId,
     workspaceId,
@@ -124,7 +124,7 @@ try {
     visibleInPublicProfile: false,
   };
 
-  const ready = evaluatePhase8WalletPromptOpening(baseInput);
+  const ready = evaluatePhase8WalletPromptOpening(baselineInput);
   assertEquals(ready.status, "ready_to_open_prompt");
   assertEquals(ready.walletPromptOpenAllowed, true);
   assertEquals(ready.walletApprovalRecorded, false);
@@ -132,7 +132,7 @@ try {
   assertEquals(ready.reasons.length, 0);
 
   const opened = evaluatePhase8WalletPromptOpening({
-    ...baseInput,
+    ...baselineInput,
     promptState: "opened",
     auditEvents: [openedAudit],
   });
@@ -141,7 +141,7 @@ try {
   assertEquals(opened.transactionSubmissionAllowed, false);
 
   const approved = evaluatePhase8WalletPromptOpening({
-    ...baseInput,
+    ...baselineInput,
     promptState: "approved",
     auditEvents: [approvedAudit],
   });
@@ -150,7 +150,7 @@ try {
   assertEquals(approved.transactionSubmissionAllowed, false);
 
   const rejected = evaluatePhase8WalletPromptOpening({
-    ...baseInput,
+    ...baselineInput,
     promptState: "rejected",
     auditEvents: [rejectedAudit],
   });
@@ -158,7 +158,7 @@ try {
   assertEquals(rejected.transactionSubmissionAllowed, false);
 
   const failed = evaluatePhase8WalletPromptOpening({
-    ...baseInput,
+    ...baselineInput,
     promptState: "failed",
     auditEvents: [failedAudit],
   });
@@ -166,7 +166,7 @@ try {
   assertEquals(failed.transactionSubmissionAllowed, false);
 
   const blockedLiveWindow = evaluatePhase8WalletPromptOpening({
-    ...baseInput,
+    ...baselineInput,
     liveWindowPreparation: {
       ...liveWindowPreparation,
       walletPromptAllowed: false,
@@ -176,38 +176,38 @@ try {
   assert(blockedLiveWindow.reasons.includes("live_window_not_ready"));
 
   const telegramIntent = evaluatePhase8WalletPromptOpening({
-    ...baseInput,
+    ...baselineInput,
     promptIntent: { ...promptIntent, source: "telegram" },
   });
   assert(telegramIntent.reasons.includes("telegram_authority_forbidden"));
 
   const publicIntent = evaluatePhase8WalletPromptOpening({
-    ...baseInput,
+    ...baselineInput,
     promptIntent: { ...promptIntent, source: "public_profile" },
     visibleInPublicProfile: true,
   });
   assert(publicIntent.reasons.includes("public_visibility_forbidden"));
 
   const reusedNonce = evaluatePhase8WalletPromptOpening({
-    ...baseInput,
+    ...baselineInput,
     promptIntent: { ...promptIntent, promptNonceUsed: true },
   });
   assert(reusedNonce.reasons.includes("one_time_prompt_nonce_unused_required"));
 
   const missingNonce = evaluatePhase8WalletPromptOpening({
-    ...baseInput,
+    ...baselineInput,
     promptIntent: { ...promptIntent, promptNonce: null },
   });
   assert(missingNonce.reasons.includes("one_time_prompt_nonce_required"));
 
   const wrongBinding = evaluatePhase8WalletPromptOpening({
-    ...baseInput,
+    ...baselineInput,
     promptIntent: { ...promptIntent, frozenActionFreezeKey: "other-freeze" },
   });
   assert(wrongBinding.reasons.includes("frozen_action_binding_required"));
 
   const missingAudit = evaluatePhase8WalletPromptOpening({
-    ...baseInput,
+    ...baselineInput,
     promptState: "opened",
     auditEvents: [],
   });
@@ -215,7 +215,7 @@ try {
   assert(missingAudit.reasons.includes("sanitized_audit_required"));
 
   const unsafeAudit = evaluatePhase8WalletPromptOpening({
-    ...baseInput,
+    ...baselineInput,
     promptState: "opened",
     auditEvents: [{ ...openedAudit, ownerOnly: false, sanitized: false }],
   });

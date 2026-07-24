@@ -45,8 +45,8 @@ try {
   const controlledSubmission = {
     status: "ready_to_submit",
     ownerOnly: true,
-    baseAccountPrimaryLane: true,
-    officialMcpRequired: false,
+    ownerWalletPrimaryLane: true,
+    hostedChainProviderRequired: false,
     transactionSubmissionAllowed: true,
     resultCloseoutRecorded: false,
     reasons: [],
@@ -59,11 +59,11 @@ try {
     reasons: [],
     message: "ready",
   };
-  const baseInput = {
+  const baselineInput = {
     runtimeFlagEnabled: true,
     ownerSignedIn: true,
     selectedAgent: true,
-    baseAccountConnected: true,
+    ownerWalletConnected: true,
     controlledSubmission,
     liveWindowActivation,
     resultCloseoutRecorded: false,
@@ -72,7 +72,7 @@ try {
     visibleInPublicProfile: false,
   };
 
-  const ready = evaluatePhase8RuntimeEnablementPreflight(baseInput);
+  const ready = evaluatePhase8RuntimeEnablementPreflight(baselineInput);
   assertEquals(ready.status, "ready");
   assertEquals(ready.runtimeSubmitterEnabled, true);
   assertEquals(ready.reasons.length, 0);
@@ -81,11 +81,11 @@ try {
     ["runtimeFlagEnabled", "runtime_flag_required"],
     ["ownerSignedIn", "owner_session_required"],
     ["selectedAgent", "selected_agent_required"],
-    ["baseAccountConnected", "base_account_required"],
+    ["ownerWalletConnected", "owner_wallet_required"],
     ["privateDashboardSource", "private_dashboard_required"],
   ]) {
     const result = evaluatePhase8RuntimeEnablementPreflight({
-      ...baseInput,
+      ...baselineInput,
       [field]: false,
     });
     assertEquals(result.status, "locked", `${field} should lock preflight`);
@@ -94,7 +94,7 @@ try {
   }
 
   const blockedSubmission = evaluatePhase8RuntimeEnablementPreflight({
-    ...baseInput,
+    ...baselineInput,
     controlledSubmission: {
       ...controlledSubmission,
       status: "blocked",
@@ -105,7 +105,7 @@ try {
   assert(blockedSubmission.reasons.includes("controlled_submission_required"));
 
   const blockedActivation = evaluatePhase8RuntimeEnablementPreflight({
-    ...baseInput,
+    ...baselineInput,
     liveWindowActivation: {
       ...liveWindowActivation,
       status: "locked",
@@ -116,26 +116,26 @@ try {
   assert(blockedActivation.reasons.includes("live_window_activation_required"));
 
   const closeoutRecorded = evaluatePhase8RuntimeEnablementPreflight({
-    ...baseInput,
+    ...baselineInput,
     resultCloseoutRecorded: true,
   });
   assert(closeoutRecorded.reasons.includes("result_already_recorded"));
 
   const telegram = evaluatePhase8RuntimeEnablementPreflight({
-    ...baseInput,
+    ...baselineInput,
     telegramCanAuthorize: true,
   });
   assert(telegram.reasons.includes("telegram_authority_forbidden"));
 
   const publicProfile = evaluatePhase8RuntimeEnablementPreflight({
-    ...baseInput,
+    ...baselineInput,
     visibleInPublicProfile: true,
   });
   assert(publicProfile.reasons.includes("public_visibility_forbidden"));
 
   assertEquals(
     getPhase8RuntimeEnablementPreflightBlockMessage("runtime_flag_required"),
-    "Phase 8 controlled submission runtime must be explicitly enabled for the owner window.",
+    "Controlled submission must be explicitly enabled for the owner window.",
   );
 } finally {
   rmSync(outDir, { recursive: true, force: true });

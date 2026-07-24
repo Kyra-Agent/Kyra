@@ -49,7 +49,7 @@ try {
   } = await import(`file:///${outputPath.replace(/\\/g, "/")}`);
 
   const txHash = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
-  const baseInput = {
+  const baselineInput = {
     ownerUserId: "owner_22",
     workspaceId: "workspace_22",
     agentId: "agent_777",
@@ -62,7 +62,7 @@ try {
   };
 
   const notStarted = evaluatePhase8TransactionVerification({
-    ...baseInput,
+    ...baselineInput,
     txHash: null,
     receiptLoading: false,
   });
@@ -70,19 +70,19 @@ try {
   assertEquals(notStarted.canPromoteToConfirmed, false);
 
   const invalidHash = evaluatePhase8TransactionVerification({
-    ...baseInput,
+    ...baselineInput,
     txHash: "0x1234",
     receiptLoading: false,
   });
   assertEquals(invalidHash.status, "blocked");
   assert(invalidHash.reasons.includes("transaction_hash_required"));
 
-  const pending = evaluatePhase8TransactionVerification(baseInput);
+  const pending = evaluatePhase8TransactionVerification(baselineInput);
   assertEquals(pending.status, "pending_receipt");
   assert(pending.reasons.includes("receipt_pending"));
 
   const confirmed = evaluatePhase8TransactionVerification({
-    ...baseInput,
+    ...baselineInput,
     receiptStatus: "success",
     receiptLoading: false,
   });
@@ -92,7 +92,7 @@ try {
   assertEquals(confirmed.txHashLabel, "0xeeeeeeee...eeeeeeee");
 
   const reverted = evaluatePhase8TransactionVerification({
-    ...baseInput,
+    ...baselineInput,
     receiptStatus: "reverted",
     receiptLoading: false,
   });
@@ -104,7 +104,7 @@ try {
   );
 
   const unavailable = evaluatePhase8TransactionVerification({
-    ...baseInput,
+    ...baselineInput,
     receiptLoading: false,
     receiptError: true,
   });
@@ -112,7 +112,7 @@ try {
   assert(unavailable.reasons.includes("receipt_unavailable"));
 
   const publicResult = evaluatePhase8TransactionVerification({
-    ...baseInput,
+    ...baselineInput,
     receiptStatus: "success",
     receiptLoading: false,
     visibleInPublicProfile: true,

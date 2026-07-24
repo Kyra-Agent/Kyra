@@ -33,7 +33,7 @@ const unsignedSource = readFileSync(
   "utf8",
 ).replace(
   'import { currentProductChain } from "../config/productChains";',
-  'const currentProductChain = Object.freeze({ id: 8453, name: "Base" });',
+  'const currentProductChain = Object.freeze({ id: 4663, name: "Robinhood Chain" });',
 );
 const preparedSource = stripImport(
   stripImport(
@@ -75,7 +75,7 @@ writeFileSync(outputPath, transpiled.outputText);
 
 try {
   const {
-    baseChainId,
+    productChainId,
     evaluatePreparedActionPolicy,
     evaluateDualApprovalExecution,
     freezeReviewedPreparedAction,
@@ -90,12 +90,12 @@ try {
     selectedAgent: true,
     preparedActionStorageEnabled: true,
     ownerApprovalRecorded: true,
-    actionKind: "base_reviewed_transaction",
-    chainId: baseChainId,
+    actionKind: "robinhood_reviewed_transaction",
+    chainId: productChainId,
     recipient: "0x1111111111111111111111111111111111111111",
     valueWei: "0",
     data: "0x",
-    routeSummary: "Owner reviewed Base transaction preview.",
+    routeSummary: "Owner reviewed Robinhood Chain transaction preview.",
     valueSummary: "No token spend in this dual approval test.",
   });
 
@@ -114,17 +114,17 @@ try {
 
   assert(frozenAction, "Owner approval must freeze the reviewed action.");
   assertEquals(frozenAction.frozen, true);
-  assertEquals(frozenAction.actionKind, "base_reviewed_transaction");
+  assertEquals(frozenAction.actionKind, "robinhood_reviewed_transaction");
 
   const pending = evaluateDualApprovalExecution({
     policyReview,
     ownerDecision: { decision: "pending" },
     frozenAction: null,
-    baseAccountConnected: true,
+    ownerWalletConnected: true,
     handoffValid: true,
     walletExecutionEnabled: false,
     walletSigningEnabled: false,
-    officialMcpEnabled: false,
+    hostedChainProviderEnabled: false,
   });
   assertEquals(pending.status, "owner_review_required");
   assert(pending.reasons.includes("owner_approval_required"));
@@ -133,11 +133,11 @@ try {
     policyReview,
     ownerDecision: { decision: "rejected" },
     frozenAction: null,
-    baseAccountConnected: true,
+    ownerWalletConnected: true,
     handoffValid: true,
     walletExecutionEnabled: false,
     walletSigningEnabled: false,
-    officialMcpEnabled: false,
+    hostedChainProviderEnabled: false,
   });
   assertEquals(rejected.status, "owner_rejected");
   assertEquals(rejected.walletPromptAllowed, false);
@@ -146,11 +146,11 @@ try {
     policyReview,
     ownerDecision: { decision: "approved" },
     frozenAction,
-    baseAccountConnected: true,
+    ownerWalletConnected: true,
     handoffValid: true,
     walletExecutionEnabled: false,
     walletSigningEnabled: false,
-    officialMcpEnabled: false,
+    hostedChainProviderEnabled: false,
   });
   assert(missingIdentity.reasons.includes("approval_identity_required"));
 
@@ -163,18 +163,18 @@ try {
       approvedAt: "2026-06-25T00:00:00.000Z",
     },
     frozenAction,
-    baseAccountConnected: true,
+    ownerWalletConnected: true,
     handoffValid: true,
     walletExecutionEnabled: false,
     walletSigningEnabled: false,
-    officialMcpEnabled: false,
+    hostedChainProviderEnabled: false,
   });
-  assertEquals(approvedLocked.status, "base_account_prompt_locked");
+  assertEquals(approvedLocked.status, "owner_wallet_prompt_locked");
   assertEquals(approvedLocked.walletPromptAllowed, false);
   assertEquals(approvedLocked.transactionSubmissionAllowed, false);
   assert(approvedLocked.reasons.includes("wallet_execution_disabled"));
   assert(approvedLocked.reasons.includes("wallet_signing_disabled"));
-  assert(approvedLocked.reasons.includes("official_mcp_disabled"));
+  assert(approvedLocked.reasons.includes("hosted_chain_provider_disabled"));
 
   const changedCanonical = {
     ...canonical,
@@ -201,11 +201,11 @@ try {
       approvedAt: "2026-06-25T00:00:00.000Z",
     },
     frozenAction,
-    baseAccountConnected: true,
+    ownerWalletConnected: true,
     handoffValid: true,
     walletExecutionEnabled: false,
     walletSigningEnabled: false,
-    officialMcpEnabled: false,
+    hostedChainProviderEnabled: false,
   });
   assert(changedBlocked.reasons.includes("reviewed_action_changed"));
 
@@ -218,14 +218,14 @@ try {
       approvedAt: "2026-06-25T00:00:00.000Z",
     },
     frozenAction,
-    baseAccountConnected: false,
+    ownerWalletConnected: false,
     handoffValid: false,
     walletExecutionEnabled: false,
     walletSigningEnabled: false,
-    officialMcpEnabled: false,
+    hostedChainProviderEnabled: false,
   });
   assertEquals(noConnection.status, "owner_approved_frozen");
-  assert(noConnection.reasons.includes("base_account_connection_required"));
+  assert(noConnection.reasons.includes("owner_wallet_connection_required"));
   assert(noConnection.reasons.includes("valid_handoff_required"));
 
   assertEquals(

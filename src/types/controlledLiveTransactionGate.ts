@@ -5,7 +5,7 @@ import type {
 import type {
   ResultMonitoringCloseout,
 } from "./resultMonitoringCloseout";
-import { baseChainId } from "./unsignedTransactionHandoff";
+import { productChainId } from "./unsignedTransactionHandoff";
 
 export type ControlledLiveTransactionStatus =
   | "blocked"
@@ -16,8 +16,8 @@ export type ControlledLiveTransactionBlockReason =
   | "owner_scope_required"
   | "workspace_scope_required"
   | "agent_scope_required"
-  | "base_account_required"
-  | "base_network_required"
+  | "owner_wallet_required"
+  | "product_network_required"
   | "single_action_required"
   | "allowlisted_action_required"
   | "low_risk_action_required"
@@ -34,7 +34,7 @@ export interface ControlledLiveTransactionGateInput {
   ownerUserId: string;
   workspaceId: string;
   agentId: string;
-  baseAccountConnected: boolean;
+  ownerWalletConnected: boolean;
   chainId: unknown;
   preparedActionCount: number;
   actionAllowlisted: boolean;
@@ -70,9 +70,9 @@ const blockMessages: Record<ControlledLiveTransactionBlockReason, string> = {
     "Controlled live transaction requires one workspace scope.",
   agent_scope_required:
     "Controlled live transaction requires one deployed agent scope.",
-  base_account_required:
+  owner_wallet_required:
     "Connect one owner wallet before a live window can be reviewed.",
-  base_network_required:
+  product_network_required:
     "Controlled live transaction must target the selected runtime network.",
   single_action_required:
     "Controlled live transaction allows exactly one prepared action.",
@@ -95,7 +95,7 @@ const blockMessages: Record<ControlledLiveTransactionBlockReason, string> = {
   telegram_authority_forbidden:
     "Telegram cannot authorize or execute controlled live transactions.",
   runtime_execution_must_remain_locked:
-    "Wallet prompt, signing, and submission runtime switches must remain locked in Phase 7J.",
+    "Wallet prompt, signing, and submission runtime switches must remain locked by the transaction runtime gate.",
 };
 
 export function evaluateControlledLiveTransactionGate(
@@ -115,12 +115,12 @@ export function evaluateControlledLiveTransactionGate(
     reasons.push("agent_scope_required");
   }
 
-  if (!input.baseAccountConnected) {
-    reasons.push("base_account_required");
+  if (!input.ownerWalletConnected) {
+    reasons.push("owner_wallet_required");
   }
 
-  if (input.chainId !== baseChainId) {
-    reasons.push("base_network_required");
+  if (input.chainId !== productChainId) {
+    reasons.push("product_network_required");
   }
 
   if (input.preparedActionCount !== 1) {
@@ -195,7 +195,7 @@ export function evaluateControlledLiveTransactionGate(
     message: uniqueReasons.length
       ? blockMessages[uniqueReasons[0]]
       : input.liveWindowApproved
-        ? "Live window is approved, but Phase 7J keeps wallet prompt, signing, and submission runtime locked."
+        ? "Live window is approved, but the transaction runtime gate keeps wallet prompt, signing, and submission locked."
         : "Controlled live transaction gate is ready for explicit live-window approval.",
   };
 }

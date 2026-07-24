@@ -171,7 +171,7 @@ export function buildTelegramTemplateContext(
     phase6GatedActions,
     gatedActions,
     safetyNote:
-      "Telegram is read-only. Wallet, approval, Base MCP, and onchain execution stay gated for Phase 6.",
+      "Telegram is read-only. Wallet, approval, Robinhood Chain actions, and onchain execution stay gated behind owner approval.",
   };
 }
 
@@ -212,7 +212,7 @@ function buildTelegramTemplateContextReplyLines(
       `Dashboard gated: ${
         formatTelegramContextList(context.dashboardGatedActions)
       }`,
-      `Phase 6 gated: ${formatTelegramContextList(context.phase6GatedActions)}`,
+      `Owner approval required: ${formatTelegramContextList(context.phase6GatedActions)}`,
       "Boundary: Telegram can brief and plan only. Wallet, write, approval, and onchain execution stay disabled.",
     ];
   }

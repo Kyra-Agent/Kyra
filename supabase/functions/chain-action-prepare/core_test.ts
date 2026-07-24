@@ -152,7 +152,7 @@ Deno.test("chain prepare fails closed on chain, ownership, and limiter drift", a
           agentId,
           ownerUserId,
           workspaceId,
-          chainKey: "base",
+          chainKey: "robinhood_mainnet",
           chainActionStatus: "ready",
         }),
       }),

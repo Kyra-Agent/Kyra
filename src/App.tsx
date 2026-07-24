@@ -35,7 +35,7 @@ import {
 } from "./services/supabaseKyraRepository";
 import type { DataProvider } from "./types/api";
 import {
-  baseChainId,
+  productChainId,
   validateUnsignedTransactionHandoff,
   type WalletUnsignedTransactionHandoff,
   walletUnsignedTransactionHandoffVersion,
@@ -227,9 +227,7 @@ function App() {
   );
 
   useEffect(() => {
-    const chainLabel = currentProductChain.key === "base"
-      ? "Base-Native"
-      : currentProductChain.name;
+    const chainLabel = currentProductChain.name;
     document.title = `Kyra Agent | ${chainLabel} AI Agent Platform`;
     document.querySelector('meta[name="description"]')?.setAttribute(
       "content",
@@ -762,8 +760,8 @@ function createDemoUnsignedHandoff(
     ownerUserId: "demo-owner",
     workspaceId: "demo-workspace",
     agentId: `${scenario.templateId}-demo`,
-    actionKind: "base_reviewed_transaction",
-    chainId: baseChainId,
+    actionKind: "robinhood_reviewed_transaction",
+    chainId: productChainId,
     chainName: currentProductChain.name,
     to: "0x1111111111111111111111111111111111111111",
     valueWei: "0",

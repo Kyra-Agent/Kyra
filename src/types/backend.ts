@@ -34,7 +34,7 @@ export interface DemoAgentInstance {
   network: string;
   chainActionStatus: "disabled" | "ready" | "active" | "paused";
   telegramStatus: DemoRecordStatus;
-  baseMcpStatus: DemoRecordStatus;
+  chainRouteStatus: DemoRecordStatus;
   approvalPolicyId: string;
   createdAt: string;
   lastSyncAt: string;
@@ -108,10 +108,7 @@ export type DemoPreparedActionStatus = "blocked" | "draft" | "preview_ready";
 export interface DemoPreparedActionPreview {
   id: string;
   status: DemoPreparedActionStatus;
-  actionKind:
-    | "base_mcp_status_check"
-    | "chain_status_check"
-    | "quote_preview";
+  actionKind: "chain_status_check" | "quote_preview";
   title: string;
   chain: string;
   routeSummary: string;
@@ -148,7 +145,7 @@ export interface DemoActivityLog {
   source:
     | "agent_instances"
     | "telegram_sessions"
-    | "base_mcp_routes"
+    | "chain_action_routes"
     | "approval_requests"
     | "execution_results";
   level: "info" | "notice" | "warning";

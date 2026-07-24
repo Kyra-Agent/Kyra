@@ -20,7 +20,7 @@ export const maxChainActionPrepareFutureSkewMs = 60 * 1000;
 export type ChainActionAgentStatus = "disabled" | "ready" | "active" | "paused";
 
 export interface ChainActionAgentOwnershipRecord extends AgentOwnershipRecord {
-  chainKey: "base" | "robinhood_mainnet" | "robinhood_testnet";
+  chainKey: "robinhood_mainnet" | "robinhood_testnet";
   chainActionStatus: ChainActionAgentStatus;
 }
 

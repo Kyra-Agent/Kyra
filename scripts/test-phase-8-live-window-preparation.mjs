@@ -20,7 +20,7 @@ function assertEquals(actual, expected, message) {
 
 function stripImports(source) {
   return source
-    .replace(/import\s+\{\s*baseChainId\s*\}\s+from\s+"\.\/[^\"]+";\n?/g, "const baseChainId = 8453;\n")
+    .replace(/import\s+\{\s*productChainId\s*\}\s+from\s+"\.\/[^\"]+";\n?/g, "const productChainId = 4663;\n")
     .replace(/import\s+(?:type\s+)?\{[\s\S]*?\}\s+from\s+"\.\/[^\"]+";\n?/g, "");
 }
 
@@ -55,12 +55,12 @@ try {
     agentId,
     approvalId: "approval_1",
     approvedAt: "2026-07-03T09:55:00.000Z",
-    actionKind: "base_reviewed_transaction",
-    chain: "Base",
+    actionKind: "robinhood_reviewed_transaction",
+    chain: "Robinhood Chain",
     recipient: "0x0000000000000000000000000000000000000000",
     valueWei: "0",
     data: "0x",
-    routeSummary: "Controlled zero-value Base execution check.",
+    routeSummary: "Controlled zero-value Robinhood Chain execution check.",
     valueSummary: "Zero-value first transaction.",
     freezeKey: "phase8-freeze",
     frozen: true,
@@ -82,23 +82,23 @@ try {
     agentId,
     requestedAt: nowIso,
   };
-  const baseInput = {
+  const baselineInput = {
     ownerUserId,
     sessionUserId: ownerUserId,
     workspaceId,
     selectedWorkspaceId: workspaceId,
     selectedAgentId: agentId,
-    chainId: 8453,
-    baseAccountConnected: true,
+    chainId: 4663,
+    ownerWalletConnected: true,
     liveWindow,
     executeIntent,
     frozenAction,
-    baseAccountPromptReadiness: "ready",
+    ownerWalletPromptReadiness: "ready",
     nowIso,
     visibleInPublicProfile: false,
   };
 
-  const ready = evaluatePhase8LiveWindowPreparation(baseInput);
+  const ready = evaluatePhase8LiveWindowPreparation(baselineInput);
   assertEquals(ready.status, "ready_for_wallet_prompt");
   assertEquals(ready.ownerOnly, true);
   assertEquals(ready.walletPromptAllowed, true);
@@ -106,40 +106,40 @@ try {
   assertEquals(ready.reasons.length, 0);
 
   const opened = evaluatePhase8LiveWindowPreparation({
-    ...baseInput,
-    baseAccountPromptReadiness: "opened",
+    ...baselineInput,
+    ownerWalletPromptReadiness: "opened",
   });
   assertEquals(opened.status, "wallet_prompt_opened");
   assertEquals(opened.transactionSubmissionAllowed, false);
 
   const approved = evaluatePhase8LiveWindowPreparation({
-    ...baseInput,
-    baseAccountPromptReadiness: "approved",
+    ...baselineInput,
+    ownerWalletPromptReadiness: "approved",
   });
   assertEquals(approved.status, "wallet_prompt_approved");
   assertEquals(approved.transactionSubmissionAllowed, false);
 
   const expired = evaluatePhase8LiveWindowPreparation({
-    ...baseInput,
+    ...baselineInput,
     liveWindow: { ...liveWindow, expiresAt: "2026-07-03T09:59:59.000Z" },
   });
   assert(expired.reasons.includes("live_window_expired"));
   assertEquals(expired.walletPromptAllowed, false);
 
   const revoked = evaluatePhase8LiveWindowPreparation({
-    ...baseInput,
+    ...baselineInput,
     liveWindow: { ...liveWindow, status: "revoked", revokedAt: nowIso },
   });
   assert(revoked.reasons.includes("live_window_revoked"));
 
   const wrongOwner = evaluatePhase8LiveWindowPreparation({
-    ...baseInput,
+    ...baselineInput,
     sessionUserId: "owner_2",
   });
   assert(wrongOwner.reasons.includes("owner_match_required"));
 
   const wrongAgent = evaluatePhase8LiveWindowPreparation({
-    ...baseInput,
+    ...baselineInput,
     selectedAgentId: "agent_999",
   });
   assert(wrongAgent.reasons.includes("selected_agent_match_required"));
@@ -147,36 +147,36 @@ try {
   assert(wrongAgent.reasons.includes("frozen_action_agent_mismatch"));
 
   const wrongChain = evaluatePhase8LiveWindowPreparation({
-    ...baseInput,
+    ...baselineInput,
     chainId: 1,
   });
-  assert(wrongChain.reasons.includes("base_chain_required"));
+  assert(wrongChain.reasons.includes("product_chain_required"));
 
   const unsafeAction = evaluatePhase8LiveWindowPreparation({
-    ...baseInput,
+    ...baselineInput,
     frozenAction: { ...frozenAction, valueWei: "1", data: "0x1234" },
   });
   assert(unsafeAction.reasons.includes("zero_value_action_required"));
   assert(unsafeAction.reasons.includes("no_calldata_required"));
 
   const telegramIntent = evaluatePhase8LiveWindowPreparation({
-    ...baseInput,
+    ...baselineInput,
     executeIntent: { ...executeIntent, source: "telegram" },
   });
   assert(telegramIntent.reasons.includes("telegram_authority_forbidden"));
 
   const publicIntent = evaluatePhase8LiveWindowPreparation({
-    ...baseInput,
+    ...baselineInput,
     executeIntent: { ...executeIntent, source: "public_profile" },
     visibleInPublicProfile: true,
   });
   assert(publicIntent.reasons.includes("public_visibility_forbidden"));
 
   const promptNotReady = evaluatePhase8LiveWindowPreparation({
-    ...baseInput,
-    baseAccountPromptReadiness: "not_ready",
+    ...baselineInput,
+    ownerWalletPromptReadiness: "not_ready",
   });
-  assert(promptNotReady.reasons.includes("base_account_prompt_ready_required"));
+  assert(promptNotReady.reasons.includes("owner_wallet_prompt_ready_required"));
 
   assertEquals(
     getPhase8LiveWindowPreparationBlockMessage("private_dashboard_intent_required"),

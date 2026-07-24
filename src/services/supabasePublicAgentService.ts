@@ -20,7 +20,7 @@ interface PublicAgentProfileRow {
   mode: PublicAgentMode;
   network: PublicAgentNetwork;
   telegram_status: PublicAgentRouteStatus;
-  base_mcp_status: PublicAgentRouteStatus;
+  chain_action_status: "disabled" | "ready" | "active" | "paused";
   created_at: string;
   last_sync_at: string;
   template_id: string;
@@ -60,6 +60,14 @@ function mapRecordStatus(status: PublicAgentRouteStatus): DemoRecordStatus {
   return status;
 }
 
+function mapChainActionRouteStatus(
+  status: PublicAgentProfileRow["chain_action_status"],
+): DemoRecordStatus {
+  if (status === "active") return "active";
+  if (status === "ready") return "review";
+  return "queued";
+}
+
 function isLocalDemoPreviewSlug(agentSlug: string) {
   return agentSlug.endsWith("-demo");
 }
@@ -93,9 +101,9 @@ function mapPublicAgentProfile(row: PublicAgentProfileRow): PublicAgentProfile {
     mode: row.mode === "demo" ? "backend-demo" : "backend-demo",
     chainKey: row.network,
     network: chain?.name ?? "Unsupported network",
-    chainActionStatus: "disabled",
+    chainActionStatus: row.chain_action_status,
     telegramStatus: mapRecordStatus(row.telegram_status),
-    baseMcpStatus: mapRecordStatus(row.base_mcp_status),
+    chainRouteStatus: mapChainActionRouteStatus(row.chain_action_status),
     approvalPolicyId: "public_approval_required",
     createdAt: row.created_at,
     lastSyncAt: row.last_sync_at,

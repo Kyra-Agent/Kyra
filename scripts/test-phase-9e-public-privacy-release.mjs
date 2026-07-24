@@ -6,7 +6,7 @@ function assert(condition, message) {
   }
 }
 
-const baseInput = {
+const baselineInput = {
   monitoringSupportCanProceed: true,
   phase9RuntimeEnabled: false,
   landingPageAudited: true,
@@ -26,7 +26,7 @@ const baseInput = {
   releaseDecisionRecorded: true,
 };
 
-const ready = evaluatePhase9PublicPrivacyRelease(baseInput);
+const ready = evaluatePhase9PublicPrivacyRelease(baselineInput);
 assert(ready.status === "ready_for_runtime", "privacy release gate should be ready while runtime is disabled");
 assert(!ready.publicExecutionAllowed, "disabled runtime must not allow public execution");
 assert(ready.phase9CanClose, "clean public privacy gate should allow Phase 9 closeout");
@@ -38,7 +38,7 @@ assert(ready.reasons.includes("runtime_disabled"), "runtime disabled reason requ
 assert(ready.controls.length >= 5, "privacy release should expose checklist evidence");
 
 const releaseReady = evaluatePhase9PublicPrivacyRelease({
-  ...baseInput,
+  ...baselineInput,
   phase9RuntimeEnabled: true,
 });
 assert(releaseReady.status === "release_ready", "runtime-enabled clean gate should become release-ready");
@@ -46,7 +46,7 @@ assert(releaseReady.publicExecutionAllowed, "release-ready path can allow public
 assert(releaseReady.reasons.length === 0, "release-ready path must have no reasons");
 
 const missingSurfaces = evaluatePhase9PublicPrivacyRelease({
-  ...baseInput,
+  ...baselineInput,
   phase9RuntimeEnabled: true,
   landingPageAudited: false,
   publicAgentProfilesAudited: false,
@@ -70,7 +70,7 @@ for (const reason of [
 assert(!missingSurfaces.surfacesAudited, "missing surface audits should not pass");
 
 const sensitiveLeak = evaluatePhase9PublicPrivacyRelease({
-  ...baseInput,
+  ...baselineInput,
   phase9RuntimeEnabled: true,
   walletAddressesHiddenUnlessOwnerApproved: false,
   tokenRefsHidden: false,
@@ -94,7 +94,7 @@ for (const reason of [
 assert(!sensitiveLeak.sensitiveDataHidden, "sensitive data leak should not pass");
 
 const missingDependencies = evaluatePhase9PublicPrivacyRelease({
-  ...baseInput,
+  ...baselineInput,
   monitoringSupportCanProceed: false,
   releaseDecisionRecorded: false,
 });

@@ -24,8 +24,8 @@ const source = readFileSync(
   resolve(root, "src/types/phase8LowValueTransactionReadiness.ts"),
   "utf8",
 ).replace(
-  'import { baseChainId } from "./unsignedTransactionHandoff";',
-  "const baseChainId = 8453;",
+  'import { productChainId } from "./unsignedTransactionHandoff";',
+  "const productChainId = 4663;",
 );
 const transpiled = ts.transpileModule(source, {
   compilerOptions: {
@@ -42,12 +42,12 @@ try {
     getPhase8LowValueTransactionReadinessBlockMessage,
   } = await import(`file:///${outputPath.replace(/\\/g, "/")}`);
 
-  const baseInput = {
+  const baselineInput = {
     ownerSignedIn: true,
     privateDashboard: true,
     selectedAgent: true,
-    baseAccountConnected: true,
-    chainId: 8453,
+    ownerWalletConnected: true,
+    chainId: 4663,
     preparedActionId: "phase8_low_value_request",
     ownerApprovalRecorded: true,
     requestedValueWei: "100000000000000",
@@ -60,7 +60,7 @@ try {
     visibleInPublicProfile: false,
   };
 
-  const ready = evaluatePhase8LowValueTransactionReadiness(baseInput);
+  const ready = evaluatePhase8LowValueTransactionReadiness(baselineInput);
   assertEquals(ready.status, "ready_for_low_value_review");
   assertEquals(ready.canEnterLowValueReview, true);
   assertEquals(ready.maxValueWei, "100000000000000");
@@ -68,49 +68,49 @@ try {
   assertEquals(ready.requiredBalanceWei, "110000000000000");
 
   const noOwner = evaluatePhase8LowValueTransactionReadiness({
-    ...baseInput,
+    ...baselineInput,
     ownerSignedIn: false,
   });
   assert(noOwner.reasons.includes("owner_session_required"));
 
   const missingApproval = evaluatePhase8LowValueTransactionReadiness({
-    ...baseInput,
+    ...baselineInput,
     ownerApprovalRecorded: false,
   });
   assert(missingApproval.reasons.includes("owner_approval_required"));
 
   const zeroValue = evaluatePhase8LowValueTransactionReadiness({
-    ...baseInput,
+    ...baselineInput,
     requestedValueWei: "0",
   });
   assert(zeroValue.reasons.includes("value_required"));
 
   const overCap = evaluatePhase8LowValueTransactionReadiness({
-    ...baseInput,
+    ...baselineInput,
     requestedValueWei: "100000000000001",
   });
   assert(overCap.reasons.includes("value_cap_exceeded"));
 
   const missingGas = evaluatePhase8LowValueTransactionReadiness({
-    ...baseInput,
+    ...baselineInput,
     estimatedGasFeeWei: null,
   });
   assert(missingGas.reasons.includes("gas_estimate_required"));
 
   const underfunded = evaluatePhase8LowValueTransactionReadiness({
-    ...baseInput,
+    ...baselineInput,
     availableGasBalanceWei: "109999999999999",
   });
   assert(underfunded.reasons.includes("gas_balance_required"));
 
   const calldata = evaluatePhase8LowValueTransactionReadiness({
-    ...baseInput,
+    ...baselineInput,
     data: "0x1234",
   });
   assert(calldata.reasons.includes("calldata_forbidden"));
 
   const swapAndApproval = evaluatePhase8LowValueTransactionReadiness({
-    ...baseInput,
+    ...baselineInput,
     includesTokenApproval: true,
     includesSwap: true,
   });
@@ -118,7 +118,7 @@ try {
   assert(swapAndApproval.reasons.includes("swap_forbidden"));
 
   const publicTelegram = evaluatePhase8LowValueTransactionReadiness({
-    ...baseInput,
+    ...baselineInput,
     privateDashboard: false,
     requestedFromTelegram: true,
     visibleInPublicProfile: true,
@@ -129,7 +129,7 @@ try {
 
   assertEquals(
     getPhase8LowValueTransactionReadinessBlockMessage("value_cap_exceeded"),
-    "Requested value exceeds the Phase 8 low-value cap.",
+    "Requested value exceeds the controlled execution cap.",
   );
 } finally {
   rmSync(outDir, { recursive: true, force: true });

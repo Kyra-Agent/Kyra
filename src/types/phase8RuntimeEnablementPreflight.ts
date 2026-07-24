@@ -7,7 +7,7 @@ export type Phase8RuntimeEnablementPreflightBlockReason =
   | "runtime_flag_required"
   | "owner_session_required"
   | "selected_agent_required"
-  | "base_account_required"
+  | "owner_wallet_required"
   | "controlled_submission_required"
   | "live_window_activation_required"
   | "result_already_recorded"
@@ -19,7 +19,7 @@ export interface Phase8RuntimeEnablementPreflightInput {
   runtimeFlagEnabled: boolean;
   ownerSignedIn: boolean;
   selectedAgent: boolean;
-  baseAccountConnected: boolean;
+  ownerWalletConnected: boolean;
   controlledSubmission: Phase8ControlledSubmissionResult;
   liveWindowActivation: Phase8OwnerLiveWindowActivationResult;
   resultCloseoutRecorded: boolean;
@@ -31,7 +31,7 @@ export interface Phase8RuntimeEnablementPreflightInput {
 export interface Phase8RuntimeEnablementPreflightResult {
   status: Phase8RuntimeEnablementPreflightStatus;
   ownerOnly: true;
-  baseAccountPrimaryLane: true;
+  ownerWalletPrimaryLane: true;
   runtimeSubmitterEnabled: boolean;
   reasons: Phase8RuntimeEnablementPreflightBlockReason[];
   message: string;
@@ -39,12 +39,12 @@ export interface Phase8RuntimeEnablementPreflightResult {
 
 const blockMessages: Record<Phase8RuntimeEnablementPreflightBlockReason, string> = {
   runtime_flag_required:
-    "Phase 8 controlled submission runtime must be explicitly enabled for the owner window.",
+    "Controlled submission must be explicitly enabled for the owner window.",
   owner_session_required:
     "The signed-in owner session is required before runtime submission can open.",
   selected_agent_required:
     "Select one deployed agent before runtime submission can open.",
-  base_account_required:
+  owner_wallet_required:
     "Connect the owner wallet before runtime submission can open.",
   controlled_submission_required:
     "Controlled submission must be ready before runtime submission can open.",
@@ -55,9 +55,9 @@ const blockMessages: Record<Phase8RuntimeEnablementPreflightBlockReason, string>
   private_dashboard_required:
     "Runtime submission can open only from the private owner dashboard.",
   telegram_authority_forbidden:
-    "Telegram cannot authorize or open Phase 8 runtime submission.",
+    "Telegram cannot authorize or open runtime submission.",
   public_visibility_forbidden:
-    "Public profiles cannot expose or open Phase 8 runtime submission.",
+    "Public profiles cannot expose or open runtime submission.",
 };
 
 export function evaluatePhase8RuntimeEnablementPreflight(
@@ -77,8 +77,8 @@ export function evaluatePhase8RuntimeEnablementPreflight(
     reasons.push("selected_agent_required");
   }
 
-  if (!input.baseAccountConnected) {
-    reasons.push("base_account_required");
+  if (!input.ownerWalletConnected) {
+    reasons.push("owner_wallet_required");
   }
 
   if (
@@ -119,7 +119,7 @@ export function evaluatePhase8RuntimeEnablementPreflight(
     return {
       status: "locked",
       ownerOnly: true,
-      baseAccountPrimaryLane: true,
+      ownerWalletPrimaryLane: true,
       runtimeSubmitterEnabled: false,
       reasons: uniqueReasons,
       message: blockMessages[uniqueReasons[0]],
@@ -129,11 +129,11 @@ export function evaluatePhase8RuntimeEnablementPreflight(
   return {
     status: "ready",
     ownerOnly: true,
-    baseAccountPrimaryLane: true,
+    ownerWalletPrimaryLane: true,
     runtimeSubmitterEnabled: true,
     reasons: [],
     message:
-      "Phase 8 Batch 11 gas readiness is ready for one owner-controlled network submit.",
+      "Gas readiness is complete for one owner-controlled network submission.",
   };
 }
 

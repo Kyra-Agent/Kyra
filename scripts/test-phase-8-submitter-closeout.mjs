@@ -57,7 +57,7 @@ try {
 
   const hash =
     "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
-  const baseInput = {
+  const baselineInput = {
     ownerUserId: "owner_8",
     workspaceId: "workspace_8",
     agentId: "agent_777",
@@ -67,7 +67,7 @@ try {
     createdAt: "2026-07-05T00:00:00.000Z",
   };
 
-  const ok = createPhase8SubmittedCloseoutEvent(baseInput);
+  const ok = createPhase8SubmittedCloseoutEvent(baselineInput);
   assertEquals(ok.ok, true);
   assert(ok.event, "closeout event should be returned");
   assertEquals(ok.event.state, "submitted");
@@ -77,7 +77,7 @@ try {
   assertEquals(ok.event.message, "Submitted with sanitized hash reference.");
 
   const missingScope = createPhase8SubmittedCloseoutEvent({
-    ...baseInput,
+    ...baselineInput,
     ownerUserId: "",
   });
   assertEquals(missingScope.ok, false);
@@ -85,19 +85,19 @@ try {
   assertEquals(missingScope.event, null);
 
   const missingPreparedAction = createPhase8SubmittedCloseoutEvent({
-    ...baseInput,
+    ...baselineInput,
     preparedActionId: "",
   });
   assertEquals(missingPreparedAction.reason, "prepared_action_required");
 
   const missingNonce = createPhase8SubmittedCloseoutEvent({
-    ...baseInput,
+    ...baselineInput,
     submissionNonce: "",
   });
   assertEquals(missingNonce.reason, "submission_nonce_required");
 
   const invalidHash = createPhase8SubmittedCloseoutEvent({
-    ...baseInput,
+    ...baselineInput,
     txHash: "0x1234",
   });
   assertEquals(invalidHash.reason, "transaction_hash_required");

@@ -20,8 +20,8 @@ function assertEquals(actual, expected, message) {
 
 function stripImports(source) {
   return source.replace(
-    /import\s+\{\s*baseChainId,\s*isEvmAddress,\s*isHexData\s*\}\s+from\s+"\.\/unsignedTransactionHandoff";\n?/g,
-    "const baseChainId = 8453;\nconst isEvmAddress = (value) => typeof value === 'string' && /^0x[a-fA-F0-9]{40}$/.test(value);\nconst isHexData = (value) => typeof value === 'string' && /^0x(?:[a-fA-F0-9]{2})*$/.test(value);\n",
+    /import\s+\{\s*productChainId,\s*isEvmAddress,\s*isHexData\s*\}\s+from\s+"\.\/unsignedTransactionHandoff";\n?/g,
+    "const productChainId = 4663;\nconst isEvmAddress = (value) => typeof value === 'string' && /^0x[a-fA-F0-9]{40}$/.test(value);\nconst isHexData = (value) => typeof value === 'string' && /^0x(?:[a-fA-F0-9]{2})*$/.test(value);\n",
   );
 }
 
@@ -45,13 +45,13 @@ try {
     getPhase8LowValueSubmitRequestFailureMessage,
   } = await import(`file:///${outputPath.replace(/\\/g, "/")}`);
 
-  const baseInput = {
+  const baselineInput = {
     ownerUserId: "owner_18",
     workspaceId: "workspace_18",
     agentId: "agent_777",
     privateDashboard: true,
-    baseAccountConnected: true,
-    chainId: 8453,
+    ownerWalletConnected: true,
+    chainId: 4663,
     preparedActionId: "phase8_low_value_request",
     ownerApprovalRecorded: true,
     recipient: "0x0000000000000000000000000000000000000001",
@@ -63,61 +63,61 @@ try {
     visibleInPublicProfile: false,
   };
 
-  const ready = createPhase8LowValueSubmitRequest(baseInput);
+  const ready = createPhase8LowValueSubmitRequest(baselineInput);
   assert(ready.ok, "ready low-value submit request should pass");
-  assertEquals(ready.request.to, baseInput.recipient);
+  assertEquals(ready.request.to, baselineInput.recipient);
   assertEquals(ready.request.value, 100000000000000n);
   assertEquals(ready.request.data, "0x");
-  assertEquals(ready.request.chainId, 8453);
+  assertEquals(ready.request.chainId, 4663);
   assertEquals(ready.request.maxValueWei, "100000000000000");
   assertEquals(ready.request.ownerOnly, true);
 
   assert(
-    createPhase8LowValueSubmitRequest({ ...baseInput, ownerUserId: "" }).reasons.includes("owner_scope_required"),
+    createPhase8LowValueSubmitRequest({ ...baselineInput, ownerUserId: "" }).reasons.includes("owner_scope_required"),
   );
   assert(
-    createPhase8LowValueSubmitRequest({ ...baseInput, privateDashboard: false }).reasons.includes("private_dashboard_required"),
+    createPhase8LowValueSubmitRequest({ ...baselineInput, privateDashboard: false }).reasons.includes("private_dashboard_required"),
   );
   assert(
-    createPhase8LowValueSubmitRequest({ ...baseInput, baseAccountConnected: false }).reasons.includes("base_account_required"),
+    createPhase8LowValueSubmitRequest({ ...baselineInput, ownerWalletConnected: false }).reasons.includes("owner_wallet_required"),
   );
   assert(
-    createPhase8LowValueSubmitRequest({ ...baseInput, chainId: 1 }).reasons.includes("base_chain_required"),
+    createPhase8LowValueSubmitRequest({ ...baselineInput, chainId: 1 }).reasons.includes("product_chain_required"),
   );
   assert(
-    createPhase8LowValueSubmitRequest({ ...baseInput, preparedActionId: "" }).reasons.includes("prepared_action_required"),
+    createPhase8LowValueSubmitRequest({ ...baselineInput, preparedActionId: "" }).reasons.includes("prepared_action_required"),
   );
   assert(
-    createPhase8LowValueSubmitRequest({ ...baseInput, ownerApprovalRecorded: false }).reasons.includes("owner_approval_required"),
+    createPhase8LowValueSubmitRequest({ ...baselineInput, ownerApprovalRecorded: false }).reasons.includes("owner_approval_required"),
   );
   assert(
-    createPhase8LowValueSubmitRequest({ ...baseInput, recipient: "bad" }).reasons.includes("recipient_required"),
+    createPhase8LowValueSubmitRequest({ ...baselineInput, recipient: "bad" }).reasons.includes("recipient_required"),
   );
   assert(
-    createPhase8LowValueSubmitRequest({ ...baseInput, valueWei: "0" }).reasons.includes("value_required"),
+    createPhase8LowValueSubmitRequest({ ...baselineInput, valueWei: "0" }).reasons.includes("value_required"),
   );
   assert(
-    createPhase8LowValueSubmitRequest({ ...baseInput, valueWei: "100000000000001" }).reasons.includes("value_cap_exceeded"),
+    createPhase8LowValueSubmitRequest({ ...baselineInput, valueWei: "100000000000001" }).reasons.includes("value_cap_exceeded"),
   );
   assert(
-    createPhase8LowValueSubmitRequest({ ...baseInput, data: "0x1234" }).reasons.includes("no_calldata_required"),
+    createPhase8LowValueSubmitRequest({ ...baselineInput, data: "0x1234" }).reasons.includes("no_calldata_required"),
   );
   assert(
-    createPhase8LowValueSubmitRequest({ ...baseInput, includesTokenApproval: true }).reasons.includes("token_approval_forbidden"),
+    createPhase8LowValueSubmitRequest({ ...baselineInput, includesTokenApproval: true }).reasons.includes("token_approval_forbidden"),
   );
   assert(
-    createPhase8LowValueSubmitRequest({ ...baseInput, includesSwap: true }).reasons.includes("swap_forbidden"),
+    createPhase8LowValueSubmitRequest({ ...baselineInput, includesSwap: true }).reasons.includes("swap_forbidden"),
   );
   assert(
-    createPhase8LowValueSubmitRequest({ ...baseInput, requestedFromTelegram: true }).reasons.includes("telegram_forbidden"),
+    createPhase8LowValueSubmitRequest({ ...baselineInput, requestedFromTelegram: true }).reasons.includes("telegram_forbidden"),
   );
   assert(
-    createPhase8LowValueSubmitRequest({ ...baseInput, visibleInPublicProfile: true }).reasons.includes("public_profile_forbidden"),
+    createPhase8LowValueSubmitRequest({ ...baselineInput, visibleInPublicProfile: true }).reasons.includes("public_profile_forbidden"),
   );
 
   assertEquals(
     getPhase8LowValueSubmitRequestFailureMessage("value_cap_exceeded"),
-    "Low-value submit request exceeds the Phase 8 cap.",
+    "Low-value submit request exceeds the controlled execution cap.",
   );
 } finally {
   rmSync(outDir, { recursive: true, force: true });

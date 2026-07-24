@@ -31,7 +31,7 @@ export interface Phase8OwnerLiveWindowActivationResult {
 
 const blockMessages: Record<Phase8OwnerLiveWindowActivationBlockReason, string> = {
   runtime_window_disabled:
-    "Phase 8 live-window runtime is disabled until the owner explicitly opens the controlled window.",
+    "Live-window runtime is disabled until the owner explicitly opens the controlled window.",
   controlled_submission_required:
     "Controlled submission must be ready before the live-window activation can arm the submitter.",
   operator_ack_required:
@@ -100,7 +100,7 @@ export function evaluatePhase8OwnerLiveWindowActivation(
     transactionSubmissionAllowed: true,
     reasons: [],
     message:
-      "Phase 8 Batch 11 live window is armed for one owner-controlled network submit.",
+      "The live window is armed for one owner-controlled network submission.",
   };
 }
 

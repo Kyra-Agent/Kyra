@@ -21,13 +21,13 @@ function assertEquals(actual, expected, message) {
 function stripImports(source) {
   return source
     .replace(/import\s+type\s+\{[\s\S]*?\}\s+from\s+"\.\/[^\"]+";\n?/g, "")
-    .replace(/import\s+\{\s*baseChainId,\s*isEvmAddress,\s*isHexData\s*\}\s+from\s+"\.\/unsignedTransactionHandoff";\n?/g, "const baseChainId = 8453;\nconst isEvmAddress = (value) => typeof value === 'string' && /^0x[a-fA-F0-9]{40}$/.test(value);\nconst isHexData = (value) => typeof value === 'string' && /^0x(?:[a-fA-F0-9]{2})*$/.test(value);\n");
+    .replace(/import\s+\{\s*productChainId,\s*isEvmAddress,\s*isHexData\s*\}\s+from\s+"\.\/unsignedTransactionHandoff";\n?/g, "const productChainId = 4663;\nconst isEvmAddress = (value) => typeof value === 'string' && /^0x[a-fA-F0-9]{40}$/.test(value);\nconst isHexData = (value) => typeof value === 'string' && /^0x(?:[a-fA-F0-9]{2})*$/.test(value);\n");
 }
 
 mkdirSync(outDir, { recursive: true });
 
 const source = [
-  'const currentProductChain = Object.freeze({ id: 8453, name: "Base" });',
+  'const currentProductChain = Object.freeze({ id: 4663, name: "Robinhood Chain" });',
   stripImports(
     readFileSync(resolve(root, "src/types/phase8OwnerSubmitRequest.ts"), "utf8"),
   ),
@@ -53,12 +53,12 @@ try {
     agentId: "agent_777",
     approvalId: "approval_1",
     approvedAt: "2026-07-04T00:00:00.000Z",
-    actionKind: "base_reviewed_transaction",
-    chain: "Base",
+    actionKind: "robinhood_reviewed_transaction",
+    chain: "Robinhood Chain",
     recipient: "0x0000000000000000000000000000000000000000",
     valueWei: "0",
     data: "0x",
-    routeSummary: "Controlled zero-value Base execution check.",
+    routeSummary: "Controlled zero-value Robinhood Chain execution check.",
     valueSummary: "Zero-value first transaction.",
     freezeKey: "phase8-freeze",
     frozen: true,
@@ -69,12 +69,12 @@ try {
   assertEquals(ready.request.to, frozenAction.recipient);
   assertEquals(ready.request.value, 0n);
   assertEquals(ready.request.data, "0x");
-  assertEquals(ready.request.chainId, 8453);
+  assertEquals(ready.request.chainId, 4663);
 
   assertEquals(createPhase8OwnerSubmitRequest(null).reason, "frozen_action_required");
   assertEquals(
     createPhase8OwnerSubmitRequest({ ...frozenAction, chain: "Other" }).reason,
-    "base_chain_required",
+    "product_chain_required",
   );
   assertEquals(
     createPhase8OwnerSubmitRequest({ ...frozenAction, valueWei: "1" }).reason,

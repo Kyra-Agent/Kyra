@@ -30,7 +30,7 @@ const unsignedSource = readFileSync(
   "utf8",
 ).replace(
   'import { currentProductChain } from "../config/productChains";',
-  'const currentProductChain = Object.freeze({ id: 8453, name: "Base" });',
+  'const currentProductChain = Object.freeze({ id: 4663, name: "Robinhood Chain" });',
 );
 const riskSource = loadSource("src/types/riskReview.ts");
 const source = `${unsignedSource}\n${riskSource}`;
@@ -45,27 +45,27 @@ writeFileSync(outputPath, transpiled.outputText);
 
 try {
   const {
-    baseChainId,
+    productChainId,
     reviewPreparedActionRisk,
     reviewUnsignedTransactionHandoff,
     validateUnsignedTransactionHandoff,
     walletUnsignedTransactionHandoffVersion,
   } = await import(`file:///${outputPath.replace(/\\/g, "/")}`);
 
-  const baseHandoff = {
+  const handoff = {
     version: walletUnsignedTransactionHandoffVersion,
     preparedActionId: "prepared_demo",
     ownerUserId: "owner_demo",
     workspaceId: "workspace_demo",
     agentId: "agent_demo",
-    actionKind: "base_reviewed_transaction",
-    chainId: baseChainId,
-    chainName: "Base",
+    actionKind: "robinhood_reviewed_transaction",
+    chainId: productChainId,
+    chainName: "Robinhood Chain",
     to: "0x1111111111111111111111111111111111111111",
     valueWei: "0",
     data: "0x",
     gasPayer: "connected_wallet",
-    routeSummary: "USDC -> WETH review route on Base",
+    routeSummary: "USDC -> WETH review route on Robinhood Chain",
     valueSummary: "Demo review only. No token spend is sent.",
     risk: "medium",
     createdAt: new Date().toISOString(),
@@ -73,8 +73,8 @@ try {
   };
 
   const review = reviewUnsignedTransactionHandoff(
-    baseHandoff,
-    validateUnsignedTransactionHandoff(baseHandoff),
+    handoff,
+    validateUnsignedTransactionHandoff(handoff),
   );
   assertEquals(review.level, "medium");
   assertEquals(review.status, "review_required");
@@ -96,9 +96,9 @@ try {
   );
 
   const readOnly = reviewPreparedActionRisk({
-    actionKind: "base_mcp_status_check",
-    chainId: baseChainId,
-    routeSummary: "Base MCP status check",
+    actionKind: "chain_status_check",
+    chainId: productChainId,
+    routeSummary: "Robinhood Chain status check",
     valueSummary: "No token spend, no gas request, no calldata.",
     valueWei: "0",
     data: "0x",
@@ -111,7 +111,7 @@ try {
 
   const blockedUnknown = reviewPreparedActionRisk({
     actionKind: "arbitrary_contract_call",
-    chainId: baseChainId,
+    chainId: productChainId,
     routeSummary: "Unknown contract call",
     valueSummary: "Unknown value",
     valueWei: "0",
@@ -126,8 +126,8 @@ try {
   );
 
   const highRisk = reviewPreparedActionRisk({
-    actionKind: "base_reviewed_transaction",
-    chainId: baseChainId,
+    actionKind: "robinhood_reviewed_transaction",
+    chainId: productChainId,
     routeSummary: "Contract approval calldata",
     valueSummary: "Spend 1 ETH",
     valueWei: "1",
@@ -140,7 +140,7 @@ try {
   assert(highRisk.permissions.includes("token_spend"));
 
   const wrongChain = reviewPreparedActionRisk({
-    actionKind: "base_reviewed_transaction",
+    actionKind: "robinhood_reviewed_transaction",
     chainId: 1,
     routeSummary: "Ethereum mainnet route",
     valueSummary: "No token spend.",

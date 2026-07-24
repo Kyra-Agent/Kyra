@@ -8,10 +8,10 @@ const source = readFileSync(
   "utf8",
 ).replace(
   'import { currentProductChain } from "../config/productChains";',
-  'const currentProductChain = Object.freeze({ id: 8453, name: "Base" });',
+  'const currentProductChain = Object.freeze({ id: 4663, name: "Robinhood Chain" });',
 ).replace(
-  'import { baseChainId } from "./unsignedTransactionHandoff";',
-  "const baseChainId = 8453;",
+  'import { productChainId } from "./unsignedTransactionHandoff";',
+  "const productChainId = 4663;",
 );
 const transpiled = ts.transpileModule(source, {
   compilerOptions: {
@@ -23,7 +23,7 @@ const moduleUrl = `data:text/javascript;base64,${
   Buffer.from(transpiled.outputText).toString("base64")
 }`;
 const { createPhase8OwnerActionCandidate } = await import(moduleUrl);
-const baseChainId = 8453;
+const productChainId = 4663;
 
 const address = "0x1111111111111111111111111111111111111111";
 
@@ -31,9 +31,9 @@ const ready = createPhase8OwnerActionCandidate({
   ownerUserId: "owner-1",
   workspaceId: "workspace-1",
   agentId: "agent-1",
-  baseAccountConnected: true,
-  baseAccountAddress: address,
-  chainId: baseChainId,
+  ownerWalletConnected: true,
+  ownerWalletAddress: address,
+  chainId: productChainId,
 });
 
 assert.equal(ready.ok, true);
@@ -46,32 +46,32 @@ const missingAddress = createPhase8OwnerActionCandidate({
   ownerUserId: "owner-1",
   workspaceId: "workspace-1",
   agentId: "agent-1",
-  baseAccountConnected: true,
-  baseAccountAddress: null,
-  chainId: baseChainId,
+  ownerWalletConnected: true,
+  ownerWalletAddress: null,
+  chainId: productChainId,
 });
 
 assert.equal(missingAddress.ok, false);
-assert.deepEqual(missingAddress.reasons, ["base_account_address_required"]);
+assert.deepEqual(missingAddress.reasons, ["owner_wallet_address_required"]);
 
 const wrongNetwork = createPhase8OwnerActionCandidate({
   ownerUserId: "owner-1",
   workspaceId: "workspace-1",
   agentId: "agent-1",
-  baseAccountConnected: true,
-  baseAccountAddress: address,
+  ownerWalletConnected: true,
+  ownerWalletAddress: address,
   chainId: 1,
 });
 
 assert.equal(wrongNetwork.ok, false);
-assert.equal(wrongNetwork.reasons.includes("base_chain_required"), true);
+assert.equal(wrongNetwork.reasons.includes("product_chain_required"), true);
 
 const locked = createPhase8OwnerActionCandidate({
   ownerUserId: null,
   workspaceId: null,
   agentId: null,
-  baseAccountConnected: false,
-  baseAccountAddress: "not-an-address",
+  ownerWalletConnected: false,
+  ownerWalletAddress: "not-an-address",
   chainId: null,
 });
 
@@ -79,8 +79,8 @@ assert.equal(locked.ok, false);
 assert.equal(locked.reasons.includes("owner_required"), true);
 assert.equal(locked.reasons.includes("workspace_required"), true);
 assert.equal(locked.reasons.includes("agent_required"), true);
-assert.equal(locked.reasons.includes("base_account_required"), true);
-assert.equal(locked.reasons.includes("base_chain_required"), true);
-assert.equal(locked.reasons.includes("base_account_address_required"), true);
+assert.equal(locked.reasons.includes("owner_wallet_required"), true);
+assert.equal(locked.reasons.includes("product_chain_required"), true);
+assert.equal(locked.reasons.includes("owner_wallet_address_required"), true);
 
 console.log("Phase 8 owner action candidate checks passed.");

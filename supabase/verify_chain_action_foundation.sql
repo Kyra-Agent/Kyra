@@ -21,8 +21,7 @@ select
     select 1
     from public.wallet_policies
     where not (
-      (chain_key = 'base' and chain_id = 8453)
-      or (chain_key = 'robinhood_mainnet' and chain_id = 4663)
+      (chain_key = 'robinhood_mainnet' and chain_id = 4663)
       or (chain_key = 'robinhood_testnet' and chain_id = 46630)
     )
   ) as wallet_policy_chain_identity_valid,
@@ -30,8 +29,7 @@ select
     select 1
     from public.approval_requests
     where not (
-      (chain_key = 'base' and chain_id = 8453)
-      or (chain_key = 'robinhood_mainnet' and chain_id = 4663)
+      (chain_key = 'robinhood_mainnet' and chain_id = 4663)
       or (chain_key = 'robinhood_testnet' and chain_id = 46630)
     )
   ) as approval_receipt_chain_identity_valid,

@@ -32,7 +32,7 @@ const actionsText = [
   "Ready in Telegram: market brief, campaign plan, narrative map, launch copy, community pulse",
   "Use commands or plain text requests.",
   "Dashboard gated: write and approval",
-  "Phase 6 gated: wallet and onchain execution",
+  "Owner approval required: wallet and onchain execution",
 ].join("\n");
 
 const modulesText = [
@@ -103,7 +103,7 @@ export type TelegramReadOnlyChatIntent =
   | "general";
 
 const unsafeExecutionPattern =
-  /\b(send|transfer|swap|approve|approval|allowance|permit|revoke|sign|execute|bridge|mint|burn|stake|unstake|claim|withdraw|deposit|buy|sell|delegate|wrap|unwrap|borrow|lend|liquidate|repay)\b|\b(wallet|private key|seed phrase|base mcp|onchain|contract call|calldata|transaction|tx)\b/i;
+  /\b(send|transfer|swap|approve|approval|allowance|permit|revoke|sign|execute|bridge|mint|burn|stake|unstake|claim|withdraw|deposit|buy|sell|delegate|wrap|unwrap|borrow|lend|liquidate|repay)\b|\b(wallet|private key|seed phrase|robinhood chain actions|onchain|contract call|calldata|transaction|tx)\b/i;
 
 export function classifyTelegramReadOnlyChatIntent(
   value: unknown,
@@ -169,7 +169,7 @@ function buildTelegramReadOnlyChatFallbackText(text: unknown) {
   if (intent === "unsafe_execution") {
     return [
       "Kyra cannot execute that from Telegram.",
-      "Wallet, approval, Base MCP, and onchain actions are disabled.",
+      "Wallet signing, approvals, and onchain execution are disabled.",
       "I can turn it into a read-only risk review or checklist.",
     ].join("\n");
   }
@@ -193,6 +193,6 @@ function buildTelegramReadOnlyChatFallbackText(text: unknown) {
   return [
     "Kyra read-only chat is online.",
     "Ask for market brief, campaign plan, narrative map, launch copy, or community pulse.",
-    "Telegram can brief and plan only. Wallet, approval, Base MCP, and onchain execution stay disabled.",
+    "Telegram can brief and plan only. Wallet, approval, Robinhood Chain actions, and onchain execution stay disabled.",
   ].join("\n");
 }

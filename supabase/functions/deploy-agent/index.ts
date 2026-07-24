@@ -6,16 +6,13 @@ type AgentStatus = "online" | "draft";
 type ApprovalRisk = "normal" | "review" | "read-only";
 type ApprovalStatus = "waiting_wallet" | "read_only_ready" | "review_required";
 
-type ChainKey = "base" | "robinhood_mainnet" | "robinhood_testnet";
+type ChainKey = "robinhood_mainnet" | "robinhood_testnet";
 
 interface ChainTarget {
   key: ChainKey;
-  id: 8453 | 4663 | 46630;
-  name: "Base" | "Robinhood Chain" | "Robinhood Chain Testnet";
-  walletLabel:
-    | "Base Account"
-    | "Robinhood Chain wallet"
-    | "Robinhood Chain Testnet wallet";
+  id: 4663 | 46630;
+  name: "Robinhood Chain" | "Robinhood Chain Testnet";
+  walletLabel: "Robinhood Chain wallet" | "Robinhood Chain Testnet wallet";
 }
 
 interface DeployAgentRequest {
@@ -95,12 +92,6 @@ const corsHeaders = {
 };
 
 const chainTargets: Record<ChainKey, ChainTarget> = {
-  base: {
-    key: "base",
-    id: 8453,
-    name: "Base",
-    walletLabel: "Base Account",
-  },
   robinhood_mainnet: {
     key: "robinhood_mainnet",
     id: 4663,
@@ -120,14 +111,14 @@ const scenarios: Record<string, DemoScenario> = {
     id: "swap",
     title: "Swap review draft",
     command: "review 10 USDC to ETH swap",
-    route: "USDC -> WETH review route on Base",
+    route: "USDC -> WETH review route on Robinhood Chain",
     risk: "review",
     approvalRequired: true,
   },
   scout: {
     id: "scan",
     title: "Scout demo action",
-    command: "scan new Base launches",
+    command: "scan new Robinhood Chain launches",
     route: "Launch monitor + token risk brief",
     risk: "review",
     approvalRequired: false,
@@ -220,7 +211,7 @@ function assertChainTarget(
   chainIdValue: unknown,
 ): ChainTarget {
   if (chainKeyValue === undefined && chainIdValue === undefined) {
-    return chainTargets.base;
+    return chainTargets.robinhood_mainnet;
   }
 
   if (
@@ -537,11 +528,8 @@ async function insertAgent(
       status,
       mode: "demo",
       network: chain.key,
-      chain_action_status: chain.key === "robinhood_testnet"
-        ? "ready"
-        : "disabled",
+      chain_action_status: "ready",
       telegram_status: "mocked",
-      base_mcp_status: "mocked",
     })
     .select(
       "id,workspace_id,template_id,display_name,handle,public_slug,status,network",
@@ -615,11 +603,8 @@ async function insertRelatedRecords(
       agent_id: agent.id,
       scenario_id: scenario.id,
       title: scenario.title,
-      command: (template.terminal_seed || scenario.command).replaceAll(
-        "Base",
-        chain.name,
-      ),
-      route: scenario.route.replaceAll("Base", chain.name),
+      command: template.terminal_seed || scenario.command,
+      route: scenario.route,
       risk: scenario.risk,
       status: getApprovalStatus(scenario),
       fee_payer: "connected_wallet",

@@ -1,10 +1,4 @@
 export const backendChainRegistry = {
-  base: {
-    key: "base",
-    name: "Base",
-    chainId: 8453,
-    chainIdHex: "0x2105",
-  },
   robinhood_mainnet: {
     key: "robinhood_mainnet",
     name: "Robinhood Chain",

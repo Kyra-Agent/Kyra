@@ -58,12 +58,12 @@ try {
     message: "Controlled live transaction gate is ready.",
   };
 
-  const baseInput = {
+  const baselineInput = {
     ownerSignedIn: true,
     selectedAgent: true,
-    baseAccountConnected: true,
+    ownerWalletConnected: true,
     controlledGate: controlledGateReady,
-    officialMcpAdapter: "no-go",
+    hostedChainProviderAdapter: "no-go",
     telegramExecutionDisabled: true,
     publicExecutionHidden: true,
     walletExecutionRuntime: "disabled",
@@ -77,18 +77,18 @@ try {
     ownerLaunchDecision: "not_requested",
   };
 
-  const ready = evaluateExecutionLaunchReadiness(baseInput);
+  const ready = evaluateExecutionLaunchReadiness(baselineInput);
   assertEquals(ready.status, "ready_for_owner_launch_decision");
   assertEquals(ready.ownerOnly, true);
-  assertEquals(ready.baseAccountPrimaryLane, true);
-  assertEquals(ready.officialMcpRequired, false);
+  assertEquals(ready.ownerWalletPrimaryLane, true);
+  assertEquals(ready.hostedChainProviderRequired, false);
   assertEquals(ready.walletPromptAllowed, false);
   assertEquals(ready.walletSigningAllowed, false);
   assertEquals(ready.transactionSubmissionAllowed, false);
   assertEquals(ready.reasons.length, 0);
 
   const approvedStillDisabled = evaluateExecutionLaunchReadiness({
-    ...baseInput,
+    ...baselineInput,
     ownerLaunchDecision: "approved",
   });
   assertEquals(
@@ -99,37 +99,37 @@ try {
   assertEquals(approvedStillDisabled.transactionSubmissionAllowed, false);
 
   const missingScopes = evaluateExecutionLaunchReadiness({
-    ...baseInput,
+    ...baselineInput,
     ownerSignedIn: false,
     selectedAgent: false,
-    baseAccountConnected: false,
+    ownerWalletConnected: false,
   });
   assert(missingScopes.reasons.includes("owner_session_required"));
   assert(missingScopes.reasons.includes("selected_agent_required"));
-  assert(missingScopes.reasons.includes("base_account_required"));
+  assert(missingScopes.reasons.includes("owner_wallet_required"));
 
   const controlledGateBlocked = evaluateExecutionLaunchReadiness({
-    ...baseInput,
+    ...baselineInput,
     controlledGate: {
       ...controlledGateReady,
       status: "blocked",
-      reasons: ["base_account_required"],
+      reasons: ["owner_wallet_required"],
     },
   });
   assert(controlledGateBlocked.reasons.includes("controlled_gate_not_ready"));
 
-  const officialMcpRequired = evaluateExecutionLaunchReadiness({
-    ...baseInput,
-    officialMcpAdapter: "approved",
+  const hostedChainProviderRequired = evaluateExecutionLaunchReadiness({
+    ...baselineInput,
+    hostedChainProviderAdapter: "approved",
   });
   assert(
-    officialMcpRequired.reasons.includes(
-      "official_mcp_must_remain_optional_or_disabled",
+    hostedChainProviderRequired.reasons.includes(
+      "hosted_chain_provider_must_remain_optional_or_disabled",
     ),
   );
 
   const unsafeSurfaces = evaluateExecutionLaunchReadiness({
-    ...baseInput,
+    ...baselineInput,
     telegramExecutionDisabled: false,
     publicExecutionHidden: false,
   });
@@ -141,7 +141,7 @@ try {
   assert(unsafeSurfaces.reasons.includes("public_execution_must_remain_hidden"));
 
   const runtimeOpened = evaluateExecutionLaunchReadiness({
-    ...baseInput,
+    ...baselineInput,
     walletExecutionRuntime: "enabled",
     walletSigningRuntime: "enabled",
     transactionSubmissionRuntime: "enabled",
@@ -153,7 +153,7 @@ try {
   );
 
   const unhealthyOps = evaluateExecutionLaunchReadiness({
-    ...baseInput,
+    ...baselineInput,
     productionDeployHealthy: false,
     supabaseHealthy: false,
     rollbackReady: false,
@@ -168,9 +168,9 @@ try {
 
   assertEquals(
     getExecutionLaunchReadinessBlockMessage(
-      "official_mcp_must_remain_optional_or_disabled",
+      "hosted_chain_provider_must_remain_optional_or_disabled",
     ),
-    "Official hosted Base MCP cannot be required while provider evidence is no-go.",
+    "Hosted chain provider cannot be required while provider evidence is no-go.",
   );
 } finally {
   rmSync(outDir, { recursive: true, force: true });

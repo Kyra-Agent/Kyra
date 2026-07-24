@@ -244,11 +244,8 @@ async function createAgent(
     status: template.status === "coming-soon" ? "draft" : "online",
     mode: "demo",
     network: currentProductChain.key,
-    chain_action_status: currentProductChain.key === "robinhood_testnet"
-      ? "ready"
-      : "disabled",
+    chain_action_status: "ready",
     telegram_status: "mocked",
-    base_mcp_status: "mocked",
   });
 }
 
@@ -286,10 +283,9 @@ async function createApprovalRequest(
     agent_id: agentId,
     scenario_id: scenario?.id ?? null,
     title: `${template.name} demo action`,
-    command: (
-      template.terminalSeed || scenario?.command || "prepare demo action"
-    ).replaceAll("Base", currentProductChain.name),
-    route: (scenario?.route ?? "Demo route prepared by Kyra").replaceAll("Base", currentProductChain.name),
+    command:
+      template.terminalSeed || scenario?.command || "prepare demo action",
+    route: scenario?.route ?? "Action route prepared by Kyra",
     risk,
     status: scenario?.approvalRequired
       ? "waiting_wallet"

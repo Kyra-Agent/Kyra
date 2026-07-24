@@ -85,7 +85,7 @@ export interface Phase8WalletPromptOpeningResult {
 }
 
 const blockMessages: Record<Phase8WalletPromptOpeningBlockReason, string> = {
-  live_window_not_ready: "Phase 8 live window preparation must be ready before opening a wallet prompt.",
+  live_window_not_ready: "Live-window preparation must be ready before opening a wallet prompt.",
   private_dashboard_source_required: "Wallet prompt opening must originate from the private owner dashboard.",
   owner_click_required: "Wallet prompt opening requires an explicit owner click.",
   owner_match_required: "Wallet prompt owner must match the active owner session.",
@@ -238,7 +238,7 @@ export function evaluatePhase8WalletPromptOpening(
       walletApprovalRecorded: true,
       transactionSubmissionAllowed: false,
       reasons: [],
-      message: "Wallet prompt approval was recorded owner-only. Batch 3 still does not submit transactions.",
+      message: "Wallet prompt approval was recorded owner-only. This step still does not submit transactions.",
     };
   }
 
@@ -285,7 +285,7 @@ export function evaluatePhase8WalletPromptOpening(
     walletApprovalRecorded: false,
     transactionSubmissionAllowed: false,
     reasons: [],
-    message: "Phase 8 Batch 3 is ready to open one owner-click wallet prompt.",
+    message: "The owner wallet flow is ready to open one explicit wallet prompt.",
   };
 }
 

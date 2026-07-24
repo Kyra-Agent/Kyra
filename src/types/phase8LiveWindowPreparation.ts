@@ -1,5 +1,5 @@
 import type { FrozenPreparedAction } from "./dualApprovalExecution";
-import { baseChainId } from "./unsignedTransactionHandoff";
+import { productChainId } from "./unsignedTransactionHandoff";
 
 export type Phase8LiveWindowStatus =
   | "not_requested"
@@ -7,7 +7,7 @@ export type Phase8LiveWindowStatus =
   | "expired"
   | "revoked";
 
-export type Phase8BaseAccountPromptReadiness =
+export type Phase8OwnerWalletPromptReadiness =
   | "not_ready"
   | "ready"
   | "opened"
@@ -34,8 +34,8 @@ export type Phase8LiveWindowPreparationBlockReason =
   | "workspace_match_required"
   | "selected_agent_required"
   | "selected_agent_match_required"
-  | "base_chain_required"
-  | "base_account_required"
+  | "product_chain_required"
+  | "owner_wallet_required"
   | "live_window_approval_required"
   | "live_window_owner_mismatch"
   | "live_window_workspace_mismatch"
@@ -50,7 +50,7 @@ export type Phase8LiveWindowPreparationBlockReason =
   | "frozen_action_agent_mismatch"
   | "zero_value_action_required"
   | "no_calldata_required"
-  | "base_account_prompt_ready_required"
+  | "owner_wallet_prompt_ready_required"
   | "telegram_authority_forbidden"
   | "public_visibility_forbidden";
 
@@ -80,11 +80,11 @@ export interface Phase8LiveWindowPreparationInput {
   selectedWorkspaceId: string;
   selectedAgentId: string;
   chainId: number | null;
-  baseAccountConnected: boolean;
+  ownerWalletConnected: boolean;
   liveWindow: Phase8LiveWindowApproval;
   executeIntent: Phase8ExecuteIntent;
   frozenAction: FrozenPreparedAction | null;
-  baseAccountPromptReadiness: Phase8BaseAccountPromptReadiness;
+  ownerWalletPromptReadiness: Phase8OwnerWalletPromptReadiness;
   nowIso: string;
   visibleInPublicProfile: boolean;
 }
@@ -99,13 +99,13 @@ export interface Phase8LiveWindowPreparationResult {
 }
 
 const blockMessages: Record<Phase8LiveWindowPreparationBlockReason, string> = {
-  owner_session_required: "Owner session is required before Phase 8 live-window preparation.",
-  owner_match_required: "The active owner session must match the Phase 8 owner.",
+  owner_session_required: "Owner session is required before live-window preparation.",
+  owner_match_required: "The active owner session must match the execution owner.",
   workspace_match_required: "The selected workspace must match the owner-approved live window.",
-  selected_agent_required: "Select one deployed agent before preparing Phase 8 execution.",
+  selected_agent_required: "Select one deployed agent before preparing controlled execution.",
   selected_agent_match_required: "The selected agent must match the owner-approved live window.",
-  base_chain_required: "Phase 8 Batch 2 only allows the selected runtime network.",
-  base_account_required: "Connect the owner wallet before preparing the wallet prompt.",
+  product_chain_required: "Live-window preparation only allows the selected runtime network.",
+  owner_wallet_required: "Connect the owner wallet before preparing the wallet prompt.",
   live_window_approval_required: "An explicit owner-approved live window is required.",
   live_window_owner_mismatch: "The live window must be approved by the same owner session.",
   live_window_workspace_mismatch: "The live window workspace does not match the selected workspace.",
@@ -118,11 +118,11 @@ const blockMessages: Record<Phase8LiveWindowPreparationBlockReason, string> = {
   frozen_action_owner_mismatch: "The frozen action owner does not match the active owner.",
   frozen_action_workspace_mismatch: "The frozen action workspace does not match the selected workspace.",
   frozen_action_agent_mismatch: "The frozen action agent does not match the selected agent.",
-  zero_value_action_required: "Batch 2 only prepares a zero-value first transaction.",
-  no_calldata_required: "Batch 2 only prepares a no-calldata first transaction.",
-  base_account_prompt_ready_required: "Owner-wallet prompt readiness must be ready, opened, or approved.",
-  telegram_authority_forbidden: "Telegram cannot request or authorize Phase 8 execution.",
-  public_visibility_forbidden: "Public profiles cannot expose or trigger Phase 8 execution state.",
+  zero_value_action_required: "Live-window preparation only permits a zero-value first transaction.",
+  no_calldata_required: "Live-window preparation only permits a no-calldata first transaction.",
+  owner_wallet_prompt_ready_required: "Owner-wallet prompt readiness must be ready, opened, or approved.",
+  telegram_authority_forbidden: "Telegram cannot request or authorize controlled execution.",
+  public_visibility_forbidden: "Public profiles cannot expose or trigger controlled execution state.",
 };
 
 function isExpired(expiresAt: string | null, nowIso: string) {
@@ -157,12 +157,12 @@ export function evaluatePhase8LiveWindowPreparation(
     reasons.push("selected_agent_required");
   }
 
-  if (input.chainId !== baseChainId) {
-    reasons.push("base_chain_required");
+  if (input.chainId !== productChainId) {
+    reasons.push("product_chain_required");
   }
 
-  if (!input.baseAccountConnected) {
-    reasons.push("base_account_required");
+  if (!input.ownerWalletConnected) {
+    reasons.push("owner_wallet_required");
   }
 
   if (input.liveWindow.status !== "approved") {
@@ -246,11 +246,11 @@ export function evaluatePhase8LiveWindowPreparation(
   }
 
   if (
-    input.baseAccountPromptReadiness === "not_ready" ||
-    input.baseAccountPromptReadiness === "rejected" ||
-    input.baseAccountPromptReadiness === "failed"
+    input.ownerWalletPromptReadiness === "not_ready" ||
+    input.ownerWalletPromptReadiness === "rejected" ||
+    input.ownerWalletPromptReadiness === "failed"
   ) {
-    reasons.push("base_account_prompt_ready_required");
+    reasons.push("owner_wallet_prompt_ready_required");
   }
 
   if (input.visibleInPublicProfile) {
@@ -270,25 +270,25 @@ export function evaluatePhase8LiveWindowPreparation(
     };
   }
 
-  if (input.baseAccountPromptReadiness === "approved") {
+  if (input.ownerWalletPromptReadiness === "approved") {
     return {
       status: "wallet_prompt_approved",
       ownerOnly: true,
       walletPromptAllowed: true,
       transactionSubmissionAllowed: false,
       reasons: [],
-      message: "Owner-wallet approval readiness is recorded. Batch 2 still does not submit transactions.",
+      message: "Owner-wallet approval readiness is recorded. Live-window preparation still does not submit transactions.",
     };
   }
 
-  if (input.baseAccountPromptReadiness === "opened") {
+  if (input.ownerWalletPromptReadiness === "opened") {
     return {
       status: "wallet_prompt_opened",
       ownerOnly: true,
       walletPromptAllowed: true,
       transactionSubmissionAllowed: false,
       reasons: [],
-      message: "Wallet prompt readiness is open and owner-only. Submission remains disabled in Batch 2.",
+      message: "Wallet prompt readiness is open and owner-only. Submission remains disabled during preparation.",
     };
   }
 
@@ -298,7 +298,7 @@ export function evaluatePhase8LiveWindowPreparation(
     walletPromptAllowed: true,
     transactionSubmissionAllowed: false,
     reasons: [],
-    message: "Phase 8 live window is prepared for an explicit owner-wallet prompt.",
+    message: "The controlled live window is prepared for an explicit owner-wallet prompt.",
   };
 }
 

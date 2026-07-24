@@ -14,7 +14,7 @@ grant select (
   mode,
   network,
   telegram_status,
-  base_mcp_status,
+  chain_action_status,
   created_at,
   last_sync_at,
   template_id
@@ -33,7 +33,7 @@ select
   agents.mode,
   agents.network,
   agents.telegram_status,
-  agents.base_mcp_status,
+  agents.chain_action_status,
   agents.created_at,
   agents.last_sync_at,
   templates.id as template_id,

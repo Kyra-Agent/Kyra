@@ -11,9 +11,9 @@ export type ExecutionLaunchReadinessStatus =
 export type ExecutionLaunchReadinessBlockReason =
   | "owner_session_required"
   | "selected_agent_required"
-  | "base_account_required"
+  | "owner_wallet_required"
   | "controlled_gate_not_ready"
-  | "official_mcp_must_remain_optional_or_disabled"
+  | "hosted_chain_provider_must_remain_optional_or_disabled"
   | "telegram_execution_must_remain_disabled"
   | "public_execution_must_remain_hidden"
   | "wallet_runtime_must_remain_disabled"
@@ -28,9 +28,9 @@ export type ExecutionLaunchReadinessBlockReason =
 export interface ExecutionLaunchReadinessInput {
   ownerSignedIn: boolean;
   selectedAgent: boolean;
-  baseAccountConnected: boolean;
+  ownerWalletConnected: boolean;
   controlledGate: ControlledLiveTransactionGateResult;
-  officialMcpAdapter: "no-go" | "optional-disabled" | "approved";
+  hostedChainProviderAdapter: "no-go" | "optional-disabled" | "approved";
   telegramExecutionDisabled: boolean;
   publicExecutionHidden: boolean;
   walletExecutionRuntime: "disabled" | "enabled";
@@ -47,8 +47,8 @@ export interface ExecutionLaunchReadinessInput {
 export interface ExecutionLaunchReadinessResult {
   status: ExecutionLaunchReadinessStatus;
   ownerOnly: true;
-  baseAccountPrimaryLane: true;
-  officialMcpRequired: false;
+  ownerWalletPrimaryLane: true;
+  hostedChainProviderRequired: false;
   walletPromptAllowed: false;
   walletSigningAllowed: false;
   transactionSubmissionAllowed: false;
@@ -61,12 +61,12 @@ const blockMessages: Record<ExecutionLaunchReadinessBlockReason, string> = {
     "Sign in before an execution launch decision can be reviewed.",
   selected_agent_required:
     "Select one deployed agent before execution launch review.",
-  base_account_required:
+  owner_wallet_required:
     "Connect the owner's wallet before launch review.",
   controlled_gate_not_ready:
     "Controlled live gate must be ready before launch review.",
-  official_mcp_must_remain_optional_or_disabled:
-    "Official hosted Base MCP cannot be required while provider evidence is no-go.",
+  hosted_chain_provider_must_remain_optional_or_disabled:
+    "Hosted chain provider cannot be required while provider evidence is no-go.",
   telegram_execution_must_remain_disabled:
     "Telegram must remain unable to authorize wallet execution.",
   public_execution_must_remain_hidden:
@@ -102,8 +102,8 @@ export function evaluateExecutionLaunchReadiness(
     reasons.push("selected_agent_required");
   }
 
-  if (!input.baseAccountConnected) {
-    reasons.push("base_account_required");
+  if (!input.ownerWalletConnected) {
+    reasons.push("owner_wallet_required");
   }
 
   if (
@@ -116,8 +116,8 @@ export function evaluateExecutionLaunchReadiness(
     reasons.push("controlled_gate_not_ready");
   }
 
-  if (input.officialMcpAdapter === "approved") {
-    reasons.push("official_mcp_must_remain_optional_or_disabled");
+  if (input.hostedChainProviderAdapter === "approved") {
+    reasons.push("hosted_chain_provider_must_remain_optional_or_disabled");
   }
 
   if (!input.telegramExecutionDisabled) {
@@ -169,8 +169,8 @@ export function evaluateExecutionLaunchReadiness(
         ? "owner_approved_runtime_still_disabled"
         : "ready_for_owner_launch_decision",
     ownerOnly: true,
-    baseAccountPrimaryLane: true,
-    officialMcpRequired: false,
+    ownerWalletPrimaryLane: true,
+    hostedChainProviderRequired: false,
     walletPromptAllowed: false,
     walletSigningAllowed: false,
     transactionSubmissionAllowed: false,
@@ -179,7 +179,7 @@ export function evaluateExecutionLaunchReadiness(
       ? blockMessages[uniqueReasons[0]]
       : input.ownerLaunchDecision === "approved"
         ? "Owner launch decision is approved, but runtime wallet prompt, signing, and submission remain disabled until the separate enablement window."
-        : "Execution launch packet is ready for owner review. The owner wallet remains the primary lane and the legacy hosted MCP path remains optional.",
+        : "Execution launch packet is ready for owner review. The owner wallet remains the primary lane and the optional hosted provider path remains optional.",
   };
 }
 

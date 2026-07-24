@@ -143,7 +143,7 @@ Deno.test("telegram read-only actions response is static and bounded", () => {
     "Actions response must explain natural action requests.",
   );
   assert(
-    response.text.includes("Phase 6 gated"),
+    response.text.includes("Owner approval required"),
     "Actions response must state disabled actions.",
   );
   assertEquals(Object.keys(response).sort().join(","), "command,text");
@@ -230,7 +230,7 @@ Deno.test("telegram read-only chat fallback refuses execution safely", () => {
     "Chat fallback must refuse execution.",
   );
   assert(
-    response.text.includes("onchain actions are disabled"),
+    response.text.includes("onchain execution are disabled"),
     "Chat fallback must preserve onchain boundary.",
   );
   assert(

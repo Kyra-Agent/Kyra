@@ -28,7 +28,7 @@ function stripImports(source) {
 mkdirSync(outDir, { recursive: true });
 
 const source = [
-  'const currentProductChain = Object.freeze({ id: 8453, name: "Base" });',
+  'const currentProductChain = Object.freeze({ id: 4663, name: "Robinhood Chain" });',
   stripImports(
     readFileSync(resolve(root, "src/types/phase8ControlledSubmission.ts"), "utf8"),
   ),
@@ -59,12 +59,12 @@ try {
     agentId,
     approvalId: "approval_1",
     approvedAt: "2026-07-03T09:55:00.000Z",
-    actionKind: "base_reviewed_transaction",
-    chain: "Base",
+    actionKind: "robinhood_reviewed_transaction",
+    chain: "Robinhood Chain",
     recipient: "0x0000000000000000000000000000000000000000",
     valueWei: "0",
     data: "0x",
-    routeSummary: "Controlled zero-value Base execution check.",
+    routeSummary: "Controlled zero-value Robinhood Chain execution check.",
     valueSummary: "Zero-value first transaction.",
     freezeKey: "phase8-freeze",
     frozen: true,
@@ -107,14 +107,14 @@ try {
     state: "failed",
     message: "Failed with sanitized hash reference.",
   };
-  const baseInput = {
+  const baselineInput = {
     walletPromptOpening,
     ownerUserId,
     workspaceId,
     selectedAgentId: agentId,
     frozenAction,
-    chain: "Base",
-    baseAccountApprovalRecorded: true,
+    chain: "Robinhood Chain",
+    ownerWalletApprovalRecorded: true,
     submissionIntent,
     submissionState: "ready",
     resultEvents: [],
@@ -124,14 +124,14 @@ try {
     visibleInPublicProfile: false,
   };
 
-  const ready = evaluatePhase8ControlledSubmission(baseInput);
+  const ready = evaluatePhase8ControlledSubmission(baselineInput);
   assertEquals(ready.status, "ready_to_submit");
   assertEquals(ready.transactionSubmissionAllowed, true);
   assertEquals(ready.resultCloseoutRecorded, false);
   assertEquals(ready.reasons.length, 0);
 
   const submitted = evaluatePhase8ControlledSubmission({
-    ...baseInput,
+    ...baselineInput,
     submissionState: "submitted",
     resultEvents: [submittedEvent],
   });
@@ -140,7 +140,7 @@ try {
   assertEquals(submitted.resultCloseoutRecorded, true);
 
   const confirmed = evaluatePhase8ControlledSubmission({
-    ...baseInput,
+    ...baselineInput,
     submissionState: "confirmed",
     resultEvents: [confirmedEvent],
   });
@@ -148,7 +148,7 @@ try {
   assertEquals(confirmed.resultCloseoutRecorded, true);
 
   const failed = evaluatePhase8ControlledSubmission({
-    ...baseInput,
+    ...baselineInput,
     submissionState: "failed",
     resultEvents: [failedEvent],
   });
@@ -156,75 +156,75 @@ try {
   assertEquals(failed.resultCloseoutRecorded, true);
 
   const missingPromptApproval = evaluatePhase8ControlledSubmission({
-    ...baseInput,
+    ...baselineInput,
     walletPromptOpening: { ...walletPromptOpening, status: "prompt_opened", walletApprovalRecorded: false },
   });
   assert(missingPromptApproval.reasons.includes("wallet_prompt_approval_required"));
 
   const telegramIntent = evaluatePhase8ControlledSubmission({
-    ...baseInput,
+    ...baselineInput,
     submissionIntent: { ...submissionIntent, source: "telegram" },
   });
   assert(telegramIntent.reasons.includes("telegram_authority_forbidden"));
 
   const publicIntent = evaluatePhase8ControlledSubmission({
-    ...baseInput,
+    ...baselineInput,
     submissionIntent: { ...submissionIntent, source: "public_profile" },
     visibleInPublicProfile: true,
   });
   assert(publicIntent.reasons.includes("public_visibility_forbidden"));
 
   const reusedNonce = evaluatePhase8ControlledSubmission({
-    ...baseInput,
+    ...baselineInput,
     submissionIntent: { ...submissionIntent, submissionNonceUsed: true },
   });
   assert(reusedNonce.reasons.includes("submission_nonce_unused_required"));
 
   const missingNonce = evaluatePhase8ControlledSubmission({
-    ...baseInput,
+    ...baselineInput,
     submissionIntent: { ...submissionIntent, submissionNonce: null },
   });
   assert(missingNonce.reasons.includes("submission_nonce_required"));
 
   const wrongBinding = evaluatePhase8ControlledSubmission({
-    ...baseInput,
+    ...baselineInput,
     submissionIntent: { ...submissionIntent, frozenActionFreezeKey: "other-freeze" },
   });
   assert(wrongBinding.reasons.includes("frozen_action_binding_required"));
 
-  const missingBaseApproval = evaluatePhase8ControlledSubmission({
-    ...baseInput,
-    baseAccountApprovalRecorded: false,
+  const missingWalletApproval = evaluatePhase8ControlledSubmission({
+    ...baselineInput,
+    ownerWalletApprovalRecorded: false,
   });
-  assert(missingBaseApproval.reasons.includes("base_account_approval_required"));
+  assert(missingWalletApproval.reasons.includes("owner_wallet_approval_required"));
 
-  const nonBase = evaluatePhase8ControlledSubmission({
-    ...baseInput,
-    chain: "Base Sepolia",
+  const wrongChain = evaluatePhase8ControlledSubmission({
+    ...baselineInput,
+    chain: "Unsupported Network",
   });
-  assert(nonBase.reasons.includes("base_chain_required"));
+  assert(wrongChain.reasons.includes("product_chain_required"));
 
   const nonZero = evaluatePhase8ControlledSubmission({
-    ...baseInput,
+    ...baselineInput,
     frozenAction: { ...frozenAction, valueWei: "1" },
   });
   assert(nonZero.reasons.includes("zero_value_action_required"));
 
   const calldata = evaluatePhase8ControlledSubmission({
-    ...baseInput,
+    ...baselineInput,
     frozenAction: { ...frozenAction, data: "0x1234" },
   });
   assert(calldata.reasons.includes("no_calldata_required"));
 
   const missingHash = evaluatePhase8ControlledSubmission({
-    ...baseInput,
+    ...baselineInput,
     submissionState: "submitted",
     resultEvents: [],
   });
   assert(missingHash.reasons.includes("tx_hash_required"));
 
   const unsafeResult = evaluatePhase8ControlledSubmission({
-    ...baseInput,
+    ...baselineInput,
     submissionState: "submitted",
     resultEvents: [{ ...submittedEvent, ownerOnly: false, sanitized: false, txHash: "raw-payload" }],
   });
@@ -233,7 +233,7 @@ try {
   assert(unsafeResult.reasons.includes("sanitized_audit_required"));
 
   const missingRollback = evaluatePhase8ControlledSubmission({
-    ...baseInput,
+    ...baselineInput,
     rollbackReady: false,
     emergencyDisableReady: false,
     postTransactionAuditReady: false,

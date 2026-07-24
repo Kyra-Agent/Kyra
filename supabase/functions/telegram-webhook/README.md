@@ -1,6 +1,6 @@
 # telegram-webhook Edge Function
 
-This Phase 5 webhook receiver is gate-controlled and production-live for
+This production webhook receiver is gate-controlled and live for
 read-only Telegram + LLM replies. The latest implementation can
 resolve active sessions, consume owner-link challenges, authorize read-only
 commands and bounded natural chat, claim updates, and deliver bounded read-only
@@ -37,14 +37,14 @@ replies only when the corresponding runtime gates are enabled.
   database errors.
 - Does not access Supabase Vault from the owner-link consume path.
 - Does not call Telegram APIs from the owner-link consume path.
-- Does not trigger wallet, Base MCP, or onchain execution.
-- Natural chat execution-like messages are classified by the Phase 6 execution
+- Does not trigger wallet, Robinhood Chain actions, or onchain execution.
+- Natural chat execution-like messages are classified by the wallet execution
   gate. Owner/admin review wording can only be described as a future dashboard
   approval-draft candidate; direct execution wording and non-owner execution
   intent are refused.
 - Execution-gate decisions keep `canExecuteFromTelegram` and
   `canCreateDraftNow` false. No Telegram-created approval record, prepared
-  action, wallet prompt, Base MCP call, signature, or transaction submission is
+  action, wallet prompt, Robinhood Chain provider call, signature, or transaction submission is
   enabled by this webhook.
 
 ## Current Response
@@ -85,13 +85,13 @@ Keep the webhook path staged behind runtime gates:
 8. Token resolution.
 9. Read-only response delivery.
 
-Do not enable write, approval, wallet, Base MCP, onchain, or LLM command
+Do not enable write, approval, wallet, Robinhood Chain actions, onchain, or LLM command
 execution from this webhook without a separate reviewed implementation.
 
-## Phase 6 Execution Gate
+## Wallet Execution Gate
 
 `execution-gate.ts` is a local fail-closed classifier for natural chat messages
-that look like wallet, approval, Base MCP, swap, transfer, or onchain requests.
+that look like wallet, approval, Robinhood Chain actions, swap, transfer, or onchain requests.
 
 It can return:
 
@@ -150,8 +150,8 @@ agent-brain gates pass.
 
 `template-context.ts` defines the local-only template/module context boundary for
 Telegram responses. It normalizes template actions and modules, marks
-read-only-ready actions separately from dashboard-gated and Phase 6 wallet-gated
-actions, and keeps Executor-style wallet automation gated until Base MCP work is
+read-only-ready actions separately from dashboard-gated and owner wallet-gated
+actions, and keeps Executor-style wallet automation gated until Robinhood Chain actions work is
 approved.
 
 `template-context-lookup.ts` defines the injectable lookup adapter for future
@@ -169,7 +169,6 @@ are disabled.
 
 ## Future Work
 
-Before expanding beyond read-only commands and natural read-only chat in Phase
-6, add a reviewed write command processor contract, stronger prompt-injection
+Before expanding beyond read-only commands and natural read-only chat, add a reviewed write command processor contract, stronger prompt-injection
 protections, approval queue mapping, abuse limits, rollback steps, wallet
-approval checks, Base MCP execution boundaries, and production smoke checks.
+approval checks, Robinhood Chain action execution boundaries, and production smoke checks.

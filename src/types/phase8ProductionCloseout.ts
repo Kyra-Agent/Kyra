@@ -162,7 +162,7 @@ function buildChecklist(
     {
       label: "Public/Telegram boundary",
       status: input.publicExecutionEnabled || input.telegramExecutionEnabled ? "blocked" : "pass",
-      detail: "Public profiles and Telegram cannot start, inspect, approve, or execute Phase 8 transactions.",
+      detail: "Public profiles and Telegram cannot start, inspect, approve, or execute controlled transactions.",
     },
   ];
 }
@@ -170,12 +170,12 @@ function buildChecklist(
 function getMessage(status: Phase8ProductionCloseoutStatus) {
   switch (status) {
     case "ready_for_owner_run":
-      return "Phase 8 implementation is closed and ready for a funded owner-controlled run; public execution stays Phase 9.";
+      return "Controlled execution is ready for a funded owner-controlled run; public execution remains behind the release gate.";
     case "receipt_pending":
-      return "Phase 8 closeout is waiting for network receipt verification.";
+      return "Controlled execution closeout is waiting for network receipt verification.";
     case "complete":
-      return "Phase 8 controlled live transaction is complete with owner-only verified closeout.";
+      return "The controlled live transaction is complete with owner-only verified closeout.";
     case "blocked":
-      return "Phase 8 production closeout is blocked by a required safety or owner-only gate.";
+      return "Production closeout is blocked by a required safety or owner-only gate.";
   }
 }

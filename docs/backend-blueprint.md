@@ -1,220 +1,34 @@
-# Kyra Agent Backend Blueprint
+# Kyra Backend Blueprint
 
-Canonical product phase flow:
+## Product Contract
 
-- `docs/product-phase-roadmap.md`
+Kyra deploys account-scoped AI agents with private Supabase records, Telegram-native read-only interaction, public agent profiles, and approval-first Robinhood Chain workflows.
 
-This is the backend plan for Kyra Agent. The product is still demo-only for
-onchain execution, but Supabase now powers the template catalog, auth sessions,
-dashboard records, public agent profiles, persisted demo deploy receipts, and
-live read-only Telegram replies when configured.
+## Runtime Architecture
 
-Concrete starter files now live in:
+1. React and TypeScript render the public product and private workspace.
+2. Supabase Auth owns account sessions.
+3. Row Level Security scopes workspace data to its owner.
+4. Edge Functions validate ownership before deployment, Telegram linking, agent removal, or prepared-action creation.
+5. OpenRouter is called only from the Telegram Edge Function. Its API key never reaches the browser.
+6. Robinhood Chain status checks run through backend-only RPC configuration.
+7. The connected EVM wallet remains the only signing authority.
 
-- `supabase/schema.sql` for the initial tables, indexes, RLS policies, and public profile view.
-- `supabase/seed.sql` for the Kyra template seed records.
-- `supabase/functions/deploy-agent` for the server-side deploy endpoint scaffold.
-- `supabase/functions/reset-demo-workspace` for the admin-only demo reset endpoint.
-- `docs/backend-demo-skeleton.md` for the implementation checklist and safe demo defaults.
+## Chain Contract
 
-The frontend is prepared with a thin service layer:
+Supported networks:
 
-- `src/config/appConfig.ts` defines the current runtime mode and integration state.
-- `src/types/api.ts` and `src/lib/apiResponse.ts` define and unwrap API-style responses.
-- `src/services/kyraRepository.ts` defines the repository contract.
-- `src/services/mockKyraRepository.ts` implements that contract with local mock records.
-- `src/services/kyraDataService.ts` is what UI components read from today.
+- Robinhood Chain mainnet, chain ID 4663
+- Robinhood Chain testnet, chain ID 46630
 
-Supabase-specific services now sit beside the mock repository. The mock path remains as a safe fallback for local preview and failed network requests.
+Every agent, wallet policy, approval request, prepared action, and rate-limit record carries the same chain identity. Database triggers reject cross-agent and cross-chain writes.
 
-`src/services/supabaseDeployService.ts` now prefers the `deploy-agent` Edge Function for deployment writes. The direct RLS-backed fallback remains a development-only code path for isolated dev databases with write grants. Production should run `supabase/lockdown_authenticated_demo_writes.sql` so authenticated browser clients are read-only for demo records.
+## Data Privacy
 
-`src/services/deployFunctionHealthService.ts` checks the Edge Function health endpoint and exposes the readiness state in the dashboard.
+Public profiles expose only share-safe identity, template, action, module, Telegram status, and chain-action status fields. Wallet addresses, provider payloads, token references, approval internals, transaction payloads, and secrets remain private.
 
-`src/services/supabaseDashboardService.ts` sends admin reset requests through
-`reset-demo-workspace`. The Edge Function validates `app_metadata.role` server-side and never
-accepts a target workspace or user ID from the browser.
+Telegram bot tokens are stored only through backend secret storage. Wallet private keys and seed phrases are never requested or stored.
 
-## Goal
+## Execution Boundary
 
-Build a demo backend that can persist agent deployments, dashboard logs, wallet policies, and approval records without enabling live onchain execution yet.
-
-The first backend version should prove the product flow:
-
-1. A user signs in.
-2. The user creates a Kyra workspace.
-3. The user deploys a demo agent from a template.
-4. Kyra stores the agent instance and Telegram session metadata.
-5. The dashboard reads logs, approvals, wallet policy, and public profile data from the backend.
-6. Onchain actions remain simulated until the security model is ready.
-
-## Suggested Stack
-
-- Supabase Auth for email or social login.
-- Supabase Postgres for records.
-- Supabase Row Level Security for workspace isolation.
-- Supabase Edge Functions or a small Node API for deploy/log actions.
-- Current: Telegram bot webhook for read-only commands and natural chat.
-- Later: Base MCP action preparation service.
-
-## Core Tables
-
-### `workspaces`
-
-Stores the account scope.
-
-- `id`: uuid primary key
-- `owner_user_id`: uuid references auth user
-- `name`: text
-- `mode`: text, starts as `demo`
-- `created_at`: timestamp
-
-### `agent_templates`
-
-Stores available Kyra templates.
-
-- `id`: text primary key, for example `operator`
-- `name`: text
-- `role`: text
-- `status`: text
-- `summary`: text
-- `actions`: jsonb
-- `modules`: jsonb
-
-### `agent_instances`
-
-Stores deployed agents.
-
-- `id`: uuid primary key
-- `workspace_id`: uuid references `workspaces`
-- `template_id`: text references `agent_templates`
-- `display_name`: text
-- `handle`: text
-- `public_slug`: text unique
-- `status`: text, for example `online`, `draft`, `paused`
-- `mode`: text, starts as `demo`
-- `network`: text, starts as `base`
-- `telegram_status`: text
-- `base_mcp_status`: text
-- `approval_policy_id`: uuid
-- `created_at`: timestamp
-- `last_sync_at`: timestamp
-
-### `wallet_policies`
-
-Stores approval rules without storing private keys.
-
-- `id`: uuid primary key
-- `workspace_id`: uuid references `workspaces`
-- `agent_id`: uuid references `agent_instances`
-- `wallet_label`: text
-- `wallet_address`: text nullable for demo
-- `daily_limit_usdc`: numeric
-- `approval_required`: boolean default true
-- `allowed_actions`: jsonb
-- `status`: text
-- `created_at`: timestamp
-
-### `approval_requests`
-
-Stores every action that needs review.
-
-- `id`: uuid primary key
-- `agent_id`: uuid references `agent_instances`
-- `scenario_id`: text nullable
-- `command`: text
-- `route`: text
-- `risk`: text
-- `status`: text, for example `waiting_wallet`, `read_only_ready`, `review_required`, `approved`, `rejected`
-- `fee_payer`: text, default `connected_wallet`
-- `requires_wallet`: boolean
-- `prepared_tx`: jsonb nullable for later live phase
-- `tx_hash`: text nullable
-- `created_at`: timestamp
-- `resolved_at`: timestamp nullable
-
-### `activity_logs`
-
-Stores dashboard-visible logs.
-
-- `id`: uuid primary key
-- `workspace_id`: uuid references `workspaces`
-- `agent_id`: uuid references `agent_instances`
-- `source`: text, for example `telegram_sessions`, `base_mcp_routes`, `approval_requests`
-- `level`: text
-- `message`: text
-- `created_at`: timestamp
-
-### `telegram_sessions`
-
-Stores Telegram connection state. Real bot tokens must be encrypted or stored outside the database in a secret manager.
-
-- `id`: uuid primary key
-- `agent_id`: uuid references `agent_instances`
-- `bot_handle`: text
-- `webhook_status`: text
-- `token_secret_ref`: text nullable
-- `created_at`: timestamp
-- `last_event_at`: timestamp nullable
-
-## Auth And Access
-
-Use Supabase Auth first. Every table should be scoped by `workspace_id` or joined through `agent_instances.workspace_id`.
-
-Minimum RLS rules:
-
-- Users can read workspaces they own.
-- Users can read agent instances, wallet policies, approvals, logs, and Telegram session metadata inside their workspaces.
-- Production writes for demo records go through Edge Functions using `service_role`, not direct authenticated browser grants.
-- Public agent pages can read a limited view of `agent_instances`, template metadata, and safe public stats.
-- Public reads must not expose wallet addresses, secrets, raw logs, API keys, bot tokens, or prepared transaction payloads.
-
-## Deploy Flow
-
-1. Frontend sends selected template, agent name, and requested actions to `deploy-agent` with the active Supabase access token.
-2. API validates template and allowed demo actions.
-3. API creates `agent_instances`.
-4. API creates default `wallet_policies`.
-5. API creates initial `activity_logs`.
-6. API returns dashboard route and public agent route.
-7. Frontend updates the wizard receipt after the Edge Function persists the demo records. Direct RLS writes are reserved for local development fallback only.
-
-## Approval Flow
-
-Demo/read-only phase:
-
-1. User enters a command in the UI or a read-only request in Telegram.
-2. Telegram can answer allowed planning, status, module, and policy requests.
-3. Unsafe wallet, approval, Base MCP, write, swap, transfer, or onchain requests
-   are refused from Telegram.
-4. No transaction payload is signed or submitted.
-
-Live phase:
-
-1. The owner connects their Base Account to one selected deployed agent.
-2. Official Base MCP prepares an unsigned transaction or action payload for
-   that owner, workspace, and agent binding.
-3. NYX-05 checks risk, approvals, slippage, and action limits.
-4. Kyra requires explicit owner approval.
-5. Base Account presents its separate manual approval.
-6. The user's Base Account signs and submits.
-7. API stores `tx_hash` only after submission and records the final status.
-
-## Security Rules
-
-- Never store seed phrases or private keys.
-- Do not store raw Telegram bot tokens in plain text.
-- Use environment variables or secret references for sensitive integrations.
-- Keep transaction execution behind explicit wallet approval.
-- Store prepared transactions separately from public profile data.
-- Add audit logs before enabling live onchain actions.
-
-## Demo To Live Transition
-
-Phase 2 should only add persistence and auth. It should not execute real transactions.
-
-Phase 5 added Telegram webhooks for read-only commands and natural chat.
-
-Phase 6 can add Base MCP preparation and live wallet-approved execution only
-after security review, rate limits, monitoring, approval policy, and audit
-logging are in place.
+Telegram and public profiles cannot prompt wallets, sign, or submit transactions. The private workspace requires a signed-in owner, selected deployed agent, matching Robinhood network, reviewed prepared action, explicit owner approval, and a fresh live window. Submission stays fail-closed when any prerequisite is absent.

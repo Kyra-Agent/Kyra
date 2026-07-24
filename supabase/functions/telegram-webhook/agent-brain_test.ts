@@ -80,7 +80,7 @@ Deno.test("telegram agent brain request is read-only and sanitized", () => {
       "api.telegram.org",
       "actions",
       "wallet approval",
-      "Base context",
+      "Robinhood Chain context",
       "extra ignored",
     ],
   });
@@ -152,7 +152,7 @@ Deno.test("telegram agent brain provider receives bounded request and returns re
         capturedRequest = request;
         return {
           text:
-            "Agent actions\n\nReady in Telegram: help, status, agent, actions, modules, policy\nDashboard gated: none\nPhase 6 gated: none\nBoundary: Telegram can brief and plan only.",
+            "Agent actions\n\nReady in Telegram: help, status, agent, actions, modules, policy\nDashboard gated: none\nOwner approval required: none\nBoundary: Telegram can brief and plan only.",
         };
       },
     },
@@ -160,7 +160,7 @@ Deno.test("telegram agent brain provider receives bounded request and returns re
 
   assertEquals(
     reply.text,
-    "Agent actions\n\nReady in Telegram: help, status, agent, actions, modules, policy\nDashboard gated: none\nPhase 6 gated: none\nBoundary: Telegram can brief and plan only.",
+    "Agent actions\n\nReady in Telegram: help, status, agent, actions, modules, policy\nDashboard gated: none\nOwner approval required: none\nBoundary: Telegram can brief and plan only.",
   );
   assertNoSensitiveMaterial(capturedRequest);
 });
@@ -172,7 +172,7 @@ Deno.test("telegram agent brain prompt carries actionable template context", () 
     agentRole: "Market intelligence",
     agentSummary: "Tracks market narratives and launch positioning.",
     capabilities: ["market brief", "campaign plan"],
-    gatedActions: ["wallet", "Base MCP"],
+    gatedActions: ["wallet", "Robinhood Chain actions"],
     modules: [
       { name: "ASTRA-03", title: "Research Agent", telegramStatus: "active" },
       { name: "NYX-05", title: "Security Agent", telegramStatus: "guard" },
@@ -190,7 +190,7 @@ Deno.test("telegram agent brain prompt carries actionable template context", () 
     "Prompt must include ready actions.",
   );
   assert(
-    userMessage.includes("Gated actions: wallet, Base MCP"),
+    userMessage.includes("Gated actions: wallet, Robinhood Chain actions"),
     "Prompt must include gated actions.",
   );
   assert(
@@ -435,7 +435,7 @@ Deno.test("telegram agent brain rejects generic context-free provider replies", 
           async complete() {
             return {
               text:
-                "Agent 666 Actions\n\nRead-only (Ready in Telegram)\n- market brief\n- campaign plan\n\nGated (Phase 6 only)\n- none\n\nTelegram can brief and plan but cannot execute wallet or onchain actions.",
+                "Agent 666 Actions\n\nRead-only (Ready in Telegram)\n- market brief\n- campaign plan\n\nOwner approval required\n- none\n\nTelegram can brief and plan but cannot execute wallet or onchain actions.",
             };
           },
         },
@@ -456,7 +456,7 @@ Deno.test("telegram agent brain rejects generic context-free provider replies", 
           async complete() {
             return {
               text:
-                "Agent actions\n\nReady in Telegram: none\n\nPhase 6 gated: controlled execution only\n\nBoundary: Telegram can brief and plan only.",
+                "Agent actions\n\nReady in Telegram: none\n\nOwner approval required: controlled execution only\n\nBoundary: Telegram can brief and plan only.",
             };
           },
         },
@@ -623,7 +623,7 @@ Deno.test("telegram agent brain rejects malformed contextual polish", async () =
           async complete() {
             return {
               text:
-                "Agent 666 actions\n\nRead-only actions (Telegram ready):\n- market brief - token and market context summary\n- campaign plan - launch campaign roadmap\n\nGated actions (Phase 6):\n- wallet - transaction signing\n\nActive modules:\n- ASTRA-03 Research - online\n- NOVA-04",
+                "Agent 666 actions\n\nRead-only actions (Telegram ready):\n- market brief - token and market context summary\n- campaign plan - launch campaign roadmap\n\nOwner approval required:\n- wallet - transaction signing\n\nActive modules:\n- ASTRA-03 Research - online\n- NOVA-04",
             };
           },
         },
@@ -644,7 +644,7 @@ Deno.test("telegram agent brain rejects malformed contextual polish", async () =
           async complete() {
             return {
               text:
-                "Agent 666 Actions\n\nReady in Telegram:\n- market brief\n- campaign plan\n\nPhase 6 gated:\n- wallet\n- approval\n\nBoundary: Telegram can brief and plan only.",
+                "Agent 666 Actions\n\nReady in Telegram:\n- market brief\n- campaign plan\n\nOwner approval required:\n- wallet\n- approval\n\nBoundary: Telegram can brief and plan only.",
             };
           },
         },

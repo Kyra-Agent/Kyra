@@ -1,5 +1,5 @@
 
-import { baseChainId } from "./unsignedTransactionHandoff";
+import { productChainId } from "./unsignedTransactionHandoff";
 
 export type Phase9ExecutionEligibilityStatus =
   | "blocked"
@@ -12,13 +12,13 @@ export type Phase9ExecutionEligibilityReason =
   | "owner_signin_required"
   | "selected_agent_required"
   | "deployed_agent_required"
-  | "base_account_required"
-  | "base_chain_required"
+  | "owner_wallet_required"
+  | "product_chain_required"
   | "allowlisted_action_required"
   | "value_required"
   | "value_cap_exceeded"
   | "kyra_approval_required"
-  | "base_account_approval_required"
+  | "owner_wallet_approval_required"
   | "receipt_verification_required"
   | "owner_closeout_required"
   | "telegram_execution_forbidden"
@@ -36,13 +36,13 @@ export interface Phase9ExecutionEligibilityInput {
   ownerSignedIn: boolean;
   selectedAgent: boolean;
   deployedAgent: boolean;
-  baseAccountConnected: boolean;
+  ownerWalletConnected: boolean;
   chainId: number | null | undefined;
   actionKind: string | null | undefined;
   valueWei: string | null | undefined;
   maxValueWei: string;
   kyraApprovalRecorded: boolean;
-  baseAccountApprovalRecorded: boolean;
+  ownerWalletApprovalRecorded: boolean;
   receiptVerificationReady: boolean;
   ownerCloseoutReady: boolean;
   requestedFromTelegram: boolean;
@@ -71,7 +71,7 @@ export interface Phase9ExecutionEligibilityResult {
   message: string;
 }
 
-const allowedActionKinds = new Set(["eth_transfer", "base_eth_transfer"]);
+const allowedActionKinds = new Set(["eth_transfer", "robinhood_eth_transfer"]);
 
 export function evaluatePhase9ExecutionEligibility(
   input: Phase9ExecutionEligibilityInput,
@@ -85,8 +85,8 @@ export function evaluatePhase9ExecutionEligibility(
   if (!input.ownerSignedIn) reasons.push("owner_signin_required");
   if (!input.selectedAgent) reasons.push("selected_agent_required");
   if (!input.deployedAgent) reasons.push("deployed_agent_required");
-  if (!input.baseAccountConnected) reasons.push("base_account_required");
-  if (input.chainId !== baseChainId) reasons.push("base_chain_required");
+  if (!input.ownerWalletConnected) reasons.push("owner_wallet_required");
+  if (input.chainId !== productChainId) reasons.push("product_chain_required");
   if (!input.actionKind || !allowedActionKinds.has(input.actionKind)) {
     reasons.push("allowlisted_action_required");
   }
@@ -95,7 +95,7 @@ export function evaluatePhase9ExecutionEligibility(
     reasons.push("value_cap_exceeded");
   }
   if (!input.kyraApprovalRecorded) reasons.push("kyra_approval_required");
-  if (!input.baseAccountApprovalRecorded) reasons.push("base_account_approval_required");
+  if (!input.ownerWalletApprovalRecorded) reasons.push("owner_wallet_approval_required");
   if (!input.receiptVerificationReady) reasons.push("receipt_verification_required");
   if (!input.ownerCloseoutReady) reasons.push("owner_closeout_required");
   if (input.requestedFromTelegram) reasons.push("telegram_execution_forbidden");
@@ -149,7 +149,7 @@ function buildControls(
     },
     {
       label: "Wallet boundary",
-      status: reasons.some((reason) => ["base_account_required", "base_chain_required", "base_account_approval_required"].includes(reason)) ? "blocked" : "pass",
+      status: reasons.some((reason) => ["owner_wallet_required", "product_chain_required", "owner_wallet_approval_required"].includes(reason)) ? "blocked" : "pass",
       detail: "The user's own wallet on the selected network must approve the transaction.",
     },
     {

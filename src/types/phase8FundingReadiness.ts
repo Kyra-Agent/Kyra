@@ -1,3 +1,9 @@
+import {
+  currentGasDisplayName,
+  currentProductChain,
+  currentWalletDisplayName,
+} from "../config/productChains";
+
 export type Phase8FundingReadinessStatus =
   | "wallet_required"
   | "address_required"
@@ -8,7 +14,7 @@ export type Phase8FundingReadinessStatus =
 
 export interface Phase8FundingReadinessInput {
   walletConnected: boolean;
-  baseAccountAddress: `0x${string}` | null;
+  ownerWalletAddress: `0x${string}` | null;
   isLoading: boolean;
   isError: boolean;
   value: bigint | null;
@@ -29,9 +35,9 @@ export interface Phase8FundingReadinessResult {
 export function evaluatePhase8FundingReadiness(
   input: Phase8FundingReadinessInput,
 ): Phase8FundingReadinessResult {
-  const networkName = input.networkName ?? "Base";
-  const walletDisplayName = input.walletDisplayName ?? "Base Account";
-  const gasDisplayName = input.gasDisplayName ?? "Base ETH";
+  const networkName = input.networkName ?? currentProductChain.name;
+  const walletDisplayName = input.walletDisplayName ?? currentWalletDisplayName;
+  const gasDisplayName = input.gasDisplayName ?? currentGasDisplayName;
 
   if (!input.walletConnected) {
     return createResult({
@@ -43,7 +49,7 @@ export function evaluatePhase8FundingReadiness(
     });
   }
 
-  if (!input.baseAccountAddress) {
+  if (!input.ownerWalletAddress) {
     return createResult({
       status: "address_required",
       label: "address required",
@@ -85,14 +91,14 @@ export function evaluatePhase8FundingReadiness(
 
   return createResult({
     status: "funded",
-    label: `${formatPhase8BaseEth(input.value)} ETH`,
+    label: `${formatPhase8NativeEth(input.value)} ETH`,
     message: `${gasDisplayName} gas balance is present for the owner-controlled submit.`,
     ownerAction: "No funding action is required before the controlled submit.",
     canOpenSubmitter: true,
   });
 }
 
-export function formatPhase8BaseEth(value: bigint) {
+export function formatPhase8NativeEth(value: bigint) {
   const whole = value / 1_000_000_000_000_000_000n;
   const fractional = value % 1_000_000_000_000_000_000n;
   const fractionText = fractional.toString().padStart(18, "0").slice(0, 6).replace(/0+$/u, "");

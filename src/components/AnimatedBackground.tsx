@@ -3,9 +3,7 @@ import type { CSSProperties } from "react";
 import { currentProductChain } from "../config/productChains";
 
 const nodeCount = 12;
-const chainSignal = currentProductChain.key === "base"
-  ? "BASE"
-  : currentProductChain.name.toUpperCase();
+const chainSignal = currentProductChain.name.toUpperCase();
 const signals = [chainSignal, "ACTION", "NIRA", "NYX", "TX", "APPROVE", "KYRA"];
 
 export function AnimatedBackground() {

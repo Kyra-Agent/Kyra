@@ -25,7 +25,7 @@ const unsignedSource = readFileSync(
   "utf8",
 ).replace(
   'import { currentProductChain } from "../config/productChains";',
-  'const currentProductChain = Object.freeze({ id: 8453, name: "Base" });',
+  'const currentProductChain = Object.freeze({ id: 4663, name: "Robinhood Chain" });',
 );
 const preparedSource = readFileSync(
   resolve(root, "src/types/preparedAction.ts"),
@@ -48,22 +48,22 @@ writeFileSync(outputPath, transpiled.outputText);
 
 try {
   const {
-    baseChainId,
+    productChainId,
     isPreparedActionAllowedKind,
     preparedActionAllowedKinds,
     reviewPreparedActionAllowlist,
   } = await import(`file:///${outputPath.replace(/\\/g, "/")}`);
 
   assertEquals(preparedActionAllowedKinds.length, 2);
-  assert(isPreparedActionAllowedKind("base_mcp_status_check"));
-  assert(isPreparedActionAllowedKind("base_reviewed_transaction"));
+  assert(isPreparedActionAllowedKind("chain_status_check"));
+  assert(isPreparedActionAllowedKind("robinhood_reviewed_transaction"));
   assert(!isPreparedActionAllowedKind("swap_any_token"));
 
   const statusCheck = reviewPreparedActionAllowlist({
     source: "owner_dashboard",
     walletExecutionEnabled: false,
-    actionKind: "base_mcp_status_check",
-    chainId: baseChainId,
+    actionKind: "chain_status_check",
+    chainId: productChainId,
   });
   assert(statusCheck.allowed, "Read-only status check should be allowed.");
   assertEquals(statusCheck.risk, "read-only");
@@ -74,25 +74,25 @@ try {
   const ownerPreview = reviewPreparedActionAllowlist({
     source: "owner_dashboard",
     walletExecutionEnabled: true,
-    actionKind: "base_reviewed_transaction",
-    chainId: baseChainId,
+    actionKind: "robinhood_reviewed_transaction",
+    chainId: productChainId,
     recipient: "0x1111111111111111111111111111111111111111",
     valueWei: "0",
     data: "0x",
-    routeSummary: "Owner reviewed Base transaction preview.",
+    routeSummary: "Owner reviewed Robinhood Chain transaction preview.",
     valueSummary: "No token spend in this Phase 7F preview.",
   });
   assert(ownerPreview.allowed, "Owner dashboard zero-value preview should pass.");
   assertEquals(ownerPreview.risk, "review");
   assertEquals(ownerPreview.requiresWallet, true);
-  assertEquals(ownerPreview.canonical.chain, "Base");
+  assertEquals(ownerPreview.canonical.chain, "Robinhood Chain");
 
   const telegram = reviewPreparedActionAllowlist({
     ...ownerPreview.canonical,
     source: "telegram",
     walletExecutionEnabled: true,
-    actionKind: "base_reviewed_transaction",
-    chainId: baseChainId,
+    actionKind: "robinhood_reviewed_transaction",
+    chainId: productChainId,
   });
   assert(!telegram.allowed, "Telegram must not create prepared actions.");
   assert(telegram.reasons.includes("untrusted_source"));
@@ -100,12 +100,12 @@ try {
   const disabled = reviewPreparedActionAllowlist({
     source: "owner_dashboard",
     walletExecutionEnabled: false,
-    actionKind: "base_reviewed_transaction",
-    chainId: baseChainId,
+    actionKind: "robinhood_reviewed_transaction",
+    chainId: productChainId,
     recipient: "0x1111111111111111111111111111111111111111",
     valueWei: "0",
     data: "0x",
-    routeSummary: "Owner reviewed Base transaction preview.",
+    routeSummary: "Owner reviewed Robinhood Chain transaction preview.",
     valueSummary: "No token spend in this Phase 7F preview.",
   });
   assert(!disabled.allowed, "Value-moving action must obey runtime wallet gate.");
@@ -114,12 +114,12 @@ try {
   const tokenSpend = reviewPreparedActionAllowlist({
     source: "owner_dashboard",
     walletExecutionEnabled: true,
-    actionKind: "base_reviewed_transaction",
-    chainId: baseChainId,
+    actionKind: "robinhood_reviewed_transaction",
+    chainId: productChainId,
     recipient: "0x1111111111111111111111111111111111111111",
     valueWei: "1",
     data: "0x",
-    routeSummary: "Owner reviewed Base transaction preview.",
+    routeSummary: "Owner reviewed Robinhood Chain transaction preview.",
     valueSummary: "Spend one wei.",
   });
   assert(!tokenSpend.allowed, "Phase 7F must not allow token spend.");
@@ -128,12 +128,12 @@ try {
   const calldata = reviewPreparedActionAllowlist({
     source: "owner_dashboard",
     walletExecutionEnabled: true,
-    actionKind: "base_reviewed_transaction",
-    chainId: baseChainId,
+    actionKind: "robinhood_reviewed_transaction",
+    chainId: productChainId,
     recipient: "0x1111111111111111111111111111111111111111",
     valueWei: "0",
     data: "0x1234",
-    routeSummary: "Owner reviewed Base transaction preview.",
+    routeSummary: "Owner reviewed Robinhood Chain transaction preview.",
     valueSummary: "No token spend.",
   });
   assert(!calldata.allowed, "Phase 7F must not allow calldata.");
@@ -142,7 +142,7 @@ try {
   const wrongChain = reviewPreparedActionAllowlist({
     source: "owner_dashboard",
     walletExecutionEnabled: true,
-    actionKind: "base_reviewed_transaction",
+    actionKind: "robinhood_reviewed_transaction",
     chainId: 1,
     recipient: "0x1111111111111111111111111111111111111111",
     valueWei: "0",
@@ -150,8 +150,8 @@ try {
     routeSummary: "Owner reviewed Ethereum transaction preview.",
     valueSummary: "No token spend.",
   });
-  assert(!wrongChain.allowed, "Non-Base action must fail closed.");
-  assert(wrongChain.reasons.includes("base_chain_required"));
+  assert(!wrongChain.allowed, "Unsupported-chain action must fail closed.");
+  assert(wrongChain.reasons.includes("product_chain_required"));
 } finally {
   rmSync(outDir, { recursive: true, force: true });
 }

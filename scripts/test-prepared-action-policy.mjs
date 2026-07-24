@@ -33,7 +33,7 @@ const unsignedSource = readFileSync(
   "utf8",
 ).replace(
   'import { currentProductChain } from "../config/productChains";',
-  'const currentProductChain = Object.freeze({ id: 8453, name: "Base" });',
+  'const currentProductChain = Object.freeze({ id: 4663, name: "Robinhood Chain" });',
 );
 const preparedSource = stripImport(
   stripImport(
@@ -67,24 +67,24 @@ writeFileSync(outputPath, transpiled.outputText);
 
 try {
   const {
-    baseChainId,
+    productChainId,
     evaluatePreparedActionPolicy,
     getPreparedActionPolicyBlockMessage,
   } = await import(`file:///${outputPath.replace(/\\/g, "/")}`);
 
-  const baseReviewInput = {
+  const reviewInput = {
     source: "owner_dashboard",
     walletExecutionEnabled: true,
     ownerSignedIn: true,
     selectedAgent: true,
     preparedActionStorageEnabled: true,
     ownerApprovalRecorded: true,
-    actionKind: "base_reviewed_transaction",
-    chainId: baseChainId,
+    actionKind: "robinhood_reviewed_transaction",
+    chainId: productChainId,
     recipient: "0x1111111111111111111111111111111111111111",
     valueWei: "0",
     data: "0x",
-    routeSummary: "Owner reviewed Base transaction preview.",
+    routeSummary: "Owner reviewed Robinhood Chain transaction preview.",
     valueSummary: "No token spend in this policy test.",
   };
 
@@ -95,27 +95,27 @@ try {
     selectedAgent: true,
     preparedActionStorageEnabled: false,
     ownerApprovalRecorded: false,
-    actionKind: "base_mcp_status_check",
-    chainId: baseChainId,
+    actionKind: "chain_status_check",
+    chainId: productChainId,
   });
   assertEquals(readOnly.status, "read_only_ready");
   assertEquals(readOnly.allowedForStorage, false);
   assertEquals(readOnly.riskReview.level, "read-only");
 
-  const readyForOwnerReview = evaluatePreparedActionPolicy(baseReviewInput);
+  const readyForOwnerReview = evaluatePreparedActionPolicy(reviewInput);
   assertEquals(readyForOwnerReview.status, "owner_review_required");
   assertEquals(readyForOwnerReview.allowedForStorage, true);
   assertEquals(readyForOwnerReview.riskReview.status, "ready");
 
   const noSession = evaluatePreparedActionPolicy({
-    ...baseReviewInput,
+    ...reviewInput,
     ownerSignedIn: false,
   });
   assertEquals(noSession.status, "blocked");
   assert(noSession.reasons.includes("owner_session_required"));
 
   const telegram = evaluatePreparedActionPolicy({
-    ...baseReviewInput,
+    ...reviewInput,
     source: "telegram",
   });
   assertEquals(telegram.status, "blocked");
@@ -126,21 +126,21 @@ try {
   assert(telegram.allowlist.reasons.includes("untrusted_source"));
 
   const storageDisabled = evaluatePreparedActionPolicy({
-    ...baseReviewInput,
+    ...reviewInput,
     preparedActionStorageEnabled: false,
   });
   assertEquals(storageDisabled.status, "blocked");
   assert(storageDisabled.reasons.includes("prepared_action_storage_disabled"));
 
   const ownerApprovalMissing = evaluatePreparedActionPolicy({
-    ...baseReviewInput,
+    ...reviewInput,
     ownerApprovalRecorded: false,
   });
   assertEquals(ownerApprovalMissing.status, "blocked");
   assert(ownerApprovalMissing.reasons.includes("owner_approval_required"));
 
   const riskBlocked = evaluatePreparedActionPolicy({
-    ...baseReviewInput,
+    ...reviewInput,
     chainId: 1,
   });
   assertEquals(riskBlocked.status, "blocked");

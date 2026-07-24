@@ -6,7 +6,7 @@ function assert(condition, message) {
   }
 }
 
-const baseInput = {
+const baselineInput = {
   incidentControlsCanProceed: true,
   phase9RuntimeEnabled: false,
   netlifyHealthReady: true,
@@ -25,7 +25,7 @@ const baseInput = {
   publicAnalyticsPrivacyPreserving: true,
 };
 
-const ready = evaluatePhase9MonitoringSupport(baseInput);
+const ready = evaluatePhase9MonitoringSupport(baselineInput);
 assert(ready.status === "ready_for_runtime", "monitoring support should be ready while runtime is disabled");
 assert(!ready.publicExecutionAllowed, "disabled runtime must not allow public execution");
 assert(ready.canProceedToPrivacyGate, "clean monitoring support should allow Batch 9E work");
@@ -37,7 +37,7 @@ assert(ready.reasons.includes("runtime_disabled"), "runtime disabled reason requ
 assert(ready.controls.length >= 6, "monitoring support should expose checklist evidence");
 
 const observable = evaluatePhase9MonitoringSupport({
-  ...baseInput,
+  ...baselineInput,
   phase9RuntimeEnabled: true,
 });
 assert(observable.status === "observable", "runtime-enabled clean monitoring should become observable");
@@ -45,7 +45,7 @@ assert(observable.publicExecutionAllowed, "observable path can allow public exec
 assert(observable.reasons.length === 0, "observable path must have no reasons");
 
 const missingHealth = evaluatePhase9MonitoringSupport({
-  ...baseInput,
+  ...baselineInput,
   phase9RuntimeEnabled: true,
   netlifyHealthReady: false,
   supabaseHealthReady: false,
@@ -65,7 +65,7 @@ for (const reason of [
 assert(!missingHealth.monitoringReady, "missing health evidence should not be monitoring-ready");
 
 const unsafeSupport = evaluatePhase9MonitoringSupport({
-  ...baseInput,
+  ...baselineInput,
   phase9RuntimeEnabled: true,
   ownerSupportCopyReady: false,
   sanitizedDebugStates: false,
@@ -77,7 +77,7 @@ assert(unsafeSupport.reasons.includes("owner_evidence_required"), "owner evidenc
 assert(!unsafeSupport.supportReady, "unsafe support should not be support-ready");
 
 const privacyLeak = evaluatePhase9MonitoringSupport({
-  ...baseInput,
+  ...baselineInput,
   phase9RuntimeEnabled: true,
   aggregatedAnalyticsReady: false,
   rawWalletInternalsHidden: false,
@@ -99,7 +99,7 @@ for (const reason of [
 assert(!privacyLeak.privacyPreserving, "privacy leak should not be privacy-preserving");
 
 const missingIncident = evaluatePhase9MonitoringSupport({
-  ...baseInput,
+  ...baselineInput,
   incidentControlsCanProceed: false,
 });
 assert(missingIncident.reasons.includes("incident_controls_required"), "Batch 9C incident controls should be required");

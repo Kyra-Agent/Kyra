@@ -1,5 +1,5 @@
 
-import { baseChainId } from "./unsignedTransactionHandoff";
+import { productChainId } from "./unsignedTransactionHandoff";
 
 export type Phase8LowValueTransactionReadinessStatus =
   | "ready_for_low_value_review"
@@ -9,8 +9,8 @@ export type Phase8LowValueTransactionReadinessReason =
   | "owner_session_required"
   | "private_dashboard_required"
   | "agent_required"
-  | "base_account_required"
-  | "base_chain_required"
+  | "owner_wallet_required"
+  | "product_chain_required"
   | "prepared_action_required"
   | "owner_approval_required"
   | "value_required"
@@ -27,7 +27,7 @@ export interface Phase8LowValueTransactionReadinessInput {
   ownerSignedIn: boolean;
   privateDashboard: boolean;
   selectedAgent: boolean;
-  baseAccountConnected: boolean;
+  ownerWalletConnected: boolean;
   chainId: number | null | undefined;
   preparedActionId: string | null | undefined;
   ownerApprovalRecorded: boolean;
@@ -60,9 +60,9 @@ const blockMessages: Record<Phase8LowValueTransactionReadinessReason, string> = 
     "Low-value transaction review is restricted to the private owner dashboard.",
   agent_required:
     "A selected deployed agent is required before low-value transaction review.",
-  base_account_required:
+  owner_wallet_required:
     "A connected owner wallet is required before low-value transaction review.",
-  base_chain_required:
+  product_chain_required:
     "Low-value transaction review is restricted to the selected runtime network.",
   prepared_action_required:
     "A reviewed prepared action is required before low-value transaction review.",
@@ -71,7 +71,7 @@ const blockMessages: Record<Phase8LowValueTransactionReadinessReason, string> = 
   value_required:
     "A positive transaction value is required for low-value transaction review.",
   value_cap_exceeded:
-    "Requested value exceeds the Phase 8 low-value cap.",
+    "Requested value exceeds the controlled execution cap.",
   gas_estimate_required:
     "A gas estimate is required before low-value transaction review.",
   gas_balance_required:
@@ -99,8 +99,8 @@ export function evaluatePhase8LowValueTransactionReadiness(
   if (!input.ownerSignedIn) reasons.push("owner_session_required");
   if (!input.privateDashboard) reasons.push("private_dashboard_required");
   if (!input.selectedAgent) reasons.push("agent_required");
-  if (!input.baseAccountConnected) reasons.push("base_account_required");
-  if (input.chainId !== baseChainId) reasons.push("base_chain_required");
+  if (!input.ownerWalletConnected) reasons.push("owner_wallet_required");
+  if (input.chainId !== productChainId) reasons.push("product_chain_required");
   if (!input.preparedActionId?.trim()) reasons.push("prepared_action_required");
   if (!input.ownerApprovalRecorded) reasons.push("owner_approval_required");
   if (requestedValue === null || requestedValue <= 0n) reasons.push("value_required");

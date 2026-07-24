@@ -49,7 +49,7 @@ try {
   } = await import(`file:///${outputPath.replace(/\\/g, "/")}`);
 
   const txHash = "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
-  const baseInput = {
+  const baselineInput = {
     ownerUserId: "owner_15",
     workspaceId: "workspace_15",
     agentId: "agent_777",
@@ -62,13 +62,13 @@ try {
     visibleInPublicProfile: false,
   };
 
-  const submitted = evaluatePhase8SmokeCloseout(baseInput);
+  const submitted = evaluatePhase8SmokeCloseout(baselineInput);
   assertEquals(submitted.status, "submitted_pending_confirmation");
   assertEquals(submitted.canContinueToPublicHardening, false);
   assertEquals(submitted.txHashLabel, "0xdddddddd...dddddddd");
 
   const confirmed = evaluatePhase8SmokeCloseout({
-    ...baseInput,
+    ...baselineInput,
     status: "confirmed",
     confirmationId: "base:block:123",
   });
@@ -77,7 +77,7 @@ try {
   assertEquals(confirmed.confirmationLabel, "recorded");
 
   const failed = evaluatePhase8SmokeCloseout({
-    ...baseInput,
+    ...baselineInput,
     status: "failed",
     sanitizedFailureReason: "Execution failed safely.",
   });
@@ -85,34 +85,34 @@ try {
   assertEquals(failed.canContinueToPublicHardening, true);
 
   const aborted = evaluatePhase8SmokeCloseout({
-    ...baseInput,
+    ...baselineInput,
     status: "aborted",
     txHash: null,
   });
   assertEquals(aborted.status, "closed_aborted");
   assertEquals(aborted.canContinueToPublicHardening, true);
 
-  const noScope = evaluatePhase8SmokeCloseout({ ...baseInput, ownerUserId: "" });
+  const noScope = evaluatePhase8SmokeCloseout({ ...baselineInput, ownerUserId: "" });
   assert(noScope.reasons.includes("owner_scope_required"));
 
   const publicResult = evaluatePhase8SmokeCloseout({
-    ...baseInput,
+    ...baselineInput,
     visibleInPublicProfile: true,
   });
   assert(publicResult.reasons.includes("public_visibility_forbidden"));
 
-  const missingHash = evaluatePhase8SmokeCloseout({ ...baseInput, txHash: null });
+  const missingHash = evaluatePhase8SmokeCloseout({ ...baselineInput, txHash: null });
   assert(missingHash.reasons.includes("transaction_hash_required"));
 
   const missingConfirmation = evaluatePhase8SmokeCloseout({
-    ...baseInput,
+    ...baselineInput,
     status: "confirmed",
     confirmationId: "",
   });
   assert(missingConfirmation.reasons.includes("confirmation_required"));
 
   const unsafeFailure = evaluatePhase8SmokeCloseout({
-    ...baseInput,
+    ...baselineInput,
     status: "failed",
     sanitizedFailureReason: "",
   });

@@ -24,8 +24,8 @@ const source = readFileSync(
   resolve(root, "src/types/phase8UserSafeTransactionPolicy.ts"),
   "utf8",
 ).replace(
-  'import { baseChainId } from "./unsignedTransactionHandoff";',
-  "const baseChainId = 8453;",
+  'import { productChainId } from "./unsignedTransactionHandoff";',
+  "const productChainId = 4663;",
 );
 const transpiled = ts.transpileModule(source, {
   compilerOptions: {
@@ -42,14 +42,14 @@ try {
     getPhase8UserSafeTransactionPolicyBlockMessage,
   } = await import(`file:///${outputPath.replace(/\\/g, "/")}`);
 
-  const baseInput = {
+  const baselineInput = {
     ownerSignedIn: true,
     privateDashboard: true,
     selectedAgent: true,
-    baseAccountConnected: true,
-    chainId: 8453,
+    ownerWalletConnected: true,
+    chainId: 4663,
     preparedActionId: "phase8_request_16",
-    actionKind: "base_reviewed_transaction",
+    actionKind: "robinhood_reviewed_transaction",
     valueWei: "0",
     data: "0x",
     includesTokenApproval: false,
@@ -59,20 +59,20 @@ try {
     cooldownSatisfied: true,
   };
 
-  const ready = evaluatePhase8UserSafeTransactionPolicy(baseInput);
+  const ready = evaluatePhase8UserSafeTransactionPolicy(baselineInput);
   assertEquals(ready.status, "ready_for_owner_review");
   assertEquals(ready.canEnterOwnerReview, true);
   assertEquals(ready.maxValueWei, "0");
-  assert(ready.allowedActionKinds.includes("base_reviewed_transaction"));
+  assert(ready.allowedActionKinds.includes("robinhood_reviewed_transaction"));
 
   const noOwner = evaluatePhase8UserSafeTransactionPolicy({
-    ...baseInput,
+    ...baselineInput,
     ownerSignedIn: false,
   });
   assert(noOwner.reasons.includes("owner_session_required"));
 
   const publicSurface = evaluatePhase8UserSafeTransactionPolicy({
-    ...baseInput,
+    ...baselineInput,
     privateDashboard: false,
     visibleInPublicProfile: true,
   });
@@ -80,25 +80,25 @@ try {
   assert(publicSurface.reasons.includes("public_profile_forbidden"));
 
   const telegramRequest = evaluatePhase8UserSafeTransactionPolicy({
-    ...baseInput,
+    ...baselineInput,
     requestedFromTelegram: true,
   });
   assert(telegramRequest.reasons.includes("telegram_forbidden"));
 
   const unsafeValue = evaluatePhase8UserSafeTransactionPolicy({
-    ...baseInput,
+    ...baselineInput,
     valueWei: "1",
   });
   assert(unsafeValue.reasons.includes("non_zero_value_forbidden"));
 
   const calldata = evaluatePhase8UserSafeTransactionPolicy({
-    ...baseInput,
+    ...baselineInput,
     data: "0x1234",
   });
   assert(calldata.reasons.includes("calldata_forbidden"));
 
   const swapAndApproval = evaluatePhase8UserSafeTransactionPolicy({
-    ...baseInput,
+    ...baselineInput,
     includesTokenApproval: true,
     includesSwap: true,
   });
@@ -106,13 +106,13 @@ try {
   assert(swapAndApproval.reasons.includes("swap_forbidden"));
 
   const wrongChain = evaluatePhase8UserSafeTransactionPolicy({
-    ...baseInput,
+    ...baselineInput,
     chainId: 1,
   });
-  assert(wrongChain.reasons.includes("base_chain_required"));
+  assert(wrongChain.reasons.includes("product_chain_required"));
 
   const cooldown = evaluatePhase8UserSafeTransactionPolicy({
-    ...baseInput,
+    ...baselineInput,
     cooldownSatisfied: false,
   });
   assert(cooldown.reasons.includes("cooldown_required"));

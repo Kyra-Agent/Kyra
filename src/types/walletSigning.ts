@@ -1,8 +1,6 @@
 import {
-  baseLegacyChain,
   currentProductChain,
   isCurrentProductChainId,
-  normalizeEvmChainId,
 } from "../config/productChains";
 
 export type WalletSigningState =
@@ -168,11 +166,6 @@ export function isCurrentWalletNetwork(
   return isCurrentProductChainId(chainId);
 }
 
-export function isBaseWalletNetwork(
-  chainId: unknown,
-): chainId is typeof baseLegacyChain.id {
-  return normalizeEvmChainId(chainId) === baseLegacyChain.id;
-}
 
 export function isTransactionHash(value: unknown): value is `0x${string}` {
   return typeof value === "string" && /^0x[a-fA-F0-9]{64}$/u.test(value);

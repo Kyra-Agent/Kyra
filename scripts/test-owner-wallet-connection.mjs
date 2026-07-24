@@ -26,7 +26,7 @@ mkdirSync(outDir, { recursive: true });
 
 const source = readFileSync(sourcePath, "utf8").replace(
   'import { currentProductChain } from "../config/productChains";',
-  'const currentProductChain = Object.freeze({ id: 8453, name: "Base" });',
+  'const currentProductChain = Object.freeze({ id: 4663, name: "Robinhood Chain" });',
 );
 const transpiled = ts.transpileModule(source, {
   compilerOptions: {
@@ -49,7 +49,7 @@ try {
   const binding = contract.createOwnerWalletConnectionBinding({
     ...target,
     address,
-    chainId: 8453,
+    chainId: 4663,
     connectorId: "io.metamask",
     connectorType: "injected",
   }, now);
@@ -78,7 +78,7 @@ try {
   assert(
     contract.walletConnectionMatchesBinding(binding, {
       address: address.toUpperCase().replace("0X", "0x"),
-      chainId: 8453,
+      chainId: 4663,
       connectorId: "io.metamask",
       connectorType: "injected",
     }),
@@ -88,7 +88,7 @@ try {
   for (const snapshot of [
     {
       address: `0x${"b".repeat(40)}`,
-      chainId: 8453,
+      chainId: 4663,
       connectorId: "io.metamask",
       connectorType: "injected",
     },
@@ -100,13 +100,13 @@ try {
     },
     {
       address,
-      chainId: 8453,
+      chainId: 4663,
       connectorId: "com.other.wallet",
       connectorType: "injected",
     },
     {
       address,
-      chainId: 8453,
+      chainId: 4663,
       connectorId: "io.metamask",
       connectorType: "walletConnect",
     },
@@ -140,9 +140,9 @@ try {
 
   for (const invalidConnection of [
     { chainId: 1, connectorId: "io.metamask", connectorType: "injected", address },
-    { chainId: 8453, connectorId: "io.metamask", connectorType: "baseAccount", address },
-    { chainId: 8453, connectorId: "bad connector", connectorType: "injected", address },
-    { chainId: 8453, connectorId: "io.metamask", connectorType: "injected", address: "0x1234" },
+    { chainId: 4663, connectorId: "io.metamask", connectorType: "unsupported", address },
+    { chainId: 4663, connectorId: "bad connector", connectorType: "injected", address },
+    { chainId: 4663, connectorId: "io.metamask", connectorType: "injected", address: "0x1234" },
   ]) {
     assertThrows(
       () => contract.createOwnerWalletConnectionBinding({
@@ -158,7 +158,7 @@ try {
       ...target,
       sessionExpiresAt: now + 29,
       address,
-      chainId: 8453,
+      chainId: 4663,
       connectorId: "io.metamask",
       connectorType: "injected",
     }, now),

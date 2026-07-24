@@ -53,9 +53,7 @@ export async function lookupChainActionAgentOwnership(
   if (agentError) throw agentError;
   if (!agent) return null;
   if (
-    !["base", "robinhood_mainnet", "robinhood_testnet"].includes(
-      agent.network,
-    ) ||
+    !["robinhood_mainnet", "robinhood_testnet"].includes(agent.network) ||
     !["disabled", "ready", "active", "paused"].includes(
       agent.chain_action_status,
     )

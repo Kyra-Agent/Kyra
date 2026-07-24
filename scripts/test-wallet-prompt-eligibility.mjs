@@ -22,7 +22,7 @@ function assertEquals(actual, expected, message) {
 mkdirSync(outDir, { recursive: true });
 
 const source = readFileSync(sourcePath, "utf8")
-  .replace(/import\s+\{\s*baseChainId\s*\}\s+from\s+"\.\/unsignedTransactionHandoff";/u, "const baseChainId = 8453;");
+  .replace(/import\s+\{\s*productChainId\s*\}\s+from\s+"\.\/unsignedTransactionHandoff";/u, "const productChainId = 4663;");
 const transpiled = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.ES2020,
@@ -45,8 +45,8 @@ try {
     ownerSignedIn: true,
     privateDashboard: true,
     selectedAgent: true,
-    baseAccountConnected: true,
-    chainId: 8453,
+    ownerWalletConnected: true,
+    chainId: 4663,
     preparedActionReviewed: true,
     riskReviewReady: true,
     ownerApprovalRecorded: true,
@@ -82,10 +82,10 @@ try {
     ...eligibleInput,
     chainId: 1,
   });
-  assert(!wrongNetwork.eligible, "Non-Base network must fail.");
+  assert(!wrongNetwork.eligible, "Unsupported network must fail.");
   assert(
-    wrongNetwork.reasons.includes("base_network_required"),
-    "Base network reason must be visible.",
+    wrongNetwork.reasons.includes("product_network_required"),
+    "Product network reason must be visible.",
   );
 
   const missingReview = evaluateWalletPromptEligibility({

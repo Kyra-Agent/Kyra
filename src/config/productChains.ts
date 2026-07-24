@@ -32,20 +32,6 @@ function defineProductChain<
   });
 }
 
-export const baseLegacyChain = defineProductChain({
-  key: "base",
-  id: 8453,
-  hexId: "0x2105",
-  name: "Base",
-  nativeCurrency: {
-    name: "Ether",
-    symbol: "ETH",
-    decimals: 18,
-  },
-  publicRpcUrl: "https://mainnet.base.org",
-  explorerUrl: "https://basescan.org",
-  productionRpcPolicy: "backend_secret_required",
-});
 
 export const robinhoodChain = defineProductChain({
   key: "robinhood_mainnet",
@@ -78,7 +64,6 @@ export const robinhoodTestnetChain = defineProductChain({
 });
 
 export const productChains = Object.freeze([
-  baseLegacyChain,
   robinhoodChain,
   robinhoodTestnetChain,
 ] as const);
@@ -114,7 +99,9 @@ export function selectProductChainForRuntime(
     return robinhoodChain;
   }
 
-  return baseLegacyChain;
+  // Robinhood Chain mainnet is the only production product target. Runtime
+  // transaction gates remain independently default-off and fail closed.
+  return robinhoodChain;
 }
 
 function readBuildEnv(key: string) {
@@ -124,8 +111,8 @@ function readBuildEnv(key: string) {
   return env?.[key] ?? "";
 }
 
-// Base remains the fail-closed default. Robinhood runtimes require a named Vite
-// mode plus their complete owner-controlled release markers.
+// Chain selection is Robinhood-only. Testnet still requires its explicit mode
+// and owner window; transaction submission remains separately gated.
 export const currentProductChain = selectProductChainForRuntime({
   mode: readBuildEnv("MODE"),
   requestedTarget: readBuildEnv("VITE_KYRA_CHAIN_RELEASE_TARGET"),
@@ -134,9 +121,7 @@ export const currentProductChain = selectProductChainForRuntime({
   releaseApproval: readBuildEnv("VITE_KYRA_ROBINHOOD_MAINNET_RELEASE"),
 });
 export const migrationTargetChain = robinhoodChain;
-export const currentWalletDisplayName = currentProductChain.key === "base"
-  ? "Base Account"
-  : `${currentProductChain.name} wallet`;
+export const currentWalletDisplayName = `${currentProductChain.name} wallet`;
 export const currentGasDisplayName = `${currentProductChain.name} ETH`;
 
 export function normalizeEvmChainId(value: unknown): number | null {

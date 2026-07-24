@@ -1,11 +1,11 @@
 
-import { baseChainId, isEvmAddress, isHexData } from "./unsignedTransactionHandoff";
+import { productChainId, isEvmAddress, isHexData } from "./unsignedTransactionHandoff";
 
 export type Phase8LowValueSubmitRequestFailure =
   | "owner_scope_required"
   | "private_dashboard_required"
-  | "base_account_required"
-  | "base_chain_required"
+  | "owner_wallet_required"
+  | "product_chain_required"
   | "prepared_action_required"
   | "owner_approval_required"
   | "recipient_required"
@@ -22,7 +22,7 @@ export interface Phase8LowValueSubmitRequestInput {
   workspaceId: string | null | undefined;
   agentId: string | null | undefined;
   privateDashboard: boolean;
-  baseAccountConnected: boolean;
+  ownerWalletConnected: boolean;
   chainId: number | null | undefined;
   preparedActionId: string | null | undefined;
   ownerApprovalRecorded: boolean;
@@ -39,7 +39,7 @@ export interface Phase8LowValueSubmitRequest {
   to: `0x${string}`;
   value: bigint;
   data: "0x";
-  chainId: typeof baseChainId;
+  chainId: typeof productChainId;
   maxValueWei: "100000000000000";
   ownerOnly: true;
 }
@@ -65,9 +65,9 @@ const failureMessages: Record<Phase8LowValueSubmitRequestFailure, string> = {
     "Low-value submit request requires owner, workspace, and selected agent scope.",
   private_dashboard_required:
     "Low-value submit request can only be created from the private owner dashboard.",
-  base_account_required:
+  owner_wallet_required:
     "Low-value submit request requires a connected owner wallet.",
-  base_chain_required:
+  product_chain_required:
     "Low-value submit request is restricted to the selected runtime network.",
   prepared_action_required:
     "Low-value submit request requires a reviewed prepared action.",
@@ -78,7 +78,7 @@ const failureMessages: Record<Phase8LowValueSubmitRequestFailure, string> = {
   value_required:
     "Low-value submit request requires a positive value.",
   value_cap_exceeded:
-    "Low-value submit request exceeds the Phase 8 cap.",
+    "Low-value submit request exceeds the controlled execution cap.",
   no_calldata_required:
     "Low-value submit request does not allow calldata.",
   token_approval_forbidden:
@@ -101,8 +101,8 @@ export function createPhase8LowValueSubmitRequest(
     reasons.push("owner_scope_required");
   }
   if (!input.privateDashboard) reasons.push("private_dashboard_required");
-  if (!input.baseAccountConnected) reasons.push("base_account_required");
-  if (input.chainId !== baseChainId) reasons.push("base_chain_required");
+  if (!input.ownerWalletConnected) reasons.push("owner_wallet_required");
+  if (input.chainId !== productChainId) reasons.push("product_chain_required");
   if (!input.preparedActionId?.trim()) reasons.push("prepared_action_required");
   if (!input.ownerApprovalRecorded) reasons.push("owner_approval_required");
   if (!isEvmAddress(input.recipient)) reasons.push("recipient_required");
@@ -131,7 +131,7 @@ export function createPhase8LowValueSubmitRequest(
       to: input.recipient,
       value,
       data: "0x",
-      chainId: baseChainId,
+      chainId: productChainId,
       maxValueWei: "100000000000000",
       ownerOnly: true,
     },

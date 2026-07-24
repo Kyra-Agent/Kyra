@@ -1,5 +1,5 @@
 
-import { baseChainId } from "./unsignedTransactionHandoff";
+import { productChainId } from "./unsignedTransactionHandoff";
 
 export type WalletPromptSource =
   | "owner_dashboard_click"
@@ -8,7 +8,7 @@ export type WalletPromptSource =
   | "telegram_message"
   | "telegram_webhook"
   | "llm_output"
-  | "base_mcp_provider_response"
+  | "chain_provider_response"
   | "background_retry"
   | "activity_log_replay";
 
@@ -17,8 +17,8 @@ export type WalletPromptBlockReason =
   | "not_owner_dashboard"
   | "owner_session_required"
   | "agent_binding_required"
-  | "base_account_connection_required"
-  | "base_network_required"
+  | "owner_wallet_connection_required"
+  | "product_network_required"
   | "reviewed_prepared_action_required"
   | "risk_review_required"
   | "owner_approval_required"
@@ -32,7 +32,7 @@ export interface WalletPromptEligibilityInput {
   ownerSignedIn: boolean;
   privateDashboard: boolean;
   selectedAgent: boolean;
-  baseAccountConnected: boolean;
+  ownerWalletConnected: boolean;
   chainId: unknown;
   preparedActionReviewed: boolean;
   riskReviewReady: boolean;
@@ -54,8 +54,8 @@ const promptBlockMessages: Record<WalletPromptBlockReason, string> = {
   not_owner_dashboard: "Wallet prompts are only allowed from the private owner dashboard.",
   owner_session_required: "A fresh owner session is required before any wallet prompt.",
   agent_binding_required: "A selected deployed agent binding is required.",
-  base_account_connection_required: "Connect the owner wallet before signing can be reviewed.",
-  base_network_required: "The connected wallet must be on the selected network.",
+  owner_wallet_connection_required: "Connect the owner wallet before signing can be reviewed.",
+  product_network_required: "The connected wallet must be on the selected network.",
   reviewed_prepared_action_required: "A reviewed prepared action is required before signing.",
   risk_review_required: "NYX-05 risk review must be ready before signing.",
   owner_approval_required: "Kyra owner approval must be recorded before wallet approval.",
@@ -85,12 +85,12 @@ export function evaluateWalletPromptEligibility(
     reasons.push("agent_binding_required");
   }
 
-  if (!input.baseAccountConnected) {
-    reasons.push("base_account_connection_required");
+  if (!input.ownerWalletConnected) {
+    reasons.push("owner_wallet_connection_required");
   }
 
-  if (input.chainId !== baseChainId) {
-    reasons.push("base_network_required");
+  if (input.chainId !== productChainId) {
+    reasons.push("product_network_required");
   }
 
   if (!input.preparedActionReviewed) {

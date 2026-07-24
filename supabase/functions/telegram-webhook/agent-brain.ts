@@ -135,7 +135,7 @@ export function buildTelegramAgentBrainRequest(
         content: [
           "You are Kyra's Telegram agent brain.",
           "Answer only in read-only mode.",
-          "Do not claim that wallet, approval, Base, or onchain actions were executed.",
+          "Do not claim that wallet, approval, Robinhood Chain, or onchain actions were executed.",
           "Do not include secrets, internal IDs, token refs, webhook refs, or raw database details.",
           "Keep the reply concise and safe for Telegram.",
           "Use plain text only: no Markdown tables, bold markers, code fences, headings, or horizontal rules.",
@@ -350,7 +350,7 @@ function normalizeTelegramAgentBrainPromptInput(
       input.gatedActions,
       maxGatedActionCount,
       maxGatedActionLength,
-      ["wallet", "approval", "Base MCP", "onchain execution"],
+      ["wallet", "approval", "Robinhood Chain actions", "onchain execution"],
     ),
     modules: sanitizePromptModules(input.modules),
     safetyNote: sanitizePromptFragment(
@@ -390,16 +390,16 @@ function buildCommandResponseGuide(command: TelegramWebhookParsedCommandName) {
       "If the intent is unsafe_execution, only refuse clearly and offer a read-only risk review or checklist; do not add a market brief, campaign plan, sample analysis, or extra generated content.",
       "For market_brief, campaign_plan, narrative_map, launch_copy, or community_pulse, produce useful content immediately with concise labels and bullets.",
       "Use available agent, action, and module context, but frame outputs as planning guidance unless the user supplies data.",
-      "Keep wallet, approval, Base MCP, and onchain execution disabled.",
+      "Keep wallet, approval, Robinhood Chain actions, and onchain execution disabled.",
     ].join(" ");
   }
 
   if (command === "modules") {
-    return "Use labels Template module stack, Active, Guard, Standby, Boundary. Report only actual template modules with exact names and statuses. Do not label wallet, approval, Base MCP, or onchain execution as modules.";
+    return "Use labels Template module stack, Active, Guard, Standby, Boundary. Report only actual template modules with exact names and statuses. Do not label wallet, approval, Robinhood Chain actions, or onchain execution as modules.";
   }
 
   if (command === "actions") {
-    return "Use labels Ready in Telegram, Dashboard gated, Phase 6 gated, Boundary. Separate read-only actions from gated actions. Explain Telegram can brief or plan, not execute wallet or onchain actions. Do not include module status sections.";
+    return "Use labels Ready in Telegram, Dashboard gated, Owner approval required, Boundary. Separate read-only actions from gated actions. Explain Telegram can brief or plan, not execute wallet or onchain actions. Do not include module status sections.";
   }
 
   if (command === "agent") {
@@ -472,7 +472,7 @@ function assertContextualTelegramAgentBrainReply(
 
   if (
     context.command === "actions" &&
-    !hasTelegramSectionLabel(text, "Phase 6 gated")
+    !hasTelegramSectionLabel(text, "Owner approval required")
   ) {
     throw invalidAgentBrainResponse();
   }
@@ -505,7 +505,7 @@ function assertContextualTelegramAgentBrainReply(
   if (
     context.command === "actions" &&
     context.gatedActions.length === 0 &&
-    /^\s*-\s*(wallet|approval|base\s+mcp|onchain\s+execution)\b/im.test(text)
+    /^\s*-\s*(wallet|approval|robinhood\s+chain\s+actions?|onchain\s+execution)\b/im.test(text)
   ) {
     throw invalidAgentBrainResponse();
   }

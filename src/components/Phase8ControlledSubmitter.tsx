@@ -14,7 +14,7 @@ import type {
 } from "../types/phase8ControlledSubmission";
 import type { Phase8OwnerLiveWindowActivationResult } from "../types/phase8OwnerLiveWindowActivation";
 import type { Phase8RuntimeEnablementPreflightResult } from "../types/phase8RuntimeEnablementPreflight";
-import { baseChainId } from "../types/unsignedTransactionHandoff";
+import { productChainId } from "../types/unsignedTransactionHandoff";
 import {
   createPhase8OwnerSubmitRequest,
   type Phase8OwnerSubmitRequestFailure,
@@ -25,14 +25,14 @@ import {
 } from "../types/phase8SubmitterCloseout";
 import {
   evaluatePhase8FundingReadiness,
-  formatPhase8BaseEth,
+  formatPhase8NativeEth,
 } from "../types/phase8FundingReadiness";
 
 interface Phase8ControlledSubmitterProps {
   submission: Phase8ControlledSubmissionResult;
   activation: Phase8OwnerLiveWindowActivationResult;
   preflight: Phase8RuntimeEnablementPreflightResult;
-  baseAccountAddress: `0x${string}` | null;
+  ownerWalletAddress: `0x${string}` | null;
   submissionNonce: string | null;
   frozenAction: FrozenPreparedAction | null;
   onResultCloseout?: (event: Phase8ControlledSubmissionResultEvent) => void;
@@ -42,7 +42,7 @@ type SubmitterState = "locked" | "ready" | "submitting" | "submitted" | "failed"
 
 const failureCopy: Record<Phase8OwnerSubmitRequestFailure, string> = {
   frozen_action_required: "A frozen reviewed action is required.",
-  base_chain_required: `Only ${currentProductChain.name} is allowed for this controlled submit.`,
+  product_chain_required: `Only ${currentProductChain.name} is allowed for this controlled submit.`,
   zero_value_required: "Only the zero-value first transaction is allowed.",
   no_calldata_required: "Calldata is blocked for this controlled submit.",
   recipient_required: `A valid ${currentProductChain.name} recipient is required.`,
@@ -52,7 +52,7 @@ export function Phase8ControlledSubmitter({
   submission,
   activation,
   preflight,
-  baseAccountAddress,
+  ownerWalletAddress,
   submissionNonce,
   frozenAction,
   onResultCloseout,
@@ -60,10 +60,10 @@ export function Phase8ControlledSubmitter({
   const connection = useConnection();
   const sendTransaction = useSendTransaction();
   const baseGasBalance = useBalance({
-    address: baseAccountAddress ?? undefined,
-    chainId: baseChainId,
+    address: ownerWalletAddress ?? undefined,
+    chainId: productChainId,
     query: {
-      enabled: connection.status === "connected" && Boolean(baseAccountAddress),
+      enabled: connection.status === "connected" && Boolean(ownerWalletAddress),
       refetchInterval: 15_000,
     },
   });
@@ -83,7 +83,7 @@ export function Phase8ControlledSubmitter({
   const walletConnected = connection.status === "connected";
   const fundingReadiness = evaluatePhase8FundingReadiness({
     walletConnected,
-    baseAccountAddress,
+    ownerWalletAddress,
     isLoading: baseGasBalance.isLoading,
     isError: baseGasBalance.isError,
     value: baseGasBalance.data?.value ?? null,
@@ -228,7 +228,7 @@ export function Phase8ControlledSubmitter({
           </div>
         )
         : (
-          <small>Gas balance: {formatPhase8BaseEth(baseGasBalance.data?.value ?? 0n)} ETH on {currentProductChain.name}.</small>
+          <small>Gas balance: {formatPhase8NativeEth(baseGasBalance.data?.value ?? 0n)} ETH on {currentProductChain.name}.</small>
         )}
       {submittedHash ? <small>Hash: {maskHash(submittedHash)}</small> : null}
 
@@ -259,15 +259,15 @@ function formatSubmitterGateReasons(reasons: readonly string[]) {
   const labels = new Map<string, string>([
     ["owner_session_required", "sign in to the owner account"],
     ["selected_agent_required", "select a deployed agent"],
-    ["base_account_required", `connect ${currentWalletDisplayName}`],
-    ["base_account_address_required", `connect ${currentWalletDisplayName}`],
-    ["base_chain_required", `switch to ${currentProductChain.name}`],
+    ["owner_wallet_required", `connect ${currentWalletDisplayName}`],
+    ["owner_wallet_address_required", `connect ${currentWalletDisplayName}`],
+    ["product_chain_required", `switch to ${currentProductChain.name}`],
     ["controlled_submission_required", "prepare the reviewed transaction"],
     ["operator_ack_required", "confirm owner review"],
     ["live_window_activation_required", "open the owner transaction window"],
     ["runtime_window_disabled", "enable the owner runtime window"],
     ["owner_approval_required", "record owner approval"],
-    ["base_account_approval_required", `confirm in ${currentWalletDisplayName}`],
+    ["owner_wallet_approval_required", `confirm in ${currentWalletDisplayName}`],
     ["submission_nonce_required", "bind the one-time submit session"],
     ["private_dashboard_required", "use the private dashboard"],
     ["telegram_authority_forbidden", "Telegram cannot execute this action"],

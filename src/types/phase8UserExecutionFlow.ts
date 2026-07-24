@@ -19,7 +19,7 @@ export type Phase8UserExecutionFlowStepStatus =
 export type Phase8UserExecutionFlowStepKey =
   | "owner_session"
   | "agent_selection"
-  | "base_account"
+  | "owner_wallet"
   | "prepared_action"
   | "owner_approval"
   | "runtime_submitter"
@@ -29,8 +29,8 @@ export type Phase8UserExecutionFlowStepKey =
 export interface Phase8UserExecutionFlowInput {
   ownerSignedIn: boolean;
   selectedAgent: boolean;
-  baseAccountConnected: boolean;
-  baseChainReady: boolean;
+  ownerWalletConnected: boolean;
+  productChainReady: boolean;
   preparedActionReady: boolean;
   ownerApprovalRecorded: boolean;
   runtimeEnabled: boolean;
@@ -82,7 +82,7 @@ export function evaluatePhase8UserExecutionFlow(
   const requirements = [
     input.ownerSignedIn,
     input.selectedAgent,
-    input.baseAccountConnected && input.baseChainReady,
+    input.ownerWalletConnected && input.productChainReady,
     input.preparedActionReady,
     input.ownerApprovalRecorded,
     input.runtimeEnabled && input.lowValueRequestReady,
@@ -102,7 +102,7 @@ export function evaluatePhase8UserExecutionFlow(
     steps: [
       buildStep("owner_session", "Owner session", input.ownerSignedIn, firstMissingIndex === 0, "Sign in to the private owner dashboard."),
       buildStep("agent_selection", "Agent selected", input.selectedAgent, firstMissingIndex === 1, "Choose one deployed agent for the run."),
-      buildStep("base_account", "Owner wallet", input.baseAccountConnected && input.baseChainReady, firstMissingIndex === 2, "Connect the owner wallet on the selected network."),
+      buildStep("owner_wallet", "Owner wallet", input.ownerWalletConnected && input.productChainReady, firstMissingIndex === 2, "Connect the owner wallet on the selected network."),
       buildStep("prepared_action", "Prepared action", input.preparedActionReady, firstMissingIndex === 3, "Review the bounded low-value prepared action."),
       buildStep("owner_approval", "Owner approval", input.ownerApprovalRecorded, firstMissingIndex === 4, "Arm the owner live window before submit."),
       buildStep("runtime_submitter", "Submitter", input.runtimeEnabled && input.lowValueRequestReady && submitted, firstMissingIndex === 5 || status === "ready_to_submit", getSubmitterDetail(input, submitted)),
@@ -174,7 +174,7 @@ function resolveActiveStepKey(
   const keys: Phase8UserExecutionFlowStepKey[] = [
     "owner_session",
     "agent_selection",
-    "base_account",
+    "owner_wallet",
     "prepared_action",
     "owner_approval",
     "runtime_submitter",

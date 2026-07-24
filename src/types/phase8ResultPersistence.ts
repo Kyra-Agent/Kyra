@@ -173,7 +173,7 @@ export function getPhase8ResultPersistenceFailureMessage(
     case "sanitized_event_required":
       return "Execution result persistence requires a sanitized event.";
     case "unsupported_state":
-      return "Only submitted, confirmed, or failed Phase 8 results can be persisted.";
+      return "Only submitted, confirmed, or failed controlled execution results can be persisted.";
   }
 }
 

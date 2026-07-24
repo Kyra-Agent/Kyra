@@ -7,8 +7,8 @@ begin;
 update public.agent_templates
 set
   role = 'Personal wallet readiness agent',
-  summary = 'A private Telegram-native agent for wallet checks, swap reviews, transfer reviews, action logs, and approval-gated Base readiness.',
-  best_for = 'Traders, founders, and Base users who want a safe command layer for wallet review workflows.',
+  summary = 'A private Telegram-native agent for wallet checks, swap reviews, transfer reviews, action logs, and approval-gated Robinhood Chain readiness.',
+  best_for = 'Traders, founders, and Robinhood Chain users who want a safe command layer for wallet review workflows.',
   actions = '["balance", "swap review", "transfer review", "portfolio", "tx history", "price alert"]'::jsonb,
   terminal_seed = 'review 10 USDC to ETH swap'
 where id = 'operator';

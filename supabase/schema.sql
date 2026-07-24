@@ -31,14 +31,13 @@ create table if not exists public.agent_instances (
   public_slug text not null unique,
   status text not null default 'online' check (status in ('online', 'draft', 'paused')),
   mode text not null default 'demo' check (mode in ('demo', 'live')),
-  network text not null default 'base' check (
-    network in ('base', 'robinhood_mainnet', 'robinhood_testnet')
+  network text not null default 'robinhood_mainnet' check (
+    network in ('robinhood_mainnet', 'robinhood_testnet')
   ),
   chain_action_status text not null default 'disabled' check (
     chain_action_status in ('disabled', 'ready', 'active', 'paused')
   ),
   telegram_status text not null default 'mocked' check (telegram_status in ('mocked', 'active', 'queued', 'review')),
-  base_mcp_status text not null default 'mocked' check (base_mcp_status in ('mocked', 'active', 'queued', 'review')),
   approval_policy_id uuid,
   created_at timestamptz not null default now(),
   last_sync_at timestamptz not null default now()
@@ -50,12 +49,11 @@ create table if not exists public.wallet_policies (
   agent_id uuid not null references public.agent_instances(id) on delete cascade,
   wallet_label text not null,
   wallet_address text,
-  chain_key text not null default 'base' check (
-    chain_key in ('base', 'robinhood_mainnet', 'robinhood_testnet')
+  chain_key text not null default 'robinhood_mainnet' check (
+    chain_key in ('robinhood_mainnet', 'robinhood_testnet')
   ),
-  chain_id bigint not null default 8453 check (
-    (chain_key = 'base' and chain_id = 8453)
-    or (chain_key = 'robinhood_mainnet' and chain_id = 4663)
+  chain_id bigint not null default 4663 check (
+    (chain_key = 'robinhood_mainnet' and chain_id = 4663)
     or (chain_key = 'robinhood_testnet' and chain_id = 46630)
   ),
   daily_limit_usdc numeric(18, 6),
@@ -88,12 +86,11 @@ create table if not exists public.approval_requests (
   title text not null,
   command text not null,
   route text not null,
-  chain_key text not null default 'base' check (
-    chain_key in ('base', 'robinhood_mainnet', 'robinhood_testnet')
+  chain_key text not null default 'robinhood_mainnet' check (
+    chain_key in ('robinhood_mainnet', 'robinhood_testnet')
   ),
-  chain_id bigint not null default 8453 check (
-    (chain_key = 'base' and chain_id = 8453)
-    or (chain_key = 'robinhood_mainnet' and chain_id = 4663)
+  chain_id bigint not null default 4663 check (
+    (chain_key = 'robinhood_mainnet' and chain_id = 4663)
     or (chain_key = 'robinhood_testnet' and chain_id = 46630)
   ),
   risk text not null check (risk in ('normal', 'review', 'read-only')),
@@ -113,7 +110,7 @@ create table if not exists public.activity_logs (
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
   agent_id uuid references public.agent_instances(id) on delete set null,
   source text not null check (
-    source in ('agent_instances', 'telegram_sessions', 'base_mcp_routes', 'approval_requests')
+    source in ('agent_instances', 'telegram_sessions', 'chain_action_routes', 'approval_requests')
   ),
   level text not null default 'info' check (level in ('info', 'notice', 'warning')),
   message text not null,
@@ -1462,7 +1459,7 @@ select
   agents.mode,
   agents.network,
   agents.telegram_status,
-  agents.base_mcp_status,
+  agents.chain_action_status,
   agents.created_at,
   agents.last_sync_at,
   templates.id as template_id,
@@ -1524,7 +1521,7 @@ grant select (
   mode,
   network,
   telegram_status,
-  base_mcp_status,
+  chain_action_status,
   created_at,
   last_sync_at,
   template_id

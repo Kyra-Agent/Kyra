@@ -72,11 +72,6 @@ import {
 } from "../services/telegramDashboardStatusService";
 import { revokeTelegramAgentConnection } from "../services/telegramDisconnectService";
 import {
-  prepareBaseMcpStatusCheck,
-  type BaseMcpDashboardStatus,
-} from "../services/baseMcpPrepareService";
-import type { BaseMcpPreparedActionSummary } from "../types/baseMcp";
-import {
   prepareChainActionStatusCheck,
   type ChainActionDashboardStatus,
   type ChainActionPreparedSummary,
@@ -113,7 +108,7 @@ import { evaluatePhase9PublicPrivacyRelease } from "../types/phase9PublicPrivacy
 import { evaluatePhase9Closeout } from "../types/phase9Closeout";
 import { evaluatePhase8UserExecutionFlow } from "../types/phase8UserExecutionFlow";
 import { evaluatePhase8UserSafeTransactionPolicy } from "../types/phase8UserSafeTransactionPolicy";
-import { formatPhase8BaseEth } from "../types/phase8FundingReadiness";
+import { formatPhase8NativeEth } from "../types/phase8FundingReadiness";
 import { evaluatePhase8LowValueTransactionReadiness } from "../types/phase8LowValueTransactionReadiness";
 import { createPhase8LowValueSubmitRequest } from "../types/phase8LowValueSubmitRequest";
 import {
@@ -127,7 +122,7 @@ import {
   loadPhase8PersistedExecutionResults,
   savePhase8PersistedExecutionResult,
 } from "../services/phase8ResultPersistenceStore";
-import { baseChainId } from "../types/unsignedTransactionHandoff";
+import { productChainId } from "../types/unsignedTransactionHandoff";
 import { maskOwnerWalletAddress } from "../types/ownerWalletConnection";
 import type { DataProvider } from "../types/api";
 import type {
@@ -148,12 +143,8 @@ import {
 } from "../types/walletPromptEligibility";
 import { isTransactionHash } from "../types/walletSigning";
 
-type DashboardPrepareStatus =
-  | BaseMcpDashboardStatus
-  | ChainActionDashboardStatus;
-type DashboardPreparedSummary =
-  | BaseMcpPreparedActionSummary
-  | ChainActionPreparedSummary;
+type DashboardPrepareStatus = ChainActionDashboardStatus;
+type DashboardPreparedSummary = ChainActionPreparedSummary;
 
 interface DashboardProps {
   selectedTemplate: AgentTemplate;
@@ -220,9 +211,9 @@ function formatGateReasons(reasons: readonly string[]) {
     ["owner_session_required", "sign in to the owner account"],
     ["selected_agent_required", "select a deployed agent"],
     ["deployed_agent_required", "publish an agent first"],
-    ["base_account_required", `connect ${currentWalletDisplayName}`],
-    ["base_account_address_required", `connect ${currentWalletDisplayName}`],
-    ["base_chain_required", `switch to ${currentProductChain.name}`],
+    ["owner_wallet_required", `connect ${currentWalletDisplayName}`],
+    ["owner_wallet_address_required", `connect ${currentWalletDisplayName}`],
+    ["product_chain_required", `switch to ${currentProductChain.name}`],
     ["controlled_submission_required", "prepare the reviewed transaction"],
     ["operator_ack_required", "confirm owner review"],
     ["live_window_activation_required", "open the owner transaction window"],
@@ -230,7 +221,7 @@ function formatGateReasons(reasons: readonly string[]) {
     ["runtime_window_disabled", "enable the owner runtime window"],
     ["owner_click_required", "confirm with an owner click"],
     ["owner_approval_required", "record owner approval"],
-    ["base_account_approval_required", `confirm in ${currentWalletDisplayName}`],
+    ["owner_wallet_approval_required", `confirm in ${currentWalletDisplayName}`],
     ["submission_nonce_required", "bind the one-time submit session"],
     ["one_time_prompt_nonce_required", "bind the one-time wallet prompt"],
     ["owner_only_audit_required", "record private owner audit evidence"],
@@ -245,7 +236,7 @@ function formatGateReasons(reasons: readonly string[]) {
     ["kyra_approval_required", "record Kyra approval"],
     ["rollback_required", "keep rollback ready"],
     ["gas_required", `fund ${currentGasDisplayName} for gas`],
-    ["base_eth_gas_required", `fund ${currentGasDisplayName} for gas`],
+    ["native_gas_required", `fund ${currentGasDisplayName} for gas`],
     ["execution_eligibility_required", "complete execution safety review"],
     ["abuse_rate_limit_required", "complete abuse and rate-limit controls"],
     ["incident_controls_required", "complete incident controls"],
@@ -364,7 +355,7 @@ function getPreparedActionPreviewFallback(
   return {
     id: "chain_status_check_preview",
     status: "blocked",
-    actionKind: "base_mcp_status_check",
+    actionKind: "chain_status_check",
     title: currentProductChain.name + " status check",
     chain: currentProductChain.name,
     routeSummary:
@@ -386,32 +377,6 @@ function getPreparedActionTone(status: DemoPreparedActionPreview["status"]) {
   }
 
   return status === "draft" ? "locked" : "standby";
-}
-
-function createBaseMcpPreparedActionPreview(
-  summary: BaseMcpPreparedActionSummary,
-): DemoPreparedActionPreview {
-  return {
-    id: "base_mcp_status_check_live_preview",
-    status: "preview_ready",
-    actionKind: summary.actionKind,
-    title: "Base MCP status check",
-    chain: summary.chain,
-    routeSummary: summary.routeSummary,
-    valueSummary: summary.valueSummary,
-    risk: summary.risk,
-    expiresLabel: summary.expiryIso
-      ? new Date(summary.expiryIso).toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      })
-      : "No expiry",
-    approvalRequirement: "Read-only result. No wallet approval was requested.",
-    ownerScope: "Signed-in dashboard owner only",
-    safetyNote: "No storage write, wallet prompt, signing, or transaction submission.",
-  };
 }
 
 function createChainActionPreparedActionPreview(
@@ -446,7 +411,7 @@ function getExecutionResultFallback(
   return [
     {
       id: "execution_pending_fallback",
-      preparedActionId: "base_mcp_status_check_preview",
+      preparedActionId: "chain_status_check_preview",
       agentId: "no-agent",
       status: "pending",
       label: signedIn ? "No execution record" : "Sign-in required",
@@ -477,7 +442,7 @@ function formatActivityLog(log: DemoActivityLog) {
   const sourceLabel = {
     agent_instances: "agent",
     telegram_sessions: "telegram",
-    base_mcp_routes: "chain action",
+    chain_action_routes: "chain action",
     approval_requests: "approval",
     execution_results: "execution",
     wallet_policies: "wallet policy",
@@ -831,19 +796,19 @@ export function Dashboard({
   const [telegramDashboardStatuses, setTelegramDashboardStatuses] = useState<
     TelegramDashboardStatusRecord[]
   >([]);
-  const [baseMcpStatusState, setBaseMcpStatusState] = useState<
+  const [chainStatusState, setChainStatusState] = useState<
     "idle" | "checking" | "ready" | "blocked" | "error"
   >("idle");
-  const [baseMcpStatusCode, setBaseMcpStatusCode] = useState<
+  const [chainStatusCode, setChainStatusCode] = useState<
     DashboardPrepareStatus | null
   >(null);
-  const [baseMcpStatusMessage, setBaseMcpStatusMessage] = useState(
+  const [chainStatusMessage, setChainStatusMessage] = useState(
     "Run an owner-only read-only capability check.",
   );
-  const [baseMcpPreparedSummary, setBaseMcpPreparedSummary] = useState<
+  const [chainPreparedSummary, setChainPreparedSummary] = useState<
     DashboardPreparedSummary | null
   >(null);
-  const [baseAccountConnectionStatus, setBaseAccountConnectionStatus] =
+  const [ownerWalletConnectionStatus, setOwnerWalletConnectionStatus] =
     useState<OwnerWalletConnectionStatus>({
       connected: false,
       address: null,
@@ -857,13 +822,13 @@ export function Dashboard({
   const [phase8PersistedResults, setPhase8PersistedResults] = useState<
     Phase8PersistedExecutionResult[]
   >([]);
-  const baseMcpRequestSequenceRef = useRef(0);
+  const chainStatusRequestSequenceRef = useRef(0);
   const supabaseStatus = getSupabaseAdapterStatus();
-  const phase8LowValueBaseBalance = useBalance({
-    address: baseAccountConnectionStatus.address ?? undefined,
-    chainId: baseChainId,
+  const phase8LowValueNativeBalance = useBalance({
+    address: ownerWalletConnectionStatus.address ?? undefined,
+    chainId: productChainId,
     query: {
-      enabled: baseAccountConnectionStatus.connected && Boolean(baseAccountConnectionStatus.address),
+      enabled: ownerWalletConnectionStatus.connected && Boolean(ownerWalletConnectionStatus.address),
       refetchInterval: 15_000,
     },
   });
@@ -1118,13 +1083,13 @@ export function Dashboard({
   }, [agentRecords, selectedDashboardAgentId]);
 
   useEffect(() => {
-    baseMcpRequestSequenceRef.current += 1;
-    setBaseMcpStatusState("idle");
-    setBaseMcpStatusCode(null);
-    setBaseMcpStatusMessage(
+    chainStatusRequestSequenceRef.current += 1;
+    setChainStatusState("idle");
+    setChainStatusCode(null);
+    setChainStatusMessage(
       "Run an owner-only read-only capability check.",
     );
-    setBaseMcpPreparedSummary(null);
+    setChainPreparedSummary(null);
   }, [authSession?.user.id, selectedDashboardAgentId]);
 
   const agentRecord =
@@ -1134,19 +1099,19 @@ export function Dashboard({
   const selectedAgentMatchesRuntime = Boolean(
     agentRecord && agentRecord.chainKey === currentProductChain.key,
   );
-  const selectedChainActionPrepared = currentProductChain.key === "base" || Boolean(
+  const selectedChainActionPrepared = Boolean(
     agentRecord &&
       ["ready", "active"].includes(agentRecord.chainActionStatus) &&
-      baseMcpPreparedSummary &&
-      "chainKey" in baseMcpPreparedSummary &&
-      baseMcpPreparedSummary.chainKey === currentProductChain.key &&
-      baseMcpPreparedSummary.chainId === currentProductChain.id,
+      chainPreparedSummary &&
+      "chainKey" in chainPreparedSummary &&
+      chainPreparedSummary.chainKey === currentProductChain.key &&
+      chainPreparedSummary.chainId === currentProductChain.id,
   );
   const selectedAgentReadyForExecution =
     selectedAgentMatchesRuntime && selectedChainActionPrepared;
   const runtimeBoundWalletConnected = selectedAgentMatchesRuntime &&
-    baseAccountConnectionStatus.connected &&
-    baseAccountConnectionStatus.chainId === currentProductChain.id;
+    ownerWalletConnectionStatus.connected &&
+    ownerWalletConnectionStatus.chainId === currentProductChain.id;
 
   const selectedTelegramSession = useMemo(() => {
     return selectTelegramSessionForAgent(
@@ -1212,8 +1177,8 @@ export function Dashboard({
         ownerSignedIn: Boolean(authSession),
         privateDashboard: true,
         selectedAgent: selectedAgentReadyForExecution,
-        baseAccountConnected: runtimeBoundWalletConnected,
-        chainId: baseAccountConnectionStatus.chainId,
+        ownerWalletConnected: runtimeBoundWalletConnected,
+        chainId: ownerWalletConnectionStatus.chainId,
         preparedActionReviewed: false,
         riskReviewReady: false,
         ownerApprovalRecorded: false,
@@ -1224,14 +1189,12 @@ export function Dashboard({
       agentRecord,
       authSession,
       selectedAgentReadyForExecution,
-      baseAccountConnectionStatus.chainId,
-      baseAccountConnectionStatus.connected,
+      ownerWalletConnectionStatus.chainId,
+      ownerWalletConnectionStatus.connected,
     ],
   );
-  const preparedActionPreview = baseMcpPreparedSummary
-    ? "chainKey" in baseMcpPreparedSummary
-      ? createChainActionPreparedActionPreview(baseMcpPreparedSummary)
-      : createBaseMcpPreparedActionPreview(baseMcpPreparedSummary)
+  const preparedActionPreview = chainPreparedSummary
+    ? createChainActionPreparedActionPreview(chainPreparedSummary)
     : dashboardData?.preparedActionPreview ??
       getPreparedActionPreviewFallback(Boolean(authSession));
   const preparedActionAllowlistReview = useMemo(
@@ -1240,8 +1203,8 @@ export function Dashboard({
         source: "owner_dashboard",
         walletExecutionEnabled:
           appConfig.integrations.walletExecution !== "disabled",
-        actionKind: "base_reviewed_transaction",
-        chainId: baseChainId,
+        actionKind: "robinhood_reviewed_transaction",
+        chainId: productChainId,
         recipient: "0x1111111111111111111111111111111111111111",
         valueWei: "0",
         data: "0x",
@@ -1260,8 +1223,8 @@ export function Dashboard({
         selectedAgent: selectedAgentReadyForExecution,
         preparedActionStorageEnabled: false,
         ownerApprovalRecorded: false,
-        actionKind: "base_reviewed_transaction",
-        chainId: baseChainId,
+        actionKind: "robinhood_reviewed_transaction",
+        chainId: productChainId,
         recipient: "0x1111111111111111111111111111111111111111",
         valueWei: "0",
         data: "0x",
@@ -1276,17 +1239,17 @@ export function Dashboard({
         ownerUserId: authSession?.user.id,
         workspaceId: dashboardData?.workspace.id,
         agentId: selectedAgentReadyForExecution ? agentRecord?.id : undefined,
-        baseAccountConnected: runtimeBoundWalletConnected,
-        baseAccountAddress: baseAccountConnectionStatus.address,
-        chainId: baseAccountConnectionStatus.chainId,
+        ownerWalletConnected: runtimeBoundWalletConnected,
+        ownerWalletAddress: ownerWalletConnectionStatus.address,
+        chainId: ownerWalletConnectionStatus.chainId,
       }),
     [
       agentRecord?.id,
       authSession?.user.id,
       selectedAgentReadyForExecution,
-      baseAccountConnectionStatus.address,
-      baseAccountConnectionStatus.chainId,
-      baseAccountConnectionStatus.connected,
+      ownerWalletConnectionStatus.address,
+      ownerWalletConnectionStatus.chainId,
+      ownerWalletConnectionStatus.connected,
       dashboardData?.workspace.id,
     ],
   );
@@ -1296,14 +1259,14 @@ export function Dashboard({
         policyReview: preparedActionPolicyReview,
         ownerDecision: { decision: "pending" },
         frozenAction: null,
-        baseAccountConnected: runtimeBoundWalletConnected,
+        ownerWalletConnected: runtimeBoundWalletConnected,
         handoffValid: false,
         walletExecutionEnabled:
           appConfig.integrations.walletExecution !== "disabled",
         walletSigningEnabled: false,
-        officialMcpEnabled: false,
+        hostedChainProviderEnabled: false,
       }),
-    [baseAccountConnectionStatus.connected, preparedActionPolicyReview],
+    [ownerWalletConnectionStatus.connected, preparedActionPolicyReview],
   );
   const phase8FrozenAction = useMemo(() => {
     const ownerUserId = authSession?.user.id;
@@ -1314,7 +1277,7 @@ export function Dashboard({
         source: "owner_dashboard",
         walletExecutionEnabled: true,
         actionKind: phase8OwnerActionCandidate.candidate.actionKind,
-        chainId: baseChainId,
+        chainId: productChainId,
         recipient: phase8OwnerActionCandidate.candidate.recipient,
         valueWei: phase8OwnerActionCandidate.candidate.valueWei,
         data: phase8OwnerActionCandidate.candidate.data,
@@ -1403,7 +1366,7 @@ export function Dashboard({
     : null;
   const phase8TransactionReceipt = useWaitForTransactionReceipt({
     hash: phase8SubmittedTxHash ?? undefined,
-    chainId: baseChainId,
+    chainId: productChainId,
     query: {
       enabled: Boolean(phase8SubmittedTxHash),
       refetchInterval: 15_000,
@@ -1610,8 +1573,8 @@ export function Dashboard({
         ownerSignedIn: Boolean(authSession),
         privateDashboard: true,
         selectedAgent: selectedAgentReadyForExecution,
-        baseAccountConnected: runtimeBoundWalletConnected,
-        chainId: baseChainId,
+        ownerWalletConnected: runtimeBoundWalletConnected,
+        chainId: productChainId,
         preparedActionId: phase8FrozenAction?.requestId ?? "",
         actionKind: phase8OwnerActionCandidate.ok
           ? phase8OwnerActionCandidate.candidate.actionKind
@@ -1632,7 +1595,7 @@ export function Dashboard({
       agentRecord,
       authSession,
       selectedAgentReadyForExecution,
-      baseAccountConnectionStatus.connected,
+      ownerWalletConnectionStatus.connected,
       phase8FrozenAction?.requestId,
       phase8OwnerActionCandidate,
     ],
@@ -1643,13 +1606,13 @@ export function Dashboard({
         ownerSignedIn: Boolean(authSession),
         privateDashboard: true,
         selectedAgent: selectedAgentReadyForExecution,
-        baseAccountConnected: runtimeBoundWalletConnected,
-        chainId: baseAccountConnectionStatus.chainId,
+        ownerWalletConnected: runtimeBoundWalletConnected,
+        chainId: ownerWalletConnectionStatus.chainId,
         preparedActionId: phase8FrozenAction?.requestId ?? "",
         ownerApprovalRecorded: Boolean(activePhase8OwnerArming),
         requestedValueWei: "100000000000000",
         estimatedGasFeeWei: "10000000000000",
-        availableGasBalanceWei: phase8LowValueBaseBalance.data?.value.toString() ?? null,
+        availableGasBalanceWei: phase8LowValueNativeBalance.data?.value.toString() ?? null,
         data: "0x",
         includesTokenApproval: false,
         includesSwap: false,
@@ -1661,9 +1624,9 @@ export function Dashboard({
       agentRecord,
       authSession,
       selectedAgentReadyForExecution,
-      baseAccountConnectionStatus.chainId,
-      baseAccountConnectionStatus.connected,
-      phase8LowValueBaseBalance.data?.value,
+      ownerWalletConnectionStatus.chainId,
+      ownerWalletConnectionStatus.connected,
+      phase8LowValueNativeBalance.data?.value,
       phase8FrozenAction?.requestId,
     ],
   );
@@ -1674,8 +1637,8 @@ export function Dashboard({
         workspaceId: dashboardData?.workspace.id ?? "",
         agentId: agentRecord?.id ?? "",
         privateDashboard: true,
-        baseAccountConnected: runtimeBoundWalletConnected,
-        chainId: baseAccountConnectionStatus.chainId,
+        ownerWalletConnected: runtimeBoundWalletConnected,
+        chainId: ownerWalletConnectionStatus.chainId,
         preparedActionId: phase8FrozenAction?.requestId ?? "",
         ownerApprovalRecorded: Boolean(activePhase8OwnerArming),
         recipient: phase8OwnerActionCandidate.ok
@@ -1693,8 +1656,8 @@ export function Dashboard({
       agentRecord?.id,
       authSession?.user.id,
       selectedAgentReadyForExecution,
-      baseAccountConnectionStatus.chainId,
-      baseAccountConnectionStatus.connected,
+      ownerWalletConnectionStatus.chainId,
+      ownerWalletConnectionStatus.connected,
       dashboardData?.workspace.id,
       phase8FrozenAction?.requestId,
       phase8OwnerActionCandidate,
@@ -1747,8 +1710,8 @@ export function Dashboard({
       evaluatePhase8UserExecutionFlow({
         ownerSignedIn: Boolean(authSession),
         selectedAgent: selectedAgentReadyForExecution,
-        baseAccountConnected: runtimeBoundWalletConnected,
-        baseChainReady: baseAccountConnectionStatus.chainId === baseChainId,
+        ownerWalletConnected: runtimeBoundWalletConnected,
+        productChainReady: ownerWalletConnectionStatus.chainId === productChainId,
         preparedActionReady: Boolean(phase8FrozenAction),
         ownerApprovalRecorded: Boolean(activePhase8OwnerArming),
         runtimeEnabled: appConfig.integrations.phase8LowValueSubmission === "owner_low_value_window",
@@ -1768,8 +1731,8 @@ export function Dashboard({
       agentRecord,
       authSession,
       selectedAgentReadyForExecution,
-      baseAccountConnectionStatus.chainId,
-      baseAccountConnectionStatus.connected,
+      ownerWalletConnectionStatus.chainId,
+      ownerWalletConnectionStatus.connected,
       phase8FrozenAction,
       phase8LowValueSubmitRequest,
       phase8SmokeCloseout.canContinueToPublicHardening,
@@ -1805,15 +1768,15 @@ export function Dashboard({
       ownerSignedIn: Boolean(authSession),
       selectedAgent: selectedAgentReadyForExecution,
       deployedAgent: selectedAgentReadyForExecution && Boolean(agentRecord?.publicPath),
-      baseAccountConnected: runtimeBoundWalletConnected,
-      chainId: baseAccountConnectionStatus.chainId,
+      ownerWalletConnected: runtimeBoundWalletConnected,
+      chainId: ownerWalletConnectionStatus.chainId,
       actionKind: "eth_transfer",
       valueWei: phase8LowValueSubmitRequest.ok
         ? phase8LowValueSubmitRequest.request.value.toString()
         : "100000000000000",
       maxValueWei: "100000000000000",
       kyraApprovalRecorded: Boolean(activePhase8OwnerArming),
-      baseAccountApprovalRecorded: runtimeBoundWalletConnected,
+      ownerWalletApprovalRecorded: runtimeBoundWalletConnected,
       receiptVerificationReady: phase8TransactionVerification.status === "confirmed" || phase8ProductionCloseout.canContinueToPhase9,
       ownerCloseoutReady: phase8SmokeCloseout.canContinueToPublicHardening || phase8ProductionCloseout.canContinueToPhase9,
       requestedFromTelegram: false,
@@ -1830,8 +1793,8 @@ export function Dashboard({
       agentRecord,
       authSession,
       selectedAgentReadyForExecution,
-      baseAccountConnectionStatus.chainId,
-      baseAccountConnectionStatus.connected,
+      ownerWalletConnectionStatus.chainId,
+      ownerWalletConnectionStatus.connected,
       phase8LowValueSubmitRequest,
       phase8ProductionCloseout.canContinueToPhase9,
       phase8SmokeCloseout.canContinueToPublicHardening,
@@ -1861,7 +1824,7 @@ export function Dashboard({
       exposesProviderPayloadRef: false,
     }),
     [
-      baseAccountConnectionStatus.connected,
+      ownerWalletConnectionStatus.connected,
       executionResults.length,
       phase8LowValueSubmitRequest,
       phase8SubmitterResult,
@@ -1962,7 +1925,7 @@ export function Dashboard({
         source: "owner_dashboard",
         walletExecutionEnabled: true,
         actionKind: phase8OwnerActionCandidate.candidate.actionKind,
-        chainId: baseChainId,
+        chainId: productChainId,
         recipient: phase8OwnerActionCandidate.candidate.recipient,
         valueWei: phase8OwnerActionCandidate.candidate.valueWei,
         data: phase8OwnerActionCandidate.candidate.data,
@@ -1975,8 +1938,8 @@ export function Dashboard({
       ownerUserId: authSession?.user.id ?? "",
       workspaceId: dashboardData?.workspace.id ?? "",
       agentId: agentRecord?.id ?? "",
-      baseAccountConnected: runtimeBoundWalletConnected,
-      chainId: baseAccountConnectionStatus.chainId,
+      ownerWalletConnected: runtimeBoundWalletConnected,
+      chainId: ownerWalletConnectionStatus.chainId,
       preparedActionCount: phase8OwnerActionCandidate.ok ? 1 : 0,
       actionAllowlisted: liveCandidate?.allowed ?? false,
       actionRisk: liveCandidate?.allowed ? "low" : "blocked",
@@ -1995,8 +1958,8 @@ export function Dashboard({
   }, [
     agentRecord?.id,
     authSession?.user.id,
-    baseAccountConnectionStatus.chainId,
-    baseAccountConnectionStatus.connected,
+    ownerWalletConnectionStatus.chainId,
+    ownerWalletConnectionStatus.connected,
     dashboardData?.workspace.id,
     dualApprovalReview,
     phase8OwnerActionCandidate,
@@ -2007,9 +1970,9 @@ export function Dashboard({
       evaluateExecutionLaunchReadiness({
         ownerSignedIn: Boolean(authSession),
         selectedAgent: selectedAgentReadyForExecution,
-        baseAccountConnected: runtimeBoundWalletConnected,
+        ownerWalletConnected: runtimeBoundWalletConnected,
         controlledGate: controlledLiveTransactionGate,
-        officialMcpAdapter: "no-go",
+        hostedChainProviderAdapter: "no-go",
         telegramExecutionDisabled: true,
         publicExecutionHidden: true,
         walletExecutionRuntime: "disabled",
@@ -2026,7 +1989,7 @@ export function Dashboard({
       agentRecord,
       authSession,
       selectedAgentReadyForExecution,
-      baseAccountConnectionStatus.connected,
+      ownerWalletConnectionStatus.connected,
       controlledLiveTransactionGate,
       dashboardStatus,
       deployFunctionStatus,
@@ -2037,14 +2000,14 @@ export function Dashboard({
       evaluatePhase8ControlledExecution({
         ownerSignedIn: Boolean(authSession),
         selectedAgent: selectedAgentReadyForExecution,
-        baseAccountConnected: runtimeBoundWalletConnected,
+        ownerWalletConnected: runtimeBoundWalletConnected,
         executionLaunch: executionLaunchReadiness,
         runtimeEnablement: String(appConfig.integrations.walletExecution) === "enabled"
           ? "enabled"
           : "disabled",
         ownerClickedExecute: false,
         frozenAction: phase8FrozenAction,
-        baseAccountPromptState: "not_requested",
+        ownerWalletPromptState: "not_requested",
         resultMonitoring: resultMonitoringCloseout,
         rollbackReady: true,
         emergencyDisableReady: true,
@@ -2056,7 +2019,7 @@ export function Dashboard({
       agentRecord,
       authSession,
       selectedAgentReadyForExecution,
-      baseAccountConnectionStatus.connected,
+      ownerWalletConnectionStatus.connected,
       phase8FrozenAction,
       executionLaunchReadiness,
       resultMonitoringCloseout,
@@ -2075,8 +2038,8 @@ export function Dashboard({
         workspaceId,
         selectedWorkspaceId: workspaceId,
         selectedAgentId,
-        chainId: baseAccountConnectionStatus.chainId,
-        baseAccountConnected: runtimeBoundWalletConnected,
+        chainId: ownerWalletConnectionStatus.chainId,
+        ownerWalletConnected: runtimeBoundWalletConnected,
         liveWindow: {
           status: activePhase8OwnerArming ? "approved" : "not_requested",
           approvedByUserId: activePhase8OwnerArming?.ownerUserId ?? null,
@@ -2097,7 +2060,7 @@ export function Dashboard({
           requestedAt: activePhase8OwnerArming?.armedAt ?? null,
         },
         frozenAction: phase8FrozenAction,
-        baseAccountPromptReadiness: runtimeBoundWalletConnected
+        ownerWalletPromptReadiness: runtimeBoundWalletConnected
           ? "ready"
           : "not_ready",
         nowIso,
@@ -2109,8 +2072,8 @@ export function Dashboard({
       agentRecord?.id,
       authSession?.user.id,
       selectedAgentReadyForExecution,
-      baseAccountConnectionStatus.chainId,
-      baseAccountConnectionStatus.connected,
+      ownerWalletConnectionStatus.chainId,
+      ownerWalletConnectionStatus.connected,
       dashboardData?.workspace.id,
       phase8FrozenAction,
     ],
@@ -2173,8 +2136,8 @@ export function Dashboard({
         workspaceId,
         selectedAgentId,
         frozenAction: phase8FrozenAction,
-        chain: baseAccountConnectionStatus.chainId === baseChainId ? currentProductChain.name : "Other",
-        baseAccountApprovalRecorded: phase8WalletPromptOpening.walletApprovalRecorded,
+        chain: ownerWalletConnectionStatus.chainId === productChainId ? currentProductChain.name : "Other",
+        ownerWalletApprovalRecorded: phase8WalletPromptOpening.walletApprovalRecorded,
         submissionIntent: {
           source: "private_dashboard",
           ownerClickedSubmit: Boolean(activePhase8OwnerArming),
@@ -2203,7 +2166,7 @@ export function Dashboard({
       agentRecord?.id,
       authSession?.user.id,
       selectedAgentReadyForExecution,
-      baseAccountConnectionStatus.chainId,
+      ownerWalletConnectionStatus.chainId,
       dashboardData?.workspace.id,
       phase8FrozenAction,
       phase8SubmitterResult,
@@ -2229,7 +2192,7 @@ export function Dashboard({
         appConfig.integrations.phase8ControlledSubmission === "owner_approved_window",
       ownerSignedIn: Boolean(authSession),
       selectedAgent: selectedAgentReadyForExecution,
-      baseAccountConnected: runtimeBoundWalletConnected,
+      ownerWalletConnected: runtimeBoundWalletConnected,
       controlledSubmission: phase8ControlledSubmission,
       liveWindowActivation: phase8OwnerLiveWindowActivation,
       resultCloseoutRecorded: phase8ControlledSubmission.resultCloseoutRecorded,
@@ -2241,7 +2204,7 @@ export function Dashboard({
       agentRecord,
       authSession,
       selectedAgentReadyForExecution,
-      baseAccountConnectionStatus.connected,
+      ownerWalletConnectionStatus.connected,
       phase8ControlledSubmission,
       phase8OwnerLiveWindowActivation,
     ],
@@ -2398,20 +2361,17 @@ export function Dashboard({
   const isAdminActionRunning = adminActionStatus === "running";
   const isAgentRemovalRunning = agentRemovalStatus === "running";
   const isTelegramDisconnectRunning = telegramDisconnectStatus === "running";
-  const usingChainActionPrepare = currentProductChain.key !== "base";
-  const prepareFunctionConfigured = usingChainActionPrepare
-    ? appConfig.functions.chainActionPrepareConfigured
-    : appConfig.functions.baseMcpPrepareConfigured;
-  const selectedAgentChainActionReady = !usingChainActionPrepare ||
+  const prepareFunctionConfigured = appConfig.functions.chainActionPrepareConfigured;
+  const selectedAgentChainActionReady =
     agentRecord?.chainActionStatus === "ready" ||
     agentRecord?.chainActionStatus === "active";
-  const canRunBaseMcpStatusCheck = Boolean(
+  const canRunChainStatusCheck = Boolean(
     authSession &&
       agentRecord &&
       selectedAgentMatchesRuntime &&
       selectedAgentChainActionReady &&
       prepareFunctionConfigured &&
-      baseMcpStatusState !== "checking",
+      chainStatusState !== "checking",
   );
 
   const diagnosticRows = [
@@ -2486,62 +2446,49 @@ export function Dashboard({
     }
   }
 
-  async function handleBaseMcpStatusCheck() {
-    if (!authSession || !agentRecord || baseMcpStatusState === "checking") {
+  async function handleChainStatusCheck() {
+    if (!authSession || !agentRecord || chainStatusState === "checking") {
       return;
     }
 
-    setBaseMcpStatusState("checking");
-    setBaseMcpStatusCode(null);
-    setBaseMcpStatusMessage(
-      usingChainActionPrepare
-        ? `Checking owner session and ${currentProductChain.name} capability...`
-        : "Checking owner session and Base MCP capability...",
-    );
-    setBaseMcpPreparedSummary(null);
+    setChainStatusState("checking");
+    setChainStatusCode(null);
+    setChainStatusMessage(`Checking owner session and ${currentProductChain.name} capability...`);
+    setChainPreparedSummary(null);
 
-    const requestSequence = ++baseMcpRequestSequenceRef.current;
+    const requestSequence = ++chainStatusRequestSequenceRef.current;
     const freshAuth = await ensureFreshAuthSession(authSession);
 
-    if (requestSequence !== baseMcpRequestSequenceRef.current) {
+    if (requestSequence !== chainStatusRequestSequenceRef.current) {
       return;
     }
 
     syncFreshAuthSession(authSession, freshAuth);
 
     if (!freshAuth.session) {
-      setBaseMcpStatusState("error");
-      setBaseMcpStatusCode("unauthorized");
-      setBaseMcpStatusMessage(freshAuth.message);
+      setChainStatusState("error");
+      setChainStatusCode("unauthorized");
+      setChainStatusMessage(freshAuth.message);
       return;
     }
 
-    const result = usingChainActionPrepare
-      ? await prepareChainActionStatusCheck({
-        session: freshAuth.session,
-        agentId: agentRecord.id,
-        workspaceId: agentRecord.workspaceId,
-      })
-      : await prepareBaseMcpStatusCheck({
-        session: freshAuth.session,
-        agentId: agentRecord.id,
-        workspaceId: agentRecord.workspaceId,
-      });
+    const result = await prepareChainActionStatusCheck({
+      session: freshAuth.session,
+      agentId: agentRecord.id,
+      workspaceId: agentRecord.workspaceId,
+    });
 
-    if (requestSequence !== baseMcpRequestSequenceRef.current) {
+    if (requestSequence !== chainStatusRequestSequenceRef.current) {
       return;
     }
 
-    setBaseMcpStatusCode(result.status);
-    setBaseMcpStatusMessage(result.message);
-    setBaseMcpPreparedSummary(result.summary);
-    setBaseMcpStatusState(
+    setChainStatusCode(result.status);
+    setChainStatusMessage(result.message);
+    setChainPreparedSummary(result.summary);
+    setChainStatusState(
       result.ok
         ? "ready"
-        : result.status === "base_mcp_disabled" ||
-            result.status === "base_mcp_not_configured" ||
-            result.status === "base_mcp_rate_limited" ||
-            result.status === "chain_action_disabled" ||
+        : result.status === "chain_action_disabled" ||
             result.status === "chain_action_not_configured" ||
             result.status === "chain_action_rate_limited" ||
             result.status === "agent_chain_action_locked"
@@ -3384,7 +3331,7 @@ export function Dashboard({
               agentId={agentRecord?.id ?? null}
               agentName={agentRecord?.displayName ?? null}
               agentChainKey={agentRecord?.chainKey ?? null}
-              onConnectionStateChange={setBaseAccountConnectionStatus}
+              onConnectionStateChange={setOwnerWalletConnectionStatus}
               onSessionChange={onAuthSessionChange}
             />
             {appConfig.chain.testnetEvidenceMode ? (
@@ -3433,12 +3380,12 @@ export function Dashboard({
                   {robinhoodTestnetCloseout.nextAction === "check_chain_status" ? (
                     <button
                       className="button button-primary"
-                      disabled={!canRunBaseMcpStatusCheck}
-                      onClick={handleBaseMcpStatusCheck}
+                      disabled={!canRunChainStatusCheck}
+                      onClick={handleChainStatusCheck}
                       type="button"
                     >
                       <Server size={16} />
-                      {baseMcpStatusState === "checking"
+                      {chainStatusState === "checking"
                         ? "Checking network"
                         : "Check testnet status"}
                     </button>
@@ -3905,15 +3852,13 @@ export function Dashboard({
 
           <section className={"dashboard-panel prepared-action-panel" + (appConfig.chain.testnetEvidenceMode ? " is-robinhood-testnet" : "")}>
             <div className="panel-title">
-              <span>{usingChainActionPrepare ? `${currentProductChain.name} prep` : "Base MCP prep"}</span>
+              <span>{currentProductChain.name} prep</span>
               <span>{preparedActionPreview.status.replace(/_/g, " ")}</span>
             </div>
-            <div className="base-mcp-boundary-banner">
+            <div className="chain-action-boundary-banner">
               <ShieldCheck size={16} />
               <span>
-                {usingChainActionPrepare
-                  ? `${currentProductChain.name} status preparation is read-only. Transaction review and wallet confirmation remain isolated in the owner-only testnet window.`
-                  : "Official Base MCP wallet authority is blocked until provider metadata, least-privilege scope, tool mapping, and approval behavior are verified."}
+                {currentProductChain.name} status preparation is read-only. Transaction review and wallet confirmation remain isolated in the private owner workflow.
               </span>
             </div>
             <div className="prepared-action-allowlist-grid">
@@ -4082,27 +4027,25 @@ export function Dashboard({
               <p>{preparedActionPreview.routeSummary}</p>
               <small>{preparedActionPreview.approvalRequirement}</small>
               <small>{preparedActionPreview.safetyNote}</small>
-              <div className="base-mcp-status-controls">
+              <div className="chain-status-controls">
                 <button
                   className="button button-ghost"
-                  disabled={!canRunBaseMcpStatusCheck}
-                  onClick={handleBaseMcpStatusCheck}
+                  disabled={!canRunChainStatusCheck}
+                  onClick={handleChainStatusCheck}
                   type="button"
                 >
                   <Server size={16} />
-                  {baseMcpStatusState === "checking"
+                  {chainStatusState === "checking"
                     ? "Checking status"
-                    : usingChainActionPrepare
-                    ? `Check ${currentProductChain.name} status`
-                    : "Check Base MCP status"}
+                    : `Check ${currentProductChain.name} status`}
                 </button>
-                <span className={`base-mcp-status-note status-${baseMcpStatusState}`}>
+                <span className={`chain-status-note status-${chainStatusState}`}>
                   <strong>
-                    {baseMcpStatusCode
-                      ? formatRuntimeValue(baseMcpStatusCode)
+                    {chainStatusCode
+                      ? formatRuntimeValue(chainStatusCode)
                       : "owner-only read-only"}
                   </strong>
-                  <small>{baseMcpStatusMessage}</small>
+                  <small>{chainStatusMessage}</small>
                 </span>
               </div>
             </div>
@@ -4159,9 +4102,7 @@ export function Dashboard({
                 )
                 : (
                   <small>
-                    Gate is ready for explicit live-window approval only. Phase
-                    7J still keeps wallet prompt, signing, and submission
-                    locked.
+                    Gate is ready for explicit live-window approval only. The transaction runtime gate keeps wallet prompt, signing, and submission locked.
                   </small>
                 )}
             </div>
@@ -4174,15 +4115,15 @@ export function Dashboard({
                 <span>
                   Primary lane
                   <strong>
-                    {executionLaunchReadiness.baseAccountPrimaryLane
+                    {executionLaunchReadiness.ownerWalletPrimaryLane
                       ? currentWalletDisplayName
                       : "blocked"}
                   </strong>
                 </span>
                 <span>
-                  Official MCP
+                  Hosted provider
                   <strong>
-                    {executionLaunchReadiness.officialMcpRequired
+                    {executionLaunchReadiness.hostedChainProviderRequired
                       ? "required"
                       : "optional disabled"}
                   </strong>
@@ -4412,7 +4353,7 @@ export function Dashboard({
                   {currentProductChain.name} approval
                   <strong>
                     {phase8ControlledSubmission.reasons.includes(
-                        "base_account_approval_required",
+                        "owner_wallet_approval_required",
                       )
                       ? "required"
                       : "recorded"}
@@ -4612,7 +4553,7 @@ export function Dashboard({
               submission={phase8ControlledSubmission}
               activation={phase8OwnerLiveWindowActivation}
               preflight={phase8RuntimeEnablementPreflight}
-              baseAccountAddress={baseAccountConnectionStatus.address}
+              ownerWalletAddress={ownerWalletConnectionStatus.address}
               submissionNonce={activePhase8OwnerArming?.submissionNonce ?? null}
               frozenAction={phase8FrozenAction}
               onResultCloseout={handlePhase8ResultCloseout}
@@ -4754,11 +4695,11 @@ export function Dashboard({
                 </span>
                 <span>
                   Live {currentProductChain.name} balance
-                  <strong>{baseAccountConnectionStatus.address && phase8LowValueBaseBalance.data ? `${formatPhase8BaseEth(phase8LowValueBaseBalance.data.value)} ETH` : phase8LowValueBaseBalance.isLoading ? "checking" : "required"}</strong>
+                  <strong>{ownerWalletConnectionStatus.address && phase8LowValueNativeBalance.data ? `${formatPhase8NativeEth(phase8LowValueNativeBalance.data.value)} ETH` : phase8LowValueNativeBalance.isLoading ? "checking" : "required"}</strong>
                 </span>
                 <span>
                   Gas/value source
-                  <strong>{phase8LowValueBaseBalance.data ? "live wallet" : "blocked"}</strong>
+                  <strong>{phase8LowValueNativeBalance.data ? "live wallet" : "blocked"}</strong>
                 </span>
                 <span>
                   Swaps/approvals
@@ -4790,11 +4731,11 @@ export function Dashboard({
                 </span>
                 <span>
                   Live {currentProductChain.name} balance
-                  <strong>{baseAccountConnectionStatus.address && phase8LowValueBaseBalance.data ? `${formatPhase8BaseEth(phase8LowValueBaseBalance.data.value)} ETH` : phase8LowValueBaseBalance.isLoading ? "checking" : "required"}</strong>
+                  <strong>{ownerWalletConnectionStatus.address && phase8LowValueNativeBalance.data ? `${formatPhase8NativeEth(phase8LowValueNativeBalance.data.value)} ETH` : phase8LowValueNativeBalance.isLoading ? "checking" : "required"}</strong>
                 </span>
                 <span>
                   Gas/value source
-                  <strong>{phase8LowValueBaseBalance.data ? "live wallet" : "blocked"}</strong>
+                  <strong>{phase8LowValueNativeBalance.data ? "live wallet" : "blocked"}</strong>
                 </span>
               </div>
               <p>{phase8LowValueSubmitRequest.message}</p>

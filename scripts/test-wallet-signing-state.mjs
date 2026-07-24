@@ -24,8 +24,8 @@ mkdirSync(outDir, { recursive: true });
 const source = readFileSync(sourcePath, "utf8").replace(
   /import \{[\s\S]*?\} from "\.\.\/config\/productChains";/u,
   [
-    'const baseLegacyChain = Object.freeze({ id: 8453, name: "Base" });',
-    "const currentProductChain = baseLegacyChain;",
+    'const robinhoodMainnetChain = Object.freeze({ id: 4663, name: "Robinhood Chain" });',
+    "const currentProductChain = robinhoodMainnetChain;",
     "const normalizeEvmChainId = (value) => {",
     "  if (typeof value === 'number') return Number.isSafeInteger(value) && value > 0 ? value : null;",
     "  if (typeof value !== 'string') return null;",
@@ -49,7 +49,7 @@ writeFileSync(outputPath, transpiled.outputText);
 try {
   const {
     createWalletSigningFailure,
-    isBaseWalletNetwork,
+    isCurrentWalletNetwork,
     isTerminalWalletSigningState,
     isTransactionHash,
     transitionWalletSigningState,
@@ -116,7 +116,7 @@ try {
     transitionWalletSigningState({
       state: "submitted",
       event: "confirm",
-      confirmationId: "base:receipt:1",
+      confirmationId: "robinhood:receipt:1",
     }).state,
     "confirmed",
   );
@@ -163,13 +163,13 @@ try {
     false,
     "Submit must only happen from wallet_prompt_opened.",
   );
-  assert(isBaseWalletNetwork(8453), "Base numeric chain should pass.");
-  assert(isBaseWalletNetwork("8453"), "Base decimal chain should pass.");
-  assert(isBaseWalletNetwork("0x2105"), "Base hex chain should pass.");
-  assert(!isBaseWalletNetwork(1), "Ethereum mainnet should fail.");
+  assert(isCurrentWalletNetwork(4663), "Robinhood numeric chain should pass.");
+  assert(isCurrentWalletNetwork("4663"), "Robinhood decimal chain should pass.");
+  assert(isCurrentWalletNetwork("0x1237"), "Robinhood hex chain should pass.");
+  assert(!isCurrentWalletNetwork(1), "Ethereum mainnet should fail.");
   assertEquals(
     createWalletSigningFailure("network_mismatch").message,
-    "Wallet must be connected to Base.",
+    "Wallet must be connected to Robinhood Chain.",
     "Network mismatch copy must stay sanitized.",
   );
   assertEquals(

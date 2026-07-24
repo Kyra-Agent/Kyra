@@ -23,7 +23,7 @@ mkdirSync(outDir, { recursive: true });
 
 const source = readFileSync(sourcePath, "utf8").replace(
   'import { currentProductChain } from "../config/productChains";',
-  'const currentProductChain = Object.freeze({ id: 8453, name: "Base" });',
+  'const currentProductChain = Object.freeze({ id: 4663, name: "Robinhood Chain" });',
 );
 const transpiled = ts.transpileModule(source, {
   compilerOptions: {
@@ -36,7 +36,7 @@ writeFileSync(outputPath, transpiled.outputText);
 
 try {
   const {
-    baseChainId,
+    productChainId,
     isEvmAddress,
     isHexData,
     isSafeValueWei,
@@ -51,14 +51,14 @@ try {
     ownerUserId: "user_001",
     workspaceId: "ws_001",
     agentId: "agent_001",
-    actionKind: "base_reviewed_transaction",
-    chainId: baseChainId,
-    chainName: "Base",
+    actionKind: "robinhood_reviewed_transaction",
+    chainId: productChainId,
+    chainName: "Robinhood Chain",
     to: `0x${"1".repeat(40)}`,
     valueWei: "0",
     data: "0x",
     gasPayer: "connected_wallet",
-    routeSummary: "Base reviewed transaction",
+    routeSummary: "Robinhood Chain reviewed transaction",
     valueSummary: "No token spend",
     risk: "low",
     createdAt: "2026-06-15T09:59:00.000Z",
@@ -79,7 +79,7 @@ try {
 
   assertEquals(
     validateUnsignedTransactionHandoff(
-      { ...handoff, actionKind: "base_mcp_status_check" },
+      { ...handoff, actionKind: "chain_status_check" },
       nowMs,
     ).ok,
     false,

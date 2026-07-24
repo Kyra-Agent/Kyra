@@ -3266,7 +3266,7 @@ h2 {
   background: rgba(255, 255, 255, 0.035);
 }
 
-.base-account-connection {
+.owner-wallet-connection {
   display: grid;
   gap: 0.72rem;
   margin-bottom: 0.75rem;
@@ -3276,36 +3276,36 @@ h2 {
   background: rgba(77, 145, 255, 0.065);
 }
 
-.base-account-connection.connection-connected {
+.owner-wallet-connection.connection-connected {
   border-color: rgba(138, 230, 177, 0.34);
   background: rgba(138, 230, 177, 0.065);
 }
 
-.base-account-connection.connection-error {
+.owner-wallet-connection.connection-error {
   border-color: rgba(255, 111, 111, 0.32);
   background: rgba(255, 111, 111, 0.06);
 }
 
-.base-account-connection-header {
+.owner-wallet-connection-header {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.65rem;
 }
 
-.base-account-connection-header small,
-.base-account-connection-header strong {
+.owner-wallet-connection-header small,
+.owner-wallet-connection-header strong {
   display: block;
   overflow-wrap: anywhere;
 }
 
-.base-account-connection-header small,
-.base-account-connection > p,
-.base-account-actions small {
+.owner-wallet-connection-header small,
+.owner-wallet-connection > p,
+.owner-wallet-actions small {
   color: var(--muted);
 }
 
-.base-account-state {
+.owner-wallet-state {
   padding: 0.28rem 0.42rem;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -3314,13 +3314,13 @@ h2 {
   text-transform: uppercase;
 }
 
-.base-account-binding-grid {
+.owner-wallet-binding-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
 }
 
-.base-account-binding-grid span {
+.owner-wallet-binding-grid span {
   display: grid;
   gap: 0.18rem;
   min-height: 58px;
@@ -3331,11 +3331,11 @@ h2 {
   font-size: 0.76rem;
 }
 
-.base-account-binding-grid strong {
+.owner-wallet-binding-grid strong {
   color: var(--text);
   overflow-wrap: anywhere;
 }
-.base-account-binding-grid .owner-wallet-provider-binding {
+.owner-wallet-binding-grid .owner-wallet-provider-binding {
   grid-column: 1 / -1;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -3348,13 +3348,13 @@ h2 {
   text-align: right;
 }
 
-.base-account-connection > p {
+.owner-wallet-connection > p {
   min-height: 2.8em;
   margin: 0;
   line-height: 1.4;
 }
 
-.base-account-actions {
+.owner-wallet-actions {
   display: flex;
   align-items: center;
   gap: 0.65rem;
@@ -3362,11 +3362,11 @@ h2 {
   border-top: 1px solid var(--line);
 }
 
-.base-account-actions .button {
+.owner-wallet-actions .button {
   flex: 0 0 auto;
 }
 
-.base-account-actions small {
+.owner-wallet-actions small {
   line-height: 1.4;
 }
 
@@ -3719,7 +3719,7 @@ h2 {
   background: rgba(255, 255, 255, 0.035);
 }
 
-.base-mcp-boundary-banner {
+.chain-action-boundary-banner {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 0.55rem;
@@ -3734,7 +3734,7 @@ h2 {
   line-height: 1.45;
 }
 
-.base-mcp-boundary-banner svg {
+.chain-action-boundary-banner svg {
   color: var(--amber);
   margin-top: 0.08rem;
 }
@@ -4277,7 +4277,7 @@ h2 {
   line-height: 1.5;
 }
 
-.base-mcp-status-controls {
+.chain-status-controls {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
@@ -4286,39 +4286,39 @@ h2 {
   border-top: 1px solid var(--line);
 }
 
-.base-mcp-status-controls .button {
+.chain-status-controls .button {
   min-height: 40px;
   white-space: nowrap;
 }
 
-.base-mcp-status-note {
+.chain-status-note {
   display: grid;
   min-width: 0;
   gap: 0.16rem;
 }
 
-.base-mcp-status-note strong,
-.base-mcp-status-note small {
+.chain-status-note strong,
+.chain-status-note small {
   overflow-wrap: anywhere;
 }
 
-.base-mcp-status-note strong {
+.chain-status-note strong {
   color: var(--muted);
   font-size: 0.72rem;
   text-transform: uppercase;
 }
 
-.base-mcp-status-note small {
+.chain-status-note small {
   color: var(--muted);
   line-height: 1.4;
 }
 
-.base-mcp-status-note.status-ready strong {
+.chain-status-note.status-ready strong {
   color: var(--green);
 }
 
-.base-mcp-status-note.status-blocked strong,
-.base-mcp-status-note.status-error strong {
+.chain-status-note.status-blocked strong,
+.chain-status-note.status-error strong {
   color: var(--amber);
 }
 
@@ -4327,11 +4327,11 @@ h2 {
     grid-template-columns: 1fr;
   }
 
-  .base-mcp-status-controls {
+  .chain-status-controls {
     grid-template-columns: 1fr;
   }
 
-  .base-mcp-status-controls .button {
+  .chain-status-controls .button {
     width: 100%;
   }
 }
@@ -5918,19 +5918,19 @@ h2 {
     text-align: left;
   }
 
-  .base-account-connection-header,
-  .base-account-binding-grid,
+  .owner-wallet-connection-header,
+  .owner-wallet-binding-grid,
   .wallet-signing-boundary-header,
   .wallet-signing-boundary-grid {
     grid-template-columns: 1fr;
   }
 
-  .base-account-connection-header .queue-icon,
+  .owner-wallet-connection-header .queue-icon,
   .wallet-signing-boundary-header .queue-icon {
     display: none;
   }
 
-  .base-account-state,
+  .owner-wallet-state,
   .wallet-signing-boundary-header > span:last-child {
     width: fit-content;
   }
@@ -5945,12 +5945,12 @@ h2 {
     text-align: left;
   }
 
-  .base-account-actions {
+  .owner-wallet-actions {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .base-account-actions .button {
+  .owner-wallet-actions .button {
     width: 100%;
   }
 

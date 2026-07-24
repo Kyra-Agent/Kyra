@@ -6,7 +6,7 @@ function assert(condition, message) {
   }
 }
 
-const baseInput = {
+const baselineInput = {
   abuseCanProceed: true,
   phase9RuntimeEnabled: false,
   emergencyDisableReady: true,
@@ -28,7 +28,7 @@ const baseInput = {
   telegramCanControlIncident: false,
 };
 
-const ready = evaluatePhase9IncidentControls(baseInput);
+const ready = evaluatePhase9IncidentControls(baselineInput);
 assert(ready.status === "ready_for_runtime", "incident controls should be ready while runtime is disabled");
 assert(!ready.publicExecutionAllowed, "disabled runtime must not allow public execution");
 assert(ready.canProceedToMonitoring, "clean incident controls should allow Batch 9D work");
@@ -39,7 +39,7 @@ assert(ready.ownerOnly === true, "incident evidence must stay owner-only");
 assert(ready.controls.length >= 9, "incident controls should expose checklist evidence");
 
 const armed = evaluatePhase9IncidentControls({
-  ...baseInput,
+  ...baselineInput,
   phase9RuntimeEnabled: true,
 });
 assert(armed.status === "armed", "runtime-enabled clean controls should arm");
@@ -47,7 +47,7 @@ assert(armed.publicExecutionAllowed, "armed controls can allow public execution 
 assert(armed.reasons.length === 0, "armed path must have no reasons");
 
 const missingOps = evaluatePhase9IncidentControls({
-  ...baseInput,
+  ...baselineInput,
   phase9RuntimeEnabled: true,
   emergencyDisableReady: false,
   rollbackRunbookReady: false,
@@ -64,7 +64,7 @@ for (const reason of [
 }
 
 const failureHandlers = evaluatePhase9IncidentControls({
-  ...baseInput,
+  ...baselineInput,
   phase9RuntimeEnabled: true,
   rejectedPromptHandled: false,
   insufficientGasHandled: false,
@@ -89,7 +89,7 @@ for (const reason of [
 }
 
 const unsafeAudit = evaluatePhase9IncidentControls({
-  ...baseInput,
+  ...baselineInput,
   phase9RuntimeEnabled: true,
   postIncidentAuditReady: false,
   ownerOnlyAudit: false,
@@ -100,7 +100,7 @@ assert(unsafeAudit.reasons.includes("owner_only_audit_required"), "owner-only au
 assert(unsafeAudit.reasons.includes("unsanitized_incident_forbidden"), "unsanitized incident evidence forbidden");
 
 const publicIncident = evaluatePhase9IncidentControls({
-  ...baseInput,
+  ...baselineInput,
   phase9RuntimeEnabled: true,
   visibleInPublicProfile: true,
   telegramCanControlIncident: true,
@@ -109,7 +109,7 @@ assert(publicIncident.reasons.includes("public_incident_visibility_forbidden"), 
 assert(publicIncident.reasons.includes("telegram_incident_authority_forbidden"), "Telegram incident authority should block");
 
 const missingAbuse = evaluatePhase9IncidentControls({
-  ...baseInput,
+  ...baselineInput,
   abuseCanProceed: false,
 });
 assert(missingAbuse.reasons.includes("abuse_hardening_required"), "Batch 9B abuse hardening should be required");

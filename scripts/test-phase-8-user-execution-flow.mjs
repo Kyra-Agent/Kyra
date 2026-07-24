@@ -33,11 +33,11 @@ writeFileSync(outputPath, transpiled.outputText);
 try {
   const { evaluatePhase8UserExecutionFlow } = await import(`file:///${outputPath.replace(/\\/g, "/")}`);
 
-  const baseInput = {
+  const baselineInput = {
     ownerSignedIn: true,
     selectedAgent: true,
-    baseAccountConnected: true,
-    baseChainReady: true,
+    ownerWalletConnected: true,
+    productChainReady: true,
     preparedActionReady: true,
     ownerApprovalRecorded: true,
     runtimeEnabled: true,
@@ -49,21 +49,21 @@ try {
     telegramRequestedExecution: false,
   };
 
-  const ready = evaluatePhase8UserExecutionFlow(baseInput);
+  const ready = evaluatePhase8UserExecutionFlow(baselineInput);
   assertEquals(ready.status, "ready_to_submit");
   assertEquals(ready.activeStepKey, "runtime_submitter");
   assert(ready.steps.some((step) => step.key === "runtime_submitter" && step.status === "current"));
 
-  const start = evaluatePhase8UserExecutionFlow({ ...baseInput, ownerSignedIn: false });
+  const start = evaluatePhase8UserExecutionFlow({ ...baselineInput, ownerSignedIn: false });
   assertEquals(start.status, "ready_to_start");
   assertEquals(start.activeStepKey, "owner_session");
 
-  const inProgress = evaluatePhase8UserExecutionFlow({ ...baseInput, baseAccountConnected: false });
+  const inProgress = evaluatePhase8UserExecutionFlow({ ...baselineInput, ownerWalletConnected: false });
   assertEquals(inProgress.status, "in_progress");
-  assertEquals(inProgress.activeStepKey, "base_account");
+  assertEquals(inProgress.activeStepKey, "owner_wallet");
 
   const verifying = evaluatePhase8UserExecutionFlow({
-    ...baseInput,
+    ...baselineInput,
     submitterState: "submitted",
     verificationStatus: "pending_receipt",
   });
@@ -71,7 +71,7 @@ try {
   assertEquals(verifying.activeStepKey, "receipt_verification");
 
   const confirmed = evaluatePhase8UserExecutionFlow({
-    ...baseInput,
+    ...baselineInput,
     submitterState: "confirmed",
     verificationStatus: "confirmed",
     closeoutReady: true,
@@ -80,7 +80,7 @@ try {
   assertEquals(confirmed.activeStepKey, "owner_closeout");
 
   const failed = evaluatePhase8UserExecutionFlow({
-    ...baseInput,
+    ...baselineInput,
     submitterState: "submitted",
     verificationStatus: "failed",
   });
@@ -89,14 +89,14 @@ try {
   assert(failed.steps.some((step) => step.status === "failed"));
 
   const publicBlocked = evaluatePhase8UserExecutionFlow({
-    ...baseInput,
+    ...baselineInput,
     visibleInPublicProfile: true,
   });
   assertEquals(publicBlocked.status, "blocked");
   assert(publicBlocked.reasons.includes("public_visibility_forbidden"));
 
   const telegramBlocked = evaluatePhase8UserExecutionFlow({
-    ...baseInput,
+    ...baselineInput,
     telegramRequestedExecution: true,
   });
   assertEquals(telegramBlocked.status, "blocked");

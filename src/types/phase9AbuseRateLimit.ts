@@ -119,7 +119,7 @@ function buildControls(
     {
       label: "Eligibility",
       status: input.eligibilityCanProceed ? "pass" : "blocked",
-      detail: "Batch 9A structural eligibility must be clean before abuse controls can pass.",
+      detail: "Execution eligibility must be clean before abuse controls can pass.",
     },
     {
       label: "Owner and agent limits",

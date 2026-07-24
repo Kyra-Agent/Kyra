@@ -49,13 +49,13 @@ const maxExecutionGateTextLength = 1000;
 const directExecutionPattern =
   /\b(execute|submit|broadcast|send\s+now|do\s+it|confirm\s+it|sign\s+now|approve\s+now|swap\s+now|transfer\s+now)\b/i;
 const draftCandidatePattern =
-  /\b(swap|transfer|send|approve|approval|allowance|permit|revoke|sign|bridge|mint|burn|stake|unstake|claim|withdraw|deposit|buy|sell|delegate|wrap|unwrap|borrow|lend|liquidate|repay|wallet|base\s*mcp|onchain|contract\s+call|calldata|transaction|tx)\b/i;
+  /\b(swap|transfer|send|approve|approval|allowance|permit|revoke|sign|bridge|mint|burn|stake|unstake|claim|withdraw|deposit|buy|sell|delegate|wrap|unwrap|borrow|lend|liquidate|repay|wallet|robinhood\s+chain\s+actions?|onchain|contract\s+call|calldata|transaction|tx)\b/i;
 const swapPattern = /\b(swap|buy|sell|wrap|unwrap)\b/i;
 const transferPattern = /\b(transfer|send|withdraw|deposit|bridge)\b/i;
 const approvalPattern = /\b(approve|approval|allowance|permit|revoke)\b/i;
 const contractPattern =
   /\b(contract\s+call|calldata|mint|burn|stake|unstake|delegate|borrow|lend|liquidate|repay)\b/i;
-const walletPattern = /\b(wallet|sign|transaction|tx|onchain|base\s*mcp)\b/i;
+const walletPattern = /\b(wallet|sign|transaction|tx|onchain|robinhood\s+chain\s+actions?)\b/i;
 const secretLikePattern =
   /(?:\d{5,20}:[A-Za-z0-9_-]{20,128}|sk-or-v1-[A-Za-z0-9_-]+|sb_secret_[A-Za-z0-9_-]+|private\s+key|seed\s+phrase|mnemonic)/i;
 
@@ -106,8 +106,8 @@ export function reviewTelegramExecutionGate(
     responseText: [
       "Kyra cannot execute that from Telegram.",
       "Telegram execution stays disabled.",
-      "This can only become an owner-scoped dashboard approval draft after Phase 6 gates are enabled.",
-      "No wallet prompt, signature, Base MCP call, or transaction submission was created.",
+      "This can only become an owner-scoped dashboard approval draft after all owner safety gates pass.",
+      "No wallet prompt, signature, Robinhood Chain provider call, or transaction submission was created.",
     ].join("\n"),
   };
 }

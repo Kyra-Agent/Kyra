@@ -24,7 +24,7 @@ export const demoWorkspace: DemoWorkspaceRecord = {
 
 export const demoWalletPolicies: DemoWalletPolicy[] = [
   {
-    id: "policy_base_account",
+    id: "policy_owner_wallet",
     label: currentWalletDisplayName,
     value: "0x8a...91c",
     status: "gated",
@@ -65,7 +65,7 @@ export const demoAgentInstances: DemoAgentInstance[] = agentTemplates.map((
     ? "ready"
     : "disabled",
   telegramStatus: template.status === "coming-soon" ? "queued" : "mocked",
-  baseMcpStatus: template.status === "coming-soon" ? "queued" : "mocked",
+  chainRouteStatus: template.status === "coming-soon" ? "queued" : "mocked",
   approvalPolicyId: "policy_approval_gate",
   createdAt: `2026-05-31T05:${String(14 + index).padStart(2, "0")}:00Z`,
   lastSyncAt: `2026-05-31T05:${String(34 + index).padStart(2, "0")}:00Z`,
@@ -125,9 +125,9 @@ export const demoActivityLogs: DemoActivityLog[] = [
     message: "Telegram interface linked in protected mode",
   },
   {
-    id: "log_base_mcp_registered",
+    id: "log_robinhood_chain_route_registered",
     timestamp: "12:04:21",
-    source: "base_mcp_routes",
+    source: "chain_action_routes",
     level: "notice",
     message: `${currentProductChain.name} action route prepared`,
   },
@@ -141,7 +141,7 @@ export const demoActivityLogs: DemoActivityLog[] = [
   {
     id: "log_context_loaded",
     timestamp: "12:05:03",
-    source: "base_mcp_routes",
+    source: "chain_action_routes",
     level: "info",
     message: "NOVA-04 balance context loaded",
   },

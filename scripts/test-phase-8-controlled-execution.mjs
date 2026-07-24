@@ -48,8 +48,8 @@ try {
   const executionLaunch = {
     status: "owner_approved_runtime_still_disabled",
     ownerOnly: true,
-    baseAccountPrimaryLane: true,
-    officialMcpRequired: false,
+    ownerWalletPrimaryLane: true,
+    hostedChainProviderRequired: false,
     walletPromptAllowed: false,
     walletSigningAllowed: false,
     transactionSubmissionAllowed: false,
@@ -63,12 +63,12 @@ try {
     agentId: "agent_777",
     approvalId: "approval_1",
     approvedAt: "2026-07-03T00:00:00.000Z",
-    actionKind: "base_reviewed_transaction",
-    chain: "Base",
+    actionKind: "robinhood_reviewed_transaction",
+    chain: "Robinhood Chain",
     recipient: "0x0000000000000000000000000000000000000000",
     valueWei: "0",
     data: "0x",
-    routeSummary: "Controlled zero-value Base execution check.",
+    routeSummary: "Controlled zero-value Robinhood Chain execution check.",
     valueSummary: "Zero-value first transaction.",
     freezeKey: "phase8-freeze",
     frozen: true,
@@ -84,15 +84,15 @@ try {
     reasons: [],
     message: "Result monitoring ready.",
   };
-  const baseInput = {
+  const baselineInput = {
     ownerSignedIn: true,
     selectedAgent: true,
-    baseAccountConnected: true,
+    ownerWalletConnected: true,
     executionLaunch,
     runtimeEnablement: "enabled",
     ownerClickedExecute: true,
     frozenAction,
-    baseAccountPromptState: "not_requested",
+    ownerWalletPromptState: "not_requested",
     resultMonitoring,
     rollbackReady: true,
     emergencyDisableReady: true,
@@ -101,33 +101,33 @@ try {
     visibleInPublicProfile: false,
   };
 
-  const ready = evaluatePhase8ControlledExecution(baseInput);
+  const ready = evaluatePhase8ControlledExecution(baselineInput);
   assertEquals(ready.status, "ready_for_owner_wallet_prompt");
   assertEquals(ready.ownerOnly, true);
-  assertEquals(ready.baseAccountPrimaryLane, true);
-  assertEquals(ready.officialMcpRequired, false);
+  assertEquals(ready.ownerWalletPrimaryLane, true);
+  assertEquals(ready.hostedChainProviderRequired, false);
   assertEquals(ready.walletPromptAllowed, true);
   assertEquals(ready.transactionSubmissionAllowed, false);
   assertEquals(ready.reasons.length, 0);
 
   const opened = evaluatePhase8ControlledExecution({
-    ...baseInput,
-    baseAccountPromptState: "opened",
+    ...baselineInput,
+    ownerWalletPromptState: "opened",
   });
   assertEquals(opened.status, "wallet_prompt_opened");
   assertEquals(opened.walletPromptAllowed, true);
   assertEquals(opened.transactionSubmissionAllowed, false);
 
   const approved = evaluatePhase8ControlledExecution({
-    ...baseInput,
-    baseAccountPromptState: "approved",
+    ...baselineInput,
+    ownerWalletPromptState: "approved",
   });
   assertEquals(approved.status, "submitted_pending_confirmation");
   assertEquals(approved.transactionSubmissionAllowed, true);
 
   const confirmed = evaluatePhase8ControlledExecution({
-    ...baseInput,
-    baseAccountPromptState: "approved",
+    ...baselineInput,
+    ownerWalletPromptState: "approved",
     resultMonitoring: {
       ...resultMonitoring,
       status: "closed_confirmed",
@@ -140,20 +140,20 @@ try {
   assertEquals(confirmed.status, "closed_confirmed");
 
   const defaultLocked = evaluatePhase8ControlledExecution({
-    ...baseInput,
+    ...baselineInput,
     runtimeEnablement: "disabled",
   });
   assert(defaultLocked.reasons.includes("runtime_enablement_required"));
   assertEquals(defaultLocked.walletPromptAllowed, false);
 
   const missingOwnerClick = evaluatePhase8ControlledExecution({
-    ...baseInput,
+    ...baselineInput,
     ownerClickedExecute: false,
   });
   assert(missingOwnerClick.reasons.includes("owner_click_required"));
 
   const unsafeAction = evaluatePhase8ControlledExecution({
-    ...baseInput,
+    ...baselineInput,
     frozenAction: {
       ...frozenAction,
       valueWei: "1",
@@ -164,7 +164,7 @@ try {
   assert(unsafeAction.reasons.includes("no_calldata_required"));
 
   const unsafeSurfaces = evaluatePhase8ControlledExecution({
-    ...baseInput,
+    ...baselineInput,
     telegramCanAuthorize: true,
     visibleInPublicProfile: true,
   });
@@ -172,7 +172,7 @@ try {
   assert(unsafeSurfaces.reasons.includes("public_visibility_forbidden"));
 
   const badLaunch = evaluatePhase8ControlledExecution({
-    ...baseInput,
+    ...baselineInput,
     executionLaunch: {
       ...executionLaunch,
       status: "ready_for_owner_launch_decision",
@@ -182,7 +182,7 @@ try {
 
   assertEquals(
     getPhase8ControlledExecutionBlockMessage("runtime_enablement_required"),
-    "Phase 8 runtime enablement must be explicitly enabled for the live window.",
+    "Controlled execution must be explicitly enabled for the live window.",
   );
 } finally {
   rmSync(outDir, { recursive: true, force: true });

@@ -20,7 +20,14 @@ function assertEquals(actual, expected, message) {
 
 mkdirSync(outDir, { recursive: true });
 
-const source = readFileSync(resolve(root, "src/types/phase8FundingReadiness.ts"), "utf8");
+const source = readFileSync(resolve(root, "src/types/phase8FundingReadiness.ts"), "utf8")
+  .replace(
+    /import\s+\{[\s\S]*?\}\s+from\s+"\.\.\/config\/productChains";\s*/u,
+    `const currentProductChain = Object.freeze({ name: "Robinhood Chain" });
+const currentWalletDisplayName = "Robinhood Chain wallet";
+const currentGasDisplayName = "Robinhood Chain ETH";
+`,
+  );
 const transpiled = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.ES2020,
@@ -33,57 +40,57 @@ writeFileSync(outputPath, transpiled.outputText);
 try {
   const {
     evaluatePhase8FundingReadiness,
-    formatPhase8BaseEth,
+    formatPhase8NativeEth,
   } = await import(`file:///${outputPath.replace(/\\/g, "/")}`);
 
-  const baseInput = {
+  const baselineInput = {
     walletConnected: true,
-    baseAccountAddress: "0x1111111111111111111111111111111111111111",
+    ownerWalletAddress: "0x1111111111111111111111111111111111111111",
     isLoading: false,
     isError: false,
     value: 1_230_000_000_000_000n,
   };
 
-  const funded = evaluatePhase8FundingReadiness(baseInput);
+  const funded = evaluatePhase8FundingReadiness(baselineInput);
   assertEquals(funded.status, "funded");
   assertEquals(funded.canOpenSubmitter, true);
   assertEquals(funded.label, "0.00123 ETH");
   assert(funded.privacyBoundary.includes("never stores private keys"));
   assert(funded.privacyBoundary.includes("never asks Telegram or public profiles"));
 
-  const empty = evaluatePhase8FundingReadiness({ ...baseInput, value: 0n });
+  const empty = evaluatePhase8FundingReadiness({ ...baselineInput, value: 0n });
   assertEquals(empty.status, "empty");
   assertEquals(empty.canOpenSubmitter, false);
   assert(empty.message.includes("zero-value"));
-  assert(empty.ownerAction.includes("Base ETH"));
+  assert(empty.ownerAction.includes("Robinhood Chain ETH"));
 
   const walletRequired = evaluatePhase8FundingReadiness({
-    ...baseInput,
+    ...baselineInput,
     walletConnected: false,
   });
   assertEquals(walletRequired.status, "wallet_required");
   assertEquals(walletRequired.canOpenSubmitter, false);
 
   const addressRequired = evaluatePhase8FundingReadiness({
-    ...baseInput,
-    baseAccountAddress: null,
+    ...baselineInput,
+    ownerWalletAddress: null,
   });
   assertEquals(addressRequired.status, "address_required");
 
   const checking = evaluatePhase8FundingReadiness({
-    ...baseInput,
+    ...baselineInput,
     isLoading: true,
   });
   assertEquals(checking.status, "checking");
 
   const unavailable = evaluatePhase8FundingReadiness({
-    ...baseInput,
+    ...baselineInput,
     isError: true,
   });
   assertEquals(unavailable.status, "unavailable");
 
   const robinhoodEmpty = evaluatePhase8FundingReadiness({
-    ...baseInput,
+    ...baselineInput,
     value: 0n,
     networkName: "Robinhood Chain Testnet",
     walletDisplayName: "Robinhood Chain Testnet wallet",
@@ -92,8 +99,8 @@ try {
   assert(robinhoodEmpty.message.includes("Robinhood Chain Testnet"));
   assert(robinhoodEmpty.ownerAction.includes("Robinhood Chain Testnet wallet"));
 
-  assertEquals(formatPhase8BaseEth(1_000_000_000_000_000_000n), "1");
-  assertEquals(formatPhase8BaseEth(12_345_678_900_000_000n), "0.012345");
+  assertEquals(formatPhase8NativeEth(1_000_000_000_000_000_000n), "1");
+  assertEquals(formatPhase8NativeEth(12_345_678_900_000_000n), "0.012345");
 } finally {
   rmSync(outDir, { recursive: true, force: true });
 }

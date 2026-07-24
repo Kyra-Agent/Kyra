@@ -1,14 +1,14 @@
 import { currentProductChain } from "../config/productChains";
 import {
-  baseChainId,
+  productChainId,
   isEvmAddress,
   isHexData,
   isSafeValueWei,
 } from "./unsignedTransactionHandoff";
 
 export const preparedActionAllowedKinds = [
-  "base_mcp_status_check",
-  "base_reviewed_transaction",
+  "chain_status_check",
+  "robinhood_reviewed_transaction",
 ] as const;
 
 export type PreparedActionKind = (typeof preparedActionAllowedKinds)[number];
@@ -50,7 +50,7 @@ export interface PreparedActionOwnerSummary {
 export interface PreparedActionPrivateStorageDraft extends PreparedActionOwnerSummary {
   requestId: string;
   ownerUserId: string;
-  provider: "base_mcp";
+  provider: "robinhood_chain";
   providerPayloadRef: string | null;
   rawProviderPayloadEncrypted?: never;
   walletAddress?: never;
@@ -72,7 +72,7 @@ export type PreparedActionAllowlistBlockReason =
   | "unknown_action_kind"
   | "untrusted_source"
   | "schema_mismatch"
-  | "base_chain_required"
+  | "product_chain_required"
   | "invalid_recipient"
   | "invalid_value"
   | "invalid_calldata"
@@ -103,9 +103,9 @@ export interface PreparedActionAllowlistResult {
 
 export type PreparedActionCanonicalInput =
   | {
-    actionKind: "base_mcp_status_check";
+    actionKind: "chain_status_check";
     chain: typeof currentProductChain.name;
-    routeSummary: "Read-only Base capability check.";
+    routeSummary: "Read-only Robinhood Chain capability check.";
     valueSummary: "No token spend, no gas request, no calldata.";
     risk: "read-only";
     requiresWallet: false;
@@ -114,7 +114,7 @@ export type PreparedActionCanonicalInput =
     data: "0x";
   }
   | {
-    actionKind: "base_reviewed_transaction";
+    actionKind: "robinhood_reviewed_transaction";
     chain: typeof currentProductChain.name;
     routeSummary: string;
     valueSummary: string;
@@ -143,9 +143,9 @@ export function reviewPreparedActionAllowlist(
     return blockPreparedActionAllowlist("untrusted_source", input.actionKind);
   }
 
-  if (input.actionKind === "base_mcp_status_check") {
-    if (input.chainId !== baseChainId) {
-      return blockPreparedActionAllowlist("base_chain_required", input.actionKind);
+  if (input.actionKind === "chain_status_check") {
+    if (input.chainId !== productChainId) {
+      return blockPreparedActionAllowlist("product_chain_required", input.actionKind);
     }
 
     return {
@@ -155,9 +155,9 @@ export function reviewPreparedActionAllowlist(
       requiresWallet: false,
       reasons: [],
       canonical: {
-        actionKind: "base_mcp_status_check",
+        actionKind: "chain_status_check",
         chain: currentProductChain.name,
-        routeSummary: "Read-only Base capability check.",
+        routeSummary: "Read-only Robinhood Chain capability check.",
         valueSummary: "No token spend, no gas request, no calldata.",
         risk: "read-only",
         requiresWallet: false,
@@ -175,8 +175,8 @@ export function reviewPreparedActionAllowlist(
     );
   }
 
-  if (input.chainId !== baseChainId) {
-    return blockPreparedActionAllowlist("base_chain_required", input.actionKind);
+  if (input.chainId !== productChainId) {
+    return blockPreparedActionAllowlist("product_chain_required", input.actionKind);
   }
 
   if (!isEvmAddress(input.recipient)) {
@@ -213,7 +213,7 @@ export function reviewPreparedActionAllowlist(
     requiresWallet: true,
     reasons: [],
     canonical: {
-      actionKind: "base_reviewed_transaction",
+      actionKind: "robinhood_reviewed_transaction",
       chain: currentProductChain.name,
       routeSummary: input.routeSummary.trim(),
       valueSummary: input.valueSummary.trim(),

@@ -10,18 +10,6 @@ verify_jwt = true
 [functions.telegram-dashboard-status]
 verify_jwt = true
 
-# Base MCP preparation is called by a signed-in dashboard user only. Keep
-# Supabase gateway JWT verification enabled in addition to function ownership
-# validation and default-off runtime gates.
-[functions.base-mcp-prepare]
-verify_jwt = true
-
-# Kyra's internal Base status bridge is server-to-server only. Supabase gateway
-# JWT verification is disabled because the caller authenticates with a
-# dedicated backend bearer secret that is never exposed to the browser.
-[functions.base-mcp-status-provider]
-verify_jwt = false
-
 # Chain-neutral status verification is server-to-server only. The function is
 # default-off and authenticates with its own backend bearer secret.
 [functions.chain-status-provider]

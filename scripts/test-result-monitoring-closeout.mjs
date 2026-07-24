@@ -64,7 +64,7 @@ try {
 
   const hash =
     "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-  const baseInput = {
+  const baselineInput = {
     ownerUserId: "owner_7i",
     workspaceId: "workspace_7i",
     agentId: "agent_666",
@@ -78,14 +78,14 @@ try {
     visibleInPublicProfile: false,
   };
 
-  const notStarted = evaluateResultMonitoringCloseout(baseInput);
+  const notStarted = evaluateResultMonitoringCloseout(baselineInput);
   assertEquals(notStarted.status, "not_started");
   assertEquals(notStarted.ownerOnly, true);
   assertEquals(notStarted.txHash, null);
   assertEquals(notStarted.disconnectAllowed, false);
 
   const hashBeforeSubmit = evaluateResultMonitoringCloseout({
-    ...baseInput,
+    ...baselineInput,
     providerStatus: "owner_rejected",
     txHash: hash,
   });
@@ -93,7 +93,7 @@ try {
   assertEquals(hashBeforeSubmit.txHash, null);
 
   const submitted = evaluateResultMonitoringCloseout({
-    ...baseInput,
+    ...baselineInput,
     providerStatus: "provider_submitted",
     txHash: hash,
   });
@@ -102,26 +102,26 @@ try {
   assertEquals(submitted.disconnectAllowed, false);
 
   const confirmedMissingData = evaluateResultMonitoringCloseout({
-    ...baseInput,
+    ...baselineInput,
     providerStatus: "confirmed",
     txHash: hash,
   });
   assert(confirmedMissingData.reasons.includes("confirmation_required"));
 
   const confirmed = evaluateResultMonitoringCloseout({
-    ...baseInput,
+    ...baselineInput,
     providerStatus: "confirmed",
     txHash: hash,
-    confirmationId: "base-block-123",
+    confirmationId: "robinhood-block-123",
     disconnectRequested: true,
   });
   assertEquals(confirmed.status, "closed_confirmed");
   assertEquals(confirmed.txHash, hash);
-  assertEquals(confirmed.confirmationId, "base-block-123");
+  assertEquals(confirmed.confirmationId, "robinhood-block-123");
   assertEquals(confirmed.disconnectAllowed, true);
 
   const failed = evaluateResultMonitoringCloseout({
-    ...baseInput,
+    ...baselineInput,
     providerStatus: "provider_failed",
     failureCode: "network_mismatch",
     disconnectRequested: true,
@@ -131,13 +131,13 @@ try {
   assertEquals(failed.disconnectAllowed, true);
 
   const publicBlocked = evaluateResultMonitoringCloseout({
-    ...baseInput,
+    ...baselineInput,
     visibleInPublicProfile: true,
   });
   assert(publicBlocked.reasons.includes("public_visibility_forbidden"));
 
   const earlyDisconnect = evaluateResultMonitoringCloseout({
-    ...baseInput,
+    ...baselineInput,
     providerStatus: "provider_submitted",
     txHash: hash,
     disconnectRequested: true,
@@ -146,7 +146,7 @@ try {
   assertEquals(earlyDisconnect.disconnectAllowed, false);
 
   const emergencyDisabled = evaluateResultMonitoringCloseout({
-    ...baseInput,
+    ...baselineInput,
     emergencyDisabled: true,
     disconnectRequested: true,
   });

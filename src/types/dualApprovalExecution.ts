@@ -15,7 +15,7 @@ export type DualApprovalStatus =
   | "owner_review_required"
   | "owner_rejected"
   | "owner_approved_frozen"
-  | "base_account_prompt_locked";
+  | "owner_wallet_prompt_locked";
 
 export type DualApprovalBlockReason =
   | "policy_not_ready"
@@ -23,11 +23,11 @@ export type DualApprovalBlockReason =
   | "owner_rejected"
   | "approval_identity_required"
   | "reviewed_action_changed"
-  | "base_account_connection_required"
+  | "owner_wallet_connection_required"
   | "valid_handoff_required"
   | "wallet_execution_disabled"
   | "wallet_signing_disabled"
-  | "official_mcp_disabled";
+  | "hosted_chain_provider_disabled";
 
 export interface DualApprovalOwnerDecision {
   decision: DualApprovalDecision;
@@ -68,11 +68,11 @@ export interface DualApprovalExecutionInput {
   policyReview: PreparedActionPolicyResult;
   ownerDecision: DualApprovalOwnerDecision;
   frozenAction: FrozenPreparedAction | null;
-  baseAccountConnected: boolean;
+  ownerWalletConnected: boolean;
   handoffValid: boolean;
   walletExecutionEnabled: boolean;
   walletSigningEnabled: boolean;
-  officialMcpEnabled: boolean;
+  hostedChainProviderEnabled: boolean;
 }
 
 export interface DualApprovalExecutionResult {
@@ -95,22 +95,22 @@ const blockMessages: Record<DualApprovalBlockReason, string> = {
     "Owner approval requires approval id, owner id, and approval timestamp.",
   reviewed_action_changed:
     "Reviewed prepared action changed after approval and must be rejected.",
-  base_account_connection_required:
+  owner_wallet_connection_required:
     "Connect the owner wallet before wallet approval can be considered.",
   valid_handoff_required:
     "A valid unsigned handoff is required before wallet approval.",
   wallet_execution_disabled:
-    "Wallet execution remains disabled by the Phase 7H runtime gate.",
+    "Wallet execution remains disabled by the dual-approval runtime gate.",
   wallet_signing_disabled:
     "Wallet signing remains disabled until the later execution gate.",
-  official_mcp_disabled:
-    "Official hosted Base MCP authority remains disabled while Phase 7C is no-go.",
+  hosted_chain_provider_disabled:
+    "Hosted chain provider authority remains disabled while the provider route is not approved.",
 };
 
 export function freezeReviewedPreparedAction(
   input: FreezePreparedActionInput,
 ): FrozenPreparedAction | null {
-  if (input.canonical.actionKind !== "base_reviewed_transaction") {
+  if (input.canonical.actionKind !== "robinhood_reviewed_transaction") {
     return null;
   }
 
@@ -148,7 +148,7 @@ export function hasReviewedPreparedActionChanged(
   frozen: FrozenPreparedAction,
   canonical: PreparedActionCanonicalInput | null,
 ) {
-  if (!canonical || canonical.actionKind !== "base_reviewed_transaction") {
+  if (!canonical || canonical.actionKind !== "robinhood_reviewed_transaction") {
     return true;
   }
 
@@ -164,7 +164,7 @@ export function evaluateDualApprovalExecution(
     input.policyReview.status !== "owner_review_required" ||
     !input.policyReview.allowedForStorage ||
     !canonical ||
-    canonical.actionKind !== "base_reviewed_transaction"
+    canonical.actionKind !== "robinhood_reviewed_transaction"
   ) {
     return blocked("policy_not_ready", "policy_not_ready", input.frozenAction);
   }
@@ -211,8 +211,8 @@ export function evaluateDualApprovalExecution(
 
   const reasons: DualApprovalBlockReason[] = [];
 
-  if (!input.baseAccountConnected) {
-    reasons.push("base_account_connection_required");
+  if (!input.ownerWalletConnected) {
+    reasons.push("owner_wallet_connection_required");
   }
 
   if (!input.handoffValid) {
@@ -227,14 +227,14 @@ export function evaluateDualApprovalExecution(
     reasons.push("wallet_signing_disabled");
   }
 
-  if (!input.officialMcpEnabled) {
-    reasons.push("official_mcp_disabled");
+  if (!input.hostedChainProviderEnabled) {
+    reasons.push("hosted_chain_provider_disabled");
   }
 
   if (reasons.length > 0) {
     return {
-      status: input.baseAccountConnected && input.handoffValid
-        ? "base_account_prompt_locked"
+      status: input.ownerWalletConnected && input.handoffValid
+        ? "owner_wallet_prompt_locked"
         : "owner_approved_frozen",
       frozenAction: input.frozenAction,
       walletPromptAllowed: false,
@@ -245,7 +245,7 @@ export function evaluateDualApprovalExecution(
   }
 
   return {
-    status: "base_account_prompt_locked",
+    status: "owner_wallet_prompt_locked",
     frozenAction: input.frozenAction,
     walletPromptAllowed: false,
     transactionSubmissionAllowed: false,

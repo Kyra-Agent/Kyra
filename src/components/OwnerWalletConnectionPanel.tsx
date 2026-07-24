@@ -344,8 +344,8 @@ export function OwnerWalletConnectionPanel({
   }
 
   return (
-    <div className={`base-account-connection connection-${uiState}`}>
-      <div className="base-account-connection-header">
+    <div className={`owner-wallet-connection connection-${uiState}`}>
+      <div className="owner-wallet-connection-header">
         <span className="queue-icon">
           <WalletCards size={16} />
         </span>
@@ -359,10 +359,10 @@ export function OwnerWalletConnectionPanel({
               : "Connection locked"}
           </strong>
         </div>
-        <span className="base-account-state">{formatUiState(uiState)}</span>
+        <span className="owner-wallet-state">{formatUiState(uiState)}</span>
       </div>
 
-      <div className="base-account-binding-grid">
+      <div className="owner-wallet-binding-grid">
         <span>
           Agent
           <strong>{agentName ?? "No persisted agent"}</strong>
@@ -411,7 +411,7 @@ export function OwnerWalletConnectionPanel({
 
       <p aria-live="polite">{message}</p>
 
-      <div className="base-account-actions">
+      <div className="owner-wallet-actions">
         {binding
           ? (
             <button

@@ -20,10 +20,10 @@ export type Phase8ControlledSubmissionBlockReason =
   | "frozen_action_binding_required"
   | "zero_value_action_required"
   | "no_calldata_required"
-  | "base_chain_required"
+  | "product_chain_required"
   | "submission_nonce_required"
   | "submission_nonce_unused_required"
-  | "base_account_approval_required"
+  | "owner_wallet_approval_required"
   | "tx_hash_required"
   | "sanitized_tx_hash_required"
   | "owner_only_result_required"
@@ -75,8 +75,8 @@ export interface Phase8ControlledSubmissionInput {
   workspaceId: string;
   selectedAgentId: string;
   frozenAction: FrozenPreparedAction | null;
-  chain: typeof currentProductChain.name | "Base Sepolia" | "Other";
-  baseAccountApprovalRecorded: boolean;
+  chain: typeof currentProductChain.name | "Other";
+  ownerWalletApprovalRecorded: boolean;
   submissionIntent: Phase8ControlledSubmissionIntent;
   submissionState: Phase8ControlledSubmissionState;
   resultEvents: Phase8ControlledSubmissionResultEvent[];
@@ -89,8 +89,8 @@ export interface Phase8ControlledSubmissionInput {
 export interface Phase8ControlledSubmissionResult {
   status: Phase8ControlledSubmissionStatus;
   ownerOnly: true;
-  baseAccountPrimaryLane: true;
-  officialMcpRequired: false;
+  ownerWalletPrimaryLane: true;
+  hostedChainProviderRequired: false;
   transactionSubmissionAllowed: boolean;
   resultCloseoutRecorded: boolean;
   reasons: Phase8ControlledSubmissionBlockReason[];
@@ -101,7 +101,7 @@ const txHashPattern = /^0x[a-fA-F0-9]{64}$/u;
 
 const blockMessages: Record<Phase8ControlledSubmissionBlockReason, string> = {
   wallet_prompt_approval_required:
-    "A Batch 3 owner-approved wallet prompt is required before submission.",
+    "An owner-approved wallet prompt is required before submission.",
   private_dashboard_source_required:
     "Controlled submission must originate from the private owner dashboard.",
   owner_click_required:
@@ -117,13 +117,13 @@ const blockMessages: Record<Phase8ControlledSubmissionBlockReason, string> = {
   frozen_action_binding_required:
     "Submission nonce must bind to the frozen prepared action.",
   zero_value_action_required:
-    "Phase 8 Batch 4 only allows the zero-value first transaction.",
+    "The controlled submission policy only allows a zero-value first transaction.",
   no_calldata_required:
-    "Phase 8 Batch 4 only allows a no-calldata first transaction.",
-  base_chain_required: `Phase 8 Batch 4 only allows ${currentProductChain.key === "base" ? "Base mainnet" : currentProductChain.name}.`,
+    "The controlled submission policy only allows a no-calldata first transaction.",
+  product_chain_required: `The controlled submission policy only allows ${currentProductChain.name}.`,
   submission_nonce_required: "A one-time submission nonce is required.",
   submission_nonce_unused_required: "A submission nonce can only be used once.",
-  base_account_approval_required:
+  owner_wallet_approval_required:
     "Connected owner-wallet approval must be recorded before submission.",
   tx_hash_required:
     "Submitted, confirmed, or failed closeout requires an owner-only transaction hash reference.",
@@ -141,9 +141,9 @@ const blockMessages: Record<Phase8ControlledSubmissionBlockReason, string> = {
   sanitized_audit_required:
     "Post-transaction audit events must be sanitized.",
   telegram_authority_forbidden:
-    "Telegram cannot authorize or submit Phase 8 transactions.",
+    "Telegram cannot authorize or submit controlled transactions.",
   public_visibility_forbidden:
-    "Public profiles cannot submit or expose Phase 8 transaction state.",
+    "Public profiles cannot submit or expose controlled transaction state.",
 };
 
 function needsTxHash(state: Phase8ControlledSubmissionState) {
@@ -221,7 +221,7 @@ export function evaluatePhase8ControlledSubmission(
   }
 
   if (input.chain !== currentProductChain.name) {
-    reasons.push("base_chain_required");
+    reasons.push("product_chain_required");
   }
 
   if (!input.submissionIntent.submissionNonce) {
@@ -232,8 +232,8 @@ export function evaluatePhase8ControlledSubmission(
     reasons.push("submission_nonce_unused_required");
   }
 
-  if (!input.baseAccountApprovalRecorded) {
-    reasons.push("base_account_approval_required");
+  if (!input.ownerWalletApprovalRecorded) {
+    reasons.push("owner_wallet_approval_required");
   }
 
   if (input.submissionState === "not_submitted") {
@@ -284,8 +284,8 @@ export function evaluatePhase8ControlledSubmission(
     return {
       status: "blocked",
       ownerOnly: true,
-      baseAccountPrimaryLane: true,
-      officialMcpRequired: false,
+      ownerWalletPrimaryLane: true,
+      hostedChainProviderRequired: false,
       transactionSubmissionAllowed: false,
       resultCloseoutRecorded: false,
       reasons: uniqueReasons,
@@ -297,8 +297,8 @@ export function evaluatePhase8ControlledSubmission(
     return {
       status: "closed_confirmed",
       ownerOnly: true,
-      baseAccountPrimaryLane: true,
-      officialMcpRequired: false,
+      ownerWalletPrimaryLane: true,
+      hostedChainProviderRequired: false,
       transactionSubmissionAllowed: false,
       resultCloseoutRecorded: true,
       reasons: [],
@@ -311,8 +311,8 @@ export function evaluatePhase8ControlledSubmission(
     return {
       status: "closed_failed",
       ownerOnly: true,
-      baseAccountPrimaryLane: true,
-      officialMcpRequired: false,
+      ownerWalletPrimaryLane: true,
+      hostedChainProviderRequired: false,
       transactionSubmissionAllowed: false,
       resultCloseoutRecorded: true,
       reasons: [],
@@ -325,8 +325,8 @@ export function evaluatePhase8ControlledSubmission(
     return {
       status: "submitted_pending_confirmation",
       ownerOnly: true,
-      baseAccountPrimaryLane: true,
-      officialMcpRequired: false,
+      ownerWalletPrimaryLane: true,
+      hostedChainProviderRequired: false,
       transactionSubmissionAllowed: false,
       resultCloseoutRecorded: true,
       reasons: [],
@@ -338,13 +338,13 @@ export function evaluatePhase8ControlledSubmission(
   return {
     status: "ready_to_submit",
     ownerOnly: true,
-    baseAccountPrimaryLane: true,
-    officialMcpRequired: false,
+    ownerWalletPrimaryLane: true,
+    hostedChainProviderRequired: false,
     transactionSubmissionAllowed: true,
     resultCloseoutRecorded: false,
     reasons: [],
     message:
-      `Phase 8 Batch 4 is ready for one explicit owner-controlled ${currentProductChain.name} submission.`,
+      `The controlled submission policy is ready for one explicit owner-controlled ${currentProductChain.name} submission.`,
   };
 }
 

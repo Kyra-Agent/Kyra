@@ -14,8 +14,8 @@ insert into public.agent_templates (
   'Operator',
   'Personal wallet readiness agent',
   'mvp',
-  'A private Telegram-native agent for wallet checks, swap reviews, transfer reviews, action logs, and approval-gated Base readiness.',
-  'Traders, founders, and Base users who want a safe command layer for wallet review workflows.',
+  'A private Telegram-native agent for wallet checks, swap reviews, transfer reviews, action logs, and approval-gated Robinhood Chain readiness.',
+  'Traders, founders, and Robinhood Chain users who want a safe command layer for wallet review workflows.',
   '["balance", "swap review", "transfer review", "portfolio", "tx history", "price alert"]'::jsonb,
   '["NIRA-01", "NOVA-04", "NYX-05"]'::jsonb,
   'review 10 USDC to ETH swap'
@@ -25,11 +25,11 @@ insert into public.agent_templates (
   'Scout',
   'Recon and launch monitor',
   'mvp',
-  'A research-forward agent that watches new launches, token activity, and Base ecosystem signals before summarizing what matters.',
+  'A research-forward agent that watches new launches, token activity, and Robinhood Chain ecosystem signals before summarizing what matters.',
   'Users tracking launches, new tokens, project signals, and onchain opportunities.',
   '["launch monitor", "token scan", "watchlist", "market brief", "project summary"]'::jsonb,
   '["NIRA-01", "VEXA-02", "ASTRA-03", "NOVA-04", "NYX-05"]'::jsonb,
-  'scan new Base launches'
+  'scan new Robinhood Chain launches'
 ),
 (
   'steward',
@@ -37,7 +37,7 @@ insert into public.agent_templates (
   'Project and community agent',
   'mvp',
   'A public-facing agent for token communities that can answer project questions, verify holders, and surface token context.',
-  'Token teams, creator coins, Base communities, and project founders.',
+  'Token teams, creator coins, Robinhood Chain communities, and project founders.',
   '["faq", "holder verify", "token info", "announcement", "tx summary"]'::jsonb,
   '["NIRA-01", "ASTRA-03", "NOVA-04", "NYX-05"]'::jsonb,
   'verify holder access'

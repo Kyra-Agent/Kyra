@@ -6,7 +6,7 @@ function assert(condition, message) {
   }
 }
 
-const baseInput = {
+const baselineInput = {
   userFlowStatus: "ready_to_submit",
   securityStatus: "hardened",
   lowValueReadinessReady: true,
@@ -17,7 +17,7 @@ const baseInput = {
   telegramExecutionEnabled: false,
 };
 
-const ready = evaluatePhase8ProductionCloseout(baseInput);
+const ready = evaluatePhase8ProductionCloseout(baselineInput);
 assert(ready.status === "ready_for_owner_run", "ready path should close implementation and wait for owner run");
 assert(ready.phase8ImplementationClosed, "ready path should mark implementation closeout complete");
 assert(ready.canContinueToPhase9, "ready path should allow Phase 9 hardening to start");
@@ -25,7 +25,7 @@ assert(ready.ownerOnly === true, "closeout must stay owner-only");
 assert(ready.checklist.length >= 6, "closeout should expose checklist evidence");
 
 const pendingReceipt = evaluatePhase8ProductionCloseout({
-  ...baseInput,
+  ...baselineInput,
   userFlowStatus: "verifying",
   transactionVerificationStatus: "pending_receipt",
 });
@@ -33,7 +33,7 @@ assert(pendingReceipt.status === "receipt_pending", "pending receipt should not 
 assert(pendingReceipt.reasons.includes("receipt_pending"), "pending receipt reason should be explicit");
 
 const confirmed = evaluatePhase8ProductionCloseout({
-  ...baseInput,
+  ...baselineInput,
   userFlowStatus: "confirmed",
   transactionVerificationStatus: "confirmed",
   ownerCloseoutReady: true,
@@ -42,20 +42,20 @@ assert(confirmed.status === "complete", "confirmed receipt and owner closeout sh
 assert(confirmed.canContinueToPhase9, "confirmed closeout should allow Phase 9");
 
 const publicLeak = evaluatePhase8ProductionCloseout({
-  ...baseInput,
+  ...baselineInput,
   publicExecutionEnabled: true,
 });
 assert(publicLeak.status === "blocked", "public execution must block closeout");
 assert(publicLeak.reasons.includes("public_execution_forbidden"), "public execution block should be explicit");
 
 const telegramLeak = evaluatePhase8ProductionCloseout({
-  ...baseInput,
+  ...baselineInput,
   telegramExecutionEnabled: true,
 });
 assert(telegramLeak.reasons.includes("telegram_execution_forbidden"), "Telegram execution block should be explicit");
 
 const unsafe = evaluatePhase8ProductionCloseout({
-  ...baseInput,
+  ...baselineInput,
   securityStatus: "blocked",
   submitRequestReady: false,
 });
@@ -64,7 +64,7 @@ assert(unsafe.reasons.includes("security_hardening_required"), "security hardeni
 assert(unsafe.reasons.includes("submit_request_required"), "submit request should be required");
 
 const failedReceipt = evaluatePhase8ProductionCloseout({
-  ...baseInput,
+  ...baselineInput,
   transactionVerificationStatus: "failed",
 });
 assert(failedReceipt.status === "blocked", "failed receipt should block final closeout");

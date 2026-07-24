@@ -31,15 +31,15 @@ function assert(condition, message) {
 const readySubmission = {
   status: "ready_to_submit",
   ownerOnly: true,
-  baseAccountPrimaryLane: true,
-  officialMcpRequired: false,
+  ownerWalletPrimaryLane: true,
+  hostedChainProviderRequired: false,
   transactionSubmissionAllowed: true,
   resultCloseoutRecorded: false,
   reasons: [],
   message: "ready",
 };
 
-const baseInput = {
+const baselineInput = {
   runtimeWindowEnabled: true,
   controlledSubmission: readySubmission,
   operatorAcknowledged: true,
@@ -49,13 +49,13 @@ const baseInput = {
   ownerDashboardSource: true,
 };
 
-const ready = evaluatePhase8OwnerLiveWindowActivation(baseInput);
+const ready = evaluatePhase8OwnerLiveWindowActivation(baselineInput);
 assert(ready.status === "ready", "expected ready activation");
 assert(ready.transactionSubmissionAllowed, "ready activation should allow one controlled submission");
 assert(ready.reasons.length === 0, "ready activation should have no reasons");
 
 const disabled = evaluatePhase8OwnerLiveWindowActivation({
-  ...baseInput,
+  ...baselineInput,
   runtimeWindowEnabled: false,
 });
 assert(disabled.status === "locked", "disabled runtime should lock activation");
@@ -63,7 +63,7 @@ assert(disabled.reasons.includes("runtime_window_disabled"), "disabled runtime r
 assert(!disabled.transactionSubmissionAllowed, "disabled runtime must not submit");
 
 const blockedSubmission = evaluatePhase8OwnerLiveWindowActivation({
-  ...baseInput,
+  ...baselineInput,
   controlledSubmission: {
     ...readySubmission,
     status: "blocked",
@@ -84,7 +84,7 @@ for (const [field, reason] of [
   ["ownerDashboardSource", "owner_dashboard_required"],
 ]) {
   const result = evaluatePhase8OwnerLiveWindowActivation({
-    ...baseInput,
+    ...baselineInput,
     [field]: false,
   });
   assert(result.status === "locked", `${field} should lock activation`);

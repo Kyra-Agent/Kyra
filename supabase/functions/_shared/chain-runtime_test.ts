@@ -1,5 +1,4 @@
 import {
-  assert,
   assertEquals,
   assertThrows,
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
@@ -10,8 +9,11 @@ import {
   readBackendChainFromHex,
 } from "./chain-runtime.ts";
 
-Deno.test("backend chain registry exposes exact migration chains", () => {
-  assertEquals(backendChainRegistry.base.chainId, 8453);
+Deno.test("backend chain registry exposes only Robinhood Chain networks", () => {
+  assertEquals(Object.keys(backendChainRegistry).sort(), [
+    "robinhood_mainnet",
+    "robinhood_testnet",
+  ]);
   assertEquals(backendChainRegistry.robinhood_mainnet.chainId, 4663);
   assertEquals(backendChainRegistry.robinhood_mainnet.chainIdHex, "0x1237");
   assertEquals(backendChainRegistry.robinhood_testnet.chainId, 46630);
@@ -30,24 +32,19 @@ Deno.test("backend chain readers bind key, decimal id, and canonical hex", () =>
   assertEquals(normalizeChainIdHex("0x1237"), "0x1237");
 });
 
-Deno.test("backend chain readers reject drift and malformed values", () => {
+Deno.test("backend chain readers reject legacy, drifted, and malformed values", () => {
   for (const [key, id] of [
     ["robinhood_mainnet", 46630],
     ["robinhood_testnet", 4663],
     ["unknown", 4663],
-    ["base", "8453"],
-  ]) {
+    ["legacy", 8453],
+  ] as const) {
     assertThrows(() => readBackendChain(key, id));
   }
 
-  for (
-    const value of ["1237", "0x", "0x00", "0x01237", "0x-1", "0xg", ""]
-  ) {
+  for (const value of ["1237", "0x", "0x00", "0x01237", "0x-1", "0xg", ""]) {
     assertThrows(() => normalizeChainIdHex(value));
   }
 
-  assert(
-    readBackendChainFromHex("base", "0x2105") ===
-      backendChainRegistry.base,
-  );
+  assertThrows(() => readBackendChainFromHex("legacy", "0x2105"));
 });

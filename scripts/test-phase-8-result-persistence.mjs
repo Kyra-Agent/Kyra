@@ -67,7 +67,7 @@ try {
     message: "Submitted with sanitized hash reference.",
     createdAt: "2026-07-05T01:00:00.000Z",
   };
-  const baseInput = {
+  const baselineInput = {
     ownerUserId: "owner_13",
     workspaceId: "workspace_13",
     agentId: "agent_777",
@@ -76,7 +76,7 @@ try {
     event,
   };
 
-  const persisted = createPhase8PersistedExecutionResult(baseInput);
+  const persisted = createPhase8PersistedExecutionResult(baselineInput);
   assertEquals(persisted.ok, true);
   assert(persisted.record, "record should be created");
   assertEquals(persisted.record.visibility, "owner-only");
@@ -109,14 +109,14 @@ try {
     "Controlled transaction reverted without exposing provider internals.",
   );
   const confirmed = createPhase8PersistedExecutionResult({
-    ...baseInput,
+    ...baselineInput,
     event: { ...event, state: "confirmed" },
   });
   assertEquals(confirmed.record.status, "confirmed");
   assertEquals(confirmed.record.failureReason, null);
 
   const failed = createPhase8PersistedExecutionResult({
-    ...baseInput,
+    ...baselineInput,
     event: { ...event, state: "failed" },
   });
   assertEquals(failed.record.status, "failed");
@@ -126,31 +126,31 @@ try {
   );
 
   const missingScope = createPhase8PersistedExecutionResult({
-    ...baseInput,
+    ...baselineInput,
     ownerUserId: "",
   });
   assertEquals(missingScope.reason, "owner_scope_required");
 
   const publicEvent = createPhase8PersistedExecutionResult({
-    ...baseInput,
+    ...baselineInput,
     event: { ...event, ownerOnly: false },
   });
   assertEquals(publicEvent.reason, "owner_only_required");
 
   const unsafeEvent = createPhase8PersistedExecutionResult({
-    ...baseInput,
+    ...baselineInput,
     event: { ...event, sanitized: false },
   });
   assertEquals(unsafeEvent.reason, "sanitized_event_required");
 
   const unsupportedState = createPhase8PersistedExecutionResult({
-    ...baseInput,
+    ...baselineInput,
     event: { ...event, state: "ready" },
   });
   assertEquals(unsupportedState.reason, "unsupported_state");
 
   const invalidHash = createPhase8PersistedExecutionResult({
-    ...baseInput,
+    ...baselineInput,
     event: { ...event, txHash: "0x1234" },
   });
   assertEquals(invalidHash.reason, "transaction_hash_required");

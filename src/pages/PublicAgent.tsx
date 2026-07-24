@@ -345,7 +345,7 @@ export function PublicAgent({
         </span>
         <span>
           <Route size={16} />
-          {formatPublicRouteStatus(visibleAgentRecord.baseMcpStatus)} {currentProductChain.name} action route
+          {formatPublicRouteStatus(visibleAgentRecord.chainRouteStatus)} {currentProductChain.name} action route
         </span>
       </section>
 
@@ -447,7 +447,7 @@ export function PublicAgent({
             </span>
             <span>
               {currentProductChain.name} actions
-              <strong>{formatPublicRouteStatus(visibleAgentRecord.baseMcpStatus)}</strong>
+              <strong>{formatPublicRouteStatus(visibleAgentRecord.chainRouteStatus)}</strong>
             </span>
             <span>
               Last sync
