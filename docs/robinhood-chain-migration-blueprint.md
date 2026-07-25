@@ -22,6 +22,19 @@ Robinhood Chain replaces the previous product-chain implementation across public
 - public profiles expose chain-action status instead of legacy provider status
 - obsolete provider functions, configuration, scripts, and public docs are retired
 
+## Clean-Slate Reset
+
+On July 25, 2026, production agent data was reset instead of migrating deployed
+agents one by one:
+
+- all deployed agent instances and agent-scoped execution records were removed
+- Telegram sessions, webhook metadata, authorizations, and processed updates were removed
+- stored Telegram token secrets were revoked and overwritten before their metadata was removed
+- account users, workspaces, and the six agent templates were preserved
+- the one-time reset RPC, Edge Function, and temporary secret were removed after closeout
+
+New deployments start from zero agents and bind directly to Robinhood Chain.
+
 ## Safety Boundary
 
 Migration does not automatically enable transaction submission. Chain selection, RPC readiness, wallet connection, prepared-action review, owner approval, runtime submission, receipt verification, and release approval remain independent gates.
