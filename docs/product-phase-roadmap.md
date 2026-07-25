@@ -11,9 +11,9 @@ Kyra uses one ten-phase product roadmap. Historical sub-batches are implementati
 | 5 | Telegram webhook and LLM replies | Complete |
 | 6 | Wallet policy, prepared actions, and risk controls | Complete |
 | 7 | Owner wallet connection and chain-bound approvals | Complete |
-| 8 | Controlled execution workflow, receipt verification, and owner-only backend closeout | Implementation complete, production gate closed |
+| 8 | Controlled execution workflow, receipt verification, and owner-only backend closeout | Mainnet zero-value receipt confirmed; final closeout check pending |
 | 9 | Abuse controls, incidents, monitoring, and privacy | Complete |
-| 10 | Robinhood Chain public cutover and release closeout | In final mainnet receipt gate |
+| 10 | Robinhood Chain public cutover and release closeout | In rollback and release-decision gate |
 
 ## Current Product State
 
@@ -31,7 +31,7 @@ Live now:
 
 Final gated item:
 
-- enable public transaction submission only after a bounded mainnet receipt, authenticated owner-only backend closeout, rollback verification, and explicit release approval
+- enable public transaction submission only after the confirmed bounded mainnet receipt is paired with authenticated owner-only backend closeout, rollback verification, and explicit release approval
 
 ## Non-Negotiable Rules
 

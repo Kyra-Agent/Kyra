@@ -47,6 +47,22 @@ Netlify production builds with npm run build:robinhood-mainnet.
 - confirm owner-only receipt and support data remain private
 - disable the submitter and verify rollback before recording release approval
 
+## Mainnet Evidence
+
+Sanitized production evidence recorded on 2026-07-25:
+
+- Robinhood Chain mainnet transaction confirmed by the connected wallet provider
+- owner-controlled self-transfer with zero ETH value and no calldata
+- provider transaction hash matched the Kyra owner dashboard result
+- result monitoring reached `closed confirmed`
+- one owner-only `execution_results` record was present in the production database
+- Telegram and public-profile execution remained blocked
+- transaction address and full hash are intentionally omitted from public documentation
+
+Release remains fail-closed until the owner dashboard reports backend closeout
+`saved`, disconnect/reset invalidates the live window, and the explicit release
+decision is recorded.
+
 ## Rollback
 
 Disable transaction submission flags first. Revoke active live windows, disconnect the wallet session, and keep read-only product capabilities online. Do not expose provider payloads or secrets in incident evidence.
