@@ -59,9 +59,9 @@ Sanitized production evidence recorded on 2026-07-25:
 - Telegram and public-profile execution remained blocked
 - transaction address and full hash are intentionally omitted from public documentation
 
-Release remains fail-closed until the owner dashboard reports backend closeout
-`saved`, disconnect/reset invalidates the live window, and the explicit release
-decision is recorded.
+The owner dashboard reported backend closeout `saved`, and disconnect/reset
+invalidated the live window without replay. Public execution remains fail-closed
+until the explicit release decision is recorded.
 
 ## Rollback
 

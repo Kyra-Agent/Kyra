@@ -11,9 +11,9 @@ Kyra uses one ten-phase product roadmap. Historical sub-batches are implementati
 | 5 | Telegram webhook and LLM replies | Complete |
 | 6 | Wallet policy, prepared actions, and risk controls | Complete |
 | 7 | Owner wallet connection and chain-bound approvals | Complete |
-| 8 | Controlled execution workflow, receipt verification, and owner-only backend closeout | Mainnet zero-value receipt confirmed; final closeout check pending |
+| 8 | Controlled execution workflow, receipt verification, and owner-only backend closeout | Complete |
 | 9 | Abuse controls, incidents, monitoring, and privacy | Complete |
-| 10 | Robinhood Chain public cutover and release closeout | In rollback and release-decision gate |
+| 10 | Robinhood Chain public cutover and release closeout | Awaiting explicit public release decision |
 
 ## Current Product State
 

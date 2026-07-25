@@ -26,9 +26,9 @@ Public transaction submission requires:
 - one bounded owner-approved mainnet transaction - completed with zero value
 - verified receipt and confirmation - completed on Robinhood Chain mainnet
 - authenticated backend persistence - one owner-only result record observed
-- owner dashboard backend closeout recorded as `saved` - final UI verification pending
+- owner dashboard backend closeout recorded as `saved` - completed
 - no sensitive payload in browser logs, public views, or support evidence
-- tested emergency disable and rollback - final disconnect/reset exercise pending
+- tested emergency disable and rollback - completed
 - recorded release decision
 
 Until those checks pass, Kyra remains fully usable for agent deployment, Telegram intelligence, wallet connection, prepared-action review, and risk analysis while transaction submission fails closed.
