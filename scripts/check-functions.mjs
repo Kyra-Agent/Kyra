@@ -12,6 +12,7 @@ const entrypoints = [
   "telegram-disconnect",
   "telegram-link",
   "telegram-webhook",
+  "transaction-result-closeout",
 ];
 
 const expectedJwt = new Map([
@@ -23,6 +24,7 @@ const expectedJwt = new Map([
   ["telegram-disconnect", true],
   ["telegram-link", true],
   ["telegram-webhook", false],
+  ["transaction-result-closeout", true],
 ]);
 
 const config = readFileSync("supabase/config.toml", "utf8");
@@ -59,6 +61,42 @@ for (const boundary of [
 ]) {
   if (!telegramGate.includes(boundary)) {
     throw new Error("Telegram execution boundary missing: " + boundary);
+  }
+}
+
+const closeoutFunction = readFileSync(
+  "supabase/functions/transaction-result-closeout/index.ts",
+  "utf8",
+);
+const closeoutCore = readFileSync(
+  "supabase/functions/transaction-result-closeout/core.ts",
+  "utf8",
+);
+const closeoutMigration = readFileSync(
+  "supabase/migrations/20260724130000_execution_result_closeout.sql",
+  "utf8",
+);
+for (const boundary of [
+  "workspace_forbidden",
+  "agent_forbidden",
+  "submission_key",
+  'chain_key: "robinhood_mainnet"',
+  'visibility: "owner-only"',
+  "isStaleSubmittedResult",
+]) {
+  if (!closeoutFunction.includes(boundary) && !closeoutCore.includes(boundary)) {
+    throw new Error("Transaction closeout boundary missing: " + boundary);
+  }
+}
+for (const boundary of [
+  "execution_results_status_fields_check",
+  "unique (chain_id, tx_hash)",
+  "enforce_execution_result_scope_on_write",
+  "grant select on public.execution_results to authenticated",
+  "grant all on public.execution_results to service_role",
+]) {
+  if (!closeoutMigration.includes(boundary)) {
+    throw new Error("Transaction closeout database boundary missing: " + boundary);
   }
 }
 

@@ -10,6 +10,7 @@ for (const expected of [
   "Robinhood Chain public cutover",
   "User wallet authority",
   "Telegram token privacy",
+  "owner-only backend closeout",
 ]) {
   if (!roadmap.includes(expected)) throw new Error("Roadmap missing: " + expected);
 }

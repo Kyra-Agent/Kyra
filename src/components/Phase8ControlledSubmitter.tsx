@@ -261,6 +261,7 @@ function formatSubmitterGateReasons(reasons: readonly string[]) {
     ["selected_agent_required", "select a deployed agent"],
     ["owner_wallet_required", `connect ${currentWalletDisplayName}`],
     ["owner_wallet_address_required", `connect ${currentWalletDisplayName}`],
+    ["result_closeout_backend_required", "restore the owner-only result closeout backend"],
     ["product_chain_required", `switch to ${currentProductChain.name}`],
     ["controlled_submission_required", "prepare the reviewed transaction"],
     ["operator_ack_required", "confirm owner review"],

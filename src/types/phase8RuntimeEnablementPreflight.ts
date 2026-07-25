@@ -8,6 +8,7 @@ export type Phase8RuntimeEnablementPreflightBlockReason =
   | "owner_session_required"
   | "selected_agent_required"
   | "owner_wallet_required"
+  | "result_closeout_backend_required"
   | "controlled_submission_required"
   | "live_window_activation_required"
   | "result_already_recorded"
@@ -20,6 +21,7 @@ export interface Phase8RuntimeEnablementPreflightInput {
   ownerSignedIn: boolean;
   selectedAgent: boolean;
   ownerWalletConnected: boolean;
+  resultCloseoutBackendConfigured: boolean;
   controlledSubmission: Phase8ControlledSubmissionResult;
   liveWindowActivation: Phase8OwnerLiveWindowActivationResult;
   resultCloseoutRecorded: boolean;
@@ -46,6 +48,8 @@ const blockMessages: Record<Phase8RuntimeEnablementPreflightBlockReason, string>
     "Select one deployed agent before runtime submission can open.",
   owner_wallet_required:
     "Connect the owner wallet before runtime submission can open.",
+  result_closeout_backend_required:
+    "The authenticated owner-only result closeout backend is required before submission can open.",
   controlled_submission_required:
     "Controlled submission must be ready before runtime submission can open.",
   live_window_activation_required:
@@ -79,6 +83,10 @@ export function evaluatePhase8RuntimeEnablementPreflight(
 
   if (!input.ownerWalletConnected) {
     reasons.push("owner_wallet_required");
+  }
+
+  if (!input.resultCloseoutBackendConfigured) {
+    reasons.push("result_closeout_backend_required");
   }
 
   if (

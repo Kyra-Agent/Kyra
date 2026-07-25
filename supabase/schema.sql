@@ -105,6 +105,36 @@ create table if not exists public.approval_requests (
   resolved_at timestamptz
 );
 
+create table if not exists public.execution_results (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id) on delete cascade,
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  agent_id uuid not null references public.agent_instances(id) on delete cascade,
+  prepared_action_id text not null check (char_length(prepared_action_id) between 1 and 160),
+  submission_key text not null check (submission_key ~ '^[0-9a-f]{64}$'),
+  chain_key text not null default 'robinhood_mainnet' check (chain_key = 'robinhood_mainnet'),
+  chain_id bigint not null default 4663 check (chain_id = 4663),
+  tx_hash text not null check (tx_hash ~* '^0x[0-9a-f]{64}$'),
+  status text not null check (status in ('submitted', 'confirmed', 'failed')),
+  failure_code text check (
+    failure_code is null or failure_code in (
+      'submission_failed', 'transaction_reverted', 'receipt_unavailable'
+    )
+  ),
+  visibility text not null default 'owner-only' check (visibility = 'owner-only'),
+  submitted_at timestamptz not null,
+  confirmed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint execution_results_status_fields_check check (
+    (status = 'submitted' and failure_code is null and confirmed_at is null)
+    or (status = 'confirmed' and failure_code is null and confirmed_at is not null)
+    or (status = 'failed' and failure_code is not null and confirmed_at is null)
+  ),
+  unique (owner_user_id, submission_key),
+  unique (chain_id, tx_hash)
+);
+
 create table if not exists public.activity_logs (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
@@ -291,6 +321,8 @@ create index if not exists agent_instances_workspace_id_idx on public.agent_inst
 create index if not exists agent_instances_public_slug_idx on public.agent_instances(public_slug);
 create index if not exists wallet_policies_workspace_id_idx on public.wallet_policies(workspace_id);
 create index if not exists approval_requests_agent_id_idx on public.approval_requests(agent_id);
+create index if not exists execution_results_owner_updated_idx on public.execution_results(owner_user_id, updated_at desc);
+create index if not exists execution_results_agent_updated_idx on public.execution_results(agent_id, updated_at desc);
 create index if not exists activity_logs_agent_id_created_at_idx on public.activity_logs(agent_id, created_at desc);
 create unique index if not exists telegram_bot_token_secrets_active_bot_id_key
 on public.telegram_bot_token_secrets(telegram_bot_id)
@@ -370,6 +402,38 @@ as $$
       and owner_user_id = auth.uid()
   );
 $$;
+
+create or replace function public.enforce_execution_result_scope()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $
+begin
+  if not exists (
+    select 1
+    from public.workspaces workspaces
+    join public.agent_instances agents
+      on agents.workspace_id = workspaces.id
+    where workspaces.id = new.workspace_id
+      and workspaces.owner_user_id = new.owner_user_id
+      and agents.id = new.agent_id
+  ) then
+    raise exception 'execution_result_scope_mismatch' using errcode = '23514';
+  end if;
+
+  return new;
+end;
+$;
+
+revoke all on function public.enforce_execution_result_scope() from public, anon, authenticated;
+
+drop trigger if exists enforce_execution_result_scope_on_write on public.execution_results;
+create trigger enforce_execution_result_scope_on_write
+before insert or update of owner_user_id, workspace_id, agent_id
+on public.execution_results
+for each row
+execute function public.enforce_execution_result_scope();
 
 create or replace function public.resolve_telegram_webhook_session(
   p_webhook_secret_hash text
@@ -1365,6 +1429,7 @@ alter table public.agent_templates enable row level security;
 alter table public.agent_instances enable row level security;
 alter table public.wallet_policies enable row level security;
 alter table public.approval_requests enable row level security;
+alter table public.execution_results enable row level security;
 alter table public.activity_logs enable row level security;
 alter table public.telegram_sessions enable row level security;
 alter table public.telegram_bot_token_secrets enable row level security;
@@ -1413,6 +1478,13 @@ create policy "Workspace owners can read approval requests"
 on public.approval_requests
 for select
 using (public.owns_workspace(workspace_id));
+
+drop policy if exists "Workspace owners can read execution results" on public.execution_results;
+create policy "Workspace owners can read execution results"
+on public.execution_results
+for select
+to authenticated
+using (auth.uid() = owner_user_id and public.owns_workspace(workspace_id));
 
 drop policy if exists "Workspace owners can read activity logs" on public.activity_logs;
 create policy "Workspace owners can read activity logs"
@@ -1482,6 +1554,7 @@ revoke all privileges on public.workspaces from authenticated;
 revoke all privileges on public.agent_instances from authenticated;
 revoke all privileges on public.wallet_policies from authenticated;
 revoke all privileges on public.approval_requests from authenticated;
+revoke all privileges on public.execution_results from public, anon, authenticated;
 revoke all privileges on public.activity_logs from authenticated;
 revoke all privileges on public.telegram_sessions from authenticated;
 revoke all privileges on public.telegram_bot_token_secrets from public, anon, authenticated, service_role;
@@ -1529,6 +1602,7 @@ grant select (
 grant select on public.agent_instances to authenticated;
 grant select on public.wallet_policies to authenticated;
 grant select on public.approval_requests to authenticated;
+grant select on public.execution_results to authenticated;
 grant select on public.activity_logs to authenticated;
 grant select (
   id,
@@ -1546,6 +1620,7 @@ grant all on public.workspaces to service_role;
 grant all on public.agent_instances to service_role;
 grant all on public.wallet_policies to service_role;
 grant all on public.approval_requests to service_role;
+grant all on public.execution_results to service_role;
 grant all on public.activity_logs to service_role;
 grant all on public.telegram_sessions to service_role;
 grant select, insert, update on public.telegram_bot_token_secrets to service_role;

@@ -10,6 +10,8 @@ for (const expected of [
   "Telegram",
   "Prepared actions",
   "fails closed",
+  "authenticated Edge Function",
+  "backend closeout recorded as `saved`",
 ]) {
   if (!snapshot.includes(expected)) throw new Error("Readiness snapshot missing: " + expected);
 }

@@ -122,6 +122,7 @@ import {
   loadPhase8PersistedExecutionResults,
   savePhase8PersistedExecutionResult,
 } from "../services/phase8ResultPersistenceStore";
+import { persistTransactionResultCloseout } from "../services/transactionResultCloseoutService";
 import { productChainId } from "../types/unsignedTransactionHandoff";
 import { maskOwnerWalletAddress } from "../types/ownerWalletConnection";
 import type { DataProvider } from "../types/api";
@@ -822,6 +823,18 @@ export function Dashboard({
   const [phase8PersistedResults, setPhase8PersistedResults] = useState<
     Phase8PersistedExecutionResult[]
   >([]);
+  const [transactionCloseoutState, setTransactionCloseoutState] = useState<{
+    recordId: string | null;
+    resultStatus: Phase8PersistedExecutionResult["status"] | null;
+    status: "idle" | "saving" | "saved" | "error";
+    message: string;
+  }>({
+    recordId: null,
+    resultStatus: null,
+    status: "idle",
+    message: "No owner-only transaction result has been persisted yet.",
+  });
+  const transactionCloseoutRequestSequenceRef = useRef(0);
   const chainStatusRequestSequenceRef = useRef(0);
   const supabaseStatus = getSupabaseAdapterStatus();
   const phase8LowValueNativeBalance = useBalance({
@@ -1359,6 +1372,17 @@ export function Dashboard({
       phase8PersistedResults,
     ],
   );
+  const transactionCloseoutMatchesCurrentResult = Boolean(
+    phase8ScopedPersistedResult &&
+      transactionCloseoutState.recordId === phase8ScopedPersistedResult.id &&
+      transactionCloseoutState.resultStatus === phase8ScopedPersistedResult.status,
+  );
+  const transactionCloseoutStatus = transactionCloseoutMatchesCurrentResult
+    ? transactionCloseoutState.status
+    : "idle";
+  const transactionCloseoutMessage = transactionCloseoutMatchesCurrentResult
+    ? transactionCloseoutState.message
+    : "No matching owner-only backend closeout is recorded for this result.";
   const phase8SubmittedTxHash = isTransactionHash(phase8SubmitterResult?.txHash)
     ? phase8SubmitterResult.txHash
     : isTransactionHash(phase8ScopedPersistedResult?.txHash)
@@ -1391,6 +1415,19 @@ export function Dashboard({
     );
   }, [phase8ScopedPersistedResult, phase8TransactionReceipt.data?.status]);
 
+  useEffect(() => {
+    if (!authSession || !phase8ScopedPersistedResult) {
+      return;
+    }
+
+    void syncTransactionResultCloseout(phase8ScopedPersistedResult);
+  }, [
+    authSession?.accessToken,
+    phase8ScopedPersistedResult?.id,
+    phase8ScopedPersistedResult?.status,
+    phase8ScopedPersistedResult?.updatedAt,
+  ]);
+
   function handlePhase8ResultCloseout(
     event: Phase8ControlledSubmissionResultEvent,
   ) {
@@ -1422,6 +1459,35 @@ export function Dashboard({
     );
   }
 
+  async function syncTransactionResultCloseout(
+    record: Phase8PersistedExecutionResult,
+  ) {
+    const requestSequence = ++transactionCloseoutRequestSequenceRef.current;
+    setTransactionCloseoutState({
+      recordId: record.id,
+      resultStatus: record.status,
+      status: "saving",
+      message: "Persisting sanitized result to the owner-only backend...",
+    });
+    const result = await persistTransactionResultCloseout(authSession, record);
+    if (requestSequence !== transactionCloseoutRequestSequenceRef.current) {
+      return;
+    }
+
+    setTransactionCloseoutState({
+      recordId: record.id,
+      resultStatus: record.status,
+      status: result.status === "saved" ? "saved" : "error",
+      message: result.message,
+    });
+    recordBackendEvent({
+      kind: "dashboard-refresh",
+      source: "dashboard",
+      status: result.status === "saved" ? "success" : "blocked",
+      message: result.message,
+    });
+  }
+
   function createPhase8Nonce(prefix: string) {
     const randomId = globalThis.crypto?.randomUUID?.() ??
       `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
@@ -1439,6 +1505,13 @@ export function Dashboard({
       return;
     }
 
+    transactionCloseoutRequestSequenceRef.current += 1;
+    setTransactionCloseoutState({
+      recordId: null,
+      resultStatus: null,
+      status: "idle",
+      message: "No owner-only transaction result has been persisted yet.",
+    });
     setPhase8SubmitterResult(null);
     setPhase8OwnerArming({
       ownerUserId,
@@ -1749,6 +1822,7 @@ export function Dashboard({
         submitRequestReady: phase8LowValueSubmitRequest.ok,
         transactionVerificationStatus: phase8TransactionVerification.status,
         ownerCloseoutReady: phase8SmokeCloseout.canContinueToPublicHardening,
+        backendCloseoutSaved: transactionCloseoutStatus === "saved",
         publicExecutionEnabled: false,
         telegramExecutionEnabled: false,
       }),
@@ -1759,6 +1833,7 @@ export function Dashboard({
       phase8SmokeCloseout.canContinueToPublicHardening,
       phase8TransactionVerification.status,
       phase8UserExecutionFlow.status,
+      transactionCloseoutStatus,
     ],
   );
   const phase9ExecutionEligibility = useMemo(
@@ -2193,6 +2268,7 @@ export function Dashboard({
       ownerSignedIn: Boolean(authSession),
       selectedAgent: selectedAgentReadyForExecution,
       ownerWalletConnected: runtimeBoundWalletConnected,
+      resultCloseoutBackendConfigured: appConfig.functions.transactionResultCloseoutConfigured,
       controlledSubmission: phase8ControlledSubmission,
       liveWindowActivation: phase8OwnerLiveWindowActivation,
       resultCloseoutRecorded: phase8ControlledSubmission.resultCloseoutRecorded,
@@ -4781,8 +4857,13 @@ export function Dashboard({
                   Visibility
                   <strong>{phase8TransactionVerification.ownerOnly ? "owner-only" : "blocked"}</strong>
                 </span>
+                <span>
+                  Backend closeout
+                  <strong>{transactionCloseoutStatus}</strong>
+                </span>
               </div>
               <p>{phase8TransactionVerification.message}</p>
+              <small>{transactionCloseoutMessage}</small>
               {phase8TransactionVerification.reasons.length
                 ? <small>{formatGateHint(phase8TransactionVerification.reasons)}</small>
                 : <small>Receipt verification is owner-only. Telegram and public profiles cannot read or expose this state.</small>}

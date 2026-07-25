@@ -14,6 +14,7 @@ export type Phase8ProductionCloseoutReason =
   | "receipt_pending"
   | "receipt_failed"
   | "owner_closeout_required"
+  | "backend_closeout_required"
   | "public_execution_forbidden"
   | "telegram_execution_forbidden";
 
@@ -24,6 +25,7 @@ export interface Phase8ProductionCloseoutInput {
   submitRequestReady: boolean;
   transactionVerificationStatus: "not_started" | "pending_receipt" | "confirmed" | "failed" | "blocked";
   ownerCloseoutReady: boolean;
+  backendCloseoutSaved: boolean;
   publicExecutionEnabled: boolean;
   telegramExecutionEnabled: boolean;
 }
@@ -88,6 +90,10 @@ export function evaluatePhase8ProductionCloseout(
     reasons.push("owner_closeout_required");
   }
 
+  if (input.transactionVerificationStatus === "confirmed" && !input.backendCloseoutSaved) {
+    reasons.push("backend_closeout_required");
+  }
+
   const uniqueReasons = [...new Set(reasons)];
   const status = resolveStatus(input, uniqueReasons);
 
@@ -118,7 +124,7 @@ function resolveStatus(
     return "receipt_pending";
   }
 
-  if (input.transactionVerificationStatus === "confirmed" && input.ownerCloseoutReady && reasons.length === 0) {
+  if (input.transactionVerificationStatus === "confirmed" && input.ownerCloseoutReady && input.backendCloseoutSaved && reasons.length === 0) {
     return "complete";
   }
 
@@ -158,6 +164,11 @@ function buildChecklist(
       label: "Owner closeout",
       status: reasons.includes("owner_closeout_required") ? "pending" : input.ownerCloseoutReady ? "pass" : "pending",
       detail: "Sanitized owner-only result remains private and auditable.",
+    },
+    {
+      label: "Backend closeout",
+      status: input.backendCloseoutSaved ? "pass" : input.transactionVerificationStatus === "confirmed" ? "blocked" : "pending",
+      detail: "Sanitized receipt status must persist through the authenticated owner-only backend.",
     },
     {
       label: "Public/Telegram boundary",

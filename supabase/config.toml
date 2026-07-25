@@ -41,3 +41,7 @@ verify_jwt = true
 # parsing additionally requires a successful backend session lookup.
 [functions.telegram-webhook]
 verify_jwt = false
+# Transaction closeout is owner-scoped, authenticated, and persists only
+# sanitized Robinhood mainnet receipt state.
+[functions.transaction-result-closeout]
+verify_jwt = true

@@ -34,16 +34,26 @@ const telegramDisconnectFunctionUrl =
   (supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/telegram-disconnect` : "");
 const chainActionPrepareFunctionUrl =
   supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/chain-action-prepare` : "";
+const transactionResultCloseoutFunctionUrl =
+  supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/transaction-result-closeout` : "";
 const telegramConnectTokenInputEnabled =
   readEnv("VITE_KYRA_ENABLE_TELEGRAM_CONNECT_TOKEN_INPUT").toLowerCase() === "true";
 const telegramDashboardStatusReadModelEnabled =
   readEnv("VITE_KYRA_ENABLE_TELEGRAM_DASHBOARD_STATUS").toLowerCase() === "true";
+const robinhoodSubmissionReleaseReady = currentProductChain.key === "robinhood_testnet"
+  ? readEnv("VITE_KYRA_CHAIN_RELEASE_TARGET") === "robinhood_testnet" &&
+    readEnv("VITE_KYRA_ROBINHOOD_TESTNET_WINDOW") === "owner_testnet_window"
+  : readEnv("VITE_KYRA_CHAIN_RELEASE_TARGET") === "robinhood_mainnet" &&
+    readEnv("VITE_KYRA_ROBINHOOD_MAINNET_WINDOW") === "owner_mainnet_cutover" &&
+    readEnv("VITE_KYRA_ROBINHOOD_MAINNET_RELEASE") === "owner_release_approved";
 const phase8ControlledSubmissionRuntime =
-  readEnv("VITE_KYRA_PHASE8_CONTROLLED_SUBMISSION").toLowerCase() === "owner_approved_window"
+  robinhoodSubmissionReleaseReady &&
+    readEnv("VITE_KYRA_PHASE8_CONTROLLED_SUBMISSION").toLowerCase() === "owner_approved_window"
     ? "owner_approved_window"
     : "disabled";
 const phase8LowValueSubmissionRuntime =
-  readEnv("VITE_KYRA_PHASE8_LOW_VALUE_SUBMISSION").toLowerCase() === "owner_low_value_window"
+  phase8ControlledSubmissionRuntime === "owner_approved_window" &&
+    readEnv("VITE_KYRA_PHASE8_LOW_VALUE_SUBMISSION").toLowerCase() === "owner_low_value_window"
     ? "owner_low_value_window"
     : "disabled";
 const telegramBackendConfigured = Boolean(
@@ -92,6 +102,10 @@ export const appConfig = {
     chainActionPrepareConfigured: Boolean(
       chainActionPrepareFunctionUrl && supabaseConfigured,
     ),
+    transactionResultCloseoutUrl: transactionResultCloseoutFunctionUrl,
+    transactionResultCloseoutConfigured: Boolean(
+      transactionResultCloseoutFunctionUrl && supabaseConfigured,
+    ),
   },
   featureFlags: {
     telegramConnectTokenInput: telegramConnectTokenInputEnabled,
@@ -107,6 +121,7 @@ export const appConfig = {
       : "read-only scaffold",
     walletConnection: "owner_click_only",
     walletExecution: "disabled",
+    robinhoodSubmissionReleaseReady,
     phase8ControlledSubmission: phase8ControlledSubmissionRuntime,
     phase8LowValueSubmission: phase8LowValueSubmissionRuntime,
   },

@@ -64,6 +64,7 @@ try {
     ownerSignedIn: true,
     selectedAgent: true,
     ownerWalletConnected: true,
+    resultCloseoutBackendConfigured: true,
     controlledSubmission,
     liveWindowActivation,
     resultCloseoutRecorded: false,
@@ -82,6 +83,7 @@ try {
     ["ownerSignedIn", "owner_session_required"],
     ["selectedAgent", "selected_agent_required"],
     ["ownerWalletConnected", "owner_wallet_required"],
+    ["resultCloseoutBackendConfigured", "result_closeout_backend_required"],
     ["privateDashboardSource", "private_dashboard_required"],
   ]) {
     const result = evaluatePhase8RuntimeEnablementPreflight({

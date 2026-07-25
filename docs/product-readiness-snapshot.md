@@ -16,6 +16,8 @@
 - Mainnet RPC credentials remain backend-only.
 - A live window is short-lived and invalidated by disconnect, scope drift, or emergency disable.
 - Transaction result data is owner-only and sanitized.
+- Receipt closeout is implemented through an authenticated Edge Function and an RLS-protected table; raw submission nonces and provider payloads are not stored.
+- Runtime submitter enablement fails closed when the closeout backend is unavailable.
 
 ## Final Release Evidence
 
@@ -23,6 +25,7 @@ Public transaction submission requires:
 
 - one bounded owner-approved mainnet transaction
 - verified receipt and confirmation
+- authenticated backend closeout recorded as `saved`
 - no sensitive payload in browser logs, public views, or support evidence
 - tested emergency disable and rollback
 - recorded release decision

@@ -86,6 +86,7 @@
     "check:launch-packet": "node scripts/check-controlled-execution-launch-packet.mjs",
     "check:product": "npm run check:privacy && npm run check:functions && npm run check:prepared-actions && npm run check:robinhood-migration && npm run check:robinhood-public-cutover && npm run check:roadmap && npm run check:product-snapshot && npm run check:launch-packet && npm run test:execution-safety",
     "check:prepared-actions": "npm run test:unsigned-handoff && npm run test:prepared-action-allowlist && npm run test:prepared-action-policy && npm run test:risk-review",
+    "test:transaction-result-closeout": "deno test supabase/functions/transaction-result-closeout/core_test.ts",
     "test:all": "node scripts/run-all-tests.mjs",
     "check:robinhood-only": "node scripts/check-robinhood-only-repository.mjs"
   },

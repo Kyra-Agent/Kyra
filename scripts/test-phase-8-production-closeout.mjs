@@ -13,6 +13,7 @@ const baselineInput = {
   submitRequestReady: true,
   transactionVerificationStatus: "not_started",
   ownerCloseoutReady: false,
+  backendCloseoutSaved: false,
   publicExecutionEnabled: false,
   telegramExecutionEnabled: false,
 };
@@ -37,9 +38,20 @@ const confirmed = evaluatePhase8ProductionCloseout({
   userFlowStatus: "confirmed",
   transactionVerificationStatus: "confirmed",
   ownerCloseoutReady: true,
+  backendCloseoutSaved: true,
 });
 assert(confirmed.status === "complete", "confirmed receipt and owner closeout should complete Phase 8");
 assert(confirmed.canContinueToPhase9, "confirmed closeout should allow Phase 9");
+
+const backendMissing = evaluatePhase8ProductionCloseout({
+  ...baselineInput,
+  userFlowStatus: "confirmed",
+  transactionVerificationStatus: "confirmed",
+  ownerCloseoutReady: true,
+  backendCloseoutSaved: false,
+});
+assert(backendMissing.status === "blocked", "confirmed receipt without backend closeout must stay blocked");
+assert(backendMissing.reasons.includes("backend_closeout_required"), "backend closeout reason should be explicit");
 
 const publicLeak = evaluatePhase8ProductionCloseout({
   ...baselineInput,

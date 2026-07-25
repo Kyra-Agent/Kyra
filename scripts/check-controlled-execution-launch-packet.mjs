@@ -10,6 +10,9 @@ for (const expected of [
   "Hard Blocks",
   "Release Gate",
   "fail closed",
+  "authenticated backend",
+  "SHA-256 submission key",
+  "PostgreSQL validates owner, workspace, and agent scope",
 ]) {
   if (!packet.includes(expected)) throw new Error("Launch packet missing: " + expected);
 }
