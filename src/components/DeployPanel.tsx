@@ -13,10 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { appConfig } from "../config/appConfig";
-import {
-  currentProductChain,
-  currentWalletDisplayName,
-} from "../config/productChains";
+import { currentProductChain } from "../config/productChains";
 import { demoAgentLimits } from "../config/demoLimits";
 import type { AgentTemplate } from "../types/agent";
 import { kyraDataService } from "../services/kyraDataService";
@@ -240,7 +237,7 @@ export function DeployPanel({
   const telegramStepTitle = telegramConnectTokenInputEnabled ? "Connect Telegram during deploy" : "Telegram status";
   const telegramStepDescription = telegramConnectTokenInputEnabled
     ? "Paste a BotFather token only in this deploy step. Kyra validates it before quota is used, stores token refs backend-only, and clears the field after submit."
-    : "Telegram token entry is only available in approved owner deploy flows. Public profiles stay safe, and token handling remains backend-only.";
+    : "Telegram token entry is only available in approved private deploy flows. Public profiles stay safe, and token handling remains backend-only.";
   const telegramInterfaceStatus = telegramConnectTokenInputEnabled
     ? telegramTokenQueuedForDeploy
       ? "validates before quota"
@@ -703,7 +700,7 @@ export function DeployPanel({
         <p className="eyebrow">Deploy Flow</p>
         <h2>Deploy a public-ready agent workspace.</h2>
         <p>
-          Choose a template, configure identity, connect Telegram, and publish an agent profile with private dashboard records and explicit owner approval for every onchain action.
+          Choose a template, configure identity, connect Telegram, and publish an agent profile with private dashboard records and explicit user approval for every onchain action.
         </p>
       </div>
 
@@ -777,7 +774,7 @@ export function DeployPanel({
                       : "Create an account to unlock saved routes and private dashboard records."}
                   </strong>
                   <p>
-                    Account access stores workspace records only. Wallet connection, signing, and transactions remain separate owner-approved actions.
+                    Account access stores workspace records only. Wallet connection, signing, and transactions remain separate user-approved actions.
                   </p>
                   <button className="button button-ghost" type="button" onClick={onOpenAccount}>
                     <UserRound size={16} />
@@ -935,8 +932,8 @@ export function DeployPanel({
                   ) : (
                     <ol>
                       <li>Telegram bots are created through @BotFather.</li>
-                      <li>Token entry stays hidden until an approved owner deploy flow is available.</li>
-                      <li>Dashboard and public profiles show owner-controlled agent status.</li>
+                      <li>Token entry stays hidden until an approved private deploy flow is available.</li>
+                      <li>Dashboard and public profiles show account-managed agent status.</li>
                     </ol>
                   )}
                 </div>
@@ -964,24 +961,26 @@ export function DeployPanel({
             {wizardStep === 4 ? (
               <div className="wizard-screen">
                 <span className="wizard-kicker">Step 05</span>
-                <h3>Wallet approval policy</h3>
-                <p>Kyra prepares actions. The wallet remains the final approval gate.</p>
+                <h3>Transaction approval policy</h3>
+                <p>
+                  Connect a compatible wallet from the private dashboard after deploy. No wallet prompt opens in this step.
+                </p>
 
                 <div className="connection-grid">
                   <span>
                     <WalletCards size={16} />
-                    {currentWalletDisplayName}
-                    <strong>connected</strong>
+                    Wallet connection
+                    <strong>after deploy</strong>
                   </span>
                   <span>
                     <ShieldCheck size={16} />
                     Approval gate
-                    <strong>required</strong>
+                    <strong>explicit</strong>
                   </span>
                   <span>
                     <CheckCircle2 size={16} />
-                    Transactions
-                    <strong>disabled</strong>
+                    Execution
+                    <strong>user controlled</strong>
                   </span>
                 </div>
               </div>
@@ -1133,7 +1132,7 @@ export function DeployPanel({
                     <div className="deploy-persist-note persist-success">
                       <ShieldCheck size={15} />
                       Telegram connection active. Open the bot and use /help or /status; write, wallet,
-                      approval, and onchain actions require owner approval.
+                      approval, and onchain actions require user approval.
                     </div>
                   ) : telegramDeployConnectStatus !== "idle" ? (
                     <div className={`deploy-persist-note persist-${telegramDeployConnectStatus}`}>

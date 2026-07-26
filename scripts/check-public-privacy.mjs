@@ -230,7 +230,7 @@ assert(
 const appPage = read("src/App.tsx");
 const dashboardPage = read("src/pages/Dashboard.tsx");
 assert(
-  dashboardPage.includes("Private owner workspace") &&
+  dashboardPage.includes("Private account workspace") &&
     dashboardPage.includes("Public visitors can use the product pages and public agent profiles without seeing operational or wallet internals."),
   "Signed-out dashboard must show a public-safe private workspace notice.",
 );

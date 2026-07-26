@@ -231,7 +231,7 @@ function App() {
     document.title = `Kyra Agent | ${chainLabel} AI Agent Platform`;
     document.querySelector('meta[name="description"]')?.setAttribute(
       "content",
-      `Deploy Telegram-native agents with owner-approved ${currentProductChain.name} workflows.`,
+      `Deploy Telegram-native agents with user-approved ${currentProductChain.name} workflows.`,
     );
   }, []);
 
@@ -615,6 +615,7 @@ function App() {
             authMessage={authMessage}
             onAuthSessionChange={updateAuthSession}
             onBackHome={() => navigate("home")}
+            onStartDeploy={() => openHomeSection("deploy")}
             onOpenAgent={(target) => navigate("agent", target)}
             onSelectTemplate={setSelectedId}
           />
@@ -638,10 +639,10 @@ function App() {
                     {currentProductChain.name} agent operating system
                   </span>
                   <h1>
-                    Launch Telegram agents for owner-approved {currentProductChain.name} execution.
+                    Launch Telegram agents with user-approved {currentProductChain.name} execution.
                   </h1>
                   <p className="hero-subtitle">
-                    Kyra turns templates into live agent workspaces: Telegram-native chat, private account records, {currentWalletDisplayName} connection, and owner-approved transaction controls built for public use.
+                    Kyra turns templates into live agent workspaces: Telegram-native chat, private account records, {currentWalletDisplayName} connection, and user-approved transaction controls built for public use.
                   </p>
 
                   <div className="hero-proof-strip" aria-label="Kyra production readiness">
@@ -651,7 +652,7 @@ function App() {
                     </span>
                     <span>
                       <ShieldCheck size={15} />
-                      Owner approval gates
+                      User approval gates
                     </span>
                     <span>
                       <Terminal size={15} />
@@ -689,7 +690,7 @@ function App() {
                   <div className="trust-row" aria-label="Kyra trust model">
                     <span>No seed phrases</span>
                     <span>No custody</span>
-                    <span>Private owner dashboard</span>
+                    <span>Private account dashboard</span>
                     <span>Explicit execution approval</span>
                   </div>
                 </div>

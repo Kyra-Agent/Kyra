@@ -118,7 +118,7 @@ Current safety guarantees:
 
 Robinhood Chain is Kyra's primary onchain target. Users connect a compatible EVM wallet in their private workspace, review the prepared action, and remain the final signing authority. Provider infrastructure supplies chain access but never replaces user consent or wallet authority.
 
-The current public release supports agent deployment, private workspaces, Telegram read-only interaction, Robinhood Chain wallet connectivity, and approval-first action review. Transaction submission remains controlled and fail-closed until a bounded mainnet receipt and rollback check complete the release gate.
+The current public release supports agent deployment, private workspaces, Telegram read-only interaction, Robinhood Chain wallet connectivity, and approval-first action review. Transaction submission is restricted to authenticated, selected-agent, explicitly approved wallet flows; public profiles and Telegram cannot submit.
 
 Kyra is an independent product and does not imply affiliation with, sponsorship by, or endorsement from Robinhood.
 

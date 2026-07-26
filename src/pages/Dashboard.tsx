@@ -11,6 +11,7 @@ import {
   LockKeyhole,
   Radio,
   RotateCcw,
+  Rocket,
   Server,
   ShieldCheck,
   Terminal,
@@ -162,6 +163,7 @@ interface DashboardProps {
     message: string,
   ) => void;
   onBackHome: () => void;
+  onStartDeploy: () => void;
   onOpenAgent: (target?: { templateId?: string; publicPath?: string }) => void;
   onSelectTemplate: (templateId: string) => void;
 }
@@ -728,6 +730,7 @@ export function Dashboard({
   authMessage,
   onAuthSessionChange,
   onBackHome,
+  onStartDeploy,
   onOpenAgent,
   onSelectTemplate,
 }: DashboardProps) {
@@ -3034,10 +3037,10 @@ export function Dashboard({
             </h1>
             <p>
               {!authSession
-                ? `Sign in to manage saved agents, public routes, approval queues, ${currentWalletDisplayName} status, and owner-only execution controls.`
+                ? `Sign in to manage saved agents, public routes, approval queues, ${currentWalletDisplayName} status, and private execution controls.`
                 : agentRecord
                 ? activeTemplate.role
-                : "Deploy an agent to create persisted dashboard records."}
+                : "Start with a template to create your private workspace, public route, and approval controls."}
             </p>
           </div>
           {agentRecord
@@ -3063,9 +3066,9 @@ export function Dashboard({
               </button>
             )
             : (
-              <button className="button button-primary" type="button" disabled>
-                Deploy agent first
-                <ExternalLink size={16} />
+              <button className="button button-primary" type="button" onClick={onStartDeploy}>
+                Deploy your first agent
+                <Rocket size={16} />
               </button>
             )}
         </div>
@@ -3073,10 +3076,10 @@ export function Dashboard({
         {!authSession ? (
           <section className="dashboard-public-owner-notice" id="overview">
             <div className="result-monitoring-header">
-              <span>Private owner workspace</span>
+              <span>Private account workspace</span>
               <strong>sign in required</strong>
             </div>
-            <p>Kyra keeps agent records, wallet status, approval queues, transaction controls, support evidence, and release readiness inside the private owner workspace.</p>
+            <p>Kyra keeps agent records, wallet status, approval queues, transaction controls, support evidence, and release readiness inside the private account workspace.</p>
             <small>Public visitors can use the product pages and public agent profiles without seeing operational or wallet internals.</small>
           </section>
         ) : (
@@ -3231,7 +3234,7 @@ export function Dashboard({
                   </strong>
                   <p>
                     {authSession
-                      ? "This signed-in workspace is clean. Deploy an agent from the home flow to create the dashboard, approval queue, wallet policy, logs, and public agent route."
+                      ? "Your workspace is ready. Deploy a template to create its dashboard, approval queue, wallet policy, logs, and public agent route."
                       : "Sign in to load account-scoped agent workspace records. No sample agent, wallet queue, or public route is shown while signed out."}
                   </p>
                 </div>

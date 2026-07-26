@@ -83,7 +83,7 @@ export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
             </span>
           </div>
           <p className="muted">
-            Kyra prepares review context. Wallet prompts, signing, and network fees require the owner-controlled approval path.
+            Kyra prepares review context. Wallet prompts, signing, and network fees require the user-controlled approval path.
           </p>
         </div>
 

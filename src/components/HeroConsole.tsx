@@ -38,7 +38,7 @@ export function HeroConsole({
       "NIRA-01  intent routing online",
       "NOVA-04  account-scoped data ready",
       "NYX-05   risk and approval guard active",
-      `${currentProductChain.name.toUpperCase()} ACTION owner review layer ready`,
+      `${currentProductChain.name.toUpperCase()} ACTION user review layer ready`,
       `telegram> ${selectedScenario.command}`,
       ...selectedScenario.lines,
     ],
@@ -121,7 +121,7 @@ export function HeroConsole({
           </span>
           <span>
             <WalletCards size={15} />
-            Owner review
+            User review
           </span>
           <span>
             <ShieldCheck size={15} />

@@ -34,12 +34,12 @@ interface PublicAgentProps {
 const capabilityRows = [
   {
     title: "Telegram interface",
-    summary: "Live Telegram surface managed from the private owner dashboard.",
+    summary: "Live Telegram surface managed from the private account dashboard.",
     icon: Bot,
   },
   {
     title: `${currentProductChain.name} action layer`,
-    summary: `Prepares ${currentProductChain.name} action context while submission stays owner-controlled.`,
+    summary: `Prepares ${currentProductChain.name} action context while submission stays user-controlled.`,
     icon: Radio,
   },
   {
@@ -75,7 +75,7 @@ function getPublicTelegramPanelStatus(status: string) {
       eyebrow: "Telegram live connect",
       headline: "Telegram bot connected",
       description:
-        "This agent has an active Telegram bot connection. Public commands stay read-only while wallet, approval, and onchain actions remain owner-controlled.",
+        "This agent has an active Telegram bot connection. Public commands stay read-only while wallet, approval, and onchain actions remain user-controlled.",
       label: "Read-only live",
     };
   }
@@ -85,7 +85,7 @@ function getPublicTelegramPanelStatus(status: string) {
       eyebrow: "Telegram setup queued",
       headline: "Waiting for activation",
       description:
-        "The owner has queued Telegram setup. Public profiles never collect bot tokens, and activation stays owner-controlled.",
+        "Telegram setup is queued from the private account. Public profiles never collect bot tokens, and activation stays account-controlled.",
       label: "Queued",
     };
   }

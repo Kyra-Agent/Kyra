@@ -35,7 +35,7 @@ export function ActionConsole() {
         <h2>Every command becomes a controlled review.</h2>
         <p>
           Kyra reads context, prepares bounded summaries, and routes wallet or
-          onchain requests through explicit owner approval.
+          onchain requests through explicit user approval.
         </p>
       </div>
 

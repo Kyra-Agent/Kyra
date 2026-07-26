@@ -164,7 +164,7 @@ export const demoActivityLogs: DemoActivityLog[] = [
     timestamp: "12:05:06",
     source: "approval_requests",
     level: "notice",
-    message: "status: waiting for future owner approval path",
+    message: "status: waiting for user approval",
   },
   {
     id: "log_execution_pending",

@@ -12,14 +12,14 @@ export const actions: ActionDefinition[] = [
     id: "swap",
     name: "Swap Review",
     summary:
-      "Turn swap requests into owner-review drafts. No Telegram-triggered swap execution.",
+      "Turn swap requests into user-review drafts. No Telegram-triggered swap execution.",
     tier: "mvp",
   },
   {
     id: "send",
     name: "Transfer Review",
     summary:
-      "Summarize recipient, token, amount, and risk context before any future wallet prompt.",
+      "Summarize recipient, token, amount, and risk context before any wallet prompt.",
     tier: "mvp",
   },
   {
@@ -39,7 +39,7 @@ export const actions: ActionDefinition[] = [
     id: "holder-verify",
     name: "Holder Verify",
     summary:
-      "Plan owner-controlled verification flows without asking Telegram to request signatures.",
+      "Plan user-controlled verification flows without asking Telegram to request signatures.",
     tier: "mvp",
   },
   {

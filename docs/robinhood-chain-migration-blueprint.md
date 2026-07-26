@@ -18,7 +18,7 @@ Robinhood Chain replaces the previous product-chain implementation across public
 - wallet runtime uses chain-aware EVM connectors
 - deployed agents persist a Robinhood chain key and ID
 - chain status and prepared-action functions use Robinhood-only backend contracts
-- existing persisted records are migrated forward to Robinhood mainnet
+- new persisted records bind directly to Robinhood mainnet
 - public profiles expose chain-action status instead of legacy provider status
 - obsolete provider functions, configuration, scripts, and public docs are retired
 
@@ -34,6 +34,16 @@ agents one by one:
 - the one-time reset RPC, Edge Function, and temporary secret were removed after closeout
 
 New deployments start from zero agents and bind directly to Robinhood Chain.
+
+## Post-Reset Validation
+
+The clean-slate production flow was revalidated after reset:
+
+- the zero-agent account state loaded without inherited agent, wallet, approval, or Telegram records
+- a fresh Robinhood Chain agent deployment completed through the current account flow
+- wallet discovery and the approval-first transaction boundary remained scoped to the private dashboard
+- Telegram and agent lifecycle controls remained account-scoped
+- agent removal returned the workspace to a clean state without restoring retired records
 
 ## Safety Boundary
 

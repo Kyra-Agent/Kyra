@@ -87,7 +87,7 @@ export const agentTemplates: AgentTemplate[] = [
     summary:
       "A planning agent that turns token, market, and community context into launch narratives, campaign plans, and decision-ready briefs.",
     bestFor:
-      "Projects and operators who need sharper positioning, launch messaging, and market-aware plans before pushing announcements or owner-approved actions.",
+      "Projects and operators who need sharper positioning, launch messaging, and market-aware plans before pushing announcements or user-approved actions.",
     actions: [
       "market brief",
       "campaign plan",
