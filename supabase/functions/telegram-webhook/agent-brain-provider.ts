@@ -24,6 +24,7 @@ const maxModelLength = 128;
 const maxEndpointLength = 2048;
 const maxPromptMessageLength = 3000;
 const maxPromptMessages = 6;
+const maxAgentBrainCompletionTokens = 800;
 
 export function createOpenAiCompatibleTelegramAgentBrainProvider(
   options: OpenAiCompatibleTelegramAgentBrainProviderOptions,
@@ -102,7 +103,7 @@ export function buildOpenAiCompatibleAgentBrainPayload(
     return {
       model: checkedModel,
       messages,
-      max_completion_tokens: 220,
+      max_completion_tokens: maxAgentBrainCompletionTokens,
       temperature: 0.2,
       metadata: {
         kyra_surface: "telegram",
@@ -114,7 +115,7 @@ export function buildOpenAiCompatibleAgentBrainPayload(
   return {
     model: checkedModel,
     input: messages,
-    max_output_tokens: 220,
+    max_output_tokens: maxAgentBrainCompletionTokens,
     temperature: 0.2,
     metadata: {
       kyra_surface: "telegram",
@@ -261,6 +262,7 @@ function readProviderResponseText(value: unknown) {
   }
 
   const body = value as Record<string, unknown>;
+  assertCompleteProviderResponse(body);
 
   if (typeof body.output_text === "string" && body.output_text.trim()) {
     return body.output_text.trim();
@@ -277,6 +279,43 @@ function readProviderResponseText(value: unknown) {
   }
 
   throw invalidProviderResponse();
+}
+
+function assertCompleteProviderResponse(body: Record<string, unknown>) {
+  if ("status" in body && body.status !== "completed") {
+    throw invalidProviderResponse();
+  }
+
+  if (
+    "incomplete_details" in body &&
+    body.incomplete_details !== null &&
+    body.incomplete_details !== undefined
+  ) {
+    throw invalidProviderResponse();
+  }
+
+  if (!Array.isArray(body.choices) || !body.choices.length) {
+    return;
+  }
+
+  const firstChoice = body.choices[0];
+
+  if (
+    !firstChoice ||
+    typeof firstChoice !== "object" ||
+    Array.isArray(firstChoice) ||
+    !("finish_reason" in firstChoice)
+  ) {
+    return;
+  }
+
+  if (
+    typeof (firstChoice as Record<string, unknown>).finish_reason !==
+      "string" ||
+    (firstChoice as Record<string, unknown>).finish_reason !== "stop"
+  ) {
+    throw invalidProviderResponse();
+  }
 }
 
 function readOutputArrayText(value: unknown) {

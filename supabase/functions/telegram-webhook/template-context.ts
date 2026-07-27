@@ -181,8 +181,10 @@ export function buildTelegramTemplateContextReply(
 ) {
   const context = buildTelegramTemplateContext(source);
   const lines = buildTelegramTemplateContextReplyLines(context, command);
-  const text = lines.join("\n").slice(0, maxTemplateContextReplyCharacters)
-    .trim();
+  const text = joinCompleteTelegramReplyLines(
+    lines,
+    maxTemplateContextReplyCharacters,
+  );
 
   assertSafeTelegramTemplateContextText(text);
 
@@ -190,6 +192,25 @@ export function buildTelegramTemplateContextReply(
     context,
     text,
   };
+}
+
+function joinCompleteTelegramReplyLines(
+  lines: readonly string[],
+  maxCharacters: number,
+) {
+  const completeLines: string[] = [];
+
+  for (const line of lines) {
+    const candidate = [...completeLines, line].join("\n");
+
+    if (candidate.length > maxCharacters) {
+      break;
+    }
+
+    completeLines.push(line);
+  }
+
+  return completeLines.join("\n").trim();
 }
 
 function buildTelegramTemplateContextReplyLines(
@@ -212,7 +233,9 @@ function buildTelegramTemplateContextReplyLines(
       `Dashboard gated: ${
         formatTelegramContextList(context.dashboardGatedActions)
       }`,
-      `Owner approval required: ${formatTelegramContextList(context.phase6GatedActions)}`,
+      `Owner approval required: ${
+        formatTelegramContextList(context.phase6GatedActions)
+      }`,
       "Boundary: Telegram can brief and plan only. Wallet, write, approval, and onchain execution stay disabled.",
     ];
   }

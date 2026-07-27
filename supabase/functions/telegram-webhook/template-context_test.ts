@@ -226,6 +226,42 @@ Deno.test("telegram template context returns distinct command replies", () => {
   assertNoSensitiveMaterial({ agentReply, actionsReply, modulesReply });
 });
 
+Deno.test("telegram template context keeps bounded replies on complete lines", () => {
+  const { context, text } = buildTelegramTemplateContextReply({
+    templateId: "bounded-lines",
+    name: "A".repeat(48),
+    role: "R".repeat(72),
+    summary: "S".repeat(220),
+    actions: ["market brief"],
+    modules: Array.from(
+      { length: 8 },
+      (_, index) => `CUSTOM-MODULE-${index}-${"X".repeat(14)}`,
+    ),
+  });
+  const completeLines = [
+    context.name,
+    `Role: ${context.role}`,
+    `Focus: ${context.summary}`,
+    "Telegram access: read-only",
+    `Template stack: active none; guard none; standby ${
+      context.modules.map((module) => module.name).join(", ")
+    }`,
+    "Next: /actions or /modules",
+    context.safetyNote,
+  ];
+  const actualLines = text.split("\n");
+
+  assert(text.length <= 700, "Bounded reply must stay within 700 characters.");
+  assert(
+    actualLines.every((line) => completeLines.includes(line)),
+    "Bounded reply must contain complete generated lines only.",
+  );
+  assert(
+    completeLines.includes(actualLines.at(-1) ?? ""),
+    "Bounded reply must end on a complete generated line.",
+  );
+});
+
 Deno.test("telegram template context presents numeric agent names as agent labels", () => {
   const { context, text } = buildTelegramTemplateContextReply({
     ...seedTemplates[4],

@@ -81,7 +81,7 @@ Deno.test("telegram agent brain provider builds bounded OpenAI-compatible payloa
     throw new Error("Responses payload must include input.");
   }
   assertEquals(input.length, 2);
-  assertEquals(payload.max_output_tokens, 220);
+  assertEquals(payload.max_output_tokens, 800);
   assertEquals(payload.temperature, 0.2);
   assertEquals(payload.metadata.kyra_surface, "telegram");
   assertEquals(payload.metadata.kyra_mode, "read_only");
@@ -105,7 +105,7 @@ Deno.test("telegram agent brain provider builds chat completions payload for Ope
     throw new Error("Chat completions payload must include messages.");
   }
   assertEquals(messages.length, 2);
-  assertEquals(payload.max_completion_tokens, 220);
+  assertEquals(payload.max_completion_tokens, 800);
   assertEquals(payload.temperature, 0.2);
   assertEquals(payload.metadata.kyra_surface, "telegram");
   assertEquals(payload.metadata.kyra_mode, "read_only");
@@ -264,6 +264,45 @@ Deno.test("telegram agent brain provider supports common response envelopes", as
   );
 });
 
+Deno.test("telegram agent brain provider rejects incomplete responses", async () => {
+  const incompleteResponses = [
+    {
+      endpoint: "https://llm.test/v1/responses",
+      body: {
+        status: "incomplete",
+        incomplete_details: { reason: "max_output_tokens" },
+        output_text: "Gated actions:\n-",
+      },
+    },
+    {
+      endpoint: "https://openrouter.ai/api/v1/chat/completions",
+      body: {
+        choices: [
+          {
+            finish_reason: "length",
+            message: { content: "Gated actions:\n-" },
+          },
+        ],
+      },
+    },
+  ];
+
+  for (const incomplete of incompleteResponses) {
+    const provider = createOpenAiCompatibleTelegramAgentBrainProvider({
+      apiKey: testApiKey,
+      model: testModel,
+      endpoint: incomplete.endpoint,
+      fetch: async () => jsonResponse(incomplete.body),
+    });
+
+    await assertRejectsHttpError(
+      () => provider.complete(testRequest),
+      502,
+      "agent_brain_invalid_response",
+    );
+  }
+});
+
 Deno.test("telegram agent brain provider supports OpenRouter chat completions", async () => {
   const openRouterModel = "openai/gpt-test-safe";
   let capturedUrl = "";
@@ -308,7 +347,7 @@ Deno.test("telegram agent brain provider supports OpenRouter chat completions", 
   assertEquals(capturedAuthorization, `Bearer ${testApiKey}`);
   assertEquals(payload.model, openRouterModel);
   assertEquals(payload.messages.length, 2);
-  assertEquals(payload.max_completion_tokens, 220);
+  assertEquals(payload.max_completion_tokens, 800);
   assert(
     !("input" in payload),
     "OpenRouter request must use chat completions messages.",

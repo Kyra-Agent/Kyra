@@ -654,6 +654,17 @@ Deno.test("telegram agent brain rejects malformed contextual polish", async () =
   );
 });
 
+Deno.test("telegram agent brain rejects an empty trailing bullet", async () => {
+  await assertRejectsHttpError(
+    () =>
+      assertTelegramAgentBrainReply({
+        text: "Available gated actions for review:\n-",
+      }),
+    502,
+    "agent_brain_invalid_response",
+  );
+});
+
 Deno.test("telegram agent brain validates provider response shape", async () => {
   await assertRejectsHttpError(
     () => assertTelegramAgentBrainReply({ text: "ok", raw: "private" }),
