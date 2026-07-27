@@ -1646,6 +1646,88 @@ Deno.test("telegram-webhook natural chat reaches agent brain with template conte
   );
 });
 
+Deno.test("telegram-webhook natural chat uses template-aware fallback on brain failure", async () => {
+  const deliveries: Array<Record<string, unknown>> = [];
+
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("What template do you run?")),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      parseRuntimeConfig: { enabled: true },
+      chatAuthRuntimeConfig: { enabled: true },
+      claimRuntimeConfig: { enabled: true },
+      deliveryRuntimeConfig: { enabled: true },
+      templateContextRuntimeConfig: { enabled: true },
+      agentBrainRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => ({
+        sessionId: "telegram-session-1",
+        agentId: "agent-1",
+        workspaceId: "workspace-1",
+        ownerUserId: "owner-1",
+        botHandle: "@kyra_test_bot",
+        webhookStatus: "active",
+      }),
+      lookupTelegramChatAuthorization: async () => ({
+        authorized: true,
+        role: "owner",
+      }),
+      claimTelegramUpdate: async () => ({ claimed: true, status: "claimed" }),
+      lookupTelegramTemplateContext: async () => ({
+        context: {
+          templateId: "executor",
+          name: "Kyra'sHOOD",
+          role: "Rule-based action readiness agent",
+          summary: "Reviews DCA plans and controlled automation drafts.",
+          actions: [],
+          modules: [
+            { name: "NIRA-01", title: "Lead Agent", telegramStatus: "active" },
+            {
+              name: "NYX-05",
+              title: "Security Agent",
+              telegramStatus: "guard",
+            },
+          ],
+          readOnlyActions: [],
+          dashboardGatedActions: [],
+          phase6GatedActions: ["conditional review", "dca plan"],
+          gatedActions: ["conditional review", "dca plan"],
+          safetyNote: "Telegram is read-only.",
+        },
+        text: "Template fallback context.",
+      }),
+      generateTelegramAgentBrainReply: async () => {
+        throw new Error("provider unavailable");
+      },
+      deliverTelegramReadOnlyResponse: async (input) => {
+        deliveries.push(input);
+        return { delivered: true };
+      },
+    },
+  );
+
+  const body = await readJson(response);
+  const deliveredResponse = deliveries[0]?.response as
+    | Record<string, unknown>
+    | undefined;
+  const deliveredText = String(deliveredResponse?.text);
+
+  assertEquals(response.status, 200);
+  assertEquals(body.status, "delivered");
+  assertEquals(deliveredResponse?.command, "chat");
+  assert(
+    deliveredText.includes("Template: Executor"),
+    "Brain failure must keep the deployed template context.",
+  );
+  assert(
+    deliveredText.includes("dca plan"),
+    "Brain failure must keep the Executor review scope.",
+  );
+  assert(
+    !deliveredText.includes("market brief, campaign plan"),
+    "Brain failure must not fall back to Strategist actions.",
+  );
+});
+
 Deno.test("telegram-webhook natural chat keeps safe fallback on brain failure", async () => {
   const deliveries: Array<Record<string, unknown>> = [];
 

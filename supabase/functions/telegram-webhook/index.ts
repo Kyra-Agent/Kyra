@@ -90,6 +90,7 @@ import {
   type TelegramOwnerLinkConsumeRpcClient,
 } from "./owner-link-consume.ts";
 import { dispatchVerifiedTelegramWebhookUpdate } from "./owner-link-dispatch.ts";
+import { buildTelegramTemplateChatFallback } from "./template-context.ts";
 import {
   lookupTelegramTemplateContext,
   type TelegramTemplateContextLookupClient,
@@ -928,6 +929,17 @@ export async function handleTelegramWebhookRequest(
           response = {
             command: parsedUpdate.command,
             text: templateContext.text,
+          };
+        } else if (
+          !executionGate || executionGate.status === "read_only_allowed"
+        ) {
+          response = {
+            command: parsedUpdate.command,
+            text: buildTelegramTemplateChatFallback(
+              templateContext.context,
+              classifyTelegramReadOnlyChatIntent(parsedUpdate.text),
+              parsedUpdate.text,
+            ),
           };
         }
       }

@@ -1,4 +1,5 @@
 import { HttpError, sanitizeErrorMessage } from "./core.ts";
+import type { TelegramReadOnlyChatIntent } from "./read-only-response.ts";
 
 export type TelegramTemplateActionAvailability =
   | "read_only_ready"
@@ -194,6 +195,119 @@ export function buildTelegramTemplateContextReply(
   };
 }
 
+export function buildTelegramTemplateChatFallback(
+  context: TelegramTemplateContext,
+  intent: TelegramReadOnlyChatIntent,
+  userRequest?: unknown,
+) {
+  const name = sanitizeTemplateText(
+    context.name,
+    maxTemplateNameLength,
+    "Kyra Agent",
+  );
+  const role = sanitizeTemplateText(
+    context.role,
+    maxTemplateRoleLength,
+    "Read-only Telegram agent",
+  );
+  const summary = sanitizeTemplateText(
+    context.summary,
+    maxTemplateSummaryLength,
+    "Kyra agent profile.",
+  );
+  const template = formatTemplateLabel(context.templateId);
+  const reviewScope = sanitizeFallbackActionList([
+    ...context.readOnlyActions,
+    ...context.gatedActions,
+  ]);
+  const lines = buildTelegramTemplateChatFallbackLines({
+    intent,
+    name,
+    role,
+    summary,
+    template,
+    reviewScope,
+    modules: context.modules,
+    userRequest,
+  });
+  const fallbackText = joinCompleteTelegramReplyLines(
+    lines,
+    maxTemplateContextReplyCharacters,
+  );
+
+  assertSafeTelegramTemplateContextText(fallbackText);
+  return fallbackText;
+}
+
+function buildTelegramTemplateChatFallbackLines(input: {
+  intent: TelegramReadOnlyChatIntent;
+  name: string;
+  role: string;
+  summary: string;
+  template: string;
+  reviewScope: readonly string[];
+  modules: readonly TelegramTemplateModuleContext[];
+  userRequest?: unknown;
+}) {
+  const scope = formatTelegramContextList(input.reviewScope);
+  const boundary =
+    "Boundary: Telegram does not sign, approve, or submit transactions.";
+
+  if (input.intent === "agent_profile") {
+    return [
+      input.name,
+      `Template: ${input.template}`,
+      `Role: ${input.role}`,
+      `Strategy: ${input.summary}`,
+      `Review scope: ${scope}`,
+      boundary,
+    ];
+  }
+
+  if (input.intent === "risk_review") {
+    const subject = inferRiskReviewSubject(input.userRequest);
+    return [
+      `${subject} risk review`,
+      `Agent: ${input.name} (${input.template})`,
+      "Scope: read-only planning review",
+      "- Market risk: adverse price moves can create drawdowns during the plan.",
+      "- Timing risk: fixed intervals reduce timing concentration but do not remove loss risk.",
+      "- Liquidity risk: verify route depth, slippage, and available balance before approval.",
+      "- Control risk: cap each interval and total exposure before enabling automation.",
+      "- Owner control: review the prepared action and policy checks before any execution.",
+      boundary,
+    ];
+  }
+
+  if (input.intent === "module_status") {
+    return [
+      `${input.name} template modules`,
+      `Template: ${input.template}`,
+      `Stack: ${formatTelegramModuleList(input.modules)}`,
+      boundary,
+    ];
+  }
+
+  if (input.intent === "policy") {
+    return [
+      `${input.name} policy`,
+      "Telegram access: read-only",
+      `Review scope: ${scope}`,
+      "Owner approval is required before any wallet or onchain action.",
+      boundary,
+    ];
+  }
+
+  return [
+    `${input.name} read-only assistant`,
+    `Template: ${input.template}`,
+    `Role: ${input.role}`,
+    `Review scope: ${scope}`,
+    "Ask for a review or plan within this template scope.",
+    boundary,
+  ];
+}
+
 function joinCompleteTelegramReplyLines(
   lines: readonly string[],
   maxCharacters: number,
@@ -302,6 +416,63 @@ function sanitizeTemplateId(value: unknown) {
   }
 
   return normalized;
+}
+
+function formatTemplateLabel(value: unknown) {
+  const templateId = sanitizeTemplateText(
+    value,
+    maxTemplateIdLength,
+    "custom",
+  );
+
+  return templateId
+    .split(/[-_ ]+/)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
+}
+
+function sanitizeFallbackActionList(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return [
+    ...new Set(
+      value
+        .filter((action): action is string => typeof action === "string")
+        .map((action) =>
+          sanitizeTemplateText(action, maxTemplateActionLength, "")
+            .toLowerCase()
+        )
+        .filter(Boolean)
+        .slice(0, maxTemplateActionCount),
+    ),
+  ];
+}
+
+function inferRiskReviewSubject(value: unknown) {
+  const userText = sanitizeTemplateText(value, 160, "").toLowerCase();
+  const strategy = /\bdca\b/.test(userText)
+    ? "DCA"
+    : /\bstop loss\b/.test(userText)
+    ? "Stop-loss"
+    : /\b(?:liquidity pool|lp)\b/.test(userText)
+    ? "LP"
+    : /\bl(?:end|ending)\b/.test(userText)
+    ? "Lending"
+    : "Strategy";
+  const asset = /\beth(?:ereum)?\b/.test(userText)
+    ? " ETH"
+    : /\b(?:btc|bitcoin)\b/.test(userText)
+    ? " BTC"
+    : /\busdc\b/.test(userText)
+    ? " USDC"
+    : /\busdt\b/.test(userText)
+    ? " USDT"
+    : "";
+
+  return `${strategy}${asset}`;
 }
 
 function sanitizeActionList(value: unknown) {

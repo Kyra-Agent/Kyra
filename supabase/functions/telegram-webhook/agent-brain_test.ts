@@ -340,6 +340,38 @@ Deno.test("telegram agent brain accepts useful natural chat replies", async () =
   );
 });
 
+Deno.test("telegram agent brain rejects generic template and risk replies", async () => {
+  for (
+    const input of [
+      {
+        userRequest: "What template do you run?",
+        chatIntent: "agent_profile" as const,
+      },
+      {
+        userRequest: "Buatkan risk review untuk strategi DCA ETH.",
+        chatIntent: "risk_review" as const,
+      },
+    ]
+  ) {
+    await assertRejectsHttpError(
+      () =>
+        generateTelegramAgentBrainReply(
+          { command: "chat", ...input },
+          {
+            async complete() {
+              return {
+                text:
+                  "Kyra read-only chat is online. Ask for available planning support.",
+              };
+            },
+          },
+        ),
+      502,
+      "agent_brain_invalid_response",
+    );
+  }
+});
+
 Deno.test("telegram agent brain rejects unsafe chat replies without refusal", async () => {
   await assertRejectsHttpError(
     () =>

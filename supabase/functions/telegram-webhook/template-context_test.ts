@@ -1,5 +1,6 @@
 import { HttpError } from "./core.ts";
 import {
+  buildTelegramTemplateChatFallback,
   buildTelegramTemplateContext,
   buildTelegramTemplateContextReply,
   classifyTemplateAction,
@@ -273,6 +274,69 @@ Deno.test("telegram template context presents numeric agent names as agent label
     text.startsWith("Agent 666\n"),
     "Numeric display names must not render as bare numbers.",
   );
+});
+
+Deno.test("telegram template chat fallback answers executor identity questions", () => {
+  const context = buildTelegramTemplateContext({
+    ...seedTemplates[3],
+    name: "Kyra'sHOOD",
+  });
+  const text = buildTelegramTemplateChatFallback(
+    context,
+    "agent_profile",
+    "What template do you run?",
+  );
+
+  assert(
+    text.includes("Template: Executor"),
+    "Fallback must name the template.",
+  );
+  assert(
+    text.includes("Role: Rule-based action readiness agent"),
+    "Fallback must preserve the deployed role.",
+  );
+  assert(
+    text.includes("dca plan"),
+    "Fallback must expose the template review scope.",
+  );
+  assert(
+    !text.includes("market brief, campaign plan"),
+    "Executor fallback must not inherit Strategist actions.",
+  );
+  assert(text.length <= 700, "Fallback must stay within Telegram bounds.");
+  assertNoSensitiveMaterial(text);
+});
+
+Deno.test("telegram template chat fallback returns a complete DCA ETH risk review", () => {
+  const context = buildTelegramTemplateContext({
+    ...seedTemplates[3],
+    name: "Kyra'sHOOD",
+  });
+  const text = buildTelegramTemplateChatFallback(
+    context,
+    "risk_review",
+    "Buatkan risk review untuk strategi DCA ETH.",
+  );
+
+  assert(
+    text.startsWith("DCA ETH risk review"),
+    "Fallback must match the request.",
+  );
+  assert(text.includes("- Market risk:"), "Fallback must include market risk.");
+  assert(text.includes("- Timing risk:"), "Fallback must include timing risk.");
+  assert(
+    text.includes("- Liquidity risk:"),
+    "Fallback must include liquidity risk.",
+  );
+  assert(
+    text.endsWith(
+      "Boundary: Telegram does not sign, approve, or submit transactions.",
+    ),
+    "Fallback must end on the explicit safety boundary.",
+  );
+  assert(!text.endsWith("-"), "Fallback must not end with an empty bullet.");
+  assert(text.length <= 700, "Fallback must stay within Telegram bounds.");
+  assertNoSensitiveMaterial(text);
 });
 
 Deno.test("telegram template context gates executor wallet actions for phase 6", () => {

@@ -195,6 +195,16 @@ Deno.test("telegram read-only chat classifies product intents", () => {
     classifyTelegramReadOnlyChatIntent("swap 10 USDC to ETH"),
     "unsafe_execution",
   );
+  assertEquals(
+    classifyTelegramReadOnlyChatIntent("What template do you run?"),
+    "agent_profile",
+  );
+  assertEquals(
+    classifyTelegramReadOnlyChatIntent(
+      "Buatkan risk review untuk strategi DCA ETH.",
+    ),
+    "risk_review",
+  );
 });
 
 Deno.test("telegram read-only chat classifies wallet and onchain verbs as unsafe", () => {

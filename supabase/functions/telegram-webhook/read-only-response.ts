@@ -95,6 +95,7 @@ export type TelegramReadOnlyChatIntent =
   | "narrative_map"
   | "launch_copy"
   | "community_pulse"
+  | "risk_review"
   | "module_status"
   | "agent_profile"
   | "policy"
@@ -152,11 +153,23 @@ export function classifyTelegramReadOnlyChatIntent(
     return "community_pulse";
   }
 
+  if (
+    /\b(risk|review|dca|stop loss|liquidity pool|lp review|lend review)\b/i
+      .test(
+        text,
+      )
+  ) {
+    return "risk_review";
+  }
+
   if (/\b(market|brief|trend|liquidity|volume|price|token)\b/i.test(text)) {
     return "market_brief";
   }
 
-  if (/\b(agent|profile|role|who are you)\b/i.test(text)) {
+  if (
+    /\b(agent|profile|role|who are you|template|strategy|playbook|approach)\b/i
+      .test(text)
+  ) {
     return "agent_profile";
   }
 

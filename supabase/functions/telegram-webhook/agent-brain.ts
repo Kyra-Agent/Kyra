@@ -82,6 +82,7 @@ const supportedChatIntents = new Set<TelegramReadOnlyChatIntent>([
   "narrative_map",
   "launch_copy",
   "community_pulse",
+  "risk_review",
   "module_status",
   "agent_profile",
   "policy",
@@ -390,7 +391,7 @@ function buildCommandResponseGuide(command: TelegramWebhookParsedCommandName) {
     return [
       "Answer the user's read-only request directly.",
       "If the intent is unsafe_execution, only refuse clearly and offer a read-only risk review or checklist; do not add a market brief, campaign plan, sample analysis, or extra generated content.",
-      "For market_brief, campaign_plan, narrative_map, launch_copy, or community_pulse, produce useful content immediately with concise labels and bullets.",
+      "For market_brief, campaign_plan, narrative_map, launch_copy, community_pulse, or risk_review, produce useful content immediately with concise labels and bullets.",
       "Use available agent, action, and module context, but frame outputs as planning guidance unless the user supplies data.",
       "Keep wallet, approval, Robinhood Chain actions, and onchain execution disabled.",
     ].join(" ");
@@ -552,6 +553,25 @@ function assertContextualTelegramAgentBrainReply(
   if (
     context.command === "agent" &&
     !hasTelegramSectionLabel(text, "Next")
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
+    context.command === "chat" &&
+    context.chatIntent === "agent_profile" &&
+    !/\b(template|strategy|role|agent profile)\b/i.test(text)
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
+    context.command === "chat" &&
+    context.chatIntent === "risk_review" &&
+    (
+      !/\brisk\b/i.test(text) ||
+      !/\b(market|timing|liquidity|control|exposure|drawdown)\b/i.test(text)
+    )
   ) {
     throw invalidAgentBrainResponse();
   }
