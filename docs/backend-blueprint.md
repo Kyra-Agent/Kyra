@@ -9,7 +9,7 @@ Kyra deploys account-scoped AI agents with private Supabase records, Telegram-na
 1. React and TypeScript render the public product and private workspace.
 2. Supabase Auth owns account sessions.
 3. Row Level Security scopes workspace data to its owner.
-4. Edge Functions validate ownership before deployment, Telegram linking, agent removal, or prepared-action creation.
+4. Edge Functions validate ownership before deployment, Telegram linking, agent removal, or transaction-intent preparation.
 5. OpenRouter is called only from the Telegram Edge Function. Its API key never reaches the browser.
 6. Robinhood Chain status checks run through backend-only RPC configuration.
 7. The connected EVM wallet remains the only signing authority.
@@ -27,8 +27,8 @@ Every agent, wallet policy, approval request, prepared action, and rate-limit re
 
 Public profiles expose only share-safe identity, template, action, module, Telegram status, and chain-action status fields. Wallet addresses, provider payloads, token references, approval internals, transaction payloads, and secrets remain private.
 
-Telegram bot tokens are stored only through backend secret storage. Wallet private keys and seed phrases are never requested or stored.
+Telegram bot tokens are stored only through backend secret storage. Wallet private keys and seed phrases are never requested or stored. Browser authentication and observability state are session-scoped, and legacy persistent auth state is removed on load.
 
 ## Execution Boundary
 
-Telegram and public profiles cannot prompt wallets, sign, or submit transactions. The private workspace requires a signed-in owner, selected deployed agent, matching Robinhood network, reviewed prepared action, explicit owner approval, and a fresh live window. Submission stays fail-closed when any prerequisite is absent.
+Telegram and public profiles cannot prompt wallets, sign, or submit transactions. The private workspace requires a signed-in owner, selected deployed agent, matching Robinhood network, backend-persisted immutable intent, reviewed prepared action, explicit owner approval, and a fresh live window. Backend closeout verifies the transaction and receipt against that intent before sanitized owner-only persistence. Submission stays fail-closed when any prerequisite is absent.

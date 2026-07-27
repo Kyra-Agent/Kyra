@@ -33,7 +33,6 @@ export interface Phase8PersistedExecutionResult {
   workspaceId: string;
   agentId: string;
   preparedActionId: string;
-  submissionNonce: string;
   status: Phase8PersistedResultStatus;
   txHash: `0x${string}`;
   txHashLabel: string;
@@ -91,12 +90,11 @@ export function createPhase8PersistedExecutionResult(
     ok: true,
     reason: null,
     record: {
-      id: `phase8_result_${input.preparedActionId}_${input.submissionNonce}`,
+      id: `phase8_result_${input.preparedActionId}_${input.event.txHash.toLowerCase()}`,
       ownerUserId: input.ownerUserId,
       workspaceId: input.workspaceId,
       agentId: input.agentId,
       preparedActionId: input.preparedActionId,
-      submissionNonce: input.submissionNonce,
       status: input.event.state,
       txHash: input.event.txHash,
       txHashLabel: maskPhase8TransactionHash(input.event.txHash),
@@ -125,6 +123,15 @@ export function reconcilePhase8PersistedExecutionResult(
     ? "confirmed"
     : "failed";
 
+  return applyPhase8VerifiedExecutionStatus(record, status, updatedAt);
+}
+
+export function applyPhase8VerifiedExecutionStatus(
+  record: Phase8PersistedExecutionResult,
+  status: Phase8PersistedResultStatus,
+  updatedAt = new Date().toISOString(),
+): Phase8PersistedExecutionResult {
+
   if (record.status === status) {
     return record;
   }
@@ -137,6 +144,8 @@ export function reconcilePhase8PersistedExecutionResult(
     failureReason: status === "failed"
       ? "Controlled transaction reverted without exposing provider internals."
       : null,
+    createdAt: record.createdAt,
+    visibility: "owner-only",
     updatedAt,
   };
 }

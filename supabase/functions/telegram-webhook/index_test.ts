@@ -1080,6 +1080,8 @@ Deno.test("telegram-webhook delivery gate requires a claimed update", async () =
 
 Deno.test("telegram-webhook delivery gate sends claimed read-only response", async () => {
   const deliveries: Array<Record<string, unknown>> = [];
+  const completionMarks: Array<Record<string, unknown>> = [];
+  const events: string[] = [];
 
   const response = await handleTelegramWebhookRequest(
     createJsonWebhookRequest(createWebhookUpdate("/status@kyra_test_bot")),
@@ -1103,8 +1105,14 @@ Deno.test("telegram-webhook delivery gate sends claimed read-only response", asy
       }),
       claimTelegramUpdate: async () => ({ claimed: true, status: "claimed" }),
       deliverTelegramReadOnlyResponse: async (input) => {
+        events.push("delivered");
         deliveries.push(input);
         return { delivered: true };
+      },
+      markTelegramUpdateDelivered: async (input) => {
+        events.push("marked");
+        completionMarks.push(input);
+        return { marked: true, status: "delivered" };
       },
     },
   );
@@ -1120,6 +1128,57 @@ Deno.test("telegram-webhook delivery gate sends claimed read-only response", asy
   assertEquals(
     (deliveries[0]?.response as Record<string, unknown> | undefined)?.command,
     "status",
+  );
+  assertEquals(events.join(","), "delivered,marked");
+  assertEquals(completionMarks.length, 1);
+  assertEquals(completionMarks[0]?.telegramSessionId, "telegram-session-1");
+  assertEquals(completionMarks[0]?.telegramUpdateId, "9001");
+});
+
+Deno.test("telegram-webhook delivery completion failure requests a retry", async () => {
+  let deliveryCalled = false;
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("/status@kyra_test_bot")),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      parseRuntimeConfig: { enabled: true },
+      chatAuthRuntimeConfig: { enabled: true },
+      claimRuntimeConfig: { enabled: true },
+      deliveryRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => ({
+        sessionId: "telegram-session-1",
+        agentId: "agent-1",
+        workspaceId: "workspace-1",
+        ownerUserId: "owner-1",
+        botHandle: "@kyra_test_bot",
+        webhookStatus: "active",
+      }),
+      lookupTelegramChatAuthorization: async () => ({
+        authorized: true,
+        role: "owner",
+      }),
+      claimTelegramUpdate: async () => ({ claimed: true, status: "claimed" }),
+      deliverTelegramReadOnlyResponse: async () => {
+        deliveryCalled = true;
+        return { delivered: true };
+      },
+      markTelegramUpdateDelivered: async () => {
+        throw new Error("raw owner_user_id telegram update detail");
+      },
+    },
+  );
+  const body = await readJson(response);
+
+  assert(
+    deliveryCalled,
+    "Telegram API delivery must happen before completion.",
+  );
+  assertEquals(response.status, 500);
+  assertEquals(body.status, "server_error");
+  assertEquals(body.message, "Telegram delivery completion failed.");
+  assert(
+    !JSON.stringify(body).includes("owner_user_id"),
+    "Completion failure must hide raw owner data.",
   );
 });
 
@@ -2463,6 +2522,13 @@ Deno.test("telegram-webhook runtime delivery dependency resolves token lazily", 
         return new Response(JSON.stringify(testBotToken), { status: 200 });
       }
 
+      if (url.endsWith("/mark_telegram_update_delivered")) {
+        return new Response(
+          JSON.stringify([{ marked: true, status: "delivered" }]),
+          { status: 200 },
+        );
+      }
+
       throw new Error(`Unexpected RPC ${url}`);
     },
     fetchTelegram: async (input) => {
@@ -2486,7 +2552,7 @@ Deno.test("telegram-webhook runtime delivery dependency resolves token lazily", 
 
   assertEquals(response.status, 200);
   assertEquals(body.status, "delivered");
-  assertEquals(rpcCalls.length, 4);
+  assertEquals(rpcCalls.length, 5);
   assert(
     rpcCalls[0].endsWith("/resolve_telegram_webhook_session"),
     "Lookup RPC must run first.",
@@ -2502,6 +2568,10 @@ Deno.test("telegram-webhook runtime delivery dependency resolves token lazily", 
   assert(
     rpcCalls[3].endsWith("/resolve_telegram_delivery_token"),
     "Token resolver RPC must run after claim.",
+  );
+  assert(
+    rpcCalls[4].endsWith("/mark_telegram_update_delivered"),
+    "Completion RPC must run after Telegram delivery.",
   );
   assertEquals(telegramCalls.length, 1);
   assert(
@@ -2610,6 +2680,12 @@ Deno.test("telegram-webhook runtime template context lookup uses REST before del
         return new Response(JSON.stringify(testBotToken), { status: 200 });
       }
 
+      if (url.endsWith("/mark_telegram_update_delivered")) {
+        return new Response(
+          JSON.stringify([{ marked: true, status: "delivered" }]),
+          { status: 200 },
+        );
+      }
       throw new Error(`Unexpected RPC ${url}`);
     },
     fetchTelegram: async () =>
@@ -2626,7 +2702,7 @@ Deno.test("telegram-webhook runtime template context lookup uses REST before del
 
   assertEquals(response.status, 200);
   assertEquals(body.status, "delivered");
-  assertEquals(calls.length, 6);
+  assertEquals(calls.length, 7);
   assert(
     calls[0].url.endsWith("/resolve_telegram_webhook_session"),
     "Session lookup must run first.",
@@ -2653,6 +2729,10 @@ Deno.test("telegram-webhook runtime template context lookup uses REST before del
   );
   assertEquals(calls[3].method, "GET");
   assertEquals(calls[4].method, "GET");
+  assert(
+    calls[6].url.endsWith("/mark_telegram_update_delivered"),
+    "Delivery completion must be persisted after Telegram delivery.",
+  );
 });
 
 Deno.test("telegram-webhook runtime delivery token failure is sanitized", async () => {

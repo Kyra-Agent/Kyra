@@ -173,16 +173,16 @@ function getResetFailureMessage(
 
   switch (getResetFailureKind(statusCode, code)) {
     case "session":
-      return "Account session expired or is invalid. Sign in again before resetting demo agents.";
+      return "Account session expired or is invalid. Sign in again before resetting workspace agents.";
     case "admin":
-      return "Admin role is required for demo workspace reset.";
+      return "Admin role is required for workspace reset.";
     case "configuration":
       return "Backend reset endpoint is not fully configured.";
     case "backend":
-      return "Kyra reset backend is unavailable. No demo workspace records were deleted.";
+      return "Kyra reset backend is unavailable. No workspace records were deleted.";
     case "unknown":
     default:
-      return safeFallback || "Demo workspace reset failed.";
+      return safeFallback || "Workspace reset failed.";
   }
 }
 
@@ -212,7 +212,7 @@ function mapWorkspace(
     id: row.id,
     name: row.name,
     owner: "Signed-in account",
-    mode: "backend-demo",
+    mode: "backend-connected",
     authProvider: "supabase",
   };
 }
@@ -228,7 +228,7 @@ function mapAgent(row: AgentInstanceRow): DemoAgentInstance {
     handle: row.handle,
     publicPath: `/agents/${row.public_slug}`,
     status: row.status,
-    mode: "backend-demo",
+    mode: "backend-connected",
     chainKey: row.network,
     network: chain?.name ?? "Unsupported network",
     chainActionStatus: row.chain_action_status,
@@ -258,7 +258,7 @@ function mapApprovalRequest(
     id: row.id,
     agentId: row.agent_id,
     templateId: agentTemplateLookup.get(row.agent_id) ?? "operator",
-    scenarioId: row.scenario_id ?? "supabase-demo",
+    scenarioId: row.scenario_id ?? "supabase-review",
     title: row.title,
     command: row.command,
     route: row.route,
@@ -281,7 +281,7 @@ function mapWalletPolicy(row: WalletPolicyRow): DemoWalletPolicy[] {
       label: row.wallet_label,
       value: row.wallet_address
         ? shortenAddress(row.wallet_address)
-        : "Demo connected",
+        : "No live wallet connected",
       status: row.status === "active" ? "active" : "gated",
       description: "Persisted owner policy record. No wallet prompt or funds touched.",
     },
@@ -621,7 +621,7 @@ export async function fetchSupabaseDashboardData(
       ok: false,
       status: "empty",
       data: null,
-      error: "Sign in to load demo workspace records.",
+      error: "Sign in to load workspace records.",
     };
   }
 
@@ -646,7 +646,7 @@ export async function fetchSupabaseDashboardData(
         ok: false,
         status: "empty",
         data: null,
-        error: "No demo workspace exists yet. Deploy a demo agent first.",
+        error: "No workspace exists yet. Deploy an agent first.",
       };
     }
 
@@ -734,7 +734,7 @@ export async function fetchSupabaseDashboardData(
       data: null,
       error: error instanceof Error
         ? sanitizeSupabaseMessage(error.message)
-        : "Demo workspace query failed.",
+        : "Workspace query failed.",
     };
   }
 }
@@ -745,7 +745,7 @@ export async function resetSupabaseDemoWorkspace(
   if (!session) {
     return {
       ok: false,
-      message: "Sign in before resetting demo agents.",
+      message: "Sign in before resetting workspace agents.",
       recordsRemoved: false,
       code: "sign_in_required",
       failureKind: "session",
@@ -795,7 +795,7 @@ export async function resetSupabaseDemoWorkspace(
 
     return {
       ok: true,
-      message: payload.message ?? "Demo workspace reset. Agent quota is clear.",
+      message: payload.message ?? "Workspace reset. Agent quota is clear.",
       recordsRemoved: payload.reset?.recordsRemoved ?? false,
       code: "reset_complete",
     };
@@ -804,7 +804,7 @@ export async function resetSupabaseDemoWorkspace(
       ok: false,
       message: error instanceof Error
         ? getResetFailureMessage(503, "function_error", error.message)
-        : "Kyra reset backend is unavailable. No demo workspace records were deleted.",
+        : "Kyra reset backend is unavailable. No workspace records were deleted.",
       recordsRemoved: false,
       code: "function_error",
       failureKind: "backend",

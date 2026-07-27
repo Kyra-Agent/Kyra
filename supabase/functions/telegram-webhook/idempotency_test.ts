@@ -1,13 +1,19 @@
 import { HttpError } from "./core.ts";
 import {
+  assertTelegramUpdateClaimResult,
   assertTelegramUpdateClaimRows,
   assertTelegramUpdateClaimRpcResult,
-  assertTelegramUpdateClaimResult,
+  assertTelegramUpdateDeliveryMarkResult,
+  assertTelegramUpdateDeliveryMarkRpcResult,
   claimTelegramUpdate,
+  markTelegramUpdateDelivered,
   sanitizeTelegramUpdateClaimError,
   sanitizeTelegramUpdateClaimRpcError,
+  sanitizeTelegramUpdateDeliveryMarkError,
+  sanitizeTelegramUpdateDeliveryMarkRpcError,
   shouldProcessTelegramUpdateClaim,
   type TelegramUpdateClaimRpcClient,
+  type TelegramUpdateDeliveryMarkRpcClient,
 } from "./idempotency.ts";
 
 function assert(condition: boolean, message: string) {
@@ -330,5 +336,154 @@ Deno.test("telegram update claim RPC sanitizer returns fixed error", () => {
   assertEquals(error.code, "server_error");
   assertEquals(error.message, "Telegram update claim failed.");
   assert(!serialized.includes("owner_user_id"), "Error must hide owner data.");
-  assert(!serialized.includes("token_secret_ref"), "Error must hide token refs.");
+  assert(
+    !serialized.includes("token_secret_ref"),
+    "Error must hide token refs.",
+  );
+});
+
+Deno.test("telegram delivery completion accepts delivered and duplicate states", () => {
+  const delivered = assertTelegramUpdateDeliveryMarkResult({
+    marked: true,
+    status: "delivered",
+  });
+  const duplicate = assertTelegramUpdateDeliveryMarkResult({
+    marked: false,
+    status: "duplicate",
+  });
+
+  assertEquals(delivered.marked, true);
+  assertEquals(delivered.status, "delivered");
+  assertEquals(duplicate.marked, false);
+  assertEquals(duplicate.status, "duplicate");
+});
+
+Deno.test("telegram delivery completion rejects inconsistent or extra states", async () => {
+  const inconsistent = await assertRejectsHttpError(
+    () =>
+      assertTelegramUpdateDeliveryMarkResult({
+        marked: false,
+        status: "delivered",
+      }),
+    500,
+    "server_error",
+  );
+  const extra = await assertRejectsHttpError(
+    () =>
+      assertTelegramUpdateDeliveryMarkResult({
+        marked: true,
+        status: "delivered",
+        owner_user_id: "private",
+      }),
+    500,
+    "server_error",
+  );
+
+  assertEquals(
+    inconsistent.message,
+    "Telegram delivery completion validation failed.",
+  );
+  assertEquals(
+    extra.message,
+    "Telegram delivery completion validation failed.",
+  );
+  assert(
+    !JSON.stringify(extra).includes("owner_user_id"),
+    "Validation error must hide owner data.",
+  );
+});
+
+Deno.test("telegram delivery completion adapter calls exact RPC", async () => {
+  const calls: Array<{
+    functionName: string;
+    args: Record<string, unknown>;
+  }> = [];
+  const rpcClient: TelegramUpdateDeliveryMarkRpcClient = {
+    rpc(functionName, args) {
+      calls.push({ functionName, args });
+      return {
+        data: [{ marked: true, status: "delivered" }],
+        error: null,
+      };
+    },
+  };
+
+  const result = await markTelegramUpdateDelivered({
+    telegramSessionId: testTelegramSessionId,
+    telegramUpdateId: "9001",
+    rpcClient,
+  });
+
+  assertEquals(result.marked, true);
+  assertEquals(result.status, "delivered");
+  assertEquals(calls.length, 1);
+  assertEquals(calls[0]?.functionName, "mark_telegram_update_delivered");
+  assertEquals(calls[0]?.args.p_telegram_session_id, testTelegramSessionId);
+  assertEquals(calls[0]?.args.p_telegram_update_id, 9001);
+});
+
+Deno.test("telegram delivery completion sanitizes malformed RPC results", async () => {
+  const rowError = await assertRejectsHttpError(
+    () =>
+      assertTelegramUpdateDeliveryMarkRpcResult({
+        data: [],
+        error: null,
+      }),
+    500,
+    "server_error",
+  );
+  const rpcError = await assertRejectsHttpError(
+    () =>
+      assertTelegramUpdateDeliveryMarkRpcResult({
+        data: null,
+        error: { message: "raw owner_user_id token_secret_ref" },
+      }),
+    500,
+    "server_error",
+  );
+
+  assertEquals(rowError.message, "Telegram delivery completion failed.");
+  assertEquals(rpcError.message, "Telegram delivery completion failed.");
+  assert(
+    !JSON.stringify(rpcError).includes("owner_user_id"),
+    "RPC error must hide owner data.",
+  );
+});
+
+Deno.test("telegram delivery completion sanitizers return fixed errors", () => {
+  const validationError = sanitizeTelegramUpdateDeliveryMarkError(
+    new Error("raw validation detail"),
+  );
+  const rpcError = sanitizeTelegramUpdateDeliveryMarkRpcError(
+    new Error("raw rpc detail"),
+  );
+
+  assertEquals(
+    validationError.message,
+    "Telegram delivery completion validation failed.",
+  );
+  assertEquals(rpcError.message, "Telegram delivery completion failed.");
+});
+
+Deno.test("telegram delivery completion sanitizes thrown RPC errors", async () => {
+  const error = await assertRejectsHttpError(
+    () =>
+      markTelegramUpdateDelivered({
+        telegramSessionId: testTelegramSessionId,
+        telegramUpdateId: 9001,
+        rpcClient: {
+          rpc: () => {
+            throw new Error("raw update 9001 owner_user_id");
+          },
+        },
+      }),
+    500,
+    "server_error",
+  );
+
+  assertEquals(error.message, "Telegram delivery completion failed.");
+  assert(
+    !JSON.stringify(error).includes("9001"),
+    "Thrown RPC error must hide update id.",
+  );
 });

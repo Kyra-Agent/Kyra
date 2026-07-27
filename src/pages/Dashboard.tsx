@@ -113,6 +113,7 @@ import { formatPhase8NativeEth } from "../types/phase8FundingReadiness";
 import { evaluatePhase8LowValueTransactionReadiness } from "../types/phase8LowValueTransactionReadiness";
 import { createPhase8LowValueSubmitRequest } from "../types/phase8LowValueSubmitRequest";
 import {
+  applyPhase8VerifiedExecutionStatus,
   createPhase8PersistedExecutionResult,
   getPhase8ResultPersistenceFailureMessage,
   mapPhase8PersistedResultToDemoExecutionResult,
@@ -124,6 +125,7 @@ import {
   savePhase8PersistedExecutionResult,
 } from "../services/phase8ResultPersistenceStore";
 import { persistTransactionResultCloseout } from "../services/transactionResultCloseoutService";
+import { prepareTransactionIntent } from "../services/transactionIntentPrepareService";
 import { productChainId } from "../types/unsignedTransactionHandoff";
 import { maskOwnerWalletAddress } from "../types/ownerWalletConnection";
 import type { DataProvider } from "../types/api";
@@ -709,6 +711,24 @@ function selectTelegramDashboardStatusForAgent(
   return statuses.find((status) => status.agentId === agentId) ?? null;
 }
 
+let transactionIntentFallbackCounter = 0;
+
+function createTransactionIntentReviewNonce() {
+  const randomUuid = globalThis.crypto?.randomUUID?.();
+  if (randomUuid) return randomUuid;
+
+  if (globalThis.crypto?.getRandomValues) {
+    const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16));
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  transactionIntentFallbackCounter += 1;
+  return [
+    Date.now().toString(36),
+    transactionIntentFallbackCounter.toString(36),
+  ].join("-");
+}
+
 interface Phase8OwnerArmingState {
   ownerUserId: string;
   workspaceId: string;
@@ -826,6 +846,12 @@ export function Dashboard({
   const [phase8PersistedResults, setPhase8PersistedResults] = useState<
     Phase8PersistedExecutionResult[]
   >([]);
+  const [transactionIntentPrepareStatus, setTransactionIntentPrepareStatus] = useState<
+    "idle" | "preparing" | "error"
+  >("idle");
+  const [transactionIntentReviewNonce, setTransactionIntentReviewNonce] = useState(
+    createTransactionIntentReviewNonce,
+  );
   const [transactionCloseoutState, setTransactionCloseoutState] = useState<{
     recordId: string | null;
     resultStatus: Phase8PersistedExecutionResult["status"] | null;
@@ -1302,12 +1328,12 @@ export function Dashboard({
       }).canonical
       : null;
 
-    if (!ownerUserId || !workspaceId || !agentId || !canonical) {
+    if (!ownerUserId || !workspaceId || !agentId || !canonical?.recipient) {
       return null;
     }
 
     return freezeReviewedPreparedAction({
-      requestId: `phase8-${agentId}`,
+      requestId: `phase8-${agentId}-${canonical.recipient.slice(2, 10).toLowerCase()}-${transactionIntentReviewNonce}`,
       ownerUserId,
       workspaceId,
       agentId,
@@ -1320,6 +1346,7 @@ export function Dashboard({
     authSession?.user.id,
     dashboardData?.workspace.id,
     phase8OwnerActionCandidate,
+    transactionIntentReviewNonce,
   ]);
 
   const phase8OwnerArmingCurrent = useMemo(
@@ -1479,10 +1506,19 @@ export function Dashboard({
 
     setTransactionCloseoutState({
       recordId: record.id,
-      resultStatus: record.status,
+      resultStatus: result.verifiedStatus ?? record.status,
       status: result.status === "saved" ? "saved" : "error",
       message: result.message,
     });
+
+    if (result.status === "saved" && result.verifiedStatus) {
+      const verifiedRecord = applyPhase8VerifiedExecutionStatus(
+        record,
+        result.verifiedStatus,
+      );
+      setPhase8PersistedResults(savePhase8PersistedExecutionResult(verifiedRecord));
+    }
+
     recordBackendEvent({
       kind: "dashboard-refresh",
       source: "dashboard",
@@ -1492,19 +1528,65 @@ export function Dashboard({
   }
 
   function createPhase8Nonce(prefix: string) {
-    const randomId = globalThis.crypto?.randomUUID?.() ??
-      `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    const randomUuid = globalThis.crypto?.randomUUID?.();
+    if (randomUuid) return `${prefix}-${randomUuid}`;
 
+    if (!globalThis.crypto?.getRandomValues) {
+      throw new Error("Secure browser randomness is unavailable.");
+    }
+    const randomBytes = globalThis.crypto.getRandomValues(new Uint8Array(24));
+    const randomId = Array.from(randomBytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
     return `${prefix}-${randomId}`;
   }
 
-  function armPhase8OwnerLiveWindow() {
+  async function armPhase8OwnerLiveWindow() {
     const frozenAction = phase8FrozenAction;
     const ownerUserId = authSession?.user.id;
     const workspaceId = dashboardData?.workspace.id;
     const agentId = agentRecord?.id;
 
-    if (!frozenAction || !ownerUserId || !workspaceId || !agentId) {
+    if (
+      transactionIntentPrepareStatus === "preparing" ||
+      !frozenAction ||
+      !ownerUserId ||
+      !workspaceId ||
+      !agentId
+    ) {
+      return;
+    }
+
+    setTransactionIntentPrepareStatus("preparing");
+    const preparation = await prepareTransactionIntent(authSession, {
+      workspaceId,
+      agentId,
+      requestId: frozenAction.requestId,
+      recipient: frozenAction.recipient,
+    });
+    if (!preparation.ok) {
+      setTransactionIntentPrepareStatus("error");
+      setTransactionIntentReviewNonce(createTransactionIntentReviewNonce());
+      recordBackendEvent({
+        kind: "dashboard-refresh",
+        source: "dashboard",
+        status: "blocked",
+        message: preparation.message,
+      });
+      return;
+    }
+
+    let promptNonce: string;
+    let submissionNonce: string;
+    try {
+      promptNonce = createPhase8Nonce("phase8-prompt");
+      submissionNonce = createPhase8Nonce("phase8-submit");
+    } catch {
+      setTransactionIntentPrepareStatus("error");
+      recordBackendEvent({
+        kind: "dashboard-refresh",
+        source: "dashboard",
+        status: "blocked",
+        message: "Secure browser randomness is required before a transaction review can open.",
+      });
       return;
     }
 
@@ -1521,15 +1603,17 @@ export function Dashboard({
       workspaceId,
       agentId,
       freezeKey: frozenAction.freezeKey,
-      promptNonce: createPhase8Nonce("phase8-prompt"),
-      submissionNonce: createPhase8Nonce("phase8-submit"),
+      promptNonce,
+      submissionNonce,
       armedAt: new Date().toISOString(),
     });
+    setTransactionIntentPrepareStatus("idle");
   }
 
   function resetPhase8OwnerLiveWindow() {
     setPhase8SubmitterResult(null);
     setPhase8OwnerArming(null);
+    setTransactionIntentReviewNonce(createTransactionIntentReviewNonce());
   }
   const preparedActionTone = getPreparedActionTone(
     preparedActionPreview.status,
@@ -3472,12 +3556,14 @@ export function Dashboard({
                   {robinhoodTestnetCloseout.nextAction === "open_review_window" ? (
                     <button
                       className="button button-primary"
-                      disabled={!phase8FrozenAction}
+                      disabled={!phase8FrozenAction || transactionIntentPrepareStatus === "preparing"}
                       onClick={armPhase8OwnerLiveWindow}
                       type="button"
                     >
                       <ShieldCheck size={16} />
-                      Open transaction review
+                      {transactionIntentPrepareStatus === "preparing"
+                        ? "Preparing transaction"
+                        : "Open transaction review"}
                     </button>
                   ) : null}
                   {robinhoodTestnetCloseout.nextAction === "submit_transaction" ? (
@@ -4540,12 +4626,18 @@ export function Dashboard({
               <div className="phase-8-live-window-activation-actions">
                 <button
                   className="button button-primary"
-                  disabled={!phase8FrozenAction || !authSession || !agentRecord}
+                  disabled={
+                    !phase8FrozenAction ||
+                    !authSession ||
+                    !agentRecord ||
+                    transactionIntentPrepareStatus === "preparing"}
                   onClick={armPhase8OwnerLiveWindow}
                   type="button"
                 >
                   <ShieldCheck size={16} />
-                  Open review window
+                  {transactionIntentPrepareStatus === "preparing"
+                    ? "Preparing transaction"
+                    : "Open review window"}
                 </button>
                 <button
                   className="button button-ghost"

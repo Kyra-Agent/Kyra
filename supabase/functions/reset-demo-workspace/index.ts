@@ -61,7 +61,7 @@ function getUnknownErrorMessage(error: unknown) {
     }
   }
 
-  return "Reset demo workspace function failed.";
+  return "Workspace reset function failed.";
 }
 
 async function getAdminUser(supabaseUrl: string, anonKey: string, authorization: string) {
@@ -83,7 +83,7 @@ async function getAdminUser(supabaseUrl: string, anonKey: string, authorization:
   }
 
   if (data.user.app_metadata?.role !== "admin") {
-    throw new HttpError(403, "forbidden", "Admin role is required for demo workspace reset.");
+    throw new HttpError(403, "forbidden", "Admin role is required for workspace reset.");
   }
 
   return data.user;
@@ -132,8 +132,8 @@ Deno.serve(async (request) => {
       ok: true,
       status: recordsRemoved ? "reset" : "empty",
       message: recordsRemoved
-        ? "Demo workspace reset. Agent quota is clear."
-        : "No demo workspace exists for this session.",
+        ? "Workspace reset. Agent quota is clear."
+        : "No workspace exists for this session.",
       reset: {
         recordsRemoved,
         scope: "signed_in_demo_workspace",

@@ -20,6 +20,28 @@ export interface TelegramUpdateClaimRpcClient {
   ): Promise<TelegramUpdateClaimRpcResult> | TelegramUpdateClaimRpcResult;
 }
 
+export interface TelegramUpdateDeliveryMarkResult {
+  marked: boolean;
+  status: "delivered" | "duplicate";
+}
+
+export interface TelegramUpdateDeliveryMarkRpcResult {
+  data?: unknown;
+  error?: unknown | null;
+}
+
+export interface TelegramUpdateDeliveryMarkRpcClient {
+  rpc(
+    functionName: "mark_telegram_update_delivered",
+    args: {
+      p_telegram_session_id: string;
+      p_telegram_update_id: number;
+    },
+  ):
+    | Promise<TelegramUpdateDeliveryMarkRpcResult>
+    | TelegramUpdateDeliveryMarkRpcResult;
+}
+
 export async function claimTelegramUpdate(input: {
   telegramSessionId: unknown;
   telegramUpdateId: unknown;
@@ -39,6 +61,90 @@ export async function claimTelegramUpdate(input: {
 
     throw sanitizeTelegramUpdateClaimRpcError(error);
   }
+}
+
+export async function markTelegramUpdateDelivered(input: {
+  telegramSessionId: unknown;
+  telegramUpdateId: unknown;
+  rpcClient: TelegramUpdateDeliveryMarkRpcClient;
+}): Promise<TelegramUpdateDeliveryMarkResult> {
+  try {
+    const result = await input.rpcClient.rpc(
+      "mark_telegram_update_delivered",
+      {
+        p_telegram_session_id: readClaimSessionId(input.telegramSessionId),
+        p_telegram_update_id: readClaimUpdateId(input.telegramUpdateId),
+      },
+    );
+
+    return assertTelegramUpdateDeliveryMarkRpcResult(result);
+  } catch (error) {
+    if (error instanceof HttpError) {
+      throw error;
+    }
+
+    throw sanitizeTelegramUpdateDeliveryMarkRpcError(error);
+  }
+}
+
+export function assertTelegramUpdateDeliveryMarkRpcResult(
+  result: TelegramUpdateDeliveryMarkRpcResult,
+): TelegramUpdateDeliveryMarkResult {
+  if (result.error) {
+    throw sanitizeTelegramUpdateDeliveryMarkRpcError(result.error);
+  }
+
+  if (!Array.isArray(result.data) || result.data.length !== 1) {
+    throw sanitizeTelegramUpdateDeliveryMarkRpcError(
+      new Error("Unexpected Telegram delivery completion rows."),
+    );
+  }
+
+  return assertTelegramUpdateDeliveryMarkResult(result.data[0]);
+}
+
+export function assertTelegramUpdateDeliveryMarkResult(
+  value: unknown,
+): TelegramUpdateDeliveryMarkResult {
+  try {
+    if (!isPlainRecord(value)) {
+      throw new Error("Unexpected Telegram delivery completion result.");
+    }
+
+    const keys = Object.keys(value).sort();
+
+    if (keys.join(",") !== "marked,status") {
+      throw new Error("Unexpected Telegram delivery completion result.");
+    }
+
+    if (value.marked === true && value.status === "delivered") {
+      return { marked: true, status: "delivered" };
+    }
+
+    if (value.marked === false && value.status === "duplicate") {
+      return { marked: false, status: "duplicate" };
+    }
+
+    throw new Error("Unexpected Telegram delivery completion result.");
+  } catch (error) {
+    throw sanitizeTelegramUpdateDeliveryMarkError(error);
+  }
+}
+
+export function sanitizeTelegramUpdateDeliveryMarkError(_error: unknown) {
+  return new HttpError(
+    500,
+    "server_error",
+    "Telegram delivery completion validation failed.",
+  );
+}
+
+export function sanitizeTelegramUpdateDeliveryMarkRpcError(_error: unknown) {
+  return new HttpError(
+    500,
+    "server_error",
+    "Telegram delivery completion failed.",
+  );
 }
 
 export function assertTelegramUpdateClaimRpcResult(

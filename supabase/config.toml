@@ -41,6 +41,11 @@ verify_jwt = true
 # parsing additionally requires a successful backend session lookup.
 [functions.telegram-webhook]
 verify_jwt = false
+
+# Transaction intent preparation is owner-scoped and stores the immutable
+# Robinhood mainnet action before a wallet prompt can open.
+[functions.transaction-intent-prepare]
+verify_jwt = true
 # Transaction closeout is owner-scoped, authenticated, and persists only
 # sanitized Robinhood mainnet receipt state.
 [functions.transaction-result-closeout]

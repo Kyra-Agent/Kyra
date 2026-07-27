@@ -85,8 +85,8 @@ function createQuota(
     reached: normalizedUsed >= limit,
     source,
     message: normalizedUsed >= limit
-      ? `Demo agent limit reached (${normalizedUsed}/${limit}).`
-      : `${remaining} demo agent slot${remaining === 1 ? "" : "s"} available.`,
+      ? `Agent limit reached (${normalizedUsed}/${limit}).`
+      : `${remaining} agent slot${remaining === 1 ? "" : "s"} available.`,
   };
 }
 
@@ -147,7 +147,7 @@ async function ensureWorkspace(
 
   return insertRow(session, "workspaces", {
     owner_user_id: session.user.id,
-    name: "Kyra demo workspace",
+    name: "Kyra workspace",
     mode: "demo",
   });
 }
@@ -207,7 +207,7 @@ function createActivityLogs(
       agent_id: agentId,
       source: "agent_instances",
       level: "info",
-      message: `created ${template.name} demo agent from frontend deploy flow`,
+      message: `created ${template.name} agent from protected deploy flow`,
     },
     {
       workspace_id: workspaceId,
@@ -221,7 +221,7 @@ function createActivityLogs(
       agent_id: agentId,
       source: "approval_requests",
       level: "notice",
-      message: "demo review draft persisted with wallet execution disabled",
+      message: "review draft persisted with wallet execution disabled",
     },
   ];
 }
@@ -258,7 +258,7 @@ async function createWalletPolicy(
   return insertRow(session, "wallet_policies", {
     workspace_id: workspaceId,
     agent_id: agentId,
-    wallet_label: "Demo " + currentWalletDisplayName,
+    wallet_label: currentWalletDisplayName,
     wallet_address: null,
     chain_key: currentProductChain.key,
     chain_id: currentProductChain.id,
@@ -282,9 +282,9 @@ async function createApprovalRequest(
     workspace_id: workspaceId,
     agent_id: agentId,
     scenario_id: scenario?.id ?? null,
-    title: `${template.name} demo action`,
+    title: `${template.name} action review`,
     command:
-      template.terminalSeed || scenario?.command || "prepare demo action",
+      template.terminalSeed || scenario?.command || "prepare action review",
     route: scenario?.route ?? "Action route prepared by Kyra",
     risk,
     status: scenario?.approvalRequired
@@ -339,7 +339,7 @@ function getDeployFunctionBlockedMessage(error: unknown) {
     return getDeployFailureMessage(error.code, error.message);
   }
 
-  return "Backend persistence is unavailable. No demo records were written. Try again after the Kyra backend is ready.";
+  return "Backend persistence is unavailable. No workspace records were written. Try again after the Kyra backend is ready.";
 }
 
 function getDeployFailureKind(code: string): DeployFailureKind {
@@ -375,23 +375,23 @@ function getDeployFailureMessage(code: string, fallback: string) {
 
   switch (getDeployFailureKind(code)) {
     case "session":
-      return "Account session expired or is invalid. Sign in again before deploying a demo agent.";
+      return "Account session expired or is invalid. Sign in again before deploying an agent.";
     case "quota":
       return safeFallback ||
-        "Demo agent limit reached. No new demo records were written.";
+        "Agent limit reached. No new agent records were written.";
     case "template":
       return "This agent template is unavailable. Refresh the catalog and choose an active template.";
     case "request":
       return safeFallback ||
         "Deploy request is incomplete. Review the template, agent name, and selected actions.";
     case "configuration":
-      return "Backend persistence is not fully configured. No demo records were written.";
+      return "Backend persistence is not fully configured. No workspace records were written.";
     case "backend":
-      return "Kyra backend is unavailable. No demo records were written. Try again after backend persistence is ready.";
+      return "Kyra backend is unavailable. No workspace records were written. Try again after backend persistence is ready.";
     case "unknown":
     default:
       return safeFallback ||
-        "Demo persistence failed. No public route was confirmed.";
+        "Agent persistence failed. No public route was confirmed.";
   }
 }
 
@@ -466,7 +466,7 @@ async function saveViaDeployFunction({
 
   return {
     status: "saved",
-    message: "Demo deployment persisted by the Kyra backend.",
+    message: "Agent deployment persisted by the Kyra backend.",
     workspaceId: payload.workspaceId ?? null,
     agentId: payload.agentId ?? null,
     publicSlug: payload.publicSlug ?? null,
@@ -501,7 +501,7 @@ async function saveViaSupabaseRestFallback({
   if (quota.reached) {
     return {
       status: "error",
-      message: `${quota.message} Max ${quota.limit} agents per demo workspace.`,
+      message: `${quota.message} Max ${quota.limit} agents per workspace.`,
       workspaceId: workspace.id,
       agentId: null,
       publicSlug: null,
@@ -537,7 +537,7 @@ async function saveViaSupabaseRestFallback({
 
   return {
     status: "saved",
-    message: "Demo deployment persisted by the Kyra backend.",
+    message: "Agent deployment persisted by the Kyra backend.",
     workspaceId: workspace.id,
     agentId: agent.id,
     publicSlug: agent.public_slug,
@@ -561,7 +561,7 @@ export async function saveSupabaseDemoDeployment({
     return {
       status: "skipped",
       message:
-        "Demo ran locally. Sign in from the dashboard to persist deployments.",
+        "Local preview completed. Sign in from the dashboard to persist deployments.",
       workspaceId: null,
       agentId: null,
       publicSlug: null,
@@ -629,7 +629,7 @@ export async function saveSupabaseDemoDeployment({
       status: "error",
       message: error instanceof Error
         ? getDeployFailureMessage("unknown", error.message)
-        : "Demo persistence failed. No public route was confirmed.",
+        : "Agent persistence failed. No public route was confirmed.",
       workspaceId: null,
       agentId: null,
       publicSlug: null,

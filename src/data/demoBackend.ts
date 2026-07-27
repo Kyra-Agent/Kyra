@@ -16,9 +16,9 @@ import type {
 
 export const demoWorkspace: DemoWorkspaceRecord = {
   id: "wksp_kyra_demo",
-  name: "Kyra demo workspace",
+  name: "Kyra workspace preview",
   owner: "Kyra-Agent",
-  mode: "frontend-demo",
+  mode: "local-preview",
   authProvider: "demo",
 };
 
@@ -28,14 +28,14 @@ export const demoWalletPolicies: DemoWalletPolicy[] = [
     label: currentWalletDisplayName,
     value: "0x8a...91c",
     status: "gated",
-    description: "Demo connection only. No wallet prompt or funds touched.",
+    description: "Preview connection only. No wallet prompt or funds touched.",
   },
   {
     id: "policy_daily_limit",
     label: "Daily limit",
     value: "100 USDC",
     status: "gated",
-    description: "Demo spending cap for future policy storage.",
+    description: "Preview spending cap for future policy storage.",
   },
   {
     id: "policy_approval_gate",
@@ -56,9 +56,9 @@ export const demoAgentInstances: DemoAgentInstance[] = agentTemplates.map((
   templateId: template.id,
   displayName: `Kyra ${template.name}`,
   handle: `@kyra_${template.id}`,
-  publicPath: `/agents/${template.id}-demo`,
+  publicPath: "",
   status: template.status === "coming-soon" ? "draft" : "online",
-  mode: "frontend-demo",
+  mode: "local-preview",
   network: currentProductChain.name,
   chainKey: currentProductChain.key,
   chainActionStatus: currentProductChain.key === "robinhood_testnet"

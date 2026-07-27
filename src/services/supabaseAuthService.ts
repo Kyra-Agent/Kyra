@@ -291,12 +291,39 @@ async function requestAuth(path: string, body: Record<string, unknown>) {
   }
 }
 
-export function loadStoredAuthSession(): KyraAuthSession | null {
+function getAuthSessionStorage() {
   if (typeof window === "undefined") {
     return null;
   }
 
-  const raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function clearLegacyPersistentSession() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(AUTH_STORAGE_KEY);
+  } catch {
+    // A blocked persistent store must not prevent session-only authentication.
+  }
+}
+
+export function loadStoredAuthSession(): KyraAuthSession | null {
+  const storage = getAuthSessionStorage();
+  clearLegacyPersistentSession();
+
+  if (!storage) {
+    return null;
+  }
+
+  const raw = storage.getItem(AUTH_STORAGE_KEY);
 
   if (!raw) {
     return null;
@@ -311,25 +338,31 @@ export function loadStoredAuthSession(): KyraAuthSession | null {
 
     return session;
   } catch {
-    window.localStorage.removeItem(AUTH_STORAGE_KEY);
+    storage.removeItem(AUTH_STORAGE_KEY);
     return null;
   }
 }
 
 export function saveStoredAuthSession(session: KyraAuthSession) {
-  if (typeof window === "undefined") {
+  const storage = getAuthSessionStorage();
+
+  if (!storage) {
     return;
   }
 
-  window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+  storage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+  clearLegacyPersistentSession();
 }
 
 export function clearStoredAuthSession() {
-  if (typeof window === "undefined") {
+  const storage = getAuthSessionStorage();
+  clearLegacyPersistentSession();
+
+  if (!storage) {
     return;
   }
 
-  window.localStorage.removeItem(AUTH_STORAGE_KEY);
+  storage.removeItem(AUTH_STORAGE_KEY);
 }
 
 export function consumeAuthCallbackSession() {
@@ -447,7 +480,7 @@ export async function signOutAuthSession(session: KyraAuthSession | null): Promi
       body: JSON.stringify({ scope: "local" }),
     });
   } catch {
-    // Local session clearing is the important behavior for the demo.
+    // Local session clearing is the privacy-critical behavior.
   }
 
   return makeResult("signed-out", "Session cleared.");

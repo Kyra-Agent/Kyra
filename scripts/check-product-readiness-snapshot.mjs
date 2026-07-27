@@ -5,7 +5,7 @@ for (const expected of [
   "# Product Readiness Snapshot",
   "## Ready",
   "## Controlled",
-  "## Final Release Evidence",
+  "## Recorded Release Evidence",
   "Robinhood Chain",
   "Telegram",
   "Prepared actions",

@@ -4,6 +4,12 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  VITE_KYRA_DATA_PROVIDER = "supabase"
+  VITE_KYRA_CHAIN_RELEASE_TARGET = "robinhood_mainnet"
+  VITE_KYRA_ROBINHOOD_MAINNET_WINDOW = "owner_mainnet_cutover"
+  VITE_KYRA_ROBINHOOD_MAINNET_RELEASE = "owner_release_approved"
+  VITE_KYRA_PHASE8_CONTROLLED_SUBMISSION = "owner_approved_window"
+  VITE_KYRA_PHASE8_LOW_VALUE_SUBMISSION = "disabled"
 
 [[redirects]]
   from = "/*"

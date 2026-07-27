@@ -12,7 +12,7 @@ function formatActivityLog(log: DemoActivityLog) {
       chain_action_routes: "chain action",
       approval_requests: "approval",
       execution_results: "execution",
-    }[log.source] ?? "demo";
+    }[log.source] ?? "preview";
 
   return `[${log.timestamp}] ${sourceLabel}: ${log.message}`;
 }

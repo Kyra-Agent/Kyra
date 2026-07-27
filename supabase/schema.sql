@@ -105,6 +105,100 @@ create table if not exists public.approval_requests (
   resolved_at timestamptz
 );
 
+create table if not exists public.prepared_actions (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  agent_id uuid not null references public.agent_instances(id) on delete cascade,
+  request_id text not null,
+  action_kind text not null check (
+    action_kind in ('chain_status_check', 'robinhood_reviewed_transaction')
+  ),
+  chain_key text not null check (
+    chain_key in ('robinhood_mainnet', 'robinhood_testnet')
+  ),
+  chain_id bigint not null check (
+    (chain_key = 'robinhood_mainnet' and chain_id = 4663)
+    or (chain_key = 'robinhood_testnet' and chain_id = 46630)
+  ),
+  status text not null check (
+    status in (
+      'preview_ready', 'review_required', 'approved',
+      'rejected', 'expired', 'failed'
+    )
+  ),
+  risk text not null check (risk in ('read-only', 'review', 'blocked')),
+  route_summary text not null check (
+    char_length(btrim(route_summary)) between 1 and 160
+  ),
+  value_summary text not null check (
+    char_length(btrim(value_summary)) between 1 and 160
+  ),
+  approval_requirement text not null check (
+    char_length(btrim(approval_requirement)) between 1 and 200
+  ),
+  safety_note text not null check (
+    char_length(btrim(safety_note)) between 1 and 200
+  ),
+  provider text not null check (provider in ('chain_rpc', 'owner_dashboard')),
+  recipient text,
+  value_wei text,
+  calldata text,
+  expires_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  resolved_at timestamptz,
+  constraint prepared_actions_request_unique
+    unique (workspace_id, agent_id, request_id),
+  constraint prepared_actions_request_id_format_check
+    check (request_id ~ '^[A-Za-z0-9][A-Za-z0-9:_-]{7,127}$'),
+  constraint prepared_actions_expiry_after_creation_check
+    check (expires_at is null or expires_at > created_at),
+  constraint prepared_actions_updated_after_creation_check
+    check (updated_at >= created_at),
+  constraint prepared_actions_resolved_after_creation_check
+    check (resolved_at is null or resolved_at >= created_at),
+  constraint prepared_actions_transaction_shape_check check (
+    (
+      action_kind = 'chain_status_check'
+      and provider = 'chain_rpc'
+      and risk = 'read-only'
+      and recipient is null
+      and value_wei is null
+      and calldata is null
+    )
+    or (
+      action_kind = 'robinhood_reviewed_transaction'
+      and chain_key = 'robinhood_mainnet'
+      and chain_id = 4663
+      and status = 'approved'
+      and risk = 'review'
+      and provider = 'owner_dashboard'
+      and recipient ~* '^0x[0-9a-f]{40}$'
+      and value_wei = '0'
+      and calldata = '0x'
+      and expires_at is not null
+    )
+  )
+);
+
+create table if not exists public.chain_action_rate_limits (
+  agent_id uuid not null references public.agent_instances(id) on delete cascade,
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  chain_key text not null check (
+    chain_key in ('robinhood_mainnet', 'robinhood_testnet')
+  ),
+  minute_window_started_at timestamptz not null,
+  minute_count integer not null check (minute_count between 0 and 6),
+  hour_window_started_at timestamptz not null,
+  hour_count integer not null check (hour_count between 0 and 60),
+  updated_at timestamptz not null default now(),
+  primary key (agent_id, chain_key),
+  constraint chain_action_rate_limits_window_order_check check (
+    minute_window_started_at <= updated_at
+    and hour_window_started_at <= updated_at
+  )
+);
+
 create table if not exists public.execution_results (
   id uuid primary key default gen_random_uuid(),
   owner_user_id uuid not null references auth.users(id) on delete cascade,
@@ -115,6 +209,10 @@ create table if not exists public.execution_results (
   chain_key text not null default 'robinhood_mainnet' check (chain_key = 'robinhood_mainnet'),
   chain_id bigint not null default 4663 check (chain_id = 4663),
   tx_hash text not null check (tx_hash ~* '^0x[0-9a-f]{64}$'),
+  prepared_action_record_id uuid
+    references public.prepared_actions(id) on delete restrict,
+  receipt_block_number bigint,
+  receipt_checked_at timestamptz,
   status text not null check (status in ('submitted', 'confirmed', 'failed')),
   failure_code text check (
     failure_code is null or failure_code in (
@@ -225,6 +323,10 @@ create table if not exists public.telegram_processed_updates (
   telegram_session_id uuid not null,
   telegram_update_id bigint not null,
   created_at timestamptz not null default now(),
+  delivery_status text not null default 'processing',
+  lease_expires_at timestamptz not null default (now() + interval '2 minutes'),
+  attempt_count integer not null default 1,
+  delivered_at timestamptz,
   constraint telegram_processed_updates_pkey
     primary key (telegram_session_id, telegram_update_id),
   constraint telegram_processed_updates_session_fkey
@@ -232,7 +334,11 @@ create table if not exists public.telegram_processed_updates (
     references public.telegram_sessions(id)
     on delete cascade,
   constraint telegram_processed_updates_id_nonnegative_check
-    check (telegram_update_id >= 0)
+    check (telegram_update_id >= 0),
+  constraint telegram_processed_updates_delivery_status_check
+    check (delivery_status in ('processing', 'delivered')),
+  constraint telegram_processed_updates_attempt_count_check
+    check (attempt_count between 1 and 25)
 );
 
 create table if not exists public.telegram_owner_link_challenges (
@@ -321,9 +427,23 @@ create index if not exists agent_instances_workspace_id_idx on public.agent_inst
 create index if not exists agent_instances_public_slug_idx on public.agent_instances(public_slug);
 create index if not exists wallet_policies_workspace_id_idx on public.wallet_policies(workspace_id);
 create index if not exists approval_requests_agent_id_idx on public.approval_requests(agent_id);
+create index if not exists prepared_actions_workspace_created_idx
+on public.prepared_actions(workspace_id, created_at desc);
+create index if not exists prepared_actions_agent_created_idx
+on public.prepared_actions(agent_id, created_at desc);
+create index if not exists prepared_actions_chain_created_idx
+on public.prepared_actions(chain_key, created_at desc);
+create index if not exists prepared_actions_expiry_idx
+on public.prepared_actions(expires_at)
+where expires_at is not null;
 create index if not exists execution_results_owner_updated_idx on public.execution_results(owner_user_id, updated_at desc);
 create index if not exists execution_results_agent_updated_idx on public.execution_results(agent_id, updated_at desc);
 create index if not exists activity_logs_agent_id_created_at_idx on public.activity_logs(agent_id, created_at desc);
+create index if not exists execution_results_prepared_action_record_idx
+on public.execution_results(prepared_action_record_id);
+create index if not exists telegram_processed_updates_retry_idx
+on public.telegram_processed_updates(delivery_status, lease_expires_at)
+where delivery_status = 'processing';
 create unique index if not exists telegram_bot_token_secrets_active_bot_id_key
 on public.telegram_bot_token_secrets(telegram_bot_id)
 where revoked_at is null;
@@ -403,34 +523,291 @@ as $$
   );
 $$;
 
+create or replace function public.enforce_chain_action_agent_scope()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_payload jsonb := to_jsonb(new);
+  v_chain_key text := v_payload ->> 'chain_key';
+  v_chain_id bigint;
+  v_expected_chain_id bigint;
+  v_agent_network text;
+  v_agent_status text;
+begin
+  if v_chain_key not in ('robinhood_mainnet', 'robinhood_testnet') then
+    raise exception 'Chain action agent scope rejected';
+  end if;
+
+  select agents.network, agents.chain_action_status
+  into v_agent_network, v_agent_status
+  from public.agent_instances agents
+  where agents.id = new.agent_id
+    and agents.workspace_id = new.workspace_id;
+
+  if not found or v_agent_network <> v_chain_key then
+    raise exception 'Chain action agent scope rejected';
+  end if;
+
+  if v_payload ? 'chain_id' then
+    v_chain_id := (v_payload ->> 'chain_id')::bigint;
+    v_expected_chain_id := case v_chain_key
+      when 'robinhood_mainnet' then 4663
+      when 'robinhood_testnet' then 46630
+      else null
+    end;
+    if v_chain_id is distinct from v_expected_chain_id then
+      raise exception 'Chain action identity rejected';
+    end if;
+  end if;
+
+  if tg_table_name = 'prepared_actions'
+    and v_agent_status not in ('ready', 'active')
+  then
+    raise exception 'Agent chain action status rejected';
+  end if;
+
+  return new;
+end;
+$$;
+
+create or replace function public.enforce_agent_network_rebinding()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.network is distinct from old.network
+    and (
+      exists (select 1 from public.wallet_policies where agent_id = old.id)
+      or exists (select 1 from public.approval_requests where agent_id = old.id)
+      or exists (select 1 from public.prepared_actions where agent_id = old.id)
+      or exists (select 1 from public.chain_action_rate_limits where agent_id = old.id)
+    )
+  then
+    raise exception 'Agent network rebind rejected';
+  end if;
+
+  return new;
+end;
+$$;
+
+create or replace function public.enforce_prepared_action_immutable_fields()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.workspace_id is distinct from old.workspace_id
+    or new.agent_id is distinct from old.agent_id
+    or new.request_id is distinct from old.request_id
+    or new.action_kind is distinct from old.action_kind
+    or new.chain_key is distinct from old.chain_key
+    or new.chain_id is distinct from old.chain_id
+    or new.risk is distinct from old.risk
+    or new.route_summary is distinct from old.route_summary
+    or new.value_summary is distinct from old.value_summary
+    or new.approval_requirement is distinct from old.approval_requirement
+    or new.safety_note is distinct from old.safety_note
+    or new.provider is distinct from old.provider
+    or new.recipient is distinct from old.recipient
+    or new.value_wei is distinct from old.value_wei
+    or new.calldata is distinct from old.calldata
+    or new.expires_at is distinct from old.expires_at
+    or new.created_at is distinct from old.created_at
+  then
+    raise exception 'Prepared action immutable fields cannot change';
+  end if;
+
+  return new;
+end;
+$$;
+
+create or replace function public.consume_chain_action_rate_limit(
+  p_owner_user_id uuid,
+  p_workspace_id uuid,
+  p_agent_id uuid,
+  p_chain_key text
+)
+returns table (allowed boolean, status text)
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  v_now timestamptz := clock_timestamp();
+  v_minute_started timestamptz;
+  v_minute_count integer;
+  v_hour_started timestamptz;
+  v_hour_count integer;
+begin
+  if p_chain_key not in ('robinhood_mainnet', 'robinhood_testnet') then
+    raise exception 'Chain action rate limit scope rejected';
+  end if;
+
+  if not exists (
+    select 1
+    from public.agent_instances agents
+    join public.workspaces workspaces on workspaces.id = agents.workspace_id
+    where agents.id = p_agent_id
+      and agents.workspace_id = p_workspace_id
+      and workspaces.owner_user_id = p_owner_user_id
+      and agents.network = p_chain_key
+      and agents.chain_action_status in ('ready', 'active')
+  ) then
+    raise exception 'Chain action rate limit scope rejected';
+  end if;
+
+  perform pg_advisory_xact_lock(
+    hashtextextended(p_agent_id::text || ':' || p_chain_key, 0)
+  );
+
+  select minute_window_started_at, minute_count,
+         hour_window_started_at, hour_count
+  into v_minute_started, v_minute_count, v_hour_started, v_hour_count
+  from public.chain_action_rate_limits
+  where agent_id = p_agent_id and chain_key = p_chain_key
+  for update;
+
+  if not found then
+    insert into public.chain_action_rate_limits (
+      agent_id, workspace_id, chain_key,
+      minute_window_started_at, minute_count,
+      hour_window_started_at, hour_count, updated_at
+    ) values (
+      p_agent_id, p_workspace_id, p_chain_key,
+      v_now, 1, v_now, 1, v_now
+    );
+    return query select true, 'allowed'::text;
+    return;
+  end if;
+
+  if v_minute_started <= v_now - interval '1 minute' then
+    v_minute_started := v_now;
+    v_minute_count := 0;
+  end if;
+  if v_hour_started <= v_now - interval '1 hour' then
+    v_hour_started := v_now;
+    v_hour_count := 0;
+  end if;
+
+  if v_minute_count >= 6 or v_hour_count >= 60 then
+    return query select false, 'rate_limited'::text;
+    return;
+  end if;
+
+  update public.chain_action_rate_limits
+  set workspace_id = p_workspace_id,
+      minute_window_started_at = v_minute_started,
+      minute_count = v_minute_count + 1,
+      hour_window_started_at = v_hour_started,
+      hour_count = v_hour_count + 1,
+      updated_at = v_now
+  where agent_id = p_agent_id and chain_key = p_chain_key;
+
+  return query select true, 'allowed'::text;
+end;
+$$;
+
+revoke all on function public.enforce_chain_action_agent_scope()
+from public, anon, authenticated, service_role;
+revoke all on function public.enforce_agent_network_rebinding()
+from public, anon, authenticated, service_role;
+revoke all on function public.enforce_prepared_action_immutable_fields()
+from public, anon, authenticated, service_role;
+revoke all on function public.consume_chain_action_rate_limit(uuid, uuid, uuid, text)
+from public, anon, authenticated;
+grant execute on function public.consume_chain_action_rate_limit(uuid, uuid, uuid, text)
+to service_role;
+
+drop trigger if exists enforce_wallet_policy_agent_chain_scope on public.wallet_policies;
+create trigger enforce_wallet_policy_agent_chain_scope
+before insert or update of workspace_id, agent_id, chain_key, chain_id
+on public.wallet_policies
+for each row execute function public.enforce_chain_action_agent_scope();
+
+drop trigger if exists enforce_approval_request_agent_chain_scope on public.approval_requests;
+create trigger enforce_approval_request_agent_chain_scope
+before insert or update of workspace_id, agent_id, chain_key, chain_id
+on public.approval_requests
+for each row execute function public.enforce_chain_action_agent_scope();
+
+drop trigger if exists enforce_prepared_action_agent_scope on public.prepared_actions;
+create trigger enforce_prepared_action_agent_scope
+before insert or update of workspace_id, agent_id, chain_key, chain_id
+on public.prepared_actions
+for each row execute function public.enforce_chain_action_agent_scope();
+
+drop trigger if exists enforce_prepared_action_immutable_fields on public.prepared_actions;
+create trigger enforce_prepared_action_immutable_fields
+before update on public.prepared_actions
+for each row execute function public.enforce_prepared_action_immutable_fields();
+
+drop trigger if exists enforce_chain_action_rate_limit_agent_scope on public.chain_action_rate_limits;
+create trigger enforce_chain_action_rate_limit_agent_scope
+before insert or update of workspace_id, agent_id, chain_key
+on public.chain_action_rate_limits
+for each row execute function public.enforce_chain_action_agent_scope();
+
+drop trigger if exists enforce_agent_network_rebinding on public.agent_instances;
+create trigger enforce_agent_network_rebinding
+before update of network on public.agent_instances
+for each row execute function public.enforce_agent_network_rebinding();
+
 create or replace function public.enforce_execution_result_scope()
 returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 begin
   if not exists (
     select 1
     from public.workspaces workspaces
     join public.agent_instances agents
       on agents.workspace_id = workspaces.id
+    join public.prepared_actions prepared
+      on prepared.workspace_id = workspaces.id
+      and prepared.agent_id = agents.id
     where workspaces.id = new.workspace_id
       and workspaces.owner_user_id = new.owner_user_id
       and agents.id = new.agent_id
+      and prepared.id = new.prepared_action_record_id
+      and prepared.request_id = new.prepared_action_id
+      and prepared.action_kind = 'robinhood_reviewed_transaction'
+      and prepared.chain_key = new.chain_key
+      and prepared.chain_id = new.chain_id
+      and prepared.status = 'approved'
+      and prepared.expires_at > now()
   ) then
     raise exception 'execution_result_scope_mismatch' using errcode = '23514';
   end if;
 
+  if new.receipt_checked_at is null then
+    raise exception 'execution_result_receipt_verification_required'
+      using errcode = '23514';
+  end if;
+
   return new;
 end;
-$;
+$$;
 
-revoke all on function public.enforce_execution_result_scope() from public, anon, authenticated;
+revoke all on function public.enforce_execution_result_scope()
+from public, anon, authenticated;
 
 drop trigger if exists enforce_execution_result_scope_on_write on public.execution_results;
 create trigger enforce_execution_result_scope_on_write
-before insert or update of owner_user_id, workspace_id, agent_id
+before insert or update of
+  owner_user_id,
+  workspace_id,
+  agent_id,
+  prepared_action_id,
+  prepared_action_record_id,
+  chain_key,
+  chain_id
 on public.execution_results
 for each row
 execute function public.enforce_execution_result_scope();
@@ -505,37 +882,120 @@ create or replace function public.claim_telegram_update(
   claimed boolean,
   status text
 )
-language sql
+language plpgsql
 volatile
 security invoker
 set search_path = ''
 as $$
-  with eligible_session as (
-    select sessions.id
+declare
+  v_now timestamptz := clock_timestamp();
+  v_delivery_status text;
+  v_lease_expires_at timestamptz;
+  v_attempt_count integer;
+begin
+  if not exists (
+    select 1
     from public.telegram_sessions sessions
     where sessions.id = p_telegram_session_id
       and sessions.webhook_status = 'active'
       and p_telegram_update_id >= 0
-  ),
-  inserted as (
+  ) then
+    return;
+  end if;
+
+  perform pg_advisory_xact_lock(
+    hashtextextended(
+      p_telegram_session_id::text || ':' || p_telegram_update_id::text,
+      0
+    )
+  );
+
+  select updates.delivery_status,
+         updates.lease_expires_at,
+         updates.attempt_count
+  into v_delivery_status, v_lease_expires_at, v_attempt_count
+  from public.telegram_processed_updates updates
+  where updates.telegram_session_id = p_telegram_session_id
+    and updates.telegram_update_id = p_telegram_update_id
+  for update;
+
+  if not found then
     insert into public.telegram_processed_updates (
       telegram_session_id,
-      telegram_update_id
-    )
-    select
-      eligible_session.id,
-      p_telegram_update_id
-    from eligible_session
-    on conflict on constraint telegram_processed_updates_pkey do nothing
-    returning true
-  )
-  select
-    exists(select 1 from inserted) as claimed,
-    case
-      when exists(select 1 from inserted) then 'claimed'
-      else 'duplicate'
-    end as status
-  from eligible_session;
+      telegram_update_id,
+      delivery_status,
+      lease_expires_at,
+      attempt_count,
+      delivered_at
+    ) values (
+      p_telegram_session_id,
+      p_telegram_update_id,
+      'processing',
+      v_now + interval '2 minutes',
+      1,
+      null
+    );
+
+    return query select true, 'claimed'::text;
+    return;
+  end if;
+
+  if v_delivery_status = 'delivered'
+    or v_lease_expires_at > v_now
+    or v_attempt_count >= 25
+  then
+    return query select false, 'duplicate'::text;
+    return;
+  end if;
+
+  update public.telegram_processed_updates updates
+  set delivery_status = 'processing',
+      lease_expires_at = v_now + interval '2 minutes',
+      attempt_count = updates.attempt_count + 1,
+      delivered_at = null
+  where updates.telegram_session_id = p_telegram_session_id
+    and updates.telegram_update_id = p_telegram_update_id;
+
+  return query select true, 'claimed'::text;
+end;
+$$;
+
+create or replace function public.mark_telegram_update_delivered(
+  p_telegram_session_id uuid,
+  p_telegram_update_id bigint
+) returns table (
+  marked boolean,
+  status text
+)
+language plpgsql
+volatile
+security invoker
+set search_path = ''
+as $$
+begin
+  update public.telegram_processed_updates updates
+  set delivery_status = 'delivered',
+      lease_expires_at = clock_timestamp(),
+      delivered_at = clock_timestamp()
+  where updates.telegram_session_id = p_telegram_session_id
+    and updates.telegram_update_id = p_telegram_update_id
+    and updates.delivery_status = 'processing';
+
+  if found then
+    return query select true, 'delivered'::text;
+    return;
+  end if;
+
+  if exists (
+    select 1
+    from public.telegram_processed_updates updates
+    where updates.telegram_session_id = p_telegram_session_id
+      and updates.telegram_update_id = p_telegram_update_id
+      and updates.delivery_status = 'delivered'
+  ) then
+    return query select false, 'duplicate'::text;
+  end if;
+end;
 $$;
 
 create or replace function public.issue_telegram_owner_link_challenge(
@@ -1429,6 +1889,8 @@ alter table public.agent_templates enable row level security;
 alter table public.agent_instances enable row level security;
 alter table public.wallet_policies enable row level security;
 alter table public.approval_requests enable row level security;
+alter table public.prepared_actions enable row level security;
+alter table public.chain_action_rate_limits enable row level security;
 alter table public.execution_results enable row level security;
 alter table public.activity_logs enable row level security;
 alter table public.telegram_sessions enable row level security;
@@ -1479,6 +1941,13 @@ on public.approval_requests
 for select
 using (public.owns_workspace(workspace_id));
 
+drop policy if exists "Workspace owners can read prepared actions" on public.prepared_actions;
+create policy "Workspace owners can read prepared actions"
+on public.prepared_actions
+for select
+to authenticated
+using (public.owns_workspace(workspace_id));
+
 drop policy if exists "Workspace owners can read execution results" on public.execution_results;
 create policy "Workspace owners can read execution results"
 on public.execution_results
@@ -1520,6 +1989,27 @@ select
   sessions.last_event_at
 from public.telegram_sessions sessions;
 
+create or replace view public.prepared_action_owner_summaries
+with (security_invoker = true)
+as
+select
+  id,
+  workspace_id,
+  agent_id,
+  action_kind,
+  chain_key,
+  chain_id,
+  status,
+  risk,
+  route_summary,
+  value_summary,
+  approval_requirement,
+  safety_note,
+  expires_at,
+  created_at,
+  resolved_at
+from public.prepared_actions;
+
 create or replace view public.public_agent_profiles
 with (security_invoker = true)
 as
@@ -1554,6 +2044,9 @@ revoke all privileges on public.workspaces from authenticated;
 revoke all privileges on public.agent_instances from authenticated;
 revoke all privileges on public.wallet_policies from authenticated;
 revoke all privileges on public.approval_requests from authenticated;
+revoke all privileges on public.prepared_actions from public, anon, authenticated, service_role;
+revoke all privileges on public.prepared_action_owner_summaries from public, anon, authenticated, service_role;
+revoke all privileges on public.chain_action_rate_limits from public, anon, authenticated, service_role;
 revoke all privileges on public.execution_results from public, anon, authenticated;
 revoke all privileges on public.activity_logs from authenticated;
 revoke all privileges on public.telegram_sessions from authenticated;
@@ -1569,6 +2062,8 @@ revoke all on function public.resolve_telegram_webhook_session(text)
 revoke all on function public.resolve_telegram_chat_authorization(uuid,text,text,text)
   from public, anon, authenticated, service_role;
 revoke all on function public.claim_telegram_update(uuid,bigint)
+  from public, anon, authenticated, service_role;
+revoke all on function public.mark_telegram_update_delivered(uuid,bigint)
   from public, anon, authenticated, service_role;
 revoke all on function public.issue_telegram_owner_link_challenge(uuid,uuid,uuid,text,timestamptz)
   from public, anon, authenticated, service_role;
@@ -1602,6 +2097,25 @@ grant select (
 grant select on public.agent_instances to authenticated;
 grant select on public.wallet_policies to authenticated;
 grant select on public.approval_requests to authenticated;
+grant select (
+  id,
+  workspace_id,
+  agent_id,
+  action_kind,
+  chain_key,
+  chain_id,
+  status,
+  risk,
+  route_summary,
+  value_summary,
+  approval_requirement,
+  safety_note,
+  expires_at,
+  created_at,
+  resolved_at
+) on public.prepared_actions to authenticated;
+grant select on public.prepared_action_owner_summaries to authenticated;
+grant select, insert, update on public.chain_action_rate_limits to service_role;
 grant select on public.execution_results to authenticated;
 grant select on public.activity_logs to authenticated;
 grant select (
@@ -1620,15 +2134,17 @@ grant all on public.workspaces to service_role;
 grant all on public.agent_instances to service_role;
 grant all on public.wallet_policies to service_role;
 grant all on public.approval_requests to service_role;
+grant select, insert, update on public.prepared_actions to service_role;
 grant all on public.execution_results to service_role;
 grant all on public.activity_logs to service_role;
 grant all on public.telegram_sessions to service_role;
 grant select, insert, update on public.telegram_bot_token_secrets to service_role;
 grant select, insert, update on public.telegram_webhook_secrets to service_role;
 grant select, insert, update on public.telegram_chat_authorizations to service_role;
-grant select, insert on public.telegram_processed_updates to service_role;
+grant select, insert, update on public.telegram_processed_updates to service_role;
 grant select, insert, update on public.telegram_owner_link_challenges to service_role;
 grant select, insert, update on public.telegram_owner_link_consume_rate_limits to service_role;
+grant select on public.prepared_action_owner_summaries to service_role;
 grant select on public.telegram_session_summaries to service_role;
 grant select on public.public_agent_profiles to service_role;
 grant execute on function public.owns_workspace(uuid) to service_role;
@@ -1637,6 +2153,8 @@ grant execute on function public.resolve_telegram_webhook_session(text)
 grant execute on function public.resolve_telegram_chat_authorization(uuid,text,text,text)
   to service_role;
 grant execute on function public.claim_telegram_update(uuid,bigint)
+  to service_role;
+grant execute on function public.mark_telegram_update_delivered(uuid,bigint)
   to service_role;
 grant execute on function public.issue_telegram_owner_link_challenge(uuid,uuid,uuid,text,timestamptz)
   to service_role;

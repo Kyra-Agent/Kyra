@@ -15,9 +15,7 @@ import {
   Terminal,
   WalletCards,
 } from "lucide-react";
-import type { AgentTemplate } from "../types/agent";
 import { currentProductChain } from "../config/productChains";
-import { kyraDataService } from "../services/kyraDataService";
 import {
   fetchPublicAgentProfile,
   type PublicAgentProfile,
@@ -25,7 +23,6 @@ import {
 } from "../services/supabasePublicAgentService";
 
 interface PublicAgentProps {
-  selectedTemplate: AgentTemplate;
   agentSlug: string;
   onBackDashboard: () => void;
   onBackHome: () => void;
@@ -59,10 +56,6 @@ function getPublicStatusLabel(status: PublicAgentProfileStatus) {
   }
 
   return "Protected agent profile";
-}
-
-function isProtectedPreviewSlug(agentSlug: string) {
-  return agentSlug.endsWith("-demo");
 }
 
 function formatPublicRouteStatus(status: string) {
@@ -115,7 +108,6 @@ function getPublicAgentHeadline(displayName: string, templateName: string) {
 }
 
 export function PublicAgent({
-  selectedTemplate,
   agentSlug,
   onBackDashboard,
   onBackHome,
@@ -124,14 +116,11 @@ export function PublicAgent({
   const [publicStatus, setPublicStatus] = useState<PublicAgentProfileStatus>("loading");
   const [publicProfile, setPublicProfile] = useState<PublicAgentProfile | null>(null);
   const [publicError, setPublicError] = useState<string | null>(null);
-  const canUseProtectedPreview = isProtectedPreviewSlug(agentSlug);
-  const showUnavailableAgent = !canUseProtectedPreview && !publicProfile && publicStatus !== "loading";
-  const fallbackAgentRecord = kyraDataService.getAgentInstance(selectedTemplate.id);
-  const agentRecord = publicProfile?.agent ?? (canUseProtectedPreview ? fallbackAgentRecord : null);
-  const activeTemplate = publicProfile?.template ?? (canUseProtectedPreview ? selectedTemplate : null);
-  const approvalPolicy = agentRecord ? kyraDataService.getApprovalPolicyForAgent(agentRecord) : null;
-  const commandRows = activeTemplate ? kyraDataService.listPriorityApprovalRequests(activeTemplate.id, 4) : [];
-  const profileSource = publicProfile ? "Persisted agent profile" : "Protected profile view";
+  const showUnavailableAgent = !publicProfile && publicStatus !== "loading";
+  const agentRecord = publicProfile?.agent ?? null;
+  const activeTemplate = publicProfile?.template ?? null;
+  const commandRows = activeTemplate?.actions.slice(0, 4) ?? [];
+  const profileSource = "Persisted agent profile";
   const telegramPanelStatus = getPublicTelegramPanelStatus(agentRecord?.telegramStatus ?? "mocked");
 
   useEffect(() => {
@@ -141,7 +130,7 @@ export function PublicAgent({
       setPublicStatus("loading");
       setPublicError(null);
 
-      const result = await fetchPublicAgentProfile(agentSlug, selectedTemplate.id);
+      const result = await fetchPublicAgentProfile(agentSlug);
 
       if (!active) {
         return;
@@ -157,7 +146,7 @@ export function PublicAgent({
     return () => {
       active = false;
     };
-  }, [agentSlug, selectedTemplate.id]);
+  }, [agentSlug]);
 
   if (!agentRecord || !activeTemplate || showUnavailableAgent) {
     const loading = publicStatus === "loading";
@@ -341,7 +330,7 @@ export function PublicAgent({
         </span>
         <span>
           <LockKeyhole size={16} />
-          {approvalPolicy?.value ?? "Approval required"}
+          Explicit wallet approval
         </span>
         <span>
           <Route size={16} />
@@ -418,14 +407,14 @@ export function PublicAgent({
             <span>{commandRows.length} examples</span>
           </div>
           <div className="command-demo-list public-command-list">
-            {commandRows.map((request) => (
-              <div key={request.id}>
+            {commandRows.map((action) => (
+              <div key={action}>
                 <MessageSquareText size={16} />
                 <span>
-                  <code>{request.command}</code>
-                  <small>{request.route}</small>
+                  <code>{action}</code>
+                  <small>Read-only agent request</small>
                 </span>
-                <em>{request.requiresWallet ? "approval" : request.risk}</em>
+                <em>protected</em>
               </div>
             ))}
           </div>

@@ -88,6 +88,11 @@ Keep the webhook path staged behind runtime gates:
 Do not enable write, approval, wallet, Robinhood Chain actions, onchain, or LLM command
 execution from this webhook without a separate reviewed implementation.
 
+## Retry-Safe Delivery
+
+Normal Telegram updates are claimed with a short metadata-only delivery lease. A successful `sendMessage` marks the update delivered; transient failures leave it retryable until the bounded attempt limit is reached. Advisory locking prevents concurrent workers from delivering the same update, and the database stores only update identity, delivery status, attempt count, lease timestamps, and delivery timestamps.
+
+The retry path never stores reply text, Telegram bot tokens, chat content, LLM prompts, provider payloads, wallet data, or transaction material. Owner-link challenges remain outside this delivery path.
 ## Wallet Execution Gate
 
 `execution-gate.ts` is a local fail-closed classifier for natural chat messages

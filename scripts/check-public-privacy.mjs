@@ -168,6 +168,22 @@ assertNoForbidden(
   publicAgentService,
   forbiddenPublicProfileTerms,
 );
+assert(
+  !publicAgentService.includes("isLocalDemoPreviewSlug") &&
+    !publicAgentService.includes('endsWith("-demo")'),
+  "Public agent service must not synthesize or special-case demo profile routes.",
+);
+assert(
+  publicAgentService.includes('mode: "backend-connected"'),
+  "Persisted public agent profiles must be labeled backend-connected.",
+);
+
+const publicAgentPage = read("src/pages/PublicAgent.tsx");
+assert(
+  !publicAgentPage.includes("kyraDataService") &&
+    !publicAgentPage.includes("selectedTemplate"),
+  "Public agent pages must render only persisted, share-safe profile data.",
+);
 
 const dashboardService = read("src/services/supabaseDashboardService.ts");
 const deployAgentFunction = read("supabase/functions/deploy-agent/index.ts");
@@ -228,7 +244,19 @@ assert(
 
 
 const appPage = read("src/App.tsx");
+const heroConsole = read("src/components/HeroConsole.tsx");
 const dashboardPage = read("src/pages/Dashboard.tsx");
+assert(
+  !appPage.includes("operator-demo") &&
+    !appPage.includes('targetSlug ?? `${nextTemplateId}-demo`'),
+  "Application routing must not synthesize public demo-agent URLs.",
+);
+assert(
+  !heroConsole.includes("setTimeout(onRequestApproval") &&
+    heroConsole.includes('className="console-review-button"') &&
+    heroConsole.includes("onClick={onRequestApproval}"),
+  "Landing approval review must open only from an explicit user action.",
+);
 assert(
   dashboardPage.includes("Private account workspace") &&
     dashboardPage.includes("Public visitors can use the product pages and public agent profiles without seeing operational or wallet internals."),

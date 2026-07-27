@@ -16,8 +16,8 @@ Backend:
 - KYRA_ROBINHOOD_MAINNET_DEPLOY_ENABLED=true
 - RPC URL and allowed hosts are backend-only secrets
 - chain status and action preparation require a dedicated shared secret
-- transaction-result-closeout requires an authenticated account JWT
-- execution result writes are service-only; owners receive RLS-scoped read access
+- transaction-intent-prepare and transaction-result-closeout require an authenticated account JWT
+- prepared intents and execution result writes are service-only; owners receive RLS-scoped read access
 
 Netlify production builds with npm run build:robinhood-mainnet.
 
@@ -25,9 +25,9 @@ Netlify production builds with npm run build:robinhood-mainnet.
 
 1. Run npm run check:product.
 2. Run npm run build:robinhood-mainnet.
-3. Apply and verify pending Supabase migrations.
-4. Deploy only current Edge Functions, including transaction-result-closeout.
-5. Verify execution_results migration, RLS policy, scope trigger, status constraint, and transaction-hash uniqueness.
+3. Apply and verify pending Supabase migrations, including transaction-intent receipt binding and Telegram delivery retry state.
+4. Deploy only current Edge Functions, including transaction-intent-prepare, transaction-result-closeout, and telegram-webhook.
+5. Verify prepared-action foreign keys, execution-result receipt fields, RLS policies, scope triggers, status constraints, and transaction-hash uniqueness.
 6. Confirm legacy provider functions are absent.
 7. Verify no raw secret pattern is committed.
 
@@ -60,9 +60,20 @@ Sanitized production evidence recorded on 2026-07-25:
 - transaction address and full hash are intentionally omitted from public documentation
 
 The owner dashboard reported backend closeout `saved`, and disconnect/reset
-invalidated the live window without replay. Public execution remains fail-closed
-until the explicit release decision is recorded.
+invalidated the live window without replay. The explicit owner-controlled release
+decision is recorded. Telegram, public-profile, autonomous, token-approval,
+arbitrary-calldata, and hidden-signing execution remain blocked.
 
+## July 27 Hardening Release Candidate
+
+Before this batch is called live, apply and verify these migrations in order:
+
+- `20260726120000_transaction_intent_receipt_verification.sql`
+- `20260726121000_verify_transaction_intent_receipt_verification.sql`
+- `20260726122000_telegram_delivery_retry.sql`
+- `20260726123000_verify_telegram_delivery_retry.sql`
+
+Then deploy the updated transaction-intent, result-closeout, and Telegram webhook functions, publish the Robinhood mainnet frontend build, and rerun authenticated intent, delayed-receipt, Telegram retry, privacy, and rollback smoke tests.
 ## Rollback
 
 Disable transaction submission flags first. Revoke active live windows, disconnect the wallet session, and keep read-only product capabilities online. Do not expose provider payloads or secrets in incident evidence.

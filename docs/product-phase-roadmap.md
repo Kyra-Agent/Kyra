@@ -13,7 +13,7 @@ Kyra uses one ten-phase product roadmap. Historical sub-batches are implementati
 | 7 | Owner wallet connection and chain-bound approvals | Complete |
 | 8 | Controlled execution workflow, receipt verification, and owner-only backend closeout | Complete |
 | 9 | Abuse controls, incidents, monitoring, and privacy | Complete |
-| 10 | Robinhood Chain public cutover and release closeout | Awaiting explicit public release decision |
+| 10 | Robinhood Chain public cutover and release closeout | Complete for the owner-controlled release lane |
 
 ## Current Product State
 
@@ -31,7 +31,11 @@ Live now:
 
 Final gated item:
 
-- enable public transaction submission only after the confirmed bounded mainnet receipt is paired with authenticated owner-only backend closeout, rollback verification, and explicit release approval
+- preserve per-transaction eligibility, immutable intent, wallet prompt, receipt verification, and owner-only closeout even though the release decision is recorded
+
+## Current Hardening Batch
+
+The active local batch is release hardening, not an eleventh phase. It adds server-verified transaction intent and receipt binding, retry-safe Telegram delivery, session-scoped auth storage, a fresh-database bootstrap baseline, dependency updates, and CI. The batch remains pending production deployment until its migrations, Edge Functions, frontend build, and live health checks are applied in order.
 
 ## Non-Negotiable Rules
 

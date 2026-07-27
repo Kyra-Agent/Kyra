@@ -50,7 +50,7 @@ export const mockKyraRepository: KyraRepository = {
       return createApiError(
         {
           code: "scenario_not_found",
-          message: `No demo scenario exists for id "${scenarioId}".`,
+          message: `No preview scenario exists for id "${scenarioId}".`,
         },
         this.source,
       );

@@ -1,6 +1,6 @@
 import type { ProductChainKey } from "../config/productChains";
 
-export type DemoBackendMode = "frontend-demo" | "backend-demo";
+export type DemoBackendMode = "local-preview" | "backend-connected";
 export type DemoRecordStatus =
   | "mocked"
   | "active"

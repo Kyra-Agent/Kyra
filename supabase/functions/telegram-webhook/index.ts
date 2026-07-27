@@ -25,9 +25,13 @@ import {
 } from "./chat-authorization-lookup.ts";
 import {
   claimTelegramUpdate,
+  markTelegramUpdateDelivered,
   sanitizeTelegramUpdateClaimRpcError,
+  sanitizeTelegramUpdateDeliveryMarkRpcError,
   type TelegramUpdateClaimResult,
   type TelegramUpdateClaimRpcClient,
+  type TelegramUpdateDeliveryMarkResult,
+  type TelegramUpdateDeliveryMarkRpcClient,
 } from "./idempotency.ts";
 import {
   createTelegramWebhookAgentBrainProviderRuntimeConfig,
@@ -146,15 +150,23 @@ export {
   assertTelegramUpdateClaimResult,
   assertTelegramUpdateClaimRows,
   assertTelegramUpdateClaimRpcResult,
+  assertTelegramUpdateDeliveryMarkResult,
+  assertTelegramUpdateDeliveryMarkRpcResult,
   claimTelegramUpdate,
+  markTelegramUpdateDelivered,
   sanitizeTelegramUpdateClaimError,
   sanitizeTelegramUpdateClaimRpcError,
+  sanitizeTelegramUpdateDeliveryMarkError,
+  sanitizeTelegramUpdateDeliveryMarkRpcError,
   shouldProcessTelegramUpdateClaim,
 } from "./idempotency.ts";
 export type {
   TelegramUpdateClaimResult,
   TelegramUpdateClaimRpcClient,
   TelegramUpdateClaimRpcResult,
+  TelegramUpdateDeliveryMarkResult,
+  TelegramUpdateDeliveryMarkRpcClient,
+  TelegramUpdateDeliveryMarkRpcResult,
 } from "./idempotency.ts";
 export { planTelegramClaimedReadOnlyResponse } from "./claim-aware-response.ts";
 export type { TelegramClaimedReadOnlyResponsePlan } from "./claim-aware-response.ts";
@@ -320,6 +332,10 @@ export interface TelegramWebhookDependencies {
     telegramSessionId: string;
     telegramUpdateId: string;
   }) => Promise<TelegramUpdateClaimResult>;
+  markTelegramUpdateDelivered?: (input: {
+    telegramSessionId: string;
+    telegramUpdateId: string;
+  }) => Promise<TelegramUpdateDeliveryMarkResult>;
   deliverTelegramReadOnlyResponse?: (input: {
     telegramSessionId: string;
     telegramChatId: string;
@@ -597,6 +613,14 @@ export function createTelegramWebhookDependencies(
       return await claimTelegramUpdate({
         ...input,
         rpcClient: getRpcClient() as unknown as TelegramUpdateClaimRpcClient,
+      });
+    };
+
+    dependencies.markTelegramUpdateDelivered = async (input) => {
+      return await markTelegramUpdateDelivered({
+        ...input,
+        rpcClient:
+          getRpcClient() as unknown as TelegramUpdateDeliveryMarkRpcClient,
       });
     };
   }
@@ -940,6 +964,21 @@ export async function handleTelegramWebhookRequest(
         }
 
         throw sanitizeTelegramResponseDeliveryError(error);
+      }
+
+      if (dependencies.markTelegramUpdateDelivered) {
+        try {
+          await dependencies.markTelegramUpdateDelivered({
+            telegramSessionId: lookupSession.sessionId,
+            telegramUpdateId: parsedUpdate.updateId,
+          });
+        } catch (error) {
+          if (error instanceof HttpError) {
+            throw error;
+          }
+
+          throw sanitizeTelegramUpdateDeliveryMarkRpcError(error);
+        }
       }
 
       return jsonResponse(

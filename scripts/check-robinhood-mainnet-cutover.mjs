@@ -21,7 +21,7 @@ for (const expected of [
   "VITE_KYRA_CHAIN_RELEASE_TARGET=robinhood_mainnet",
   "VITE_KYRA_ROBINHOOD_MAINNET_WINDOW=owner_mainnet_cutover",
   "VITE_KYRA_ROBINHOOD_MAINNET_RELEASE=owner_release_approved",
-  "VITE_KYRA_PHASE8_CONTROLLED_SUBMISSION=disabled",
+  "VITE_KYRA_PHASE8_CONTROLLED_SUBMISSION=owner_approved_window",
   "VITE_KYRA_PHASE8_LOW_VALUE_SUBMISSION=disabled",
 ]) {
   if (!env.includes(expected)) throw new Error("Frontend release boundary missing: " + expected);
@@ -41,6 +41,16 @@ for (const boundary of [
 ]) {
   if (!appConfig.includes(boundary)) throw new Error("Frontend fail-closed boundary missing: " + boundary);
 }
-if (!netlify.includes('command = "npm run build:robinhood-mainnet"')) throw new Error("Netlify mainnet build missing.");
+for (const expected of [
+  'command = "npm run build:robinhood-mainnet"',
+  'VITE_KYRA_DATA_PROVIDER = "supabase"',
+  'VITE_KYRA_CHAIN_RELEASE_TARGET = "robinhood_mainnet"',
+  'VITE_KYRA_ROBINHOOD_MAINNET_WINDOW = "owner_mainnet_cutover"',
+  'VITE_KYRA_ROBINHOOD_MAINNET_RELEASE = "owner_release_approved"',
+  'VITE_KYRA_PHASE8_CONTROLLED_SUBMISSION = "owner_approved_window"',
+  'VITE_KYRA_PHASE8_LOW_VALUE_SUBMISSION = "disabled"',
+]) {
+  if (!netlify.includes(expected)) throw new Error("Netlify release boundary missing: " + expected);
+}
 if (!runbook.includes("Transaction") && !runbook.includes("transaction")) throw new Error("Runbook missing transaction boundary.");
 console.log("Robinhood mainnet cutover contract passed.");

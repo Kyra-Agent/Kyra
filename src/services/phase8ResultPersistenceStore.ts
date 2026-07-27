@@ -41,10 +41,14 @@ export function savePhase8PersistedExecutionResult(
     ...existing.filter((item) => item.id !== record.id),
   ].slice(0, maxStoredResults);
 
-  window.sessionStorage.setItem(
-    phase8ResultPersistenceKey,
-    JSON.stringify(next),
-  );
+  try {
+    window.sessionStorage.setItem(
+      phase8ResultPersistenceKey,
+      JSON.stringify(next),
+    );
+  } catch {
+    // Backend closeout remains authoritative when browser storage is unavailable.
+  }
 
   return next;
 }
@@ -58,10 +62,14 @@ export function clearPhase8PersistedExecutionResults(
 
   const existing = loadPhase8PersistedExecutionResults(ownerUserId);
   const remaining = existing.filter((record) => record.ownerUserId !== ownerUserId);
-  window.sessionStorage.setItem(
-    phase8ResultPersistenceKey,
-    JSON.stringify(remaining),
-  );
+  try {
+    window.sessionStorage.setItem(
+      phase8ResultPersistenceKey,
+      JSON.stringify(remaining),
+    );
+  } catch {
+    // Session cleanup must not block sign-out or disconnect flows.
+  }
 
   return remaining;
 }
@@ -81,7 +89,6 @@ function isPersistedResultForOwner(
     typeof record.workspaceId === "string" &&
     typeof record.agentId === "string" &&
     typeof record.preparedActionId === "string" &&
-    typeof record.submissionNonce === "string" &&
     typeof record.txHash === "string" &&
     typeof record.txHashLabel === "string" &&
     typeof record.updatedAt === "string" &&

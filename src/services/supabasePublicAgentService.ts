@@ -68,9 +68,6 @@ function mapChainActionRouteStatus(
   return "queued";
 }
 
-function isLocalDemoPreviewSlug(agentSlug: string) {
-  return agentSlug.endsWith("-demo");
-}
 
 function buildPublicAgentQuery(agentSlug: string) {
   return `public_agent_profiles?select=*&public_slug=eq.${encodeURIComponent(agentSlug)}&limit=1`;
@@ -98,7 +95,7 @@ function mapPublicAgentProfile(row: PublicAgentProfileRow): PublicAgentProfile {
     handle: row.handle,
     publicPath: `/agents/${row.public_slug}`,
     status: row.status,
-    mode: row.mode === "demo" ? "backend-demo" : "backend-demo",
+    mode: "backend-connected",
     chainKey: row.network,
     network: chain?.name ?? "Unsupported network",
     chainActionStatus: row.chain_action_status,
@@ -131,16 +128,7 @@ function mapPublicAgentProfile(row: PublicAgentProfileRow): PublicAgentProfile {
 
 export async function fetchPublicAgentProfile(
   agentSlug: string,
-  _fallbackTemplateId: string,
 ): Promise<PublicAgentProfileResult> {
-  if (isLocalDemoPreviewSlug(agentSlug)) {
-    return {
-      ok: false,
-      status: "empty",
-      profile: null,
-      error: null,
-    };
-  }
 
   if (!appConfig.supabase.configured) {
     return {

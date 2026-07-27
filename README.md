@@ -124,9 +124,11 @@ Kyra is an independent product and does not imply affiliation with, sponsorship 
 
 ## Product Status
 
-Kyra's product foundation, backend persistence, privacy boundaries, agent deployment, Telegram and LLM layer, wallet policy, testnet execution workflow, Robinhood Chain abstraction, and mainnet provider lane are implemented and verified.
+Kyra's product foundation, backend persistence, privacy boundaries, agent deployment, Telegram and LLM layer, wallet policy, Robinhood Chain execution workflow, and mainnet release lane are implemented and verified. A bounded zero-value Robinhood Chain mainnet transaction has completed through the owner-controlled path with a confirmed receipt and private backend closeout.
 
-Public execution is deliberately narrower than the rest of the product. Any transaction rollout must preserve user sign-in, selected-agent binding, user wallet approval, deterministic policy and NYX-05 review, receipt verification, emergency disable, and privacy-safe evidence.
+Transaction access remains deliberately narrower than the rest of the product. It is available only from an authenticated private workspace with selected-agent binding, user wallet approval, deterministic policy and NYX-05 review, receipt verification, emergency disable, and privacy-safe evidence. Telegram and public profiles cannot sign or submit.
+
+The current hardening release candidate adds immutable backend transaction intents, RPC-verified receipts, retry-safe Telegram delivery, session-scoped browser authentication, fresh-database bootstrap coverage, dependency scanning, and CI. Those controls are reported as live only after the matching migrations and Edge Functions are deployed.
 
 Detailed engineering evidence is tracked in:
 

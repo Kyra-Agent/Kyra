@@ -117,7 +117,7 @@ const scenarios: Record<string, DemoScenario> = {
   },
   scout: {
     id: "scan",
-    title: "Scout demo action",
+    title: "Scout action review",
     command: "scan new Robinhood Chain launches",
     route: "Launch monitor + token risk brief",
     risk: "review",
@@ -313,9 +313,9 @@ function getScenario(
   return (
     scenarios[templateId] ?? {
       id: "custom",
-      title: `${template.name} demo action`,
-      command: template.terminal_seed || "prepare demo action",
-      route: "Kyra demo action route",
+      title: `${template.name} action review`,
+      command: template.terminal_seed || "prepare action review",
+      route: "Kyra protected action route",
       risk: "review",
       approvalRequired: true,
     }
@@ -441,7 +441,7 @@ async function ensureWorkspace(
     .from("workspaces")
     .insert({
       owner_user_id: userId,
-      name: "Kyra demo workspace",
+      name: "Kyra workspace",
       mode: "demo",
     })
     .select("id,owner_user_id,name,mode,created_at")
@@ -538,7 +538,7 @@ async function insertAgent(
 
   if (error || !data) {
     if (error?.message?.toLowerCase().includes("demo agent limit")) {
-      throw new HttpError(409, "quota_exceeded", "Demo agent limit reached.");
+      throw new HttpError(409, "quota_exceeded", "Agent limit reached.");
     }
 
     throw error ?? new Error("Agent creation failed.");
@@ -559,7 +559,7 @@ async function insertWalletPolicy(
     .insert({
       workspace_id: workspaceId,
       agent_id: agentId,
-      wallet_label: "Demo " + chain.walletLabel,
+      wallet_label: chain.walletLabel,
       wallet_address: null,
       chain_key: chain.key,
       chain_id: chain.id,
@@ -646,7 +646,7 @@ async function insertRelatedRecords(
         source: "agent_instances",
         level: "info",
         message:
-          `created ${template.name} demo agent from deploy-agent function`,
+          `created ${template.name} agent from protected deploy flow`,
       },
       {
         workspace_id: workspace.id,
@@ -660,7 +660,7 @@ async function insertRelatedRecords(
         agent_id: agent.id,
         source: "approval_requests",
         level: "notice",
-        message: "demo review draft persisted with wallet execution disabled",
+        message: "review draft persisted with wallet execution disabled",
       },
     ].map((log) => ({
       ...log,
@@ -741,7 +741,7 @@ Deno.serve(async (request) => {
       throw new HttpError(
         409,
         "quota_exceeded",
-        `Demo agent limit reached (${used}/${limit}).`,
+        `Agent limit reached (${used}/${limit}).`,
         {
           quota: {
             used,
@@ -804,7 +804,7 @@ Deno.serve(async (request) => {
       {
         ok: true,
         status: "saved",
-        message: "Demo deployment persisted by deploy-agent function.",
+        message: "Agent deployment persisted by deploy-agent function.",
         workspaceId: workspace.id,
         agentId: agent.id,
         publicSlug: agent.public_slug,

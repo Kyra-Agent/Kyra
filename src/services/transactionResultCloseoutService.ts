@@ -1,7 +1,6 @@
 import { appConfig } from "../config/appConfig";
 import type {
   Phase8PersistedExecutionResult,
-  Phase8PersistedResultStatus,
 } from "../types/phase8ResultPersistence";
 import type { KyraAuthSession } from "./supabaseAuthService";
 import {
@@ -17,6 +16,7 @@ export type TransactionResultCloseoutStatus =
 export interface TransactionResultCloseoutResult {
   status: TransactionResultCloseoutStatus;
   message: string;
+  verifiedStatus: Phase8PersistedExecutionResult["status"] | null;
 }
 
 interface CloseoutResponse {
@@ -32,6 +32,7 @@ export async function persistTransactionResultCloseout(
   if (!session || !appConfig.functions.transactionResultCloseoutConfigured) {
     return {
       status: "not-configured",
+      verifiedStatus: null,
       message: "Owner-only result closeout backend is unavailable.",
     };
   }
@@ -51,10 +52,7 @@ export async function persistTransactionResultCloseout(
           workspaceId: record.workspaceId,
           agentId: record.agentId,
           preparedActionId: record.preparedActionId,
-          submissionNonce: record.submissionNonce,
           txHash: record.txHash,
-          status: record.status,
-          failureCode: getFailureCode(record.status),
         }),
       },
     );
@@ -63,28 +61,41 @@ export async function persistTransactionResultCloseout(
     if (!response.ok || payload.ok === false) {
       return {
         status: "error",
+        verifiedStatus: null,
         message: sanitizeSupabaseMessage(
           payload.message ?? "Owner-only result closeout failed safely.",
         ),
       };
     }
 
+    const verifiedStatus = readVerifiedStatus(payload.status);
+    if (!verifiedStatus) {
+      return {
+        status: "error",
+        verifiedStatus: null,
+        message: "The backend returned an invalid receipt verification state.",
+      };
+    }
     return {
       status: "saved",
-      message: record.status === "confirmed"
+      verifiedStatus,
+      message: verifiedStatus === "confirmed"
         ? "Confirmed receipt persisted to the owner-only Kyra backend."
-        : "Transaction result persisted to the owner-only Kyra backend.",
+        : "Transaction result verified and persisted to the owner-only Kyra backend.",
     };
   } catch {
     return {
       status: "error",
       message: "Owner-only result closeout failed safely.",
+      verifiedStatus: null,
     };
   }
 }
 
-function getFailureCode(status: Phase8PersistedResultStatus) {
-  return status === "failed" ? "transaction_reverted" : null;
+function readVerifiedStatus(value: unknown): Phase8PersistedExecutionResult["status"] | null {
+  return value === "submitted" || value === "confirmed" || value === "failed"
+    ? value
+    : null;
 }
 
 async function readResponse(response: Response): Promise<CloseoutResponse> {

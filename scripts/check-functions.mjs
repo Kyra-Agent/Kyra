@@ -13,6 +13,7 @@ const entrypoints = [
   "telegram-link",
   "telegram-webhook",
   "transaction-result-closeout",
+  "transaction-intent-prepare",
 ];
 
 const expectedJwt = new Map([
@@ -25,6 +26,7 @@ const expectedJwt = new Map([
   ["telegram-link", true],
   ["telegram-webhook", false],
   ["transaction-result-closeout", true],
+  ["transaction-intent-prepare", true],
 ]);
 
 const config = readFileSync("supabase/config.toml", "utf8");
@@ -61,6 +63,80 @@ for (const boundary of [
 ]) {
   if (!telegramGate.includes(boundary)) {
     throw new Error("Telegram execution boundary missing: " + boundary);
+  }
+}
+
+const telegramWebhookFunction = readFileSync(
+  "supabase/functions/telegram-webhook/index.ts",
+  "utf8",
+);
+const telegramDeliveryRetryMigration = readFileSync(
+  "supabase/migrations/20260726122000_telegram_delivery_retry.sql",
+  "utf8",
+);
+const telegramDeliveryRetryVerifier = readFileSync(
+  "supabase/migrations/20260726123000_verify_telegram_delivery_retry.sql",
+  "utf8",
+);
+for (const boundary of [
+  "markTelegramUpdateDelivered",
+  "mark_telegram_update_delivered",
+  "delivery_status",
+  "lease_expires_at",
+  "telegram_processed_updates_attempt_count_check",
+  "telegram_processed_updates_retry_idx",
+  "pg_advisory_xact_lock",
+  "grant execute on function public.mark_telegram_update_delivered",
+  "commit;",
+]) {
+  if (
+    !telegramWebhookFunction.includes(boundary) &&
+    !telegramDeliveryRetryMigration.includes(boundary)
+  ) {
+    throw new Error("Telegram delivery retry boundary missing: " + boundary);
+  }
+}
+for (const boundary of [
+  "telegram delivery retry columns missing",
+  "telegram delivery metadata is publicly accessible",
+  "telegram delivery retry service role access missing",
+]) {
+  if (!telegramDeliveryRetryVerifier.includes(boundary)) {
+    throw new Error("Telegram delivery retry verifier missing: " + boundary);
+  }
+}
+
+const intentFunction = readFileSync(
+  "supabase/functions/transaction-intent-prepare/index.ts",
+  "utf8",
+);
+const intentCore = readFileSync(
+  "supabase/functions/transaction-intent-prepare/core.ts",
+  "utf8",
+);
+for (const boundary of [
+  "workspace_forbidden",
+  "agent_transaction_locked",
+  "createChainActionRateLimitChecker",
+  "transaction_intent_rate_limited",
+  'body.chainKey !== "robinhood_mainnet"',
+  'body.valueWei !== "0"',
+]) {
+  if (
+    !intentFunction.includes(boundary) && !intentCore.includes(boundary)
+  ) {
+    throw new Error("Transaction intent boundary missing: " + boundary);
+  }
+}
+
+const dashboard = readFileSync("src/pages/Dashboard.tsx", "utf8");
+for (const boundary of [
+  "createTransactionIntentReviewNonce",
+  "transactionIntentReviewNonce",
+  "setTransactionIntentReviewNonce(createTransactionIntentReviewNonce())",
+]) {
+  if (!dashboard.includes(boundary)) {
+    throw new Error("Transaction intent retry boundary missing: " + boundary);
   }
 }
 

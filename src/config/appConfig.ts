@@ -34,6 +34,8 @@ const telegramDisconnectFunctionUrl =
   (supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/telegram-disconnect` : "");
 const chainActionPrepareFunctionUrl =
   supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/chain-action-prepare` : "";
+const transactionIntentPrepareFunctionUrl =
+  supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/transaction-intent-prepare` : "";
 const transactionResultCloseoutFunctionUrl =
   supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/transaction-result-closeout` : "";
 const telegramConnectTokenInputEnabled =
@@ -63,7 +65,7 @@ const telegramBackendConfigured = Boolean(
 
 export const appConfig = {
   appName: "Kyra Agent",
-  mode: requestedDataProvider === "supabase" ? "backend-demo" : "frontend-demo",
+  mode: requestedDataProvider === "supabase" ? "backend-connected" : "local-preview",
   dataProvider: requestedDataProvider,
   network: currentProductChain.name,
   chain: {
@@ -103,6 +105,10 @@ export const appConfig = {
       chainActionPrepareFunctionUrl && supabaseConfigured,
     ),
     transactionResultCloseoutUrl: transactionResultCloseoutFunctionUrl,
+    transactionIntentPrepareUrl: transactionIntentPrepareFunctionUrl,
+    transactionIntentPrepareConfigured: Boolean(
+      transactionIntentPrepareFunctionUrl && supabaseConfigured,
+    ),
     transactionResultCloseoutConfigured: Boolean(
       transactionResultCloseoutFunctionUrl && supabaseConfigured,
     ),
@@ -112,13 +118,13 @@ export const appConfig = {
     telegramDashboardStatusReadModel: telegramDashboardStatusReadModelEnabled,
   },
   integrations: {
-    auth: requestedDataProvider === "supabase" && supabaseConfigured ? "supabase" : "demo",
-    database: requestedDataProvider === "supabase" && supabaseConfigured ? "supabase" : "mock",
-    deployApi: requestedDataProvider === "supabase" && deployFunctionUrl ? "edge preferred" : "edge scaffolded",
-    telegram: telegramBackendConfigured ? "live read-only" : "read-only scaffold",
+    auth: requestedDataProvider === "supabase" && supabaseConfigured ? "supabase" : "not configured",
+    database: requestedDataProvider === "supabase" && supabaseConfigured ? "supabase" : "local preview",
+    deployApi: requestedDataProvider === "supabase" && deployFunctionUrl ? "edge connected" : "not configured",
+    telegram: telegramBackendConfigured ? "live read-only" : "not configured",
     chainActions: chainActionPrepareFunctionUrl && supabaseConfigured
       ? "Robinhood Chain read-only bridge"
-      : "read-only scaffold",
+      : "not configured",
     walletConnection: "owner_click_only",
     walletExecution: "disabled",
     robinhoodSubmissionReleaseReady,

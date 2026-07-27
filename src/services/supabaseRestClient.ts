@@ -50,6 +50,11 @@ export function sanitizeSupabaseMessage(message: string) {
   return message
     .replace(/sb_publishable_[A-Za-z0-9_-]+/g, "sb_publishable_[hidden]")
     .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "jwt_[hidden]")
+    .replace(/sk-or-v1-[A-Za-z0-9]{20,}/g, "openrouter_[hidden]")
+    .replace(/\b\d{8,10}:[A-Za-z0-9_-]{30,}\b/g, "telegram_token_[hidden]")
+    .replace(/\b0x[a-fA-F0-9]{64}\b/g, "transaction_[hidden]")
+    .replace(/\b0x[a-fA-F0-9]{40}\b/g, "wallet_[hidden]")
+    .replace(/([?&](?:api[_-]?key|token|secret)=)[^&#\s]+/gi, "$1[hidden]")
     .slice(0, 240);
 }
 

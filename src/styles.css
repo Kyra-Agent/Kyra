@@ -1048,6 +1048,34 @@ h2 {
   color: var(--green);
 }
 
+.console-review-button {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  width: 100%;
+  min-height: 42px;
+  margin-bottom: 0.8rem;
+  border: 1px solid rgba(94, 162, 255, 0.42);
+  border-radius: var(--radius);
+  background: rgba(94, 162, 255, 0.12);
+  color: #dbe8fb;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.console-review-button:hover,
+.console-review-button:focus-visible {
+  border-color: rgba(138, 230, 177, 0.52);
+  background: rgba(138, 230, 177, 0.12);
+  color: var(--green);
+}
+
 .console-status-grid {
   position: relative;
   z-index: 1;

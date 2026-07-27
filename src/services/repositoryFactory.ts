@@ -17,7 +17,7 @@ export const kyraRepositoryRuntime: KyraRepositoryRuntime = {
   note:
     appConfig.dataProvider === "supabase"
       ? "Signed-in records can persist through the Kyra backend. Onchain execution stays behind owner, wallet, policy, and release gates."
-      : "Local demo records stay in the browser until an account session is connected.",
+      : "Local preview records stay in the browser until an account session is connected.",
 };
 
 export function getKyraRepository(): KyraRepository {

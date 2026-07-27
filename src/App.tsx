@@ -77,9 +77,7 @@ function getTemplateIdFromAgentSlug(agentSlug: string | null) {
     return "operator";
   }
 
-  const templateId = agentSlug.endsWith("-demo")
-    ? agentSlug.replace(/-demo$/, "")
-    : fallbackAgentTemplates.find((template) =>
+  const templateId = fallbackAgentTemplates.find((template) =>
       agentSlug.startsWith(`${template.id}-`)
     )?.id;
 
@@ -105,10 +103,10 @@ function getInitialTemplateId() {
 
 function getInitialAgentSlug() {
   if (typeof window === "undefined") {
-    return "operator-demo";
+    return "";
   }
 
-  return getAgentSlugFromPath(window.location.pathname) ?? "operator-demo";
+  return getAgentSlugFromPath(window.location.pathname) ?? "";
 }
 
 function App() {
@@ -359,7 +357,7 @@ function App() {
 
   async function openAgentFromHeader() {
     if (!authSession) {
-      navigate("agent");
+      navigate("dashboard");
       return;
     }
 
@@ -367,7 +365,7 @@ function App() {
 
     if (!freshAuth.session) {
       updateAuthSession(null, freshAuth.status, freshAuth.message);
-      navigate("agent");
+      navigate("dashboard");
       return;
     }
 
@@ -381,15 +379,15 @@ function App() {
     const result = await fetchSupabaseDashboardData(freshAuth.session);
     const latestAgent = result.data?.latestAgent;
 
-    navigate(
-      "agent",
-      latestAgent
-        ? {
-          templateId: latestAgent.templateId,
-          publicPath: latestAgent.publicPath,
-        }
-        : undefined,
-    );
+    if (!latestAgent) {
+      navigate("dashboard");
+      return;
+    }
+
+    navigate("agent", {
+      templateId: latestAgent.templateId,
+      publicPath: latestAgent.publicPath,
+    });
   }
 
   useEffect(() => {
@@ -423,8 +421,14 @@ function App() {
 
       if (window.location.pathname.startsWith("/agents/")) {
         const nextAgentSlug = getAgentSlugFromPath(window.location.pathname);
+
+        if (!nextAgentSlug) {
+          pushAppPath("/dashboard");
+          return;
+        }
+
         setHomeSectionId(null);
-        setAgentSlug(nextAgentSlug ?? "operator-demo");
+        setAgentSlug(nextAgentSlug);
         setSelectedId(getTemplateIdFromAgentSlug(nextAgentSlug));
         setRoute("agent");
         return;
@@ -450,9 +454,16 @@ function App() {
     const targetSlug = target?.publicPath?.replace(/^\/agents\//, "");
     const nextTemplateId = target?.templateId ?? selectedTemplate.id;
 
+    if (nextRoute === "agent" && !targetSlug) {
+      setHomeSectionId(null);
+      setRoute("dashboard");
+      pushAppPath("/dashboard");
+      return;
+    }
+
     if (nextRoute === "agent") {
       setSelectedId(nextTemplateId);
-      setAgentSlug(targetSlug ?? `${nextTemplateId}-demo`);
+      setAgentSlug(targetSlug ?? "");
     }
 
     setHomeSectionId(null);
@@ -460,7 +471,7 @@ function App() {
     const path = nextRoute === "dashboard"
       ? "/dashboard"
       : nextRoute === "agent"
-      ? `/agents/${targetSlug ?? `${nextTemplateId}-demo`}`
+      ? `/agents/${targetSlug}`
       : "/";
     pushAppPath(path);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -623,7 +634,6 @@ function App() {
         : route === "agent"
         ? (
           <PublicAgent
-            selectedTemplate={selectedTemplate}
             agentSlug={agentSlug}
             onBackDashboard={() => navigate("dashboard")}
             onBackHome={() => navigate("home")}

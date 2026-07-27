@@ -24,9 +24,9 @@ This packet defines the only acceptable route from an agent recommendation to a 
 - Agent, workspace, wallet, chain, action, approval, and receipt scopes must match.
 - Replay, stale timestamps, changed recipients, changed value, changed calldata, chain mismatch, or missing gas fail closed.
 - Emergency disable and disconnect invalidate the live window.
-- The backend stores only a SHA-256 submission key, transaction hash, fixed Robinhood chain identity, sanitized status, and timestamps. Raw nonces, provider payloads, calldata, keys, and tokens are forbidden.
+- The backend stores only scoped prepared-action and result identifiers, a SHA-256 submission key, transaction hash, fixed Robinhood chain identity, receipt block number, sanitized status, and timestamps. Raw nonces, provider payloads, calldata copies, keys, and tokens are forbidden.
 - PostgreSQL validates owner, workspace, and agent scope independently of the Edge Function. Authenticated users have owner-scoped read access only; backend service writes remain private.
 
 ## Release Gate
 
-Public submission is not claimed live until one bounded Robinhood mainnet receipt is verified, the authenticated owner-only backend reports the terminal closeout as saved, rollback is exercised, and the release decision is recorded. Agent deployment, Telegram, wallet connection, risk review, and prepared-action review remain production-capable independently of that final submit gate.
+The bounded Robinhood mainnet release evidence, authenticated owner-only closeout, rollback exercise, and explicit release decision are recorded. Release access still means a private, signed-in, per-action owner workflow; it never means Telegram, public-profile, autonomous, token-approval, arbitrary-calldata, or hidden-signing execution. The July 27 hardening candidate replaces browser-authored closeout claims with stored intent plus backend RPC verification and must be deployed before that stronger evidence is described as live.

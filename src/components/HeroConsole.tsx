@@ -60,20 +60,6 @@ export function HeroConsole({
     return () => window.clearInterval(timer);
   }, [lines]);
 
-  useEffect(() => {
-    if (!selectedScenario.approvalRequired || visibleCount < lines.length) {
-      return;
-    }
-
-    const timer = window.setTimeout(onRequestApproval, 520);
-    return () => window.clearTimeout(timer);
-  }, [
-    lines.length,
-    onRequestApproval,
-    selectedScenario.approvalRequired,
-    visibleCount,
-  ]);
-
   return (
     <section className="hero-shell" aria-label="Kyra agent console">
       <div className="hero-console-topbar">
@@ -113,6 +99,17 @@ export function HeroConsole({
             </button>
           ))}
         </div>
+
+        {selectedScenario.approvalRequired ? (
+          <button
+            className="console-review-button"
+            type="button"
+            onClick={onRequestApproval}
+          >
+            <ShieldCheck size={16} />
+            Review selected action
+          </button>
+        ) : null}
 
         <div className="console-status-grid">
           <span>

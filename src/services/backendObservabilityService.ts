@@ -17,8 +17,14 @@ const STORAGE_KEY = "kyra.backend.events.v1";
 const MAX_EVENTS = 8;
 const eventTarget = new EventTarget();
 
-function canUseStorage() {
-  return typeof window !== "undefined" && Boolean(window.localStorage);
+function getSessionStorage() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
 }
 
 function sanitizeEventText(value: string) {
@@ -28,12 +34,13 @@ function sanitizeEventText(value: string) {
 }
 
 function readStoredEvents(): BackendEvent[] {
-  if (!canUseStorage()) {
+  const storage = getSessionStorage();
+  if (!storage) {
     return [];
   }
 
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(STORAGE_KEY);
 
     if (!raw) {
       return [];
@@ -48,14 +55,15 @@ function readStoredEvents(): BackendEvent[] {
 }
 
 function writeStoredEvents(events: BackendEvent[]) {
-  if (!canUseStorage()) {
+  const storage = getSessionStorage();
+  if (!storage) {
     return;
   }
 
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(events.slice(0, MAX_EVENTS)));
+    storage.setItem(STORAGE_KEY, JSON.stringify(events.slice(0, MAX_EVENTS)));
   } catch {
-    // Observability should never block the demo flow.
+    // Observability must never block the product flow.
   }
 }
 
