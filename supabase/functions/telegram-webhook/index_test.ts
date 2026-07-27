@@ -750,13 +750,20 @@ Deno.test("telegram-webhook chat auth gate authorizes parsed read-only update an
   assertEquals(authInputs[0]?.commandKind, "read_only");
 });
 
-Deno.test("telegram-webhook chat auth gate returns sanitized unauthorized chat", async () => {
+Deno.test("telegram-webhook acknowledges unauthorized chat without processing it", async () => {
+  let claimCalled = false;
+  let deliveryCalled = false;
+  let agentBrainCalled = false;
+
   const response = await handleTelegramWebhookRequest(
     createJsonWebhookRequest(createWebhookUpdate("/help@kyra_test_bot")),
     {
       lookupRuntimeConfig: { enabled: true },
       parseRuntimeConfig: { enabled: true },
       chatAuthRuntimeConfig: { enabled: true },
+      claimRuntimeConfig: { enabled: true },
+      deliveryRuntimeConfig: { enabled: true },
+      agentBrainRuntimeConfig: { enabled: true },
       lookupTelegramWebhookSession: async () => ({
         sessionId: "telegram-session-1",
         agentId: "agent-1",
@@ -772,14 +779,30 @@ Deno.test("telegram-webhook chat auth gate returns sanitized unauthorized chat",
           "Telegram chat is not authorized.",
         );
       },
+      claimTelegramUpdate: async () => {
+        claimCalled = true;
+        return { claimed: true, status: "claimed" };
+      },
+      deliverTelegramReadOnlyResponse: async () => {
+        deliveryCalled = true;
+      },
+      generateTelegramAgentBrainReply: async () => {
+        agentBrainCalled = true;
+        return { text: "This must not be delivered." };
+      },
     },
   );
 
   const body = await readJson(response);
   const serialized = JSON.stringify(body);
 
-  assertEquals(response.status, 403);
-  assertEquals(body.status, "chat_not_authorized");
+  assertEquals(response.status, 200);
+  assertEquals(body.ok, true);
+  assertEquals(body.status, "ignored");
+  assertEquals(body.message, "Telegram update ignored.");
+  assertEquals(claimCalled, false);
+  assertEquals(deliveryCalled, false);
+  assertEquals(agentBrainCalled, false);
   assert(!serialized.includes("123456"), "User id must not be echoed.");
   assert(!serialized.includes("-987654"), "Chat id must not be echoed.");
   assert(!serialized.includes("agent-1"), "Agent id must not be echoed.");

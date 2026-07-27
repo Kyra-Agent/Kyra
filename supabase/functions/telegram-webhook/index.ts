@@ -804,12 +804,31 @@ export async function handleTelegramWebhookRequest(
         );
       }
 
-      chatAuthorization = await dependencies.lookupTelegramChatAuthorization({
-        agentId: lookupSession.agentId,
-        telegramUserId: parsedUpdate.telegramUserId,
-        telegramChatId: parsedUpdate.telegramChatId,
-        commandKind: parsedUpdate.commandKind,
-      });
+      try {
+        chatAuthorization = await dependencies.lookupTelegramChatAuthorization({
+          agentId: lookupSession.agentId,
+          telegramUserId: parsedUpdate.telegramUserId,
+          telegramChatId: parsedUpdate.telegramChatId,
+          commandKind: parsedUpdate.commandKind,
+        });
+      } catch (error) {
+        if (
+          error instanceof HttpError &&
+          error.statusCode === 403 &&
+          error.code === "chat_not_authorized"
+        ) {
+          return jsonResponse(
+            {
+              ok: true,
+              status: "ignored",
+              message: "Telegram update ignored.",
+            },
+            200,
+          );
+        }
+
+        throw error;
+      }
     }
 
     if (claimRuntimeConfig.enabled) {
