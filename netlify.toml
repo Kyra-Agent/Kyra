@@ -1,6 +1,7 @@
 [build]
   command = "npm run build:robinhood-mainnet"
   publish = "dist"
+  ignore = "node ./scripts/netlify-ignore-build.mjs"
 
 [build.environment]
   NODE_VERSION = "22"
