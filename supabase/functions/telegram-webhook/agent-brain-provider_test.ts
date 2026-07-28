@@ -3,6 +3,7 @@ import { generateTelegramAgentBrainReply } from "./agent-brain.ts";
 import {
   buildOpenAiCompatibleAgentBrainPayload,
   createOpenAiCompatibleTelegramAgentBrainProvider,
+  readProviderTimeoutMs,
   type TelegramAgentBrainProviderFetch,
 } from "./agent-brain-provider.ts";
 
@@ -105,7 +106,7 @@ Deno.test("telegram agent brain provider builds chat completions payload for Ope
     throw new Error("Chat completions payload must include messages.");
   }
   assertEquals(messages.length, 2);
-  assertEquals(payload.max_completion_tokens, 800);
+  assertEquals(payload.max_tokens, 800);
   assertEquals(payload.temperature, 0.2);
   assertEquals(payload.metadata.kyra_surface, "telegram");
   assertEquals(payload.metadata.kyra_mode, "read_only");
@@ -347,7 +348,7 @@ Deno.test("telegram agent brain provider supports OpenRouter chat completions", 
   assertEquals(capturedAuthorization, `Bearer ${testApiKey}`);
   assertEquals(payload.model, openRouterModel);
   assertEquals(payload.messages.length, 2);
-  assertEquals(payload.max_completion_tokens, 800);
+  assertEquals(payload.max_tokens, 800);
   assert(
     !("input" in payload),
     "OpenRouter request must use chat completions messages.",
@@ -430,4 +431,11 @@ Deno.test("telegram agent brain provider timeout is sanitized", async () => {
   );
 
   assertEquals(error.message, "Kyra agent brain is unavailable.");
+});
+
+Deno.test("telegram agent brain provider supports bounded slower models", () => {
+  assertEquals(readProviderTimeoutMs(undefined), 20000);
+  assertEquals(readProviderTimeoutMs(25000), 25000);
+  assertEquals(readProviderTimeoutMs(45000), 30000);
+  assertEquals(readProviderTimeoutMs(0), 20000);
 });

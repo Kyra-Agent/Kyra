@@ -18,7 +18,8 @@ export interface OpenAiCompatibleTelegramAgentBrainProviderOptions {
 }
 
 const defaultResponsesEndpoint = "https://api.openai.com/v1/responses";
-const defaultProviderTimeoutMs = 8000;
+const defaultProviderTimeoutMs = 20000;
+const maxProviderTimeoutMs = 30000;
 const maxApiKeyLength = 4096;
 const maxModelLength = 128;
 const maxEndpointLength = 2048;
@@ -103,7 +104,7 @@ export function buildOpenAiCompatibleAgentBrainPayload(
     return {
       model: checkedModel,
       messages,
-      max_completion_tokens: maxAgentBrainCompletionTokens,
+      max_tokens: maxAgentBrainCompletionTokens,
       temperature: 0.2,
       metadata: {
         kyra_surface: "telegram",
@@ -248,12 +249,12 @@ function readProviderEndpoint(value: unknown) {
   return url.toString();
 }
 
-function readProviderTimeoutMs(value: number | undefined) {
+export function readProviderTimeoutMs(value: number | undefined) {
   if (!Number.isFinite(value) || value === undefined || value <= 0) {
     return defaultProviderTimeoutMs;
   }
 
-  return Math.min(Math.trunc(value), defaultProviderTimeoutMs);
+  return Math.min(Math.trunc(value), maxProviderTimeoutMs);
 }
 
 function readProviderResponseText(value: unknown) {

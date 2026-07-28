@@ -969,7 +969,12 @@ export async function handleTelegramWebhookRequest(
             command: parsedUpdate.command,
             text: agentBrainReply.text,
           };
-        } catch {
+        } catch (error) {
+          console.warn("telegram_agent_brain_fallback", {
+            code: error instanceof HttpError
+              ? error.code
+              : "agent_brain_unavailable",
+          });
           // Agent-brain is optional. Preserve read-only delivery if the provider
           // times out, rejects output, or returns a malformed response.
         }
