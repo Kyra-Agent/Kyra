@@ -573,8 +573,9 @@ function assertContextualTelegramAgentBrainReply(
     context.command === "chat" &&
     context.chatIntent === "risk_review" &&
     (
-      !/\brisk\b/i.test(text) ||
-      !/\b(market|timing|liquidity|control|exposure|drawdown)\b/i.test(text)
+      !/\b(?:risk|risiko)\b/i.test(text) ||
+      !/\b(?:market|pasar|timing|waktu|liquidity|likuiditas|control|kontrol|exposure|eksposur|drawdown|penurunan)\b/i
+        .test(text)
     )
   ) {
     throw invalidAgentBrainResponse();

@@ -788,6 +788,34 @@ Deno.test("telegram agent brain accepts a complete bounded DCA plan", async () =
     "DCA plan must remain within the Telegram brain output cap.",
   );
 });
+Deno.test("telegram agent brain accepts an Indonesian DCA risk plan", async () => {
+  const text = [
+    "Strategi DCA ETH mingguan",
+    "Anggaran: 100 USDC selama 8 minggu, atau 12,50 USDC per minggu.",
+    "Guardrail risiko:",
+    "- Risiko pasar: tunda alokasi ketika volatilitas melewati batas yang disetujui owner.",
+    "- Risiko likuiditas: periksa kedalaman rute dan slippage sebelum persetujuan.",
+    "- Kontrol eksposur: batasi total pembelian pada 100 USDC.",
+    "Batasan: Telegram tidak menandatangani, menyetujui, atau mengirim transaksi.",
+  ].join("\n");
+
+  const reply = await generateTelegramAgentBrainReply(
+    {
+      command: "chat",
+      agentName: "Kyra'sHOOD",
+      userRequest:
+        "Buatkan strategi DCA ETH mingguan dengan budget 100 USDC selama 8 minggu dan 3 guardrail risiko.",
+      chatIntent: "risk_review",
+    },
+    {
+      async complete() {
+        return { text };
+      },
+    },
+  );
+
+  assertEquals(reply.text, text);
+});
 Deno.test("telegram agent brain normalizes compatible Markdown provider text", () => {
   const cases = [
     {
