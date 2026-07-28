@@ -86,7 +86,7 @@ Deno.test("telegram agent brain request is read-only and sanitized", () => {
   });
 
   assertEquals(request.mode, "read_only");
-  assertEquals(request.maxOutputCharacters, 1400);
+  assertEquals(request.maxOutputCharacters, 3000);
   assertEquals(request.messages.length, 2);
   assertEquals(request.messages[0].role, "system");
   assertEquals(request.messages[1].role, "user");
@@ -709,7 +709,7 @@ Deno.test("telegram agent brain validates provider response shape", async () => 
     "agent_brain_output_rejected",
   );
   await assertRejectsHttpError(
-    () => assertTelegramAgentBrainReply({ text: "x".repeat(1401) }),
+    () => assertTelegramAgentBrainReply({ text: "x".repeat(3001) }),
     502,
     "agent_brain_output_rejected",
   );
@@ -721,7 +721,8 @@ Deno.test("telegram agent brain rejects sensitive or unsafe provider text", asyn
     "Internal token_secret_ref should never appear.",
     "The transaction executed successfully.",
     "Wallet approved the swap.",
-    "Here is a seed phrase.",
+    `Private key: ${"a".repeat(64)}`,
+    "Seed phrase: alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu",
   ];
 
   for (const text of unsafeTexts) {
@@ -738,6 +739,55 @@ Deno.test("telegram agent brain rejects sensitive or unsafe provider text", asyn
   }
 });
 
+Deno.test("telegram agent brain allows safe secret-handling disclaimers", () => {
+  const safeTexts = [
+    "No private key is stored or requested.",
+    "Seed phrase access is disabled.",
+    "Kyra never asks for a private key or seed phrase.",
+  ];
+
+  for (const text of safeTexts) {
+    assertEquals(assertTelegramAgentBrainReply({ text }).text, text);
+  }
+});
+
+Deno.test("telegram agent brain accepts a complete bounded DCA plan", async () => {
+  const text = [
+    "DCA ETH plan",
+    "Budget: 100 USDC over 8 weeks.",
+    "Schedule:",
+    ...Array.from(
+      { length: 8 },
+      (_, index) => `- Week ${index + 1}: allocate 12.50 USDC to ETH.`,
+    ),
+    "Guardrails:",
+    "- Market risk: pause when volatility exceeds the owner's reviewed limit.",
+    "- Liquidity risk: review route depth and slippage before approval.",
+    "- Exposure control: cap total allocation at 100 USDC.",
+    "Boundary: this is planning guidance. Telegram does not sign, approve, or submit transactions.",
+  ].join("\n");
+
+  const reply = await generateTelegramAgentBrainReply(
+    {
+      command: "chat",
+      agentName: "Kyra'sHOOD",
+      userRequest:
+        "Buatkan strategi DCA ETH mingguan dengan budget 100 USDC selama 8 minggu dan 3 guardrail risiko.",
+      chatIntent: "risk_review",
+    },
+    {
+      async complete() {
+        return { text };
+      },
+    },
+  );
+
+  assertEquals(reply.text, text);
+  assert(
+    reply.text.length < 3000,
+    "DCA plan must remain within the Telegram brain output cap.",
+  );
+});
 Deno.test("telegram agent brain normalizes compatible Markdown provider text", () => {
   const cases = [
     {

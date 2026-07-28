@@ -75,7 +75,7 @@ const maxModuleTitleLength = 48;
 const maxModuleStatusLength = 16;
 const maxSafetyNoteLength = 180;
 const maxUserRequestLength = 1000;
-const maxAgentBrainOutputCharacters = 1400;
+const maxAgentBrainOutputCharacters = 3000;
 const supportedChatIntents = new Set<TelegramReadOnlyChatIntent>([
   "market_brief",
   "campaign_plan",
@@ -107,8 +107,11 @@ const unsafeExecutionClaims = [
   /transaction\s+(sent|executed|submitted|confirmed)/i,
   /(swap|send|transfer)\s+(completed|executed|submitted)/i,
   /wallet\s+(approved|signed)/i,
-  /private\s+key/i,
-  /seed\s+phrase/i,
+];
+const secretMaterialPatterns = [
+  /\b(?:0x)?[A-Fa-f0-9]{64}\b/,
+  /\bprivate\s+key\s*[:=]\s*(?!not\b|never\b|none\b|disabled\b|unavailable\b|hidden\b)[^\s]+/i,
+  /\bseed\s+phrase\s*[:=]\s*(?!not\b|never\b|none\b|disabled\b|unavailable\b|hidden\b).+/i,
 ];
 const rawMarkdownPatterns = [
   /\*\*/,
@@ -142,7 +145,7 @@ export function buildTelegramAgentBrainRequest(
           "Keep the reply concise and safe for Telegram.",
           "Use plain text only: no Markdown tables, bold markers, code fences, headings, or horizontal rules.",
           "Use short label lines and hyphen bullets when listing capabilities.",
-          "Keep the complete reply under 1200 characters.",
+          "Keep the complete reply under 2600 characters.",
           "Finish every sentence and bullet. Never end with an empty bullet or an unfinished label.",
           "Answer the requested command directly and do not add unfinished helper text.",
           "Do not claim live, real-time, current, latest, price, or market data unless the user provides that data in the request.",
@@ -658,6 +661,12 @@ function assertSafeTelegramAgentBrainText(text: string) {
   }
 
   for (const pattern of secretLikePatterns) {
+    if (pattern.test(text)) {
+      throw invalidAgentBrainResponse();
+    }
+  }
+
+  for (const pattern of secretMaterialPatterns) {
     if (pattern.test(text)) {
       throw invalidAgentBrainResponse();
     }

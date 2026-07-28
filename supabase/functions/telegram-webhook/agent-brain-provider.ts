@@ -25,7 +25,7 @@ const maxModelLength = 128;
 const maxEndpointLength = 2048;
 const maxPromptMessageLength = 3000;
 const maxPromptMessages = 6;
-const maxAgentBrainCompletionTokens = 420;
+const maxAgentBrainCompletionTokens = 700;
 
 export function createOpenAiCompatibleTelegramAgentBrainProvider(
   options: OpenAiCompatibleTelegramAgentBrainProviderOptions,
@@ -151,7 +151,7 @@ function assertProviderRequest(request: TelegramAgentBrainRequest) {
   if (
     !Number.isSafeInteger(request.maxOutputCharacters) ||
     request.maxOutputCharacters < 1 ||
-    request.maxOutputCharacters > 1400
+    request.maxOutputCharacters > 3000
   ) {
     throw invalidProviderRequest();
   }
