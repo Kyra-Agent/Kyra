@@ -6,6 +6,7 @@ This directory records the production architecture, safety boundaries, migration
 
 | Document | Purpose |
 | --- | --- |
+| [v1.0.0 Release Notes](release-v1.0.0.md) | Public release scope, verification, and retained safety boundaries |
 | [Product Roadmap](product-phase-roadmap.md) | Canonical ten-phase product roadmap and current completion state |
 | [Product Readiness Snapshot](product-readiness-snapshot.md) | Live capability, controlled boundaries, and sanitized release evidence |
 | [Backend Blueprint](backend-blueprint.md) | Runtime architecture, privacy model, chain contract, and execution boundary |
@@ -38,4 +39,4 @@ Each deployed Edge Function has a colocated README under `supabase/functions/<fu
 - Secret values, raw logs, internal identifiers, full wallet addresses, and provider payloads never belong in public documentation.
 - A completed roadmap does not disable runtime safety gates.
 
-Production documentation was reconciled with the linked release state on 2026-07-28.
+Production documentation was reconciled with the `v1.0.0` release state on 2026-07-29.

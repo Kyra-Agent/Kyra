@@ -40,3 +40,7 @@ This release does not enable Telegram execution, public-profile execution, auton
 ## Production Hardening Closeout
 
 The July 27 hardening batch is deployed and verified in production. The four intent-verification and Telegram-delivery migrations are synchronized with the linked database, the updated Edge Functions are active, and the Robinhood mainnet build, browser smoke checks, dependency audit, CI, privacy checks, and live health checks pass. Verification was reconfirmed on 2026-07-28.
+
+## v1.0.0 Qualification
+
+Release qualification was completed on 2026-07-29. Product checks, all 44 selected test scripts, the Robinhood mainnet build, and the production dependency audit passed. Public production routes remained healthy, the linked Supabase project retained migration parity, and every deployed Edge Function remained active.

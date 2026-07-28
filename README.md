@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img alt="Product" src="https://img.shields.io/badge/Product-Release%20Ready-111827?style=for-the-badge" />
+  <img alt="Release" src="https://img.shields.io/badge/Release-v1.0.0-111827?style=for-the-badge" />
   <img alt="Robinhood Chain" src="https://img.shields.io/badge/Robinhood%20Chain-EVM-16A34A?style=for-the-badge" />
   <img alt="Security" src="https://img.shields.io/badge/Security-Approval%20First-2563EB?style=for-the-badge" />
 </p>
@@ -134,6 +134,8 @@ The current production hardening is live: immutable backend transaction intents,
 
 Detailed engineering evidence is tracked in:
 
+- [v1.0.0 Release Notes](docs/release-v1.0.0.md)
+- [Changelog](CHANGELOG.md)
 - [`docs/product-phase-roadmap.md`](docs/product-phase-roadmap.md)
 - [`docs/robinhood-chain-migration-blueprint.md`](docs/robinhood-chain-migration-blueprint.md)
 - [`docs/robinhood-mainnet-cutover-runbook.md`](docs/robinhood-mainnet-cutover-runbook.md)
