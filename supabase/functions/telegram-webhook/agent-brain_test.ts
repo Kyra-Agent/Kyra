@@ -86,7 +86,7 @@ Deno.test("telegram agent brain request is read-only and sanitized", () => {
   });
 
   assertEquals(request.mode, "read_only");
-  assertEquals(request.maxOutputCharacters, 700);
+  assertEquals(request.maxOutputCharacters, 1400);
   assertEquals(request.messages.length, 2);
   assertEquals(request.messages[0].role, "system");
   assertEquals(request.messages[1].role, "user");
@@ -367,7 +367,7 @@ Deno.test("telegram agent brain rejects generic template and risk replies", asyn
           },
         ),
       502,
-      "agent_brain_invalid_response",
+      "agent_brain_output_rejected",
     );
   }
 });
@@ -388,7 +388,7 @@ Deno.test("telegram agent brain rejects unsafe chat replies without refusal", as
         },
       ),
     502,
-    "agent_brain_invalid_response",
+    "agent_brain_output_rejected",
   );
 
   await assertRejectsHttpError(
@@ -409,7 +409,7 @@ Deno.test("telegram agent brain rejects unsafe chat replies without refusal", as
         },
       ),
     502,
-    "agent_brain_invalid_response",
+    "agent_brain_output_rejected",
   );
 });
 
@@ -435,7 +435,7 @@ Deno.test("telegram agent brain rejects generic context-free provider replies", 
         },
       ),
     502,
-    "agent_brain_invalid_response",
+    "agent_brain_output_rejected",
   );
 
   await assertRejectsHttpError(
@@ -452,7 +452,7 @@ Deno.test("telegram agent brain rejects generic context-free provider replies", 
         },
       ),
     502,
-    "agent_brain_invalid_response",
+    "agent_brain_output_rejected",
   );
 
   await assertRejectsHttpError(
@@ -473,7 +473,7 @@ Deno.test("telegram agent brain rejects generic context-free provider replies", 
         },
       ),
     502,
-    "agent_brain_invalid_response",
+    "agent_brain_output_rejected",
   );
 
   await assertRejectsHttpError(
@@ -494,7 +494,7 @@ Deno.test("telegram agent brain rejects generic context-free provider replies", 
         },
       ),
     502,
-    "agent_brain_invalid_response",
+    "agent_brain_output_rejected",
   );
 });
 
@@ -523,7 +523,7 @@ Deno.test("telegram agent brain rejects malformed contextual polish", async () =
         },
       ),
     502,
-    "agent_brain_invalid_response",
+    "agent_brain_output_rejected",
   );
 
   await assertRejectsHttpError(
@@ -533,7 +533,7 @@ Deno.test("telegram agent brain rejects malformed contextual polish", async () =
           "Agent 666 is a market intelligence planner.\nCurrent access: read-only.\nNO",
       }),
     502,
-    "agent_brain_invalid_response",
+    "agent_brain_output_rejected",
   );
 
   await assertRejectsHttpError(
@@ -543,7 +543,7 @@ Deno.test("telegram agent brain rejects malformed contextual polish", async () =
           "Agent 666 Module Status\n\nActive\n- ASTRA-03 Research Agent\n\nGated Actions",
       }),
     502,
-    "agent_brain_invalid_response",
+    "agent_brain_output_rejected",
   );
 
   await assertRejectsHttpError(
@@ -565,7 +565,7 @@ Deno.test("telegram agent brain rejects malformed contextual polish", async () =
         },
       ),
     502,
-    "agent_brain_invalid_response",
+    "agent_brain_output_rejected",
   );
 
   await assertRejectsHttpError(
@@ -597,7 +597,7 @@ Deno.test("telegram agent brain rejects malformed contextual polish", async () =
         },
       ),
     502,
-    "agent_brain_invalid_response",
+    "agent_brain_output_rejected",
   );
 
   await assertRejectsHttpError(
@@ -629,7 +629,7 @@ Deno.test("telegram agent brain rejects malformed contextual polish", async () =
         },
       ),
     502,
-    "agent_brain_invalid_response",
+    "agent_brain_output_rejected",
   );
 
   await assertRejectsHttpError(
@@ -661,7 +661,7 @@ Deno.test("telegram agent brain rejects malformed contextual polish", async () =
         },
       ),
     502,
-    "agent_brain_invalid_response",
+    "agent_brain_output_rejected",
   );
 
   await assertRejectsHttpError(
@@ -682,7 +682,7 @@ Deno.test("telegram agent brain rejects malformed contextual polish", async () =
         },
       ),
     502,
-    "agent_brain_invalid_response",
+    "agent_brain_output_rejected",
   );
 });
 
@@ -693,7 +693,7 @@ Deno.test("telegram agent brain rejects an empty trailing bullet", async () => {
         text: "Available gated actions for review:\n-",
       }),
     502,
-    "agent_brain_invalid_response",
+    "agent_brain_output_rejected",
   );
 });
 
@@ -701,17 +701,17 @@ Deno.test("telegram agent brain validates provider response shape", async () => 
   await assertRejectsHttpError(
     () => assertTelegramAgentBrainReply({ text: "ok", raw: "private" }),
     502,
-    "agent_brain_invalid_response",
+    "agent_brain_output_rejected",
   );
   await assertRejectsHttpError(
     () => assertTelegramAgentBrainReply({ text: "" }),
     502,
-    "agent_brain_invalid_response",
+    "agent_brain_output_rejected",
   );
   await assertRejectsHttpError(
-    () => assertTelegramAgentBrainReply({ text: "x".repeat(701) }),
+    () => assertTelegramAgentBrainReply({ text: "x".repeat(1401) }),
     502,
-    "agent_brain_invalid_response",
+    "agent_brain_output_rejected",
   );
 });
 
@@ -728,22 +728,43 @@ Deno.test("telegram agent brain rejects sensitive or unsafe provider text", asyn
     const error = await assertRejectsHttpError(
       () => assertTelegramAgentBrainReply({ text }),
       502,
-      "agent_brain_invalid_response",
+      "agent_brain_output_rejected",
     );
 
     assertEquals(
       error.message,
-      "Kyra agent brain returned an invalid response.",
+      "Kyra agent brain output did not pass its safety contract.",
     );
   }
 });
 
-Deno.test("telegram agent brain rejects raw Markdown provider text", async () => {
+Deno.test("telegram agent brain normalizes compatible Markdown provider text", () => {
+  const cases = [
+    {
+      input: "**Agent 666 Active**",
+      expected: "Agent 666 Active",
+    },
+    {
+      input: "# Agent 666\n\n* Market risk\n* Control risk",
+      expected: "Agent 666\n\n- Market risk\n- Control risk",
+    },
+    {
+      input: "---\nUse /actions",
+      expected: "Use /actions",
+    },
+  ];
+
+  for (const testCase of cases) {
+    assertEquals(
+      assertTelegramAgentBrainReply({ text: testCase.input }).text,
+      testCase.expected,
+    );
+  }
+});
+
+Deno.test("telegram agent brain rejects unsafe Markdown provider text", async () => {
   const unsafeTexts = [
-    "**Agent 666 Active**",
-    "# Agent 666",
     "| Module | Description |\n|---|---|\n| market | brief |",
-    "---\nUse /actions",
     "```text\nAgent\n```",
   ];
 
@@ -751,12 +772,12 @@ Deno.test("telegram agent brain rejects raw Markdown provider text", async () =>
     const error = await assertRejectsHttpError(
       () => assertTelegramAgentBrainReply({ text }),
       502,
-      "agent_brain_invalid_response",
+      "agent_brain_output_rejected",
     );
 
     assertEquals(
       error.message,
-      "Kyra agent brain returned an invalid response.",
+      "Kyra agent brain output did not pass its safety contract.",
     );
   }
 });

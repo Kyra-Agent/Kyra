@@ -1741,6 +1741,23 @@ Deno.test("telegram-webhook natural chat uses template-aware fallback on brain f
   );
 });
 
+Deno.test("telegram-webhook preserves safe agent brain diagnostic codes", () => {
+  const safeCodes = [
+    "agent_brain_incomplete_response",
+    "agent_brain_output_rejected",
+    "agent_brain_provider_invalid_response",
+  ];
+
+  for (const code of safeCodes) {
+    assertEquals(
+      getTelegramAgentBrainSupportCode(
+        new HttpError(502, code, "private provider detail"),
+      ),
+      code,
+    );
+  }
+});
+
 Deno.test("telegram-webhook sanitizes unknown agent brain support codes", () => {
   assertEquals(
     getTelegramAgentBrainSupportCode(

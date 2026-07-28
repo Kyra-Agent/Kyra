@@ -25,7 +25,7 @@ const maxModelLength = 128;
 const maxEndpointLength = 2048;
 const maxPromptMessageLength = 3000;
 const maxPromptMessages = 6;
-const maxAgentBrainCompletionTokens = 180;
+const maxAgentBrainCompletionTokens = 420;
 
 export function createOpenAiCompatibleTelegramAgentBrainProvider(
   options: OpenAiCompatibleTelegramAgentBrainProviderOptions,
@@ -151,7 +151,7 @@ function assertProviderRequest(request: TelegramAgentBrainRequest) {
   if (
     !Number.isSafeInteger(request.maxOutputCharacters) ||
     request.maxOutputCharacters < 1 ||
-    request.maxOutputCharacters > 700
+    request.maxOutputCharacters > 1400
   ) {
     throw invalidProviderRequest();
   }
@@ -294,6 +294,10 @@ function readProviderResponseText(value: unknown) {
 
 function assertCompleteProviderResponse(body: Record<string, unknown>) {
   if ("status" in body && body.status !== "completed") {
+    if (body.status === "incomplete") {
+      throw incompleteProviderResponse();
+    }
+
     throw invalidProviderResponse();
   }
 
@@ -302,7 +306,7 @@ function assertCompleteProviderResponse(body: Record<string, unknown>) {
     body.incomplete_details !== null &&
     body.incomplete_details !== undefined
   ) {
-    throw invalidProviderResponse();
+    throw incompleteProviderResponse();
   }
 
   if (!Array.isArray(body.choices) || !body.choices.length) {
@@ -320,11 +324,14 @@ function assertCompleteProviderResponse(body: Record<string, unknown>) {
     return;
   }
 
-  if (
-    typeof (firstChoice as Record<string, unknown>).finish_reason !==
-      "string" ||
-    (firstChoice as Record<string, unknown>).finish_reason !== "stop"
-  ) {
+  const finishReason = (firstChoice as Record<string, unknown>)
+    .finish_reason;
+
+  if (finishReason === "length") {
+    throw incompleteProviderResponse();
+  }
+
+  if (typeof finishReason !== "string" || finishReason !== "stop") {
     throw invalidProviderResponse();
   }
 }
@@ -454,8 +461,16 @@ function invalidProviderRequest(): never {
 function invalidProviderResponse(): never {
   throw new HttpError(
     502,
-    "agent_brain_invalid_response",
-    "Kyra agent brain returned an invalid response.",
+    "agent_brain_provider_invalid_response",
+    "Kyra agent brain provider returned an invalid response.",
+  );
+}
+
+function incompleteProviderResponse(): never {
+  throw new HttpError(
+    502,
+    "agent_brain_incomplete_response",
+    "Kyra agent brain provider returned an incomplete response.",
   );
 }
 

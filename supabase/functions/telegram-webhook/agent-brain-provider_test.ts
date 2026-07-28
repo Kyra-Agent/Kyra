@@ -56,7 +56,7 @@ const testApiKey = "test-provider-key";
 const testModel = "gpt-test-safe";
 const testRequest = {
   mode: "read_only" as const,
-  maxOutputCharacters: 700,
+  maxOutputCharacters: 1400,
   messages: [
     {
       role: "system" as const,
@@ -82,7 +82,7 @@ Deno.test("telegram agent brain provider builds bounded OpenAI-compatible payloa
     throw new Error("Responses payload must include input.");
   }
   assertEquals(input.length, 2);
-  assertEquals(payload.max_output_tokens, 180);
+  assertEquals(payload.max_output_tokens, 420);
   assertEquals(payload.temperature, 0.2);
   assertEquals(payload.metadata.kyra_surface, "telegram");
   assertEquals(payload.metadata.kyra_mode, "read_only");
@@ -106,7 +106,7 @@ Deno.test("telegram agent brain provider builds chat completions payload for Ope
     throw new Error("Chat completions payload must include messages.");
   }
   assertEquals(messages.length, 2);
-  assertEquals(payload.max_tokens, 180);
+  assertEquals(payload.max_tokens, 420);
   if (!("reasoning" in payload) || !payload.reasoning) {
     throw new Error("OpenRouter payload must include reasoning controls.");
   }
@@ -270,7 +270,7 @@ Deno.test("telegram agent brain provider supports common response envelopes", as
   );
 });
 
-Deno.test("telegram agent brain provider rejects incomplete responses", async () => {
+Deno.test("telegram agent brain provider identifies incomplete responses", async () => {
   const incompleteResponses = [
     {
       endpoint: "https://llm.test/v1/responses",
@@ -304,7 +304,7 @@ Deno.test("telegram agent brain provider rejects incomplete responses", async ()
     await assertRejectsHttpError(
       () => provider.complete(testRequest),
       502,
-      "agent_brain_invalid_response",
+      "agent_brain_incomplete_response",
     );
   }
 });
@@ -353,7 +353,7 @@ Deno.test("telegram agent brain provider supports OpenRouter chat completions", 
   assertEquals(capturedAuthorization, `Bearer ${testApiKey}`);
   assertEquals(payload.model, openRouterModel);
   assertEquals(payload.messages.length, 2);
-  assertEquals(payload.max_tokens, 180);
+  assertEquals(payload.max_tokens, 420);
   assert(
     !("input" in payload),
     "OpenRouter request must use chat completions messages.",
@@ -407,7 +407,7 @@ Deno.test("telegram agent brain provider maps provider failures safely", async (
   const malformedError = await assertRejectsHttpError(
     () => malformedProvider.complete(testRequest),
     502,
-    "agent_brain_invalid_response",
+    "agent_brain_provider_invalid_response",
   );
   const networkError = await assertRejectsHttpError(
     () => networkProvider.complete(testRequest),

@@ -75,7 +75,7 @@ const maxModuleTitleLength = 48;
 const maxModuleStatusLength = 16;
 const maxSafetyNoteLength = 180;
 const maxUserRequestLength = 1000;
-const maxAgentBrainOutputCharacters = 700;
+const maxAgentBrainOutputCharacters = 1400;
 const supportedChatIntents = new Set<TelegramReadOnlyChatIntent>([
   "market_brief",
   "campaign_plan",
@@ -142,7 +142,7 @@ export function buildTelegramAgentBrainRequest(
           "Keep the reply concise and safe for Telegram.",
           "Use plain text only: no Markdown tables, bold markers, code fences, headings, or horizontal rules.",
           "Use short label lines and hyphen bullets when listing capabilities.",
-          "Keep the complete reply under 600 characters.",
+          "Keep the complete reply under 1200 characters.",
           "Finish every sentence and bullet. Never end with an empty bullet or an unfinished label.",
           "Answer the requested command directly and do not add unfinished helper text.",
           "Do not claim live, real-time, current, latest, price, or market data unless the user provides that data in the request.",
@@ -224,7 +224,7 @@ export function assertTelegramAgentBrainReply(
     throw invalidAgentBrainResponse();
   }
 
-  const text = response.text.trim();
+  const text = normalizeTelegramAgentBrainText(response.text);
 
   if (!text || text.length > maxAgentBrainOutputCharacters) {
     throw invalidAgentBrainResponse();
@@ -625,6 +625,24 @@ function hasUnsafeExecutionOveranswer(text: string) {
   );
 }
 
+function normalizeTelegramAgentBrainText(text: string) {
+  return text
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) =>
+      line
+        .replace(/^\s{0,3}#{1,6}\s+/, "")
+        .replace(/^\s*[\u2022*]\s+/, "- ")
+        .replace(/\*\*(.+?)\*\*/g, "$1")
+        .replace(/__(.+?)__/g, "$1")
+        .trimEnd()
+    )
+    .filter((line) => !/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function assertSafeTelegramAgentBrainText(text: string) {
   if (
     incompleteTrailingLinePattern.test(text) ||
@@ -655,7 +673,7 @@ function assertSafeTelegramAgentBrainText(text: string) {
 function invalidAgentBrainResponse(): never {
   throw new HttpError(
     502,
-    "agent_brain_invalid_response",
-    "Kyra agent brain returned an invalid response.",
+    "agent_brain_output_rejected",
+    "Kyra agent brain output did not pass its safety contract.",
   );
 }
