@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link2, LoaderCircle, Unplug, WalletCards } from "lucide-react";
+import {
+  Check,
+  Link2,
+  LoaderCircle,
+  Unplug,
+  WalletCards,
+} from "lucide-react";
 import {
   useConnect,
   useConnection,
@@ -392,21 +398,46 @@ export function OwnerWalletConnectionPanel({
       </div>
 
       {walletConnectors.length > 1 && !binding && (
-        <label className="owner-wallet-provider-select">
-          <span>
-            Wallet provider
-            <small>Choose which installed wallet Kyra should open.</small>
-          </span>
-          <select
-            value={connector?.id ?? ""}
-            onChange={(event) => setSelectedConnectorId(event.target.value)}
-            disabled={connectMutation.isPending || disconnectMutation.isPending}
+        <div className="owner-wallet-provider-select">
+          <div className="owner-wallet-provider-heading">
+            <span>Wallet provider</span>
+            <small>Choose an installed wallet.</small>
+          </div>
+          <div
+            className="owner-wallet-provider-options"
+            role="group"
+            aria-label="Wallet provider"
           >
-            {walletConnectors.map((item) => (
-              <option key={item.id} value={item.id}>{item.name}</option>
-            ))}
-          </select>
-        </label>
+            {walletConnectors.map((item) => {
+              const isSelected = item.id === connector?.id;
+
+              return (
+                <button
+                  key={item.id}
+                  className={isSelected ? "is-selected" : ""}
+                  type="button"
+                  aria-pressed={isSelected}
+                  onClick={() => setSelectedConnectorId(item.id)}
+                  disabled={connectMutation.isPending ||
+                    disconnectMutation.isPending}
+                >
+                  <span className="owner-wallet-provider-icon" aria-hidden="true">
+                    <WalletCards size={16} />
+                  </span>
+                  <span className="owner-wallet-provider-copy">
+                    <strong>{formatWalletProviderName(item.name)}</strong>
+                    <small>{isSelected ? "Selected" : "Installed"}</small>
+                  </span>
+                  <Check
+                    className="owner-wallet-provider-check"
+                    size={15}
+                    aria-hidden="true"
+                  />
+                </button>
+              );
+            })}
+          </div>
+        </div>
       )}
 
       <p aria-live="polite">{message}</p>

@@ -51,7 +51,7 @@ for (const expected of [
   "connector.type",
   "connection.connector?.name",
   "Wallet provider",
-  "Choose which installed wallet Kyra should open.",
+  "Choose an installed wallet.",
   "Connected EVM wallet",
   "sessionExpiresAt",
   "requestSequenceRef",

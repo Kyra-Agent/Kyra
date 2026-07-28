@@ -1,5 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, CheckCircle2, ShieldCheck, Sparkles, Terminal } from "lucide-react";
+import {
+  Component,
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+  type ErrorInfo,
+  type ReactNode,
+} from "react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  Terminal,
+} from "lucide-react";
 import { AnimatedBackground } from "./components/AnimatedBackground";
 import { ActionConsole } from "./components/ActionConsole";
 import { CoreModules } from "./components/CoreModules";
@@ -9,6 +25,7 @@ import { FAQSection } from "./components/FAQSection";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { HeroConsole } from "./components/HeroConsole";
+import { MotionRuntime } from "./components/MotionRuntime";
 import { SecuritySection } from "./components/SecuritySection";
 import { TemplatePicker } from "./components/TemplatePicker";
 import { WalletApprovalModal } from "./components/WalletApprovalModal";
@@ -17,8 +34,6 @@ import {
   currentProductChain,
   currentWalletDisplayName,
 } from "./config/productChains";
-import { Dashboard } from "./pages/Dashboard";
-import { PublicAgent } from "./pages/PublicAgent";
 import { kyraDataService } from "./services/kyraDataService";
 import {
   consumeAuthCallbackSession,
@@ -45,6 +60,15 @@ import {
   transitionWalletSigningState,
   type WalletSigningState,
 } from "./types/walletSigning";
+
+const Dashboard = lazy(() =>
+  import("./pages/Dashboard").then((module) => ({ default: module.Dashboard }))
+);
+const PublicAgent = lazy(() =>
+  import("./pages/PublicAgent").then((module) => ({
+    default: module.PublicAgent,
+  }))
+);
 
 const fallbackAgentTemplates = kyraDataService.listTemplates();
 const demoScenarios = kyraDataService.listScenarios();
@@ -89,6 +113,83 @@ function getTemplateIdFromAgentSlug(agentSlug: string | null) {
   }
 
   return "operator";
+}
+
+function RouteLoading({ route }: { route: "dashboard" | "agent" }) {
+  const label = route === "dashboard"
+    ? "Opening your private workspace"
+    : "Loading public agent";
+
+  return (
+    <main className="route-loading-shell" aria-live="polite" aria-busy="true">
+      <section className="route-loading-panel" role="status">
+        <span className="route-loading-kicker">KYRA SECURE ROUTE</span>
+        <strong>{label}</strong>
+        <span className="route-loading-copy">
+          Preparing the protected interface and current agent state.
+        </span>
+        <span className="route-loading-track" aria-hidden="true">
+          <span />
+        </span>
+      </section>
+    </main>
+  );
+}
+
+type DeferredRoute = "dashboard" | "agent";
+
+interface RouteErrorBoundaryProps {
+  children: ReactNode;
+  route: DeferredRoute;
+}
+
+class RouteErrorBoundary extends Component<
+  RouteErrorBoundaryProps,
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("Kyra deferred route failed to load.", {
+      route: this.props.route,
+      error,
+      componentStack: info.componentStack,
+    });
+  }
+
+  render() {
+    if (!this.state.failed) {
+      return this.props.children;
+    }
+
+    const label = this.props.route === "dashboard"
+      ? "private workspace"
+      : "public agent";
+
+    return (
+      <main className="route-loading-shell" role="alert">
+        <section className="route-loading-panel route-error-panel">
+          <span className="route-loading-kicker">KYRA ROUTE RECOVERY</span>
+          <strong>We could not open the {label}</strong>
+          <span className="route-loading-copy">
+            Refresh the workspace to load the latest product version.
+          </span>
+          <button
+            className="button button-primary button-small"
+            type="button"
+            onClick={() => window.location.reload()}
+          >
+            <RefreshCw size={16} />
+            Reload workspace
+          </button>
+        </section>
+      </main>
+    );
+  }
 }
 
 function getInitialTemplateId() {
@@ -589,6 +690,7 @@ function App() {
   return (
     <div className="app" id="top">
       <AnimatedBackground />
+      <MotionRuntime routeKey={route} />
       <Header
         theme={theme}
         accountSignedIn={Boolean(authSession)}
@@ -615,29 +717,37 @@ function App() {
 
       {route === "dashboard"
         ? (
-          <Dashboard
-            selectedTemplate={selectedTemplate}
-            templates={agentTemplates}
-            templateCatalogSource={templateCatalogSource}
-            templateCatalogStatus={templateCatalogStatus}
-            templateCatalogError={templateCatalogError}
-            authSession={authSession}
-            authStatus={authStatus}
-            authMessage={authMessage}
-            onAuthSessionChange={updateAuthSession}
-            onBackHome={() => navigate("home")}
-            onStartDeploy={() => openHomeSection("deploy")}
-            onOpenAgent={(target) => navigate("agent", target)}
-            onSelectTemplate={setSelectedId}
-          />
+          <RouteErrorBoundary key="dashboard" route="dashboard">
+            <Suspense fallback={<RouteLoading route="dashboard" />}>
+              <Dashboard
+                selectedTemplate={selectedTemplate}
+                templates={agentTemplates}
+                templateCatalogSource={templateCatalogSource}
+                templateCatalogStatus={templateCatalogStatus}
+                templateCatalogError={templateCatalogError}
+                authSession={authSession}
+                authStatus={authStatus}
+                authMessage={authMessage}
+                onAuthSessionChange={updateAuthSession}
+                onBackHome={() => navigate("home")}
+                onStartDeploy={() => openHomeSection("deploy")}
+                onOpenAgent={(target) => navigate("agent", target)}
+                onSelectTemplate={setSelectedId}
+              />
+            </Suspense>
+          </RouteErrorBoundary>
         )
         : route === "agent"
         ? (
-          <PublicAgent
-            agentSlug={agentSlug}
-            onBackDashboard={() => navigate("dashboard")}
-            onBackHome={() => navigate("home")}
-          />
+          <RouteErrorBoundary key={`agent:${agentSlug ?? "unknown"}`} route="agent">
+            <Suspense fallback={<RouteLoading route="agent" />}>
+              <PublicAgent
+                agentSlug={agentSlug}
+                onBackDashboard={() => navigate("dashboard")}
+                onBackHome={() => navigate("home")}
+              />
+            </Suspense>
+          </RouteErrorBoundary>
         )
         : (
           <>
@@ -646,13 +756,13 @@ function App() {
                 <div className="hero-copy">
                   <span className="demo-badge hero-badge">
                     <Sparkles size={15} />
-                    {currentProductChain.name} agent operating system
+                    {currentProductChain.name} agent control plane
                   </span>
                   <h1>
-                    Launch Telegram agents with user-approved {currentProductChain.name} execution.
+                    Deploy agents on {currentProductChain.name}.
                   </h1>
                   <p className="hero-subtitle">
-                    Kyra turns templates into live agent workspaces: Telegram-native chat, private account records, {currentWalletDisplayName} connection, and user-approved transaction controls built for public use.
+                    Launch AI workspaces with live Telegram chat, private account records, {currentWalletDisplayName} connection, and explicit approval for every onchain action.
                   </p>
 
                   <div className="hero-proof-strip" aria-label="Kyra production readiness">

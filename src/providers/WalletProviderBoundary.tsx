@@ -23,9 +23,31 @@ export function WalletProviderBoundary({
   }
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<WalletRuntimeLoading />}>
       <WalletRuntimeProviders>{children}</WalletRuntimeProviders>
     </Suspense>
+  );
+}
+
+function WalletRuntimeLoading() {
+  return (
+    <main
+      className="route-loading-shell wallet-runtime-loading"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <section className="route-loading-panel" role="status">
+        <span className="route-loading-kicker">KYRA SECURE RUNTIME</span>
+        <strong>Starting your workspace</strong>
+        <span className="route-loading-copy">
+          Preparing account and wallet connection support. No wallet prompt opens
+          automatically.
+        </span>
+        <span className="route-loading-track" aria-hidden="true">
+          <span />
+        </span>
+      </section>
+    </main>
   );
 }
 

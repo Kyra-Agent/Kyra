@@ -4,6 +4,8 @@ import App from "./App";
 import { WalletProviderBoundary } from "./providers/WalletProviderBoundary";
 import { consumeAuthCallbackSession } from "./services/supabaseAuthService";
 import "./styles.css";
+import "./motion.css";
+import "./route-loading.css";
 
 void consumeAuthCallbackSession();
 

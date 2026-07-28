@@ -36,6 +36,7 @@ import {
   type TelegramConnectStatus,
   validateTelegramBotTokenForDeploy,
 } from "../services/telegramConnectService";
+import { issueTelegramOwnerLink } from "../services/telegramLinkService";
 
 interface DeployPanelProps {
   templates: AgentTemplate[];
@@ -104,6 +105,7 @@ export type DeployWizardStepId =
   | "wallet"
   | "deploy";
 type TelegramDeployConnectUiStatus = "idle" | "ready" | "running" | "success" | "error";
+type TelegramOwnerLinkUiStatus = "idle" | "running" | "ready" | "error";
 
 function getWizardStepIndex(stepId?: DeployWizardStepId | null) {
   if (!stepId) {
@@ -162,6 +164,14 @@ export function DeployPanel({
   const [telegramDeployConnectMessage, setTelegramDeployConnectMessage] = useState(
     "Optional: paste a BotFather token during deploy. Kyra validates it before quota is used and clears it after submit.",
   );
+  const [telegramConnectedBotHandle, setTelegramConnectedBotHandle] = useState<string | null>(null);
+  const [telegramOwnerLinkStatus, setTelegramOwnerLinkStatus] =
+    useState<TelegramOwnerLinkUiStatus>("idle");
+  const [telegramOwnerLinkMessage, setTelegramOwnerLinkMessage] = useState(
+    "Owner chat activation is created after the webhook is active.",
+  );
+  const [telegramOwnerLink, setTelegramOwnerLink] = useState<string | null>(null);
+  const [telegramOwnerLinkExpiresAt, setTelegramOwnerLinkExpiresAt] = useState<string | null>(null);
   const [agentQuota, setAgentQuota] = useState<DemoAgentQuota>({
     used: 0,
     limit: demoAgentLimits.maxAgentsPerWorkspace,
@@ -251,9 +261,14 @@ export function DeployPanel({
   const activePublicPath = persistedRecord?.publicSlug
     ? `/agents/${persistedRecord.publicSlug}`
     : agentRecord.publicPath;
-  const activeTelegramHandle = persistedRecord?.telegramHandle ?? agentRecord.handle;
+  const activeTelegramHandle =
+    telegramConnectedBotHandle ?? persistedRecord?.telegramHandle ?? agentRecord.handle;
   const receiptTelegramLabel =
-    telegramDeployConnectStatus === "success" ? `${activeTelegramHandle} active` : "not connected";
+    telegramDeployConnectStatus === "success"
+      ? telegramOwnerLinkStatus === "ready"
+        ? `${activeTelegramHandle} activation ready`
+        : `${activeTelegramHandle} webhook active`
+      : "not connected";
   const hasPersistedPublicRoute = Boolean(
     persistedRecord?.publicSlug &&
       (persistedRecord.source === "edge-function" || persistedRecord.source === "supabase-rest") &&
@@ -301,6 +316,13 @@ export function DeployPanel({
   function resetTelegramDeployConnectState(message?: string) {
     setTelegramBotToken("");
     setTelegramDeployConnectStatus("idle");
+    setTelegramConnectedBotHandle(null);
+    setTelegramOwnerLinkStatus("idle");
+    setTelegramOwnerLink(null);
+    setTelegramOwnerLinkExpiresAt(null);
+    setTelegramOwnerLinkMessage(
+      "Owner chat activation is created after the webhook is active.",
+    );
     setTelegramDeployConnectMessage(
       message ?? "Optional: connect Telegram during deploy. Token is cleared after submit.",
     );
@@ -401,6 +423,13 @@ export function DeployPanel({
     setPersistStatus("skipped");
     setPersistMessage(authSession ? "Preparing backend persistence." : "Sign in before deploy to save the agent and public route.");
     setPersistedRecord(null);
+    setTelegramConnectedBotHandle(null);
+    setTelegramOwnerLinkStatus("idle");
+    setTelegramOwnerLink(null);
+    setTelegramOwnerLinkExpiresAt(null);
+    setTelegramOwnerLinkMessage(
+      "Owner chat activation is created after the webhook is active.",
+    );
     if (telegramTokenForDeploy) {
       setTelegramDeployConnectStatus("ready");
       setTelegramDeployConnectMessage("Telegram bot token will be validated before agent deploy uses quota.");
@@ -576,6 +605,7 @@ export function DeployPanel({
                     botToken: telegramTokenForDeploy,
                   });
 
+                  setTelegramConnectedBotHandle(telegramResult.botHandle);
                   setTelegramDeployConnectStatus(getTelegramDeployConnectTone(telegramResult.status));
                   setTelegramDeployConnectMessage(telegramResult.message);
                   recordBackendEvent({
@@ -585,6 +615,40 @@ export function DeployPanel({
                     source: "telegram-connect",
                     code: telegramResult.status,
                   });
+
+                  if (telegramResult.ok && telegramResult.status === "active") {
+                    setTelegramOwnerLinkStatus("running");
+                    setTelegramOwnerLinkMessage(
+                      "Creating a one-time owner chat activation link...",
+                    );
+
+                    const ownerLinkResult = await issueTelegramOwnerLink({
+                      session: deploySession,
+                      agentId: result.agentId,
+                    });
+
+                    setTelegramOwnerLinkStatus(ownerLinkResult.ok ? "ready" : "error");
+                    setTelegramOwnerLink(ownerLinkResult.telegramLink);
+                    setTelegramOwnerLinkExpiresAt(ownerLinkResult.expiresAt);
+                    setTelegramOwnerLinkMessage(
+                      ownerLinkResult.ok
+                        ? "Open Telegram, press Start, then use /help or /status."
+                        : ownerLinkResult.message,
+                    );
+                    recordBackendEvent({
+                      kind: "deploy",
+                      status: ownerLinkResult.ok ? "success" : "error",
+                      message: ownerLinkResult.ok
+                        ? "Telegram owner chat activation link is ready."
+                        : ownerLinkResult.message,
+                      source: "telegram-link",
+                      code: ownerLinkResult.status,
+                    });
+                  } else {
+                    setTelegramOwnerLinkStatus("idle");
+                    setTelegramOwnerLink(null);
+                    setTelegramOwnerLinkExpiresAt(null);
+                  }
                 }
               }
             } catch {
@@ -1131,8 +1195,8 @@ export function DeployPanel({
                   {telegramDeployConnectStatus === "success" ? (
                     <div className="deploy-persist-note persist-success">
                       <ShieldCheck size={15} />
-                      Telegram connection active. Open the bot and use /help or /status; write, wallet,
-                      approval, and onchain actions require user approval.
+                      Telegram webhook active. Link the owner chat before commands are enabled; write,
+                      wallet, approval, and onchain actions still require explicit user approval.
                     </div>
                   ) : telegramDeployConnectStatus !== "idle" ? (
                     <div className={`deploy-persist-note persist-${telegramDeployConnectStatus}`}>
@@ -1145,6 +1209,46 @@ export function DeployPanel({
                       Telegram was not connected during this deploy.
                     </div>
                   )}
+                  {telegramOwnerLinkStatus !== "idle" ? (
+                    <div className={`telegram-owner-link-card link-${telegramOwnerLinkStatus}`}>
+                      <div>
+                        <Bot size={17} />
+                        <span>
+                          <strong>
+                            {telegramOwnerLinkStatus === "ready"
+                              ? "Activate Telegram chat"
+                              : telegramOwnerLinkStatus === "running"
+                                ? "Preparing chat activation"
+                                : "Chat activation needs attention"}
+                          </strong>
+                          <small>{telegramOwnerLinkMessage}</small>
+                        </span>
+                      </div>
+                      {telegramOwnerLinkStatus === "ready" && telegramOwnerLink ? (
+                        <>
+                          <a
+                            className="button button-primary telegram-owner-link-button"
+                            href={telegramOwnerLink}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <ExternalLink size={15} />
+                            Open Telegram and press Start
+                          </a>
+                          {telegramOwnerLinkExpiresAt ? (
+                            <small className="telegram-owner-link-expiry">
+                              One-time link expires at{" "}
+                              {new Date(telegramOwnerLinkExpiresAt).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                              .
+                            </small>
+                          ) : null}
+                        </>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div className="receipt-actions">
                     <button type="button" onClick={copyPreviewLink} disabled={!hasPersistedPublicRoute}>
                       <Copy size={14} />

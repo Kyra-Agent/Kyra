@@ -72,6 +72,7 @@ import {
   type TelegramDashboardStatusRecord,
 } from "../services/telegramDashboardStatusService";
 import { revokeTelegramAgentConnection } from "../services/telegramDisconnectService";
+import { issueTelegramOwnerLink } from "../services/telegramLinkService";
 import {
   prepareChainActionStatusCheck,
   type ChainActionDashboardStatus,
@@ -820,6 +821,13 @@ export function Dashboard({
   const [telegramDashboardStatuses, setTelegramDashboardStatuses] = useState<
     TelegramDashboardStatusRecord[]
   >([]);
+  const [telegramOwnerLinkStatus, setTelegramOwnerLinkStatus] = useState<
+    "idle" | "running" | "ready" | "error"
+  >("idle");
+  const [telegramOwnerLinkMessage, setTelegramOwnerLinkMessage] = useState(
+    "Link the private owner chat before Telegram commands are enabled.",
+  );
+  const [telegramOwnerLink, setTelegramOwnerLink] = useState<string | null>(null);
   const [chainStatusState, setChainStatusState] = useState<
     "idle" | "checking" | "ready" | "blocked" | "error"
   >("idle");
@@ -1132,6 +1140,14 @@ export function Dashboard({
       "Run an owner-only read-only capability check.",
     );
     setChainPreparedSummary(null);
+  }, [authSession?.user.id, selectedDashboardAgentId]);
+
+  useEffect(() => {
+    setTelegramOwnerLinkStatus("idle");
+    setTelegramOwnerLink(null);
+    setTelegramOwnerLinkMessage(
+      "Link the private owner chat before Telegram commands are enabled.",
+    );
   }, [authSession?.user.id, selectedDashboardAgentId]);
 
   const agentRecord =
@@ -2835,6 +2851,53 @@ export function Dashboard({
     setTelegramDisconnectConfirmId(agentRecord.id);
   }
 
+  async function handleCreateTelegramOwnerLink() {
+    if (
+      !authSession ||
+      !agentRecord ||
+      !selectedTelegramActive ||
+      selectedTelegramOwnerChatLinked ||
+      telegramOwnerLinkStatus === "running"
+    ) {
+      return;
+    }
+
+    setTelegramOwnerLinkStatus("running");
+    setTelegramOwnerLink(null);
+    setTelegramOwnerLinkMessage("Creating a one-time Telegram activation link...");
+
+    const freshAuth = await ensureFreshAuthSession(authSession);
+    syncFreshAuthSession(authSession, freshAuth);
+
+    if (!freshAuth.session) {
+      setTelegramOwnerLinkStatus("error");
+      setTelegramOwnerLinkMessage(freshAuth.message);
+      return;
+    }
+
+    const result = await issueTelegramOwnerLink({
+      session: freshAuth.session,
+      agentId: agentRecord.id,
+    });
+
+    setTelegramOwnerLinkStatus(result.ok ? "ready" : "error");
+    setTelegramOwnerLink(result.telegramLink);
+    setTelegramOwnerLinkMessage(
+      result.ok
+        ? "Open Telegram, press Start, then return here and refresh status."
+        : result.message,
+    );
+    recordBackendEvent({
+      kind: "deploy",
+      status: result.ok ? "success" : "error",
+      message: result.ok
+        ? "Telegram owner chat activation link is ready."
+        : result.message,
+      source: "telegram-link",
+      code: result.status,
+    });
+  }
+
   function handleCloseTelegramDisconnect() {
     if (isTelegramDisconnectRunning) {
       return;
@@ -3379,10 +3442,8 @@ export function Dashboard({
                       </span>
                     </div>
                     <p className="telegram-connect-message telegram-connect-idle">
-                      Dashboard is owner-controlled. BotFather token validation,
-                      backend token storage, webhook activation, and owner
-                      pairing happen during deploy or an owner-approved backend
-                      flow.
+                      Bot credentials stay backend-only. This private workspace
+                      links one owner chat before read-only commands can run.
                     </p>
                     {telegramDashboardStatusEnabled &&
                         telegramDashboardStatusState !== "ready"
@@ -3393,6 +3454,54 @@ export function Dashboard({
                       )
                       : null}
                   </div>
+                  {!selectedTelegramOwnerChatLinked && selectedTelegramActive ? (
+                    <div className="telegram-owner-link-actions">
+                      {telegramOwnerLinkStatus === "ready" && telegramOwnerLink ? (
+                        <a
+                          className="button button-primary"
+                          href={telegramOwnerLink}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <ExternalLink size={16} />
+                          Open Telegram and press Start
+                        </a>
+                      ) : (
+                        <button
+                          className="button button-primary"
+                          disabled={
+                            telegramOwnerLinkStatus === "running" ||
+                            selectedTelegramDashboardStatus?.ownerLinkAvailable === false
+                          }
+                          onClick={() => void handleCreateTelegramOwnerLink()}
+                          type="button"
+                        >
+                          <Bot size={16} />
+                          {telegramOwnerLinkStatus === "running"
+                            ? "Creating secure link..."
+                            : "Link owner chat"}
+                        </button>
+                      )}
+                      {telegramOwnerLinkStatus === "ready" ? (
+                        <button
+                          className="button button-ghost"
+                          onClick={() => setDashboardReloadKey((key) => key + 1)}
+                          type="button"
+                        >
+                          <RotateCcw size={16} />
+                          Check link status
+                        </button>
+                      ) : null}
+                      <small className={`telegram-owner-link-${telegramOwnerLinkStatus}`}>
+                        {telegramOwnerLinkMessage}
+                      </small>
+                    </div>
+                  ) : selectedTelegramOwnerChatLinked ? (
+                    <p className="telegram-owner-link-linked">
+                      <CheckCircle2 size={15} />
+                      Owner chat linked. Read-only Telegram commands are enabled.
+                    </p>
+                  ) : null}
                   {selectedTelegramActive
                     ? (
                       <div className="telegram-disconnect-actions">

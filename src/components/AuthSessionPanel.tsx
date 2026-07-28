@@ -192,7 +192,14 @@ export function AuthSessionPanel({
             </div>
           </div>
 
-          <div className="auth-form-grid">
+          <form
+            className="auth-form-grid"
+            id="kyra-account-auth-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handlePrimarySubmit();
+            }}
+          >
             <label className="field">
               <span>Email</span>
               <input
@@ -211,11 +218,6 @@ export function AuthSessionPanel({
                 disabled={busy}
                 minLength={6}
                 onChange={(event) => setPassword(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    void handlePrimarySubmit();
-                  }
-                }}
                 placeholder={isSignUpMode ? "Create at least 6 characters" : "Enter your password"}
                 type="password"
                 value={password}
@@ -224,7 +226,7 @@ export function AuthSessionPanel({
                 {passwordReady ? "Password is ready for this account step." : "Use at least 6 characters. Never reuse wallet or seed-phrase passwords."}
               </small>
             </label>
-          </div>
+          </form>
         </>
       )}
 
@@ -245,8 +247,8 @@ export function AuthSessionPanel({
             <button
               className="button button-primary button-small auth-primary-action"
               disabled={!canSubmit}
-              onClick={handlePrimarySubmit}
-              type="button"
+              form="kyra-account-auth-form"
+              type="submit"
             >
               {isSignUpMode ? <UserRound size={15} /> : <CheckCircle2 size={15} />}
               {busyAction === "signup"

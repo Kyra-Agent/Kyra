@@ -24,12 +24,16 @@ interface TelegramConnectPayload {
   ok?: boolean;
   status?: string;
   message?: string;
+  botHandle?: string;
+  webhookStatus?: string;
 }
 
 export interface TelegramConnectResult {
   ok: boolean;
   status: TelegramConnectStatus;
   message: string;
+  botHandle: string | null;
+  webhookStatus: "queued" | "active" | null;
 }
 
 const tokenLikePattern = /\b\d{5,20}:[A-Za-z0-9_-]{20,128}\b/g;
@@ -76,6 +80,16 @@ function normalizeTelegramConnectStatus(status: string | undefined): TelegramCon
   }
 }
 
+function readTelegramBotHandle(value: unknown) {
+  return typeof value === "string" && /^@[A-Za-z0-9_]{5,32}$/.test(value)
+    ? value
+    : null;
+}
+
+function readTelegramWebhookStatus(value: unknown) {
+  return value === "queued" || value === "active" ? value : null;
+}
+
 export async function connectTelegramBot({
   session,
   agentId,
@@ -90,6 +104,8 @@ export async function connectTelegramBot({
       ok: false,
       status: "function_not_configured",
       message: "Telegram connect backend is not configured yet.",
+      botHandle: null,
+      webhookStatus: null,
     };
   }
 
@@ -117,6 +133,8 @@ export async function connectTelegramBot({
       ok: Boolean(payload.ok) && response.ok,
       status,
       message: sanitizeTelegramConnectMessage(payload.message ?? fallbackMessage),
+      botHandle: readTelegramBotHandle(payload.botHandle),
+      webhookStatus: readTelegramWebhookStatus(payload.webhookStatus),
     };
   } catch (error) {
     return {
@@ -126,6 +144,8 @@ export async function connectTelegramBot({
         error instanceof Error
           ? sanitizeTelegramConnectMessage(error.message)
           : "Telegram connect backend is unavailable.",
+      botHandle: null,
+      webhookStatus: null,
     };
   }
 }
@@ -142,6 +162,8 @@ export async function validateTelegramBotTokenForDeploy({
       ok: false,
       status: "function_not_configured",
       message: "Telegram connect backend is not configured yet.",
+      botHandle: null,
+      webhookStatus: null,
     };
   }
 
@@ -169,6 +191,8 @@ export async function validateTelegramBotTokenForDeploy({
       ok: Boolean(payload.ok) && response.ok && status === "validated",
       status,
       message: sanitizeTelegramConnectMessage(payload.message ?? fallbackMessage),
+      botHandle: readTelegramBotHandle(payload.botHandle),
+      webhookStatus: readTelegramWebhookStatus(payload.webhookStatus),
     };
   } catch (error) {
     return {
@@ -178,6 +202,8 @@ export async function validateTelegramBotTokenForDeploy({
         error instanceof Error
           ? sanitizeTelegramConnectMessage(error.message)
           : "Telegram connect backend is unavailable.",
+      botHandle: null,
+      webhookStatus: null,
     };
   }
 }
