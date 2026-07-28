@@ -13,6 +13,7 @@ export interface TelegramAgentBrainPromptInput {
   safetyNote?: unknown;
   userRequest?: unknown;
   chatIntent?: unknown;
+  languageCode?: unknown;
 }
 
 export interface TelegramAgentBrainRequest {
@@ -51,6 +52,7 @@ interface NormalizedTelegramAgentBrainPromptInput {
   safetyNote: string;
   userRequest: string;
   chatIntent: TelegramReadOnlyChatIntent;
+  languageCode: string;
 }
 
 const supportedReadOnlyCommands = new Set<TelegramWebhookParsedCommandName>([
@@ -75,6 +77,7 @@ const maxModuleTitleLength = 48;
 const maxModuleStatusLength = 16;
 const maxSafetyNoteLength = 180;
 const maxUserRequestLength = 1000;
+const maxLanguageCodeLength = 35;
 const maxAgentBrainOutputCharacters = 3000;
 const supportedChatIntents = new Set<TelegramReadOnlyChatIntent>([
   "market_brief",
@@ -149,6 +152,9 @@ export function buildTelegramAgentBrainRequest(
           "Finish every sentence and bullet. Never end with an empty bullet or an unfinished label.",
           "Answer the requested command directly and do not add unfinished helper text.",
           "Do not claim live, real-time, current, latest, price, or market data unless the user provides that data in the request.",
+          "Support multilingual users. For natural chat, reply in the same language and writing system as the user's request. For slash commands without a natural-language request, use the Telegram language hint when you can write it fluently; otherwise use English.",
+          "Infer the user's semantic intent from their request in any language. The supplied intent is only a heuristic hint.",
+          "Regardless of language, refuse requests to sign, approve, submit, or execute wallet and onchain actions. Offer only read-only planning, review, or checklist help.",
         ].join(" "),
       },
       {
@@ -164,6 +170,7 @@ export function buildTelegramAgentBrainRequest(
           `Safety: ${context.safetyNote}`,
           `User request: ${context.userRequest}`,
           `Intent: ${context.chatIntent}`,
+          `Telegram language hint: ${context.languageCode}`,
           `Response guide: ${buildCommandResponseGuide(context.command)}`,
         ].join("\n"),
       },
@@ -371,6 +378,7 @@ function normalizeTelegramAgentBrainPromptInput(
       "",
     ),
     chatIntent: sanitizeChatIntent(input.chatIntent),
+    languageCode: sanitizeLanguageCode(input.languageCode),
   };
 }
 
@@ -393,7 +401,7 @@ function formatPromptList(values: readonly string[]) {
 function buildCommandResponseGuide(command: TelegramWebhookParsedCommandName) {
   if (command === "chat") {
     return [
-      "Answer the user's read-only request directly.",
+      "Answer the user's read-only request directly in the same language and writing system.",
       "If the intent is unsafe_execution, only refuse clearly and offer a read-only risk review or checklist; do not add a market brief, campaign plan, sample analysis, or extra generated content.",
       "For market_brief, campaign_plan, narrative_map, launch_copy, community_pulse, or risk_review, produce useful content immediately with concise labels and bullets.",
       "Use available agent, action, and module context, but frame outputs as planning guidance unless the user supplies data.",
@@ -402,15 +410,15 @@ function buildCommandResponseGuide(command: TelegramWebhookParsedCommandName) {
   }
 
   if (command === "modules") {
-    return "Use labels Template module stack, Active, Guard, Standby, Boundary. Report only actual template modules with exact names and statuses. Do not label wallet, approval, Robinhood Chain actions, or onchain execution as modules.";
+    return "Report the Template module stack using concise localized labels for active, guard, standby, and boundary. Preserve actual module names and statuses exactly. Do not label wallet, approval, Robinhood Chain actions, or onchain execution as modules.";
   }
 
   if (command === "actions") {
-    return "Use labels Ready in Telegram, Dashboard gated, Owner approval required, Boundary. Separate read-only actions from gated actions. Explain Telegram can brief or plan, not execute wallet or onchain actions. Do not include module status sections.";
+    return "Use concise localized labels for Telegram-ready actions, dashboard-gated actions, owner approval, and the safety boundary. Separate read-only actions from gated actions. Explain Telegram can brief or plan, not execute wallet or onchain actions. Do not include module status sections.";
   }
 
   if (command === "agent") {
-    return "Use labels Role, Focus, Telegram access, Template stack, Next. Describe the deployed template profile and keep the read-only boundary explicit.";
+    return "Use concise localized labels for role, focus, Telegram access, template stack, and next actions. Describe the deployed template profile and keep the read-only boundary explicit.";
   }
 
   return "Answer the command directly with the current read-only safety boundary.";
@@ -437,6 +445,7 @@ function assertContextualTelegramAgentBrainReply(
 
   if (
     context.command === "modules" &&
+    usesStrictEnglishCommandLabels(context) &&
     !hasTelegramSectionLabel(text, "Active")
   ) {
     throw invalidAgentBrainResponse();
@@ -444,6 +453,7 @@ function assertContextualTelegramAgentBrainReply(
 
   if (
     context.command === "modules" &&
+    usesStrictEnglishCommandLabels(context) &&
     !hasTelegramSectionLabel(text, "Guard")
   ) {
     throw invalidAgentBrainResponse();
@@ -451,6 +461,7 @@ function assertContextualTelegramAgentBrainReply(
 
   if (
     context.command === "modules" &&
+    usesStrictEnglishCommandLabels(context) &&
     !hasTelegramSectionLabel(text, "Standby")
   ) {
     throw invalidAgentBrainResponse();
@@ -458,6 +469,7 @@ function assertContextualTelegramAgentBrainReply(
 
   if (
     context.command === "modules" &&
+    usesStrictEnglishCommandLabels(context) &&
     !hasTelegramSectionLabel(text, "Boundary")
   ) {
     throw invalidAgentBrainResponse();
@@ -465,6 +477,7 @@ function assertContextualTelegramAgentBrainReply(
 
   if (
     context.command === "actions" &&
+    usesStrictEnglishCommandLabels(context) &&
     !hasTelegramSectionLabel(text, "Ready in Telegram")
   ) {
     throw invalidAgentBrainResponse();
@@ -472,6 +485,7 @@ function assertContextualTelegramAgentBrainReply(
 
   if (
     context.command === "actions" &&
+    usesStrictEnglishCommandLabels(context) &&
     !hasTelegramSectionLabel(text, "Dashboard gated")
   ) {
     throw invalidAgentBrainResponse();
@@ -479,6 +493,7 @@ function assertContextualTelegramAgentBrainReply(
 
   if (
     context.command === "actions" &&
+    usesStrictEnglishCommandLabels(context) &&
     !hasTelegramSectionLabel(text, "Owner approval required")
   ) {
     throw invalidAgentBrainResponse();
@@ -486,6 +501,7 @@ function assertContextualTelegramAgentBrainReply(
 
   if (
     context.command === "actions" &&
+    usesStrictEnglishCommandLabels(context) &&
     !hasTelegramSectionLabel(text, "Boundary")
   ) {
     throw invalidAgentBrainResponse();
@@ -528,6 +544,7 @@ function assertContextualTelegramAgentBrainReply(
 
   if (
     context.command === "agent" &&
+    usesStrictEnglishCommandLabels(context) &&
     !hasTelegramSectionLabel(text, "Role")
   ) {
     throw invalidAgentBrainResponse();
@@ -535,6 +552,7 @@ function assertContextualTelegramAgentBrainReply(
 
   if (
     context.command === "agent" &&
+    usesStrictEnglishCommandLabels(context) &&
     !hasTelegramSectionLabel(text, "Focus")
   ) {
     throw invalidAgentBrainResponse();
@@ -542,6 +560,7 @@ function assertContextualTelegramAgentBrainReply(
 
   if (
     context.command === "agent" &&
+    usesStrictEnglishCommandLabels(context) &&
     !hasTelegramSectionLabel(text, "Telegram access")
   ) {
     throw invalidAgentBrainResponse();
@@ -549,6 +568,7 @@ function assertContextualTelegramAgentBrainReply(
 
   if (
     context.command === "agent" &&
+    usesStrictEnglishCommandLabels(context) &&
     !hasTelegramSectionLabel(text, "Template stack")
   ) {
     throw invalidAgentBrainResponse();
@@ -556,6 +576,7 @@ function assertContextualTelegramAgentBrainReply(
 
   if (
     context.command === "agent" &&
+    usesStrictEnglishCommandLabels(context) &&
     !hasTelegramSectionLabel(text, "Next")
   ) {
     throw invalidAgentBrainResponse();
@@ -563,6 +584,7 @@ function assertContextualTelegramAgentBrainReply(
 
   if (
     context.command === "chat" &&
+    usesStrictSemanticChatValidation(context) &&
     context.chatIntent === "agent_profile" &&
     !/\b(template|templat|strategy|strategi|role|peran|agent profile|profil agen)\b/i
       .test(text)
@@ -572,6 +594,7 @@ function assertContextualTelegramAgentBrainReply(
 
   if (
     context.command === "chat" &&
+    usesStrictSemanticChatValidation(context) &&
     context.chatIntent === "risk_review" &&
     (
       !/\b(?:risk|risiko)\b/i.test(text) ||
@@ -584,6 +607,7 @@ function assertContextualTelegramAgentBrainReply(
 
   if (
     context.command === "chat" &&
+    usesStrictSemanticChatValidation(context) &&
     context.chatIntent === "unsafe_execution" &&
     !/\b(cannot|can't|disabled|not execute|read-only|tidak dapat|tidak bisa|dinonaktifkan|tidak mengeksekusi|hanya baca)\b/i
       .test(text)
@@ -598,6 +622,34 @@ function assertContextualTelegramAgentBrainReply(
   ) {
     throw invalidAgentBrainResponse();
   }
+}
+
+function sanitizeLanguageCode(value: unknown) {
+  if (typeof value !== "string") {
+    return "auto";
+  }
+
+  const languageCode = value.trim().slice(0, maxLanguageCodeLength);
+
+  if (!/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,2}$/.test(languageCode)) {
+    return "auto";
+  }
+
+  return languageCode;
+}
+
+function usesStrictEnglishCommandLabels(
+  context: NormalizedTelegramAgentBrainPromptInput,
+) {
+  return context.languageCode === "auto" ||
+    /^en(?:-|$)/i.test(context.languageCode);
+}
+
+function usesStrictSemanticChatValidation(
+  context: NormalizedTelegramAgentBrainPromptInput,
+) {
+  return context.languageCode === "auto" ||
+    /^(?:en|id)(?:-|$)/i.test(context.languageCode);
 }
 
 function sanitizeChatIntent(value: unknown): TelegramReadOnlyChatIntent {

@@ -73,6 +73,26 @@ Deno.test("telegram update parser accepts supported read-only commands", () => {
   assertEquals(policy.commandKind, "read_only");
 });
 
+Deno.test("telegram update parser carries a safe Telegram language hint", () => {
+  const update = createUpdate("¿Qué estrategia usa este agente?");
+  update.message.from = { id: 123456, language_code: "es-MX" } as {
+    id: number;
+    language_code: string;
+  };
+
+  const parsed = parseTelegramWebhookUpdate(update);
+
+  assertEquals(parsed.command, "chat");
+  assertEquals(parsed.languageCode, "es-MX");
+
+  update.message.from = { id: 123456, language_code: "unsafe value" } as {
+    id: number;
+    language_code: string;
+  };
+  const sanitized = parseTelegramWebhookUpdate(update);
+  assertEquals(sanitized.languageCode, undefined);
+});
+
 Deno.test("telegram update parser discards group command bot username", () => {
   const parsed = parseTelegramWebhookUpdate(
     createUpdate("/help@kyra_demo_bot"),

@@ -98,12 +98,18 @@ function requestThatFailsIfBodyIsRead(
   } as unknown as Request;
 }
 
-function createWebhookUpdate(text: string = "/status") {
+function createWebhookUpdate(
+  text: string = "/status",
+  languageCode?: string,
+) {
   return {
     update_id: 9001,
     message: {
       message_id: 42,
-      from: { id: 123456 },
+      from: {
+        id: 123456,
+        ...(languageCode ? { language_code: languageCode } : {}),
+      },
       chat: { id: -987654 },
       text,
     },
@@ -1568,7 +1574,7 @@ Deno.test("telegram-webhook natural chat reaches agent brain with template conte
 
   const response = await handleTelegramWebhookRequest(
     createJsonWebhookRequest(
-      createWebhookUpdate("make a campaign plan for Agent 666"),
+      createWebhookUpdate("make a campaign plan for Agent 666", "en-GB"),
     ),
     {
       lookupRuntimeConfig: { enabled: true },
@@ -1639,6 +1645,7 @@ Deno.test("telegram-webhook natural chat reaches agent brain with template conte
     "make a campaign plan for Agent 666",
   );
   assertEquals(brainInputs[0]?.chatIntent, "campaign_plan");
+  assertEquals(brainInputs[0]?.languageCode, "en-GB");
   assertEquals(brainInputs[0]?.agentName, "Agent 666");
   assertEquals(deliveredResponse?.command, "chat");
   assert(

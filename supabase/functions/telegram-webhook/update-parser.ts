@@ -14,6 +14,7 @@ export interface TelegramWebhookParsedCommand {
   messageId: string;
   telegramUserId: string;
   telegramChatId: string;
+  languageCode?: string;
   command: TelegramWebhookParsedCommandName;
   commandKind: "read_only";
   text?: string;
@@ -34,6 +35,7 @@ const supportedCommands = new Set<TelegramWebhookParsedCommandName>([
 const telegramCommandPattern =
   /^\/([A-Za-z][A-Za-z0-9_]*)(?:@([A-Za-z0-9_]{5,32}))?$/;
 const telegramBotUsernamePattern = /^[A-Za-z0-9_]{5,32}$/;
+const telegramLanguageCodePattern = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,2}$/;
 const maxReadOnlyChatTextLength = 1000;
 
 export function parseTelegramWebhookUpdate(
@@ -48,6 +50,7 @@ export function parseTelegramWebhookUpdate(
   const chat = assertRecord(message.chat);
   const telegramUserId = readPositiveSafeInteger(from.id);
   const telegramChatId = readNonZeroSafeInteger(chat.id);
+  const languageCode = readLanguageCode(from.language_code);
   const parsedMessage = parseReadOnlyMessageText(
     message.text,
     options.expectedBotUsername,
@@ -58,10 +61,22 @@ export function parseTelegramWebhookUpdate(
     messageId: String(messageId),
     telegramUserId: String(telegramUserId),
     telegramChatId: String(telegramChatId),
+    ...(languageCode ? { languageCode } : {}),
     command: parsedMessage.command,
     commandKind: "read_only",
     ...(parsedMessage.text ? { text: parsedMessage.text } : {}),
   };
+}
+
+function readLanguageCode(value: unknown) {
+  if (
+    typeof value !== "string" ||
+    !telegramLanguageCodePattern.test(value)
+  ) {
+    return null;
+  }
+
+  return value;
 }
 
 function readMessage(value: unknown) {

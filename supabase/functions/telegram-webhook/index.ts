@@ -967,6 +967,7 @@ export async function handleTelegramWebhookRequest(
               safetyNote: templateContext?.context.safetyNote,
               userRequest: parsedUpdate.text,
               chatIntent: classifyTelegramReadOnlyChatIntent(parsedUpdate.text),
+              languageCode: parsedUpdate.languageCode,
             });
           response = {
             command: parsedUpdate.command,
