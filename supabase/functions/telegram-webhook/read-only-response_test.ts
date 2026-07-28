@@ -207,6 +207,49 @@ Deno.test("telegram read-only chat classifies product intents", () => {
   );
 });
 
+Deno.test("telegram read-only chat classifies Indonesian product intents", () => {
+  const cases = [
+    ["buat rencana kampanye peluncuran", "campaign_plan"],
+    ["buat narasi dan sudut cerita token", "narrative_map"],
+    ["tulis utas pengumuman", "launch_copy"],
+    ["rangkum sentimen komunitas", "community_pulse"],
+    ["buat tinjauan risiko DCA", "risk_review"],
+    ["buat ringkasan pasar", "market_brief"],
+    ["apa peran dan strategi agen ini", "agent_profile"],
+    ["tampilkan modul aktif", "module_status"],
+    ["jelaskan kebijakan yang diizinkan", "policy"],
+    ["bantuan perintah", "help"],
+  ] as const;
+
+  for (const [text, expected] of cases) {
+    assertEquals(
+      classifyTelegramReadOnlyChatIntent(text),
+      expected,
+      `${text} must map to ${expected}.`,
+    );
+  }
+});
+
+Deno.test("telegram read-only chat classifies Indonesian wallet verbs as unsafe", () => {
+  for (
+    const text of [
+      "kirim 10 USDC sekarang",
+      "tukar 10 USDC ke ETH",
+      "setujui izin token",
+      "tandatangani transaksi ini",
+      "tarik dana dari dompet",
+      "beli token ini",
+      "jalankan panggilan kontrak",
+      "gunakan kunci privat ini",
+    ]
+  ) {
+    assertEquals(
+      classifyTelegramReadOnlyChatIntent(text),
+      "unsafe_execution",
+      `${text} must remain unsafe from Telegram.`,
+    );
+  }
+});
 Deno.test("telegram read-only chat classifies wallet and onchain verbs as unsafe", () => {
   for (
     const text of [

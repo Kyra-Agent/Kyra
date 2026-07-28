@@ -340,6 +340,130 @@ Deno.test("telegram agent brain accepts useful natural chat replies", async () =
   );
 });
 
+Deno.test("telegram agent brain accepts safe Indonesian profile and refusal replies", async () => {
+  const profile = await generateTelegramAgentBrainReply(
+    {
+      command: "chat",
+      agentName: "Kyra Executor",
+      userRequest: "Apa peran dan strategi agen ini?",
+      chatIntent: "agent_profile",
+    },
+    {
+      async complete() {
+        return {
+          text:
+            "Kyra Executor\nTemplat: Executor\nPeran: agen kesiapan tindakan berbasis aturan.\nStrategi: tinjauan DCA dan kontrol risiko hanya baca.",
+        };
+      },
+    },
+  );
+  assert(
+    profile.text.includes("Templat: Executor"),
+    "Indonesian profile reply must be accepted.",
+  );
+
+  const refusal = await generateTelegramAgentBrainReply(
+    {
+      command: "chat",
+      userRequest: "Kirim sekarang 10 USDC.",
+      chatIntent: "unsafe_execution",
+    },
+    {
+      async complete() {
+        return {
+          text:
+            "Saya tidak bisa mengirim transaksi dari Telegram.\nMode ini hanya baca; gunakan dashboard owner untuk peninjauan.",
+        };
+      },
+    },
+  );
+  assert(
+    refusal.text.includes("tidak bisa"),
+    "Indonesian refusal reply must be accepted.",
+  );
+});
+
+Deno.test("telegram agent brain supports every template family", async () => {
+  const cases = [
+    {
+      name: "Operator",
+      role: "Personal wallet readiness agent",
+      capabilities: ["balance", "swap review", "portfolio"],
+      chatIntent: "risk_review" as const,
+      request: "Buat tinjauan risiko kesiapan dompet.",
+      text:
+        "Tinjauan risiko Operator\n- Risiko kontrol: verifikasi jaringan dan batas nilai.\n- Risiko pasar: tinjau slippage sebelum persetujuan owner.",
+    },
+    {
+      name: "Scout",
+      role: "Recon and launch monitor",
+      capabilities: ["launch monitor", "token scan", "market brief"],
+      chatIntent: "market_brief" as const,
+      request: "Buat ringkasan pasar tanpa data harga live.",
+      text:
+        "Scout market brief\n- Review launch signals supplied by the user.\n- No live price claim is included.",
+    },
+    {
+      name: "Steward",
+      role: "Project and community agent",
+      capabilities: ["faq", "token info", "announcement"],
+      chatIntent: "community_pulse" as const,
+      request: "Rangkum sentimen komunitas dari data yang diberikan.",
+      text:
+        "Steward community pulse\n- Summarize supplied questions and recurring themes.\n- Flag missing evidence before publishing.",
+    },
+    {
+      name: "Executor",
+      role: "Rule-based action readiness agent",
+      capabilities: ["conditional review", "dca plan", "stop loss check"],
+      chatIntent: "risk_review" as const,
+      request: "Buat tinjauan risiko DCA.",
+      text:
+        "Executor risk review\n- Market risk: cap total exposure.\n- Control risk: require owner review before execution.",
+    },
+    {
+      name: "Strategist",
+      role: "Market and campaign intelligence agent",
+      capabilities: ["market brief", "campaign plan", "launch copy"],
+      chatIntent: "campaign_plan" as const,
+      request: "Buat rencana kampanye peluncuran.",
+      text:
+        "Strategist campaign plan\n- Define the audience and message.\n- Sequence launch copy and review checkpoints.",
+    },
+    {
+      name: "Custom",
+      role: "Build your own agent",
+      capabilities: ["choose modules", "choose actions", "safety limits"],
+      chatIntent: "general" as const,
+      request: "Ringkas kemampuan agen ini.",
+      text:
+        "Custom agent summary\n- Uses the selected modules and actions.\n- Safety limits remain approval-first.",
+    },
+  ];
+
+  for (const testCase of cases) {
+    const reply = await generateTelegramAgentBrainReply(
+      {
+        command: "chat",
+        agentName: testCase.name,
+        agentRole: testCase.role,
+        capabilities: testCase.capabilities,
+        userRequest: testCase.request,
+        chatIntent: testCase.chatIntent,
+      },
+      {
+        async complete() {
+          return { text: testCase.text };
+        },
+      },
+    );
+
+    assert(
+      reply.text.includes(testCase.name),
+      `${testCase.name} reply must survive the shared validator.`,
+    );
+  }
+});
 Deno.test("telegram agent brain rejects generic template and risk replies", async () => {
   for (
     const input of [

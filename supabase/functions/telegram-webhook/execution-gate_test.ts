@@ -42,7 +42,10 @@ Deno.test("telegram execution gate marks owner swap review as draft candidate on
   assertEquals(decision.draftKind, "swap_review");
   assertEquals(decision.canExecuteFromTelegram, false);
   assertEquals(decision.canCreateDraftNow, false);
-  assert(decision.requiresOwnerDashboardApproval, "Dashboard approval required.");
+  assert(
+    decision.requiresOwnerDashboardApproval,
+    "Dashboard approval required.",
+  );
   assert(decision.replayProtectionRequired, "Replay protection required.");
   assert(decision.rateLimitRequired, "Rate limit required.");
   assert(
@@ -69,7 +72,8 @@ Deno.test("telegram execution gate blocks direct execution language", () => {
 
 Deno.test("telegram execution gate blocks non-owner draft creation", () => {
   const decision = reviewTelegramExecutionGate({
-    text: "review transfer 10 USDC to 0x1111111111111111111111111111111111111111",
+    text:
+      "review transfer 10 USDC to 0x1111111111111111111111111111111111111111",
     command: "chat",
     authorizationRole: "member",
   });
@@ -93,6 +97,41 @@ Deno.test("telegram execution gate blocks secret-like content", () => {
   );
 });
 
+Deno.test("telegram execution gate handles Indonesian wallet requests", () => {
+  const draft = reviewTelegramExecutionGate({
+    text: "tinjau kirim 10 USDC ke alamat tujuan",
+    command: "chat",
+    authorizationRole: "owner",
+  });
+
+  assertEquals(draft.status, "approval_draft_candidate");
+  assertEquals(draft.draftKind, "transfer_review");
+  assertEquals(draft.canExecuteFromTelegram, false);
+
+  const direct = reviewTelegramExecutionGate({
+    text: "kirim sekarang 10 USDC ke alamat tujuan",
+    command: "chat",
+    authorizationRole: "owner",
+  });
+
+  assertEquals(direct.status, "blocked");
+  assertEquals(direct.draftKind, "transfer_review");
+  assertEquals(direct.canExecuteFromTelegram, false);
+});
+
+Deno.test("telegram execution gate blocks Indonesian secret material", () => {
+  const decision = reviewTelegramExecutionGate({
+    text: "gunakan kunci privat ini untuk setujui transaksi",
+    command: "chat",
+    authorizationRole: "owner",
+  });
+
+  assertEquals(decision.status, "blocked");
+  assert(
+    decision.responseText.includes("cannot process secrets"),
+    "Indonesian secret-like content must be refused.",
+  );
+});
 Deno.test("telegram execution draft replay key is scoped and validated", () => {
   assertEquals(
     buildTelegramExecutionDraftReplayKey({

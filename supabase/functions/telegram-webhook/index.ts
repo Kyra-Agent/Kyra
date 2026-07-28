@@ -974,9 +974,7 @@ export async function handleTelegramWebhookRequest(
           };
         } catch (error) {
           const supportCode = getTelegramAgentBrainSupportCode(error);
-          console.warn("telegram_agent_brain_fallback", {
-            code: supportCode,
-          });
+
           if (chatAuthorization?.role === "owner") {
             response = {
               ...response,

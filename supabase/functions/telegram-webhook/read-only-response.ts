@@ -104,7 +104,7 @@ export type TelegramReadOnlyChatIntent =
   | "general";
 
 const unsafeExecutionPattern =
-  /\b(send|transfer|swap|approve|approval|allowance|permit|revoke|sign|execute|bridge|mint|burn|stake|unstake|claim|withdraw|deposit|buy|sell|delegate|wrap|unwrap|borrow|lend|liquidate|repay)\b|\b(wallet|private key|seed phrase|robinhood chain actions|onchain|contract call|calldata|transaction|tx)\b/i;
+  /\b(send|transfer|swap|approve|approval|allowance|permit|revoke|sign|execute|bridge|mint|burn|stake|unstake|claim|withdraw|deposit|buy|sell|delegate|wrap|unwrap|borrow|lend|liquidate|repay|kirim|tukar|setujui|persetujuan|izin|cabut|tandatangani|jalankan|jembatani|bakar|klaim|tarik|setor|beli|jual|delegasikan|bungkus|pinjam|bayar)\b|\b(wallet|dompet|private key|kunci privat|seed phrase|frasa seed|robinhood chain actions|aksi robinhood chain|onchain|kontrak|contract call|panggilan kontrak|calldata|transaction|transaksi|tx)\b/i;
 
 export function classifyTelegramReadOnlyChatIntent(
   value: unknown,
@@ -119,55 +119,68 @@ export function classifyTelegramReadOnlyChatIntent(
     return "unsafe_execution";
   }
 
-  if (/\b(help|what can you do|commands?|capabilities)\b/i.test(text)) {
+  if (
+    /\b(help|what can you do|commands?|capabilities|bantuan|bisa apa|perintah|kemampuan)\b/i
+      .test(text)
+  ) {
     return "help";
   }
 
-  if (/\b(policy|permission|allowed|disabled|gated|approval)\b/i.test(text)) {
+  if (
+    /\b(policy|permission|allowed|disabled|gated|approval|kebijakan|diizinkan|dinonaktifkan|dibatasi)\b/i
+      .test(text)
+  ) {
     return "policy";
   }
 
-  if (/\b(module|stack|nira|vexa|astra|nova|nyx)\b/i.test(text)) {
+  if (/\b(module|modul|stack|nira|vexa|astra|nova|nyx)\b/i.test(text)) {
     return "module_status";
   }
 
   if (
-    /\b(campaign|go[- ]?to[- ]?market|gtm|roadmap|launch plan)\b/i.test(text)
+    /\b(campaign|kampanye|go[- ]?to[- ]?market|gtm|roadmap|launch plan|rencana peluncuran|pemasaran)\b/i
+      .test(text)
   ) {
     return "campaign_plan";
   }
 
-  if (/\b(narrative|positioning|angle|thesis|story)\b/i.test(text)) {
+  if (
+    /\b(narrative|narasi|positioning|pemosisian|angle|sudut|thesis|tesis|story|cerita)\b/i
+      .test(text)
+  ) {
     return "narrative_map";
   }
 
-  if (/\b(copy|tweet|thread|announcement|caption|cta|post)\b/i.test(text)) {
+  if (
+    /\b(copy|tweet|thread|utas|announcement|pengumuman|caption|cta|post|postingan)\b/i
+      .test(text)
+  ) {
     return "launch_copy";
   }
 
   if (
-    /\b(community|sentiment|pulse|engagement|discord|telegram group)\b/i.test(
-      text,
-    )
+    /\b(community|komunitas|sentiment|sentimen|pulse|engagement|keterlibatan|discord|telegram group|grup telegram)\b/i
+      .test(text)
   ) {
     return "community_pulse";
   }
 
   if (
-    /\b(risk|review|dca|stop loss|liquidity pool|lp review|lend review)\b/i
-      .test(
-        text,
-      )
+    /\b(risk|risiko|review|tinjauan|dca|stop loss|liquidity pool|kumpulan likuiditas|lp review|tinjauan lp|lend review)\b/i
+      .test(text)
   ) {
     return "risk_review";
   }
 
-  if (/\b(market|brief|trend|liquidity|volume|price|token)\b/i.test(text)) {
+  if (
+    /\b(market|pasar|brief|ringkasan|trend|tren|liquidity|likuiditas|volume|price|harga|token)\b/i
+      .test(text)
+  ) {
     return "market_brief";
   }
 
   if (
-    /\b(agent|profile|role|who are you|template|strategy|playbook|approach)\b/i
+    /\b(agent|agen|profile|profil|role|peran|who are you|siapa kamu|template|templat|strategy|strategi|playbook|approach|pendekatan)\b/i
       .test(text)
   ) {
     return "agent_profile";

@@ -47,17 +47,20 @@ export interface TelegramExecutionDraftReplayScope {
 
 const maxExecutionGateTextLength = 1000;
 const directExecutionPattern =
-  /\b(execute|submit|broadcast|send\s+now|do\s+it|confirm\s+it|sign\s+now|approve\s+now|swap\s+now|transfer\s+now)\b/i;
+  /\b(execute|submit|broadcast|send\s+now|do\s+it|confirm\s+it|sign\s+now|approve\s+now|swap\s+now|transfer\s+now|jalankan|kirim\s+sekarang|lakukan\s+sekarang|konfirmasi|tandatangani\s+sekarang|setujui\s+sekarang|tukar\s+sekarang|transfer\s+sekarang)\b/i;
 const draftCandidatePattern =
-  /\b(swap|transfer|send|approve|approval|allowance|permit|revoke|sign|bridge|mint|burn|stake|unstake|claim|withdraw|deposit|buy|sell|delegate|wrap|unwrap|borrow|lend|liquidate|repay|wallet|robinhood\s+chain\s+actions?|onchain|contract\s+call|calldata|transaction|tx)\b/i;
-const swapPattern = /\b(swap|buy|sell|wrap|unwrap)\b/i;
-const transferPattern = /\b(transfer|send|withdraw|deposit|bridge)\b/i;
-const approvalPattern = /\b(approve|approval|allowance|permit|revoke)\b/i;
+  /\b(swap|transfer|send|approve|approval|allowance|permit|revoke|sign|bridge|mint|burn|stake|unstake|claim|withdraw|deposit|buy|sell|delegate|wrap|unwrap|borrow|lend|liquidate|repay|wallet|robinhood\s+chain\s+actions?|onchain|contract\s+call|calldata|transaction|tx|tukar|kirim|setujui|persetujuan|izin|cabut|tandatangani|jembatani|bakar|klaim|tarik|setor|beli|jual|delegasikan|bungkus|pinjam|bayar|dompet|aksi\s+robinhood\s+chain|panggilan\s+kontrak|transaksi)\b/i;
+const swapPattern = /\b(swap|buy|sell|wrap|unwrap|tukar|beli|jual|bungkus)\b/i;
+const transferPattern =
+  /\b(transfer|send|withdraw|deposit|bridge|kirim|tarik|setor|jembatani)\b/i;
+const approvalPattern =
+  /\b(approve|approval|allowance|permit|revoke|setujui|persetujuan|izin|cabut)\b/i;
 const contractPattern =
-  /\b(contract\s+call|calldata|mint|burn|stake|unstake|delegate|borrow|lend|liquidate|repay)\b/i;
-const walletPattern = /\b(wallet|sign|transaction|tx|onchain|robinhood\s+chain\s+actions?)\b/i;
+  /\b(contract\s+call|calldata|mint|burn|stake|unstake|delegate|borrow|lend|liquidate|repay|panggilan\s+kontrak|bakar|delegasikan|pinjam|bayar)\b/i;
+const walletPattern =
+  /\b(wallet|sign|transaction|tx|onchain|robinhood\s+chain\s+actions?|dompet|tandatangani|transaksi|aksi\s+robinhood\s+chain)\b/i;
 const secretLikePattern =
-  /(?:\d{5,20}:[A-Za-z0-9_-]{20,128}|sk-or-v1-[A-Za-z0-9_-]+|sb_secret_[A-Za-z0-9_-]+|private\s+key|seed\s+phrase|mnemonic)/i;
+  /(?:\d{5,20}:[A-Za-z0-9_-]{20,128}|sk-or-v1-[A-Za-z0-9_-]+|sb_secret_[A-Za-z0-9_-]+|private\s+key|kunci\s+privat|seed\s+phrase|frasa\s+seed|mnemonic)/i;
 
 export function reviewTelegramExecutionGate(
   input: TelegramExecutionGateInput,

@@ -564,7 +564,8 @@ function assertContextualTelegramAgentBrainReply(
   if (
     context.command === "chat" &&
     context.chatIntent === "agent_profile" &&
-    !/\b(template|strategy|role|agent profile)\b/i.test(text)
+    !/\b(template|templat|strategy|strategi|role|peran|agent profile|profil agen)\b/i
+      .test(text)
   ) {
     throw invalidAgentBrainResponse();
   }
@@ -584,7 +585,8 @@ function assertContextualTelegramAgentBrainReply(
   if (
     context.command === "chat" &&
     context.chatIntent === "unsafe_execution" &&
-    !/\b(cannot|can't|disabled|not execute|read-only)\b/i.test(text)
+    !/\b(cannot|can't|disabled|not execute|read-only|tidak dapat|tidak bisa|dinonaktifkan|tidak mengeksekusi|hanya baca)\b/i
+      .test(text)
   ) {
     throw invalidAgentBrainResponse();
   }
