@@ -6,6 +6,7 @@ import {
   assertTelegramWebhookSessionLookupResult,
   assertTelegramWebhookSessionLookupRows,
   createTelegramWebhookDependencies,
+  getTelegramAgentBrainSupportCode,
   handleTelegramWebhookRequest,
   HttpError,
   maxTelegramWebhookBodyBytes,
@@ -1696,7 +1697,11 @@ Deno.test("telegram-webhook natural chat uses template-aware fallback on brain f
         text: "Template fallback context.",
       }),
       generateTelegramAgentBrainReply: async () => {
-        throw new Error("provider unavailable");
+        throw new HttpError(
+          503,
+          "agent_brain_payment_required",
+          "raw provider billing detail must stay private",
+        );
       },
       deliverTelegramReadOnlyResponse: async (input) => {
         deliveries.push(input);
@@ -1725,6 +1730,23 @@ Deno.test("telegram-webhook natural chat uses template-aware fallback on brain f
   assert(
     !deliveredText.includes("market brief, campaign plan"),
     "Brain failure must not fall back to Strategist actions.",
+  );
+  assert(
+    deliveredText.includes("Support code: agent_brain_payment_required"),
+    "Owner fallback must include a sanitized support code.",
+  );
+  assert(
+    !deliveredText.includes("raw provider billing detail"),
+    "Owner fallback must not expose raw provider details.",
+  );
+});
+
+Deno.test("telegram-webhook sanitizes unknown agent brain support codes", () => {
+  assertEquals(
+    getTelegramAgentBrainSupportCode(
+      new HttpError(503, "provider_secret_detail", "private detail"),
+    ),
+    "agent_brain_unavailable",
   );
 });
 
@@ -1963,7 +1985,7 @@ Deno.test("telegram-webhook agent brain provider failure keeps template fallback
       }),
       lookupTelegramChatAuthorization: async () => ({
         authorized: true,
-        role: "owner",
+        role: "member",
       }),
       claimTelegramUpdate: async () => ({ claimed: true, status: "claimed" }),
       lookupTelegramTemplateContext: async () => ({

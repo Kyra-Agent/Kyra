@@ -376,6 +376,11 @@ Deno.test("telegram agent brain provider maps provider failures safely", async (
     fetch: async () =>
       jsonResponse({ error: { message: `rate limit ${rawSecret}` } }, 429),
   });
+  const creditProvider = createOpenAiCompatibleTelegramAgentBrainProvider({
+    apiKey: testApiKey,
+    model: testModel,
+    fetch: async () => jsonResponse({ error: { message: rawSecret } }, 402),
+  });
   const malformedProvider = createOpenAiCompatibleTelegramAgentBrainProvider({
     apiKey: testApiKey,
     model: testModel,
@@ -394,6 +399,11 @@ Deno.test("telegram agent brain provider maps provider failures safely", async (
     503,
     "agent_brain_rate_limited",
   );
+  const creditError = await assertRejectsHttpError(
+    () => creditProvider.complete(testRequest),
+    503,
+    "agent_brain_payment_required",
+  );
   const malformedError = await assertRejectsHttpError(
     () => malformedProvider.complete(testRequest),
     502,
@@ -406,6 +416,7 @@ Deno.test("telegram agent brain provider maps provider failures safely", async (
   );
   const serialized = JSON.stringify({
     rateLimited: rateLimitedError.message,
+    credit: creditError.message,
     malformed: malformedError.message,
     network: networkError.message,
   });

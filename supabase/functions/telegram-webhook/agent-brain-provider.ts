@@ -412,6 +412,13 @@ function mapProviderStatus(status: number) {
     );
   }
 
+  if (status === 402) {
+    return providerFailure(
+      "agent_brain_payment_required",
+      "Kyra agent brain provider requires available credit.",
+    );
+  }
+
   if (status === 408 || status === 409) {
     return providerFailure(
       "agent_brain_upstream_timeout",
