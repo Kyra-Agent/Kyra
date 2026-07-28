@@ -94,6 +94,8 @@ Templates are the user-facing package. Kyra modules are the internal capability 
 
 Kyra follows one rule: the agent can prepare, but the user wallet decides.
 
+In this documentation, **owner** means the signed-in user who owns a private workspace and its agents. It is not a separate privileged Kyra account; platform-admin recovery controls remain separate and internal.
+
 | Available surface | Protected boundary |
 | --- | --- |
 | Telegram read-only commands | Telegram-triggered wallet execution |
@@ -128,7 +130,7 @@ Kyra's product foundation, backend persistence, privacy boundaries, agent deploy
 
 Transaction access remains deliberately narrower than the rest of the product. It is available only from an authenticated private workspace with selected-agent binding, user wallet approval, deterministic policy and NYX-05 review, receipt verification, emergency disable, and privacy-safe evidence. Telegram and public profiles cannot sign or submit.
 
-The current hardening release candidate adds immutable backend transaction intents, RPC-verified receipts, retry-safe Telegram delivery, session-scoped browser authentication, fresh-database bootstrap coverage, dependency scanning, and CI. Those controls are reported as live only after the matching migrations and Edge Functions are deployed.
+The current production hardening is live: immutable backend transaction intents, RPC-verified receipts, retry-safe Telegram delivery, session-scoped browser authentication, fresh-database bootstrap coverage, dependency scanning, and CI are deployed and verified. These controls strengthen the existing owner-controlled release lane without widening Telegram, public-profile, autonomous, token-approval, arbitrary-calldata, or hidden-signing access.
 
 Detailed engineering evidence is tracked in:
 
@@ -136,6 +138,7 @@ Detailed engineering evidence is tracked in:
 - [`docs/robinhood-chain-migration-blueprint.md`](docs/robinhood-chain-migration-blueprint.md)
 - [`docs/robinhood-mainnet-cutover-runbook.md`](docs/robinhood-mainnet-cutover-runbook.md)
 - [Product Readiness Snapshot](docs/product-readiness-snapshot.md)
+- [Engineering documentation index](docs/README.md)
 
 ## Product Principles
 

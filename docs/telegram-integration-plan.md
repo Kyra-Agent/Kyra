@@ -18,4 +18,4 @@ Supported commands include /help, /status, /agent, /actions, /modules, and /poli
 
 ## Robinhood Context
 
-Agent replies may describe Robinhood Chain status, market context, risks, and an action checklist. Any transaction request is redirected to the private owner workspace for review. Telegram stays read-only even when wallet submission is later released.
+Agent replies may describe Robinhood Chain status, market context, risks, and an action checklist. Any transaction request is redirected to the private owner workspace for review. Wallet submission is available only through the protected private owner flow; Telegram remains read-only.

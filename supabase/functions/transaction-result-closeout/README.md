@@ -1,22 +1,20 @@
-# Transaction Result Closeout
+# Kyra Transaction Result Closeout
 
-Authenticated owner-only boundary for verifying a Robinhood Chain submission and persisting sanitized terminal evidence.
+Production status: active as the authenticated owner-only receipt-verification boundary.
 
-The browser sends only the workspace ID, deployed agent ID, prepared-action ID, and transaction hash. The function reloads the immutable prepared action, derives owner and intent scope from the database, verifies Robinhood mainnet chain identity, fetches the transaction and receipt through the backend RPC, compares hash/from/to/value/calldata/status, and writes a sanitized result.
+The browser submits only scoped record identifiers and a transaction hash. The function reloads the immutable prepared intent, derives owner and action scope from the database, verifies Robinhood Chain mainnet identity, fetches the transaction and receipt from the backend RPC, compares hash, sender, recipient, value, calldata, and status, and persists sanitized terminal evidence.
 
 ## Safety Contract
 
 - Browser-authored transaction status, failure code, wallet identity, and receipt details are ignored.
-- RPC URL and allowed hosts are backend-only secrets and must use HTTPS.
+- RPC URL and allowed hosts remain backend-only and HTTPS-only.
 - New closeouts require an unexpired stored intent.
-- A previously accepted hash can finish after intent expiry only when the existing owner, intent, and hash binding matches exactly.
-- Raw provider payloads, calldata copies, nonces, signatures, private keys, seed phrases, Telegram tokens, and secret values are not persisted.
-- Owners receive scoped result reads; writes remain service-only.
+- A previously accepted hash may finish after intent expiry only when owner, intent, and hash bindings still match exactly.
+- Raw provider payloads, calldata copies, nonces, signatures, keys, seed phrases, Telegram tokens, and secret values are never persisted.
+- Owners receive RLS-scoped reads; writes remain service-only.
 
-## Idempotency
+## Idempotency And Failure Handling
 
-The service derives its idempotency key from the authenticated owner, stored prepared action, and transaction hash. Repeated receipt checks update the same scoped result instead of creating duplicates.
+The service derives its idempotency key from the authenticated owner, stored prepared action, and transaction hash. Repeated receipt checks update the same scoped result. Provider delay remains pending; scope drift, rejected receipts, malformed evidence, or unavailable verification fail closed.
 
-## Deployment Order
-
-Deploy only after the transaction-intent migration and verifier pass. Keep runtime submission fail-closed if receipt verification, RLS, scope triggers, or the backend RPC is unavailable.
+The intent, verifier, RLS, and closeout migrations are synchronized in production. Submission stays disabled whenever receipt verification or backend RPC evidence is unavailable.

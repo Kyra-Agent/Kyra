@@ -1,20 +1,16 @@
-# Transaction Intent Prepare
+# Kyra Transaction Intent Prepare
 
-Authenticated owner-only boundary for creating an immutable Robinhood Chain transaction intent before the wallet prompt opens.
+Production status: active as the authenticated owner-only immutable intent boundary.
 
-The function validates the account session, workspace, deployed agent, Robinhood mainnet chain identity, allowlisted action kind, address and calldata shape, zero-value policy, freshness, and runtime gates. It writes the reviewed recipient, value, calldata, chain, owner, workspace, agent, and expiry once, then returns only the scoped identifier and sanitized review fields required by the browser flow.
+Before a wallet prompt can open, the function validates the account session, workspace, selected deployed agent, Robinhood Chain mainnet identity, allowlisted action, recipient, value, calldata shape, freshness, and runtime gates. It persists the reviewed owner, workspace, agent, chain, recipient, value, calldata, and expiry binding once, then returns only the scoped identifier and sanitized review fields required by the browser.
 
 ## Safety Contract
 
-- No private key, seed phrase, signature, signed payload, provider credential, Telegram token, or LLM secret is accepted.
 - Telegram and public profiles cannot call this route.
-- New intents are zero-value and no-calldata only in the current release lane.
-- The database owns identity and scope; browser-authored owner or status claims are not trusted.
-- Replays, stale requests, chain drift, agent drift, and malformed addresses fail closed.
+- Private keys, seed phrases, signatures, signed payloads, provider credentials, Telegram tokens, and LLM secrets are rejected.
+- The current release lane accepts zero-value, no-calldata owner-controlled intents only.
+- Browser-authored owner, scope, status, and receipt claims are not trusted.
+- Replays, stale requests, chain drift, agent drift, scope drift, and malformed addresses fail closed.
+- Database triggers and RLS independently preserve owner and agent scope.
 
-## Deployment Order
-
-1. Apply `20260726120000_transaction_intent_receipt_verification.sql`.
-2. Run `20260726121000_verify_transaction_intent_receipt_verification.sql`.
-3. Deploy this function and `transaction-result-closeout` together.
-4. Run authenticated intent, expiry, scope-drift, and delayed-receipt smoke tests.
+The intent and verifier migrations are synchronized in production, and this function is deployed with transaction result closeout. Runtime submission remains independently gated per transaction.

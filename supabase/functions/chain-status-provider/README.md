@@ -1,25 +1,17 @@
 # Kyra Chain Status Provider
 
-Default-off internal health bridge for Kyra's chain-neutral backend contract.
-It accepts one authenticated server-to-server `chain_status_check`, calls only
-`eth_chainId`, and returns a bounded sanitized result.
+Production status: active as an internal server-to-server health bridge.
 
-## Runtime boundary
+The function accepts one authenticated `chain_status_check`, calls only `eth_chainId`, and returns a bounded sanitized result. It is not a browser, wallet, Telegram, or transaction endpoint.
 
-- `KYRA_CHAIN_STATUS_PROVIDER_ENABLED` must equal `true`.
-- `KYRA_CHAIN_PROVIDER_SHARED_SECRET` is backend-only and at least 32 chars.
-- `KYRA_CHAIN_KEY` and `KYRA_CHAIN_ID` must match the reviewed registry.
-- `KYRA_CHAIN_RPC_PROVIDER=managed_private` requires an exact hostname in
-  the chain-scoped allowlist and rejects Robinhood public RPC hosts.
-- Robinhood mainnet reads only `KYRA_ROBINHOOD_MAINNET_RPC_URL` and
-  `KYRA_ROBINHOOD_MAINNET_RPC_ALLOWED_HOSTS`; it never falls back to the
-  generic/testnet RPC secrets.
-- `KYRA_CHAIN_RPC_PROVIDER=robinhood_public_testnet` accepts only the official
-  Robinhood testnet RPC and cannot serve mainnet.
-- The function accepts no owner, wallet, Telegram, calldata, signature, token,
-  transaction, or provider-response fields.
-- Request and response bodies are bounded; errors are fixed and sanitized.
-- No application logs are emitted.
+## Runtime Boundary
 
-The public testnet RPC lane exists only for controlled Batch 5 evidence. A
-Kyra-owned managed provider is required before mainnet cutover.
+- The runtime gate must equal the exact reviewed value before provider access is mounted.
+- The shared provider secret remains backend-only.
+- Chain key and chain ID must match the Robinhood registry.
+- Robinhood mainnet uses only its managed, allowlisted HTTPS RPC configuration and never falls back to testnet or generic RPC settings.
+- Robinhood Chain Testnet accepts only the reviewed testnet lane and cannot serve mainnet.
+- Requests and responses are size-bounded, errors are fixed and sanitized, and application payloads are not logged.
+- Owner IDs, wallet data, Telegram data, calldata, signatures, token data, transactions, and raw provider responses are rejected.
+
+Mainnet and controlled testnet status checks are live. Provider configuration never replaces wallet approval or user signing authority.

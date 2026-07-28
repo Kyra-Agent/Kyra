@@ -1,5 +1,7 @@
 # Kyra Backend Blueprint
 
+Production status: live and verified on 2026-07-28.
+
 ## Product Contract
 
 Kyra deploys account-scoped AI agents with private Supabase records, Telegram-native read-only interaction, public agent profiles, and approval-first Robinhood Chain workflows.
@@ -13,6 +15,8 @@ Kyra deploys account-scoped AI agents with private Supabase records, Telegram-na
 5. OpenRouter is called only from the Telegram Edge Function. Its API key never reaches the browser.
 6. Robinhood Chain status checks run through backend-only RPC configuration.
 7. The connected EVM wallet remains the only signing authority.
+
+All product Edge Functions are active in the linked Supabase project, and the linked migration history is synchronized with the repository. Runtime gates remain independent and fail closed even when a function is deployed.
 
 ## Chain Contract
 

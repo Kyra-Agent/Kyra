@@ -37,6 +37,6 @@ Sanitized production evidence recorded for the owner-controlled mainnet lane:
 
 This release does not enable Telegram execution, public-profile execution, autonomous fund movement, token approvals, arbitrary calldata, or hidden signing. Each transaction still requires a signed-in user, selected deployed agent, matching Robinhood Chain wallet, reviewed immutable action, NYX-05 policy approval, and a fresh one-time wallet prompt.
 
-## Current Hardening Batch
+## Production Hardening Closeout
 
-The July 27 hardening batch is complete locally and verified by automated tests, the Robinhood mainnet build, browser smoke checks, dependency audit, and linked migration dry-run. It becomes production evidence only after the four pending migrations and the updated Edge Functions are deployed and the live health checks pass.
+The July 27 hardening batch is deployed and verified in production. The four intent-verification and Telegram-delivery migrations are synchronized with the linked database, the updated Edge Functions are active, and the Robinhood mainnet build, browser smoke checks, dependency audit, CI, privacy checks, and live health checks pass. Verification was reconfirmed on 2026-07-28.

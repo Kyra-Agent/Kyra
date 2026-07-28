@@ -29,4 +29,4 @@ This packet defines the only acceptable route from an agent recommendation to a 
 
 ## Release Gate
 
-The bounded Robinhood mainnet release evidence, authenticated owner-only closeout, rollback exercise, and explicit release decision are recorded. Release access still means a private, signed-in, per-action owner workflow; it never means Telegram, public-profile, autonomous, token-approval, arbitrary-calldata, or hidden-signing execution. The July 27 hardening candidate replaces browser-authored closeout claims with stored intent plus backend RPC verification and must be deployed before that stronger evidence is described as live.
+The bounded Robinhood mainnet release evidence, authenticated owner-only closeout, rollback exercise, and explicit release decision are recorded. Release access still means a private, signed-in, per-action owner workflow; it never means Telegram, public-profile, autonomous, token-approval, arbitrary-calldata, or hidden-signing execution. The July 27 hardening is live: browser-authored closeout claims have been replaced by immutable stored intent plus backend RPC transaction and receipt verification.

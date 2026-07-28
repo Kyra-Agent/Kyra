@@ -23,19 +23,19 @@ Live now:
 - private workspaces and up to three deployed agents
 - share-safe public agent profiles
 - Telegram linking, read-only commands, and LLM-generated planning
-- Robinhood Chain mainnet/testnet wallet connection
+- Robinhood Chain mainnet wallet connection and controlled testnet validation
 - selected-agent chain binding
 - prepared-action allowlist and NYX-05 risk review
 - explicit owner approval and transaction preflight
 - private monitoring, removal, disconnect, and emergency controls
 
-Final gated item:
+Per-transaction gate:
 
-- preserve per-transaction eligibility, immutable intent, wallet prompt, receipt verification, and owner-only closeout even though the release decision is recorded
+- every transaction must independently pass eligibility, immutable intent, wallet prompt, receipt verification, and owner-only closeout; completing the roadmap does not bypass these runtime controls
 
-## Current Hardening Batch
+## Production Hardening Closeout
 
-The active local batch is release hardening, not an eleventh phase. It adds server-verified transaction intent and receipt binding, retry-safe Telegram delivery, session-scoped auth storage, a fresh-database bootstrap baseline, dependency updates, and CI. The batch remains pending production deployment until its migrations, Edge Functions, frontend build, and live health checks are applied in order.
+Release hardening is complete and is not an eleventh phase. Server-verified transaction intent and receipt binding, retry-safe Telegram delivery, session-scoped auth storage, fresh-database bootstrap coverage, dependency updates, and CI are deployed. Linked migration parity, active Edge Functions, the Robinhood mainnet frontend build, automated checks, and live health checks were verified on 2026-07-28.
 
 ## Non-Negotiable Rules
 

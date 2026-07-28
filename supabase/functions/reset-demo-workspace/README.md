@@ -1,35 +1,17 @@
-# reset-demo-workspace Edge Function
+# Kyra Workspace Reset
 
-This function is the server-side boundary for the internal Kyra demo workspace reset action.
+Production status: active as an internal admin-only recovery control.
+
+The deployed function keeps its legacy `reset-demo-workspace` slug for compatibility. It is not a public product action and does not define Kyra as a demo.
 
 ## Safety Contract
 
-- Accepts `POST` requests only.
-- Requires a valid Supabase Auth bearer token.
-- Validates `app_metadata.role === "admin"` on the server.
-- Deletes only demo workspace records owned by the signed-in admin account.
-- Does not accept a workspace ID or target user ID from the browser.
-- Relies on existing foreign-key cascades for demo workspace child records.
-- Returns a scoped receipt without workspace IDs, user IDs, email addresses, or secret values.
+- Accepts `POST` only and requires a valid Supabase account session.
+- Requires the server-verified admin role.
+- Resets only records owned by the signed-in admin account.
+- Does not accept a target workspace ID or user ID from the browser.
+- Uses reviewed foreign-key cascades for scoped child records.
+- Returns no workspace ID, user ID, email address, token, wallet secret, or raw error.
+- Signed-out and non-admin users cannot access the admin UI or function behavior.
 
-## Required Secrets
-
-The function uses the same server-side Supabase Function secrets as `deploy-agent`:
-
-```bash
-SUPABASE_URL=
-SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-```
-
-Never expose `SUPABASE_SERVICE_ROLE_KEY` to the browser or any `VITE_` environment variable.
-
-## Deploy
-
-```bash
-npx --yes supabase@latest functions deploy reset-demo-workspace --project-ref lvgqtxbygrazkolhdwnh
-```
-
-After deploying, test the existing confirmation flow once with an admin account. A signed-out user
-and a signed-in non-admin user must not see the Admin actions UI, and direct requests from a
-non-admin session must return `403 Forbidden`.
+Service-role credentials remain backend-only. Reset activity must be performed only for recovery, migration closeout, or controlled support work and must never be exposed as a public account operation.

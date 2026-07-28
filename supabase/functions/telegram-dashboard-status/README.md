@@ -1,35 +1,23 @@
-# telegram-dashboard-status
+# Kyra Telegram Dashboard Status
 
-Default-off Edge Function skeleton for future dashboard-safe Telegram status.
+Production status: active as an authenticated dashboard-safe read model.
 
-Current behavior:
+The function accepts a bounded list of agent IDs, validates the Supabase session, verifies ownership, and returns only the Telegram fields required by the private workspace.
 
-- `OPTIONS` returns CORS `ok`.
-- `POST` validates method, JSON content type, and body size.
-- With `KYRA_TELEGRAM_DASHBOARD_STATUS_ENABLED` disabled or unset, returns
-  `not_configured` before reading request body, required env values, user
-  session, service-role clients, or database data.
+## Returned Fields
 
-Future enabled contract:
+- agent ID
+- bot handle
+- webhook status
+- owner-chat linked state
+- owner-link availability
+- last safe event timestamp
 
-- Require `Authorization: Bearer`.
-- Validate the Supabase session.
-- Accept only `{ "agentIds": string[] }`.
-- Verify ownership before returning any agent status.
-- Use service-role reads only inside the Edge Function after the runtime gate,
-  bearer validation, session validation, and request validation pass.
-- Return only bounded dashboard fields:
-  `agentId`, `botHandle`, `webhookStatus`, `ownerChatLinked`,
-  `ownerLinkAvailable`, and `lastEventAt`.
+## Privacy Boundary
 
-Hard boundaries:
+- Service-role reads occur only after runtime-gate, bearer, session, and request validation; every query then enforces agent ownership before returning data.
+- Telegram user IDs, chat IDs, owner IDs, workspace IDs, session IDs, challenge material, token references, webhook-secret references, bot tokens, webhook secrets, and raw database errors are never returned.
+- Browsers receive no direct access to private Telegram authorization tables.
+- Disabled gates or malformed requests fail before private reads.
 
-- Do not read `.env.local` or secret values locally.
-- Do not expose Telegram user IDs, chat IDs, owner IDs, workspace IDs, session
-  IDs, challenge fields, token refs, webhook secret refs, raw BotFather tokens,
-  raw webhook secrets, or raw database errors.
-- Do not query `telegram_chat_authorizations` from the browser.
-- Do not grant browser roles direct access to private Telegram authorization
-  tables.
-- Do not deploy or enable this function until the backing read model is
-  separately approved and verified.
+Deployment and runtime enablement are separate controls. The active production path remains owner-scoped and sanitized.

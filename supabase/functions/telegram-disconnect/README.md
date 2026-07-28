@@ -1,39 +1,19 @@
-# telegram-disconnect Edge Function
+# Kyra Telegram Disconnect
 
-This Phase 5 operator disconnect function is local-only, inert, and
-default-off. It has not been deployed or enabled.
+Production status: active for authenticated owner-scoped pause, disconnect, and revoke operations.
 
-## Current Behavior
+## Runtime Contract
 
-- `OPTIONS` returns the shared CORS response.
-- `POST` requires JSON content type and the small body-size guard.
-- With `KYRA_TELEGRAM_DISCONNECT_ENABLED` unset or any value other than exact
-  `true`, the handler returns `501 not_configured` before reading the request
-  body, reading required Edge Function secrets, validating a Supabase session,
-  creating a service-role client, querying the database, resolving a token, or
-  calling Telegram.
-- If the gate is explicitly enabled in tests, the handler validates bearer auth,
-  Supabase session shape, and a bounded request body.
-- `pause` can claim one owned active Telegram session through the approved
-  service-role RPC adapter and returns a sanitized `200 paused` response.
-- `disconnect` and `revoke` can claim one owned active Telegram session and run
-  the cleanup finalizer when the gate is enabled. The cleanup sequence remains
-  unavailable in production until the Edge Function is deployed and the gate is
-  explicitly enabled.
+- Requires an exact runtime gate, bearer session, valid request body, and owned active Telegram session.
+- `pause` claims the owned session through the reviewed service-role RPC and returns a sanitized paused status.
+- `disconnect` and `revoke` run the cleanup finalizer: stop webhook delivery, revoke backend-only token and webhook references, and close the owned session state.
+- Cleanup is idempotent and partial failures remain sanitized and recoverable.
 
 ## Safety Contract
 
-- No Telegram API call is made.
-- No BotFather token is accepted.
-- No token, token ref, webhook secret, webhook ref, Telegram URL, session ID,
-  owner ID, workspace ID, or operator note is returned.
-- No Supabase service-role RPC client is created while the gate is off.
-- No database read or write is performed while the gate is off.
-- No raw BotFather token, token ref, webhook secret ref, Telegram URL, session
-  ID, owner ID, workspace ID, or operator note is returned.
+- No BotFather token is accepted through this endpoint.
+- Raw token values, token references, webhook secrets, webhook references, Telegram URLs, session IDs, owner IDs, workspace IDs, and operator notes are never returned or logged.
+- No database or Telegram operation occurs before authentication, ownership, request, and runtime-gate checks pass.
+- Disconnect never creates wallet authority or transaction access.
 
-## Future Work
-
-Real disconnect and revoke production behavior requires separate approval for
-Edge Function deployment, production smoke tests, gate enablement, and rollback
-steps.
+The production function is deployed and active. Runtime gates still fail closed if the reviewed cleanup dependencies are unavailable.

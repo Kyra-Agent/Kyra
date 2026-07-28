@@ -1,5 +1,7 @@
 # Robinhood Chain Migration
 
+Status: complete. Robinhood Chain is the only active product chain family.
+
 ## Decision
 
 Robinhood Chain replaces the previous product-chain implementation across public copy, frontend runtime, wallet discovery, Edge Functions, database contracts, deployment defaults, and operational documentation.

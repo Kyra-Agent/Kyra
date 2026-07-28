@@ -1,17 +1,15 @@
 # Kyra Chain Action Prepare
 
-Default-off signed-in owner route for chain-neutral read-only preparation.
+Production status: active, authenticated, and runtime-gated.
 
-The first allowlisted action is `chain_status_check`. The function binds the
-authenticated owner, workspace, persisted agent, reviewed chain key and chain
-ID, request freshness, persistent rate limit, exact provider response, and an
-owner-only sanitized prepared-action row.
+This Edge Function creates an owner-scoped, read-only chain-status prepared action. The current allowlist contains `chain_status_check`. It binds the authenticated account, workspace, persisted agent, reviewed chain key and chain ID, request freshness, persistent rate limit, exact provider result, and sanitized owner-only prepared-action record.
 
-It does not accept or emit recipients, token amounts, calldata, approvals,
-wallet addresses, signatures, signed payloads, private keys, seed phrases,
-Telegram tokens, transaction hashes, or raw provider errors. Telegram and
-public profiles cannot call this route.
+## Security Contract
 
-The runtime stays inert unless `KYRA_CHAIN_ACTION_PREPARE_ENABLED=true` and the
-endpoint, endpoint hostname, shared secret, provider protocol, chain key, and
-chain ID all pass exact validation.
+- Telegram and public profiles cannot invoke this route.
+- The function accepts no recipient, token amount, calldata, approval, wallet address, signature, signed payload, private key, seed phrase, Telegram token, transaction hash, or raw provider error.
+- Runtime enablement, provider endpoint, endpoint hostname, shared secret, protocol, chain key, and chain ID must pass exact validation.
+- Missing ownership, stale requests, rate-limit failures, chain drift, provider drift, or malformed results fail closed.
+- Responses contain bounded status data only.
+
+Deployment does not imply transaction authority. This function prepares read-only evidence and never signs or submits.

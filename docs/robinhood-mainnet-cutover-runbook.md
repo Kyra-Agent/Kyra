@@ -25,7 +25,7 @@ Netlify production builds with npm run build:robinhood-mainnet.
 
 1. Run npm run check:product.
 2. Run npm run build:robinhood-mainnet.
-3. Apply and verify pending Supabase migrations, including transaction-intent receipt binding and Telegram delivery retry state.
+3. Confirm linked Supabase migration parity, including transaction-intent receipt binding and Telegram delivery retry state.
 4. Deploy only current Edge Functions, including transaction-intent-prepare, transaction-result-closeout, and telegram-webhook.
 5. Verify prepared-action foreign keys, execution-result receipt fields, RLS policies, scope triggers, status constraints, and transaction-hash uniqueness.
 6. Confirm legacy provider functions are absent.
@@ -64,16 +64,17 @@ invalidated the live window without replay. The explicit owner-controlled releas
 decision is recorded. Telegram, public-profile, autonomous, token-approval,
 arbitrary-calldata, and hidden-signing execution remain blocked.
 
-## July 27 Hardening Release Candidate
+## July 27 Hardening Closeout
 
-Before this batch is called live, apply and verify these migrations in order:
+The following migrations are applied and verified in the linked production database:
 
 - `20260726120000_transaction_intent_receipt_verification.sql`
 - `20260726121000_verify_transaction_intent_receipt_verification.sql`
 - `20260726122000_telegram_delivery_retry.sql`
 - `20260726123000_verify_telegram_delivery_retry.sql`
 
-Then deploy the updated transaction-intent, result-closeout, and Telegram webhook functions, publish the Robinhood mainnet frontend build, and rerun authenticated intent, delayed-receipt, Telegram retry, privacy, and rollback smoke tests.
+The updated transaction-intent, result-closeout, and Telegram webhook functions are active. The Robinhood mainnet frontend is published, and authenticated intent, delayed-receipt, Telegram retry, privacy, and rollback checks pass. The production state was reconfirmed on 2026-07-28.
+
 ## Rollback
 
 Disable transaction submission flags first. Revoke active live windows, disconnect the wallet session, and keep read-only product capabilities online. Do not expose provider payloads or secrets in incident evidence.
