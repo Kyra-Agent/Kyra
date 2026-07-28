@@ -142,6 +142,7 @@ export function buildTelegramAgentBrainRequest(
           "Keep the reply concise and safe for Telegram.",
           "Use plain text only: no Markdown tables, bold markers, code fences, headings, or horizontal rules.",
           "Use short label lines and hyphen bullets when listing capabilities.",
+          "Keep the complete reply under 600 characters.",
           "Finish every sentence and bullet. Never end with an empty bullet or an unfinished label.",
           "Answer the requested command directly and do not add unfinished helper text.",
           "Do not claim live, real-time, current, latest, price, or market data unless the user provides that data in the request.",

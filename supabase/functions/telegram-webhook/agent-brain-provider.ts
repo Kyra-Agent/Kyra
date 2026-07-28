@@ -25,7 +25,7 @@ const maxModelLength = 128;
 const maxEndpointLength = 2048;
 const maxPromptMessageLength = 3000;
 const maxPromptMessages = 6;
-const maxAgentBrainCompletionTokens = 800;
+const maxAgentBrainCompletionTokens = 180;
 
 export function createOpenAiCompatibleTelegramAgentBrainProvider(
   options: OpenAiCompatibleTelegramAgentBrainProviderOptions,
@@ -76,10 +76,16 @@ export function createOpenAiCompatibleTelegramAgentBrainProvider(
         }
 
         if (error instanceof Error && error.name === "AbortError") {
-          throw providerUnavailable();
+          throw providerFailure(
+            "agent_brain_timeout",
+            "Kyra agent brain request timed out.",
+          );
         }
 
-        throw providerUnavailable();
+        throw providerFailure(
+          "agent_brain_network_error",
+          "Kyra agent brain could not reach its provider.",
+        );
       } finally {
         clearTimeout(timeoutId);
       }
@@ -106,6 +112,10 @@ export function buildOpenAiCompatibleAgentBrainPayload(
       messages,
       max_tokens: maxAgentBrainCompletionTokens,
       temperature: 0.2,
+      reasoning: {
+        effort: "none",
+        exclude: true,
+      },
       metadata: {
         kyra_surface: "telegram",
         kyra_mode: checkedRequest.mode,
@@ -381,12 +391,46 @@ function readChatCompletionText(value: unknown) {
 }
 
 function mapProviderStatus(status: number) {
-  if (status === 400 || status === 401 || status === 403 || status === 404) {
-    return providerUnavailable();
+  if (status === 400) {
+    return providerFailure(
+      "agent_brain_request_rejected",
+      "Kyra agent brain request was rejected by its provider.",
+    );
   }
 
-  if (status === 408 || status === 409 || status === 429 || status >= 500) {
-    return providerUnavailable();
+  if (status === 401 || status === 403) {
+    return providerFailure(
+      "agent_brain_auth_failed",
+      "Kyra agent brain provider authentication failed.",
+    );
+  }
+
+  if (status === 404) {
+    return providerFailure(
+      "agent_brain_model_unavailable",
+      "Kyra agent brain model is unavailable.",
+    );
+  }
+
+  if (status === 408 || status === 409) {
+    return providerFailure(
+      "agent_brain_upstream_timeout",
+      "Kyra agent brain provider timed out.",
+    );
+  }
+
+  if (status === 429) {
+    return providerFailure(
+      "agent_brain_rate_limited",
+      "Kyra agent brain provider rate limit was reached.",
+    );
+  }
+
+  if (status >= 500) {
+    return providerFailure(
+      "agent_brain_upstream_error",
+      "Kyra agent brain provider is temporarily unavailable.",
+    );
   }
 
   return invalidProviderResponse();
@@ -406,6 +450,10 @@ function invalidProviderResponse(): never {
     "agent_brain_invalid_response",
     "Kyra agent brain returned an invalid response.",
   );
+}
+
+function providerFailure(code: string, message: string): never {
+  throw new HttpError(503, code, message);
 }
 
 function providerUnavailable(): never {

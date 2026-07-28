@@ -82,7 +82,7 @@ Deno.test("telegram agent brain provider builds bounded OpenAI-compatible payloa
     throw new Error("Responses payload must include input.");
   }
   assertEquals(input.length, 2);
-  assertEquals(payload.max_output_tokens, 800);
+  assertEquals(payload.max_output_tokens, 180);
   assertEquals(payload.temperature, 0.2);
   assertEquals(payload.metadata.kyra_surface, "telegram");
   assertEquals(payload.metadata.kyra_mode, "read_only");
@@ -106,7 +106,12 @@ Deno.test("telegram agent brain provider builds chat completions payload for Ope
     throw new Error("Chat completions payload must include messages.");
   }
   assertEquals(messages.length, 2);
-  assertEquals(payload.max_tokens, 800);
+  assertEquals(payload.max_tokens, 180);
+  if (!("reasoning" in payload) || !payload.reasoning) {
+    throw new Error("OpenRouter payload must include reasoning controls.");
+  }
+  assertEquals(payload.reasoning.effort, "none");
+  assertEquals(payload.reasoning.exclude, true);
   assertEquals(payload.temperature, 0.2);
   assertEquals(payload.metadata.kyra_surface, "telegram");
   assertEquals(payload.metadata.kyra_mode, "read_only");
@@ -348,7 +353,7 @@ Deno.test("telegram agent brain provider supports OpenRouter chat completions", 
   assertEquals(capturedAuthorization, `Bearer ${testApiKey}`);
   assertEquals(payload.model, openRouterModel);
   assertEquals(payload.messages.length, 2);
-  assertEquals(payload.max_tokens, 800);
+  assertEquals(payload.max_tokens, 180);
   assert(
     !("input" in payload),
     "OpenRouter request must use chat completions messages.",
@@ -387,7 +392,7 @@ Deno.test("telegram agent brain provider maps provider failures safely", async (
   const rateLimitedError = await assertRejectsHttpError(
     () => rateLimitedProvider.complete(testRequest),
     503,
-    "agent_brain_unavailable",
+    "agent_brain_rate_limited",
   );
   const malformedError = await assertRejectsHttpError(
     () => malformedProvider.complete(testRequest),
@@ -397,7 +402,7 @@ Deno.test("telegram agent brain provider maps provider failures safely", async (
   const networkError = await assertRejectsHttpError(
     () => networkProvider.complete(testRequest),
     503,
-    "agent_brain_unavailable",
+    "agent_brain_network_error",
   );
   const serialized = JSON.stringify({
     rateLimited: rateLimitedError.message,
@@ -427,10 +432,10 @@ Deno.test("telegram agent brain provider timeout is sanitized", async () => {
   const error = await assertRejectsHttpError(
     () => provider.complete(testRequest),
     503,
-    "agent_brain_unavailable",
+    "agent_brain_timeout",
   );
 
-  assertEquals(error.message, "Kyra agent brain is unavailable.");
+  assertEquals(error.message, "Kyra agent brain request timed out.");
 });
 
 Deno.test("telegram agent brain provider supports bounded slower models", () => {

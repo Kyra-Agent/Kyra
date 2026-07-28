@@ -378,6 +378,8 @@ const disabledTelegramWebhookAgentBrainRuntimeConfig:
 const telegramAgentBrainApiKeyEnvKey = "KYRA_TELEGRAM_AGENT_BRAIN_API_KEY";
 const telegramAgentBrainModelEnvKey = "KYRA_TELEGRAM_AGENT_BRAIN_MODEL";
 const telegramAgentBrainEndpointEnvKey = "KYRA_TELEGRAM_AGENT_BRAIN_ENDPOINT";
+const telegramAgentBrainTimeoutMsEnvKey =
+  "KYRA_TELEGRAM_AGENT_BRAIN_TIMEOUT_MS";
 
 export function getEnv(key: string) {
   const value = Deno.env.get(key);
@@ -585,7 +587,8 @@ export function createTelegramWebhookDependencies(
         model: readRequiredEnv(telegramAgentBrainModelEnvKey),
         endpoint: readOptionalEnv(telegramAgentBrainEndpointEnvKey),
         fetch: options.fetchAgentBrain,
-        timeoutMs: options.telegramAgentBrainTimeoutMs,
+        timeoutMs: options.telegramAgentBrainTimeoutMs ??
+          Number(readOptionalEnv(telegramAgentBrainTimeoutMsEnvKey)),
       });
     }
 

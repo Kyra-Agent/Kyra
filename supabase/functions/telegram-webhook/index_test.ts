@@ -2458,6 +2458,10 @@ Deno.test("telegram-webhook runtime agent brain provider reads env lazily and us
     optionalKeys.includes("KYRA_TELEGRAM_AGENT_BRAIN_ENDPOINT"),
     "Provider endpoint env should be optional and lazy.",
   );
+  assert(
+    optionalKeys.includes("KYRA_TELEGRAM_AGENT_BRAIN_TIMEOUT_MS"),
+    "Provider timeout env should be optional and lazy.",
+  );
   assertEquals(providerFetchCalled, true);
   assertEquals(
     reply?.text,
