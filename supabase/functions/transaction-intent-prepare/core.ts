@@ -1,3 +1,10 @@
+import {
+  isAllowedOwnerTransactionValueWei,
+  ownerTransactionCalldata,
+  ownerTransactionPolicyVersion,
+  ownerTransactionValueWei,
+} from "../_shared/owner-transaction-policy.ts";
+
 export interface TransactionIntentPrepareBody {
   workspaceId: string;
   agentId: string;
@@ -5,8 +12,9 @@ export interface TransactionIntentPrepareBody {
   chainKey: "robinhood_mainnet";
   chainId: 4663;
   recipient: string;
-  valueWei: "0";
-  data: "0x";
+  valueWei: typeof ownerTransactionValueWei;
+  data: typeof ownerTransactionCalldata;
+  policyVersion: typeof ownerTransactionPolicyVersion;
 }
 
 export class HttpError extends Error {
@@ -49,13 +57,13 @@ export function assertTransactionIntentPrepareBody(
     body.chainId !== 4663 ||
     typeof body.recipient !== "string" ||
     !addressPattern.test(body.recipient) ||
-    body.valueWei !== "0" ||
-    body.data !== "0x"
+    !isAllowedOwnerTransactionValueWei(body.valueWei) ||
+    body.data !== ownerTransactionCalldata
   ) {
     throw new HttpError(
       400,
       "invalid_transaction_intent",
-      "Transaction intent must be a zero-value Robinhood Chain owner self-check.",
+      "Transaction intent must match the approved Robinhood Chain owner self-transfer policy.",
     );
   }
 
@@ -66,8 +74,9 @@ export function assertTransactionIntentPrepareBody(
     chainKey: "robinhood_mainnet",
     chainId: 4663,
     recipient: body.recipient.toLowerCase(),
-    valueWei: "0",
-    data: "0x",
+    valueWei: ownerTransactionValueWei,
+    data: ownerTransactionCalldata,
+    policyVersion: ownerTransactionPolicyVersion,
   };
 }
 
@@ -87,5 +96,6 @@ export function matchesExistingIntent(
     typeof existing.recipient === "string" &&
     existing.recipient.toLowerCase() === body.recipient &&
     existing.value_wei === body.valueWei &&
-    existing.calldata === body.data;
+    existing.calldata === body.data &&
+    existing.policy_version === body.policyVersion;
 }

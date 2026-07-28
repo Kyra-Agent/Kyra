@@ -1,5 +1,9 @@
 import { HttpError, type StoredTransactionIntent } from "./core.ts";
 import {
+  ownerTransactionPolicyVersion,
+  ownerTransactionValueWei,
+} from "../_shared/owner-transaction-policy.ts";
+import {
   readReceiptRpcConfig,
   verifyTransactionReceipt,
 } from "./receipt-verifier.ts";
@@ -31,8 +35,9 @@ const intent: StoredTransactionIntent = {
   chain_id: 4663,
   status: "approved",
   recipient,
-  value_wei: "0",
+  value_wei: ownerTransactionValueWei,
   calldata: "0x",
+  policy_version: ownerTransactionPolicyVersion,
   expires_at: "2030-01-01T00:00:00.000Z",
 };
 
@@ -51,7 +56,7 @@ function rpcFetch(overrides: Record<string, unknown> = {}): typeof fetch {
       hash: txHash,
       from: recipient,
       to: recipient,
-      value: "0x0",
+      value: `0x${BigInt(ownerTransactionValueWei).toString(16)}`,
       input: "0x",
       chainId: "0x1237",
       ...overrides,
@@ -124,14 +129,23 @@ Deno.test("receipt verification derives confirmed state from Robinhood Chain", a
 });
 
 Deno.test("receipt verification rejects a transaction shape mutation", async () => {
-  await assertRejectsCode(
-    () =>
-      verifyTransactionReceipt({
-        rpcUrl: "https://rpc.example.test",
-        txHash,
-        intent,
-        fetchImpl: rpcFetch({ value: "0x1" }),
-      }),
-    "receipt_scope_mismatch",
-  );
+  const mutations = [
+    { value: "0x1" },
+    { input: "0x00" },
+    { from: "0x2222222222222222222222222222222222222222" },
+    { to: "0x2222222222222222222222222222222222222222" },
+  ];
+
+  for (const mutation of mutations) {
+    await assertRejectsCode(
+      () =>
+        verifyTransactionReceipt({
+          rpcUrl: "https://rpc.example.test",
+          txHash,
+          intent,
+          fetchImpl: rpcFetch(mutation),
+        }),
+      "receipt_scope_mismatch",
+    );
+  }
 });

@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import ts from "typescript";
+import { inlineOwnerTransactionPolicy } from "./test-owner-transaction-policy.mjs";
 
 const root = process.cwd();
 const outDir = resolve(root, ".tmp-phase-8-owner-submit-request-test");
@@ -28,9 +29,9 @@ mkdirSync(outDir, { recursive: true });
 
 const source = [
   'const currentProductChain = Object.freeze({ id: 4663, name: "Robinhood Chain" });',
-  stripImports(
+  inlineOwnerTransactionPolicy(stripImports(
     readFileSync(resolve(root, "src/types/phase8OwnerSubmitRequest.ts"), "utf8"),
-  ),
+  )),
 ].join("\n");
 const transpiled = ts.transpileModule(source, {
   compilerOptions: {
@@ -56,10 +57,10 @@ try {
     actionKind: "robinhood_reviewed_transaction",
     chain: "Robinhood Chain",
     recipient: "0x0000000000000000000000000000000000000000",
-    valueWei: "0",
+    valueWei: "100000000000000",
     data: "0x",
-    routeSummary: "Controlled zero-value Robinhood Chain execution check.",
-    valueSummary: "Zero-value first transaction.",
+    routeSummary: "Controlled fixed-value Robinhood Chain self-transfer.",
+    valueSummary: "Fixed 0.0001 ETH self-transfer.",
     freezeKey: "phase8-freeze",
     frozen: true,
   };
@@ -67,7 +68,7 @@ try {
   const ready = createPhase8OwnerSubmitRequest(frozenAction);
   assert(ready.ok, "ready request should pass");
   assertEquals(ready.request.to, frozenAction.recipient);
-  assertEquals(ready.request.value, 0n);
+  assertEquals(ready.request.value, 100000000000000n);
   assertEquals(ready.request.data, "0x");
   assertEquals(ready.request.chainId, 4663);
 
@@ -78,7 +79,7 @@ try {
   );
   assertEquals(
     createPhase8OwnerSubmitRequest({ ...frozenAction, valueWei: "1" }).reason,
-    "zero_value_required",
+    "transaction_value_required",
   );
   assertEquals(
     createPhase8OwnerSubmitRequest({ ...frozenAction, data: "0x1234" }).reason,

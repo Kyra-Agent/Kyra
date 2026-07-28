@@ -8,7 +8,7 @@ Before a wallet prompt can open, the function validates the account session, wor
 
 - Telegram and public profiles cannot call this route.
 - Private keys, seed phrases, signatures, signed payloads, provider credentials, Telegram tokens, and LLM secrets are rejected.
-- The current release lane accepts zero-value, no-calldata owner-controlled intents only.
+- The current release lane accepts one exact 0.0001 ETH, no-calldata owner self-transfer intent only.
 - Browser-authored owner, scope, status, and receipt claims are not trusted.
 - Replays, stale requests, chain drift, agent drift, scope drift, and malformed addresses fail closed.
 - Database triggers and RLS independently preserve owner and agent scope.

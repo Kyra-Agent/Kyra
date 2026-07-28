@@ -1,5 +1,4 @@
-
-
+import { ownerTransactionValue } from "../config/ownerTransactionPolicy";
 export type Phase8SecurityAbuseHardeningStatus =
   | "blocked"
   | "ready_for_hardening"
@@ -62,7 +61,7 @@ export interface Phase8SecurityAbuseHardeningResult {
   message: string;
 }
 
-const maxLowValueWei = 100000000000000n;
+const maxLowValueWei = ownerTransactionValue;
 
 export function evaluatePhase8SecurityAbuseHardening(
   input: Phase8SecurityAbuseHardeningInput,
@@ -111,7 +110,10 @@ export function evaluatePhase8SecurityAbuseHardening(
     reasons.push("telegram_execution_forbidden");
   }
 
-  if (valueWei !== null && (valueWei <= 0n || valueWei > capWei)) {
+  if (
+    valueWei !== null &&
+    (valueWei !== ownerTransactionValue || capWei !== ownerTransactionValue)
+  ) {
     reasons.push("unsafe_value");
   }
 
@@ -189,8 +191,13 @@ function buildControls(
     },
     {
       label: "Transaction shape",
-      status: valueWei !== null && valueWei > 0n && valueWei <= capWei && (input.calldata ?? "0x") === "0x" ? "pass" : "blocked",
-      detail: "Low-value ETH transfer only; arbitrary calldata stays blocked.",
+      status:
+        valueWei === ownerTransactionValue &&
+        capWei === ownerTransactionValue &&
+        (input.calldata ?? "0x") === "0x"
+          ? "pass"
+          : "blocked",
+      detail: "Fixed owner self-transfer value only; arbitrary calldata stays blocked.",
     },
     {
       label: "Surface boundary",

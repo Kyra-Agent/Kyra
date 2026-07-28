@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import ts from "typescript";
+import { inlineOwnerTransactionPolicy } from "./test-owner-transaction-policy.mjs";
 
 const root = process.cwd();
 const outDir = resolve(root, ".tmp-phase-8-low-value-readiness-test");
@@ -20,13 +21,13 @@ function assertEquals(actual, expected, message) {
 
 mkdirSync(outDir, { recursive: true });
 
-const source = readFileSync(
+const source = inlineOwnerTransactionPolicy(readFileSync(
   resolve(root, "src/types/phase8LowValueTransactionReadiness.ts"),
   "utf8",
 ).replace(
   'import { productChainId } from "./unsignedTransactionHandoff";',
   "const productChainId = 4663;",
-);
+));
 const transpiled = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.ES2020,
@@ -129,7 +130,7 @@ try {
 
   assertEquals(
     getPhase8LowValueTransactionReadinessBlockMessage("value_cap_exceeded"),
-    "Requested value exceeds the controlled execution cap.",
+    "Requested value must match the fixed 0.0001 ETH owner self-transfer.",
   );
 } finally {
   rmSync(outDir, { recursive: true, force: true });

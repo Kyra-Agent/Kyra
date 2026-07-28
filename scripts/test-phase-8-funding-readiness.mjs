@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import ts from "typescript";
+import { inlineOwnerTransactionPolicy } from "./test-owner-transaction-policy.mjs";
 
 const root = process.cwd();
 const outDir = resolve(root, ".tmp-phase-8-funding-readiness-test");
@@ -20,14 +21,14 @@ function assertEquals(actual, expected, message) {
 
 mkdirSync(outDir, { recursive: true });
 
-const source = readFileSync(resolve(root, "src/types/phase8FundingReadiness.ts"), "utf8")
+const source = inlineOwnerTransactionPolicy(readFileSync(resolve(root, "src/types/phase8FundingReadiness.ts"), "utf8")
   .replace(
     /import\s+\{[\s\S]*?\}\s+from\s+"\.\.\/config\/productChains";\s*/u,
     `const currentProductChain = Object.freeze({ name: "Robinhood Chain" });
 const currentWalletDisplayName = "Robinhood Chain wallet";
 const currentGasDisplayName = "Robinhood Chain ETH";
 `,
-  );
+  ));
 const transpiled = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.ES2020,
@@ -61,7 +62,7 @@ try {
   const empty = evaluatePhase8FundingReadiness({ ...baselineInput, value: 0n });
   assertEquals(empty.status, "empty");
   assertEquals(empty.canOpenSubmitter, false);
-  assert(empty.message.includes("zero-value"));
+  assert(empty.message.includes("fixed 0.0001 ETH"));
   assert(empty.ownerAction.includes("Robinhood Chain ETH"));
 
   const walletRequired = evaluatePhase8FundingReadiness({

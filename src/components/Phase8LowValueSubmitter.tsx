@@ -51,6 +51,13 @@ export function Phase8LowValueSubmitter({
   const runtimeEnabled =
     appConfig.integrations.phase8LowValueSubmission === "owner_low_value_window";
   const walletConnected = connection.status === "connected";
+  const walletMatchesRequest = Boolean(
+    submitRequest.ok &&
+      connection.address?.toLowerCase() === submitRequest.request.to.toLowerCase(),
+  );
+  const networkMatchesRequest = Boolean(
+    submitRequest.ok && connection.chainId === submitRequest.request.chainId,
+  );
   const hasCloseoutScope = Boolean(
     closeoutScope.ownerUserId.trim() &&
       closeoutScope.workspaceId.trim() &&
@@ -61,6 +68,8 @@ export function Phase8LowValueSubmitter({
   const canSubmit = Boolean(
     runtimeEnabled &&
       walletConnected &&
+      walletMatchesRequest &&
+      networkMatchesRequest &&
       ownerWindowArmed &&
       !resultAlreadyRecorded &&
       securityCanOpenSubmitter &&
@@ -80,6 +89,18 @@ export function Phase8LowValueSubmitter({
     if (!walletConnected) {
       setState("locked");
       setMessage(`Connect the owner ${currentWalletDisplayName} before low-value submit.`);
+      return;
+    }
+
+    if (!walletMatchesRequest) {
+      setState("locked");
+      setMessage("The connected wallet no longer matches the reviewed self-transfer recipient.");
+      return;
+    }
+
+    if (!networkMatchesRequest) {
+      setState("locked");
+      setMessage("Switch the connected wallet back to Robinhood Chain before submitting.");
       return;
     }
 
@@ -170,7 +191,7 @@ export function Phase8LowValueSubmitter({
         </span>
         <span>
           Wallet
-          <strong>{walletConnected ? "connected" : "required"}</strong>
+          <strong>{walletConnected && walletMatchesRequest ? "matched" : "required"}</strong>
         </span>
         <span>
           Review window
@@ -178,7 +199,7 @@ export function Phase8LowValueSubmitter({
         </span>
         <span>
           Request
-          <strong>{submitRequest.ok ? "low-value capped" : "blocked"}</strong>
+          <strong>{submitRequest.ok && networkMatchesRequest ? "fixed and matched" : "blocked"}</strong>
         </span>
         <span>
           Security
@@ -214,7 +235,7 @@ export function Phase8LowValueSubmitter({
         {sendTransaction.isPending
           ? <LoaderCircle className="spin-icon" size={16} />
           : <Send size={16} />}
-        Submit low-value transaction
+        Submit reviewed transaction
       </button>
       <small>
         Isolated owner-dashboard gate only. Telegram, public profiles, token approvals,

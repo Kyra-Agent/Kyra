@@ -1,3 +1,7 @@
+import {
+  isAllowedOwnerTransactionValueWei,
+  ownerTransactionValueLabel,
+} from "../config/ownerTransactionPolicy";
 import { currentProductChain } from "../config/productChains";
 import type { Phase8WalletPromptOpeningResult } from "./phase8WalletPromptOpening";
 import type { FrozenPreparedAction } from "./dualApprovalExecution";
@@ -18,7 +22,7 @@ export type Phase8ControlledSubmissionBlockReason =
   | "selected_agent_match_required"
   | "frozen_action_required"
   | "frozen_action_binding_required"
-  | "zero_value_action_required"
+  | "transaction_value_required"
   | "no_calldata_required"
   | "product_chain_required"
   | "submission_nonce_required"
@@ -116,8 +120,8 @@ const blockMessages: Record<Phase8ControlledSubmissionBlockReason, string> = {
     "Submission requires a frozen reviewed prepared action.",
   frozen_action_binding_required:
     "Submission nonce must bind to the frozen prepared action.",
-  zero_value_action_required:
-    "The controlled submission policy only allows a zero-value first transaction.",
+  transaction_value_required:
+    `The controlled submission policy only allows the fixed ${ownerTransactionValueLabel} self-transfer.`,
   no_calldata_required:
     "The controlled submission policy only allows a no-calldata first transaction.",
   product_chain_required: `The controlled submission policy only allows ${currentProductChain.name}.`,
@@ -212,8 +216,8 @@ export function evaluatePhase8ControlledSubmission(
     reasons.push("frozen_action_binding_required");
   }
 
-  if (input.frozenAction && input.frozenAction.valueWei !== "0") {
-    reasons.push("zero_value_action_required");
+  if (input.frozenAction && !isAllowedOwnerTransactionValueWei(input.frozenAction.valueWei)) {
+    reasons.push("transaction_value_required");
   }
 
   if (input.frozenAction && input.frozenAction.data !== "0x") {

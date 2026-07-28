@@ -26,7 +26,6 @@ import {
   OwnerWalletConnectionPanel,
   type OwnerWalletConnectionStatus,
 } from "../components/OwnerWalletConnectionPanel";
-import { Phase8ControlledSubmitter } from "../components/Phase8ControlledSubmitter";
 import { Phase8LowValueSubmitter } from "../components/Phase8LowValueSubmitter";
 import type { AgentTemplate } from "../types/agent";
 import { appConfig } from "../config/appConfig";
@@ -35,6 +34,11 @@ import {
   currentProductChain,
   currentWalletDisplayName,
 } from "../config/productChains";
+import {
+  ownerTransactionCalldata,
+  ownerTransactionValueLabel,
+  ownerTransactionValueWei,
+} from "../config/ownerTransactionPolicy";
 import { demoAgentLimits } from "../config/demoLimits";
 import { coreModules } from "../data/modules";
 import { kyraRepositoryRuntime } from "../services/repositoryFactory";
@@ -1264,10 +1268,10 @@ export function Dashboard({
         actionKind: "robinhood_reviewed_transaction",
         chainId: productChainId,
         recipient: "0x1111111111111111111111111111111111111111",
-        valueWei: "0",
-        data: "0x",
+        valueWei: ownerTransactionValueWei,
+        data: ownerTransactionCalldata,
         routeSummary: `Owner reviewed ${currentProductChain.name} transaction preview.`,
-        valueSummary: "No token spend is allowed in this review.",
+        valueSummary: `Fixed ${ownerTransactionValueLabel} owner self-transfer.`,
       }),
     [],
   );
@@ -1284,10 +1288,10 @@ export function Dashboard({
         actionKind: "robinhood_reviewed_transaction",
         chainId: productChainId,
         recipient: "0x1111111111111111111111111111111111111111",
-        valueWei: "0",
-        data: "0x",
+        valueWei: ownerTransactionValueWei,
+        data: ownerTransactionCalldata,
         routeSummary: `Owner reviewed ${currentProductChain.name} transaction preview.`,
-        valueSummary: "No token spend is allowed during policy review.",
+        valueSummary: `Fixed ${ownerTransactionValueLabel} owner self-transfer.`,
       }),
     [agentRecord, authSession, selectedAgentReadyForExecution],
   );
@@ -1577,6 +1581,8 @@ export function Dashboard({
       agentId,
       requestId: frozenAction.requestId,
       recipient: frozenAction.recipient,
+      valueWei: ownerTransactionValueWei,
+      data: ownerTransactionCalldata,
     });
     if (!preparation.ok) {
       setTransactionIntentPrepareStatus("error");
@@ -1786,10 +1792,10 @@ export function Dashboard({
         chainId: ownerWalletConnectionStatus.chainId,
         preparedActionId: phase8FrozenAction?.requestId ?? "",
         ownerApprovalRecorded: Boolean(activePhase8OwnerArming),
-        requestedValueWei: "100000000000000",
+        requestedValueWei: ownerTransactionValueWei,
         estimatedGasFeeWei: "10000000000000",
         availableGasBalanceWei: phase8LowValueNativeBalance.data?.value.toString() ?? null,
-        data: "0x",
+        data: ownerTransactionCalldata,
         includesTokenApproval: false,
         includesSwap: false,
         requestedFromTelegram: false,
@@ -1820,8 +1826,8 @@ export function Dashboard({
         recipient: phase8OwnerActionCandidate.ok
           ? phase8OwnerActionCandidate.candidate.recipient
           : null,
-        valueWei: "100000000000000",
-        data: "0x",
+        valueWei: ownerTransactionValueWei,
+        data: ownerTransactionCalldata,
         includesTokenApproval: false,
         includesSwap: false,
         requestedFromTelegram: false,
@@ -1856,9 +1862,9 @@ export function Dashboard({
         requestedValueWei: phase8LowValueSubmitRequest.ok
           ? phase8LowValueSubmitRequest.request.value.toString()
           : null,
-        maxValueWei: "100000000000000",
+        maxValueWei: ownerTransactionValueWei,
         calldata: phase8LowValueSubmitRequest.ok
-          ? phase8LowValueSubmitRequest.request.data ?? "0x"
+          ? phase8LowValueSubmitRequest.request.data ?? ownerTransactionCalldata
           : null,
         includesTokenApproval: false,
         includesSwap: false,
@@ -1951,8 +1957,8 @@ export function Dashboard({
       actionKind: "eth_transfer",
       valueWei: phase8LowValueSubmitRequest.ok
         ? phase8LowValueSubmitRequest.request.value.toString()
-        : "100000000000000",
-      maxValueWei: "100000000000000",
+        : ownerTransactionValueWei,
+      maxValueWei: ownerTransactionValueWei,
       kyraApprovalRecorded: Boolean(activePhase8OwnerArming),
       ownerWalletApprovalRecorded: runtimeBoundWalletConnected,
       receiptVerificationReady: phase8TransactionVerification.status === "confirmed" || phase8ProductionCloseout.canContinueToPhase9,
@@ -1962,7 +1968,7 @@ export function Dashboard({
       requestedFromAutomation: false,
       includesSwap: false,
       includesTokenApproval: false,
-      calldata: "0x",
+      calldata: ownerTransactionCalldata,
       privateKeyRequested: false,
       seedPhraseRequested: false,
     }),
@@ -1994,8 +2000,8 @@ export function Dashboard({
       providerBackoffActive: phase8TransactionVerification.status === "failed",
       requestedValueWei: phase8LowValueSubmitRequest.ok
         ? phase8LowValueSubmitRequest.request.value.toString()
-        : "100000000000000",
-      maxValueWei: "100000000000000",
+        : ownerTransactionValueWei,
+      maxValueWei: ownerTransactionValueWei,
       sanitizedDecision: true,
       exposesRawWalletData: false,
       exposesTelegramTokenRef: false,
@@ -4661,7 +4667,7 @@ export function Dashboard({
                   <small>
                     One owner-controlled {currentProductChain.name} submission can proceed only from
                     the private dashboard. Telegram, public profiles, token
-                    approvals, swaps, calldata, and non-zero value remain
+                    approvals, swaps, calldata, and arbitrary values remain
                     blocked.
                   </small>
                 )}
@@ -4721,7 +4727,7 @@ export function Dashboard({
                 </span>
                 <span>
                   Value
-                  <strong>{phase8OwnerActionCandidate.ok ? "0 ETH" : "blocked"}</strong>
+                  <strong>{phase8OwnerActionCandidate.ok ? ownerTransactionValueLabel : "blocked"}</strong>
                 </span>
                 <span>
                   Calldata
@@ -4778,7 +4784,7 @@ export function Dashboard({
                   <small>
                     One owner-controlled transaction review window is open. Telegram, public
                     profiles, automation, token approvals, swaps, calldata, and
-                    non-zero value remain blocked.
+                    arbitrary values remain blocked.
                   </small>
                 )}
             </div>
@@ -4823,22 +4829,13 @@ export function Dashboard({
                 : (
                   <small>
                     Transaction submission is available only from the private dashboard, selected agent,
-                    connected {currentWalletDisplayName}, and one owner-controlled zero-value submit.
+                    connected {currentWalletDisplayName}, and one owner-controlled {ownerTransactionValueLabel} self-transfer.
                     Telegram and public profiles remain blocked.
                   </small>
                 )}
             </div>
-            <div id="robinhood-testnet-submit">
-              <Phase8ControlledSubmitter
-              submission={phase8ControlledSubmission}
-              activation={phase8OwnerLiveWindowActivation}
-              preflight={phase8RuntimeEnablementPreflight}
-              ownerWalletAddress={ownerWalletConnectionStatus.address}
-              submissionNonce={activePhase8OwnerArming?.submissionNonce ?? null}
-              frozenAction={phase8FrozenAction}
-              onResultCloseout={handlePhase8ResultCloseout}
-              />
-            </div>
+            <div id="robinhood-testnet-submit" />
+
             <div className="result-monitoring-panel">
               <div className="result-monitoring-header">
                 <span>Result monitoring</span>
@@ -4914,7 +4911,7 @@ export function Dashboard({
               <p>{phase8UserSafeTransactionPolicy.message}</p>
               {phase8UserSafeTransactionPolicy.reasons.length
                 ? <small>{formatGateHint(phase8UserSafeTransactionPolicy.reasons)}</small>
-                : <small>User-safe policy is private-dashboard only. Non-zero value, calldata, swaps, and token approvals remain locked.</small>}
+                : <small>User-safe policy is private-dashboard only. Values other than {ownerTransactionValueLabel}, calldata, swaps, and token approvals remain locked.</small>}
             </div>
             <div className="phase-8-user-flow-panel">
               <div className="result-monitoring-header">

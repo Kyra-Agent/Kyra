@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import ts from "typescript";
+import { inlineOwnerTransactionPolicy } from "./test-owner-transaction-policy.mjs";
 
 const root = process.cwd();
 const outDir = resolve(root, ".tmp-dual-approval-test");
@@ -35,13 +36,13 @@ const unsignedSource = readFileSync(
   'import { currentProductChain } from "../config/productChains";',
   'const currentProductChain = Object.freeze({ id: 4663, name: "Robinhood Chain" });',
 );
-const preparedSource = stripImport(
+const preparedSource = inlineOwnerTransactionPolicy(stripImport(
   stripImport(
     readFileSync(resolve(root, "src/types/preparedAction.ts"), "utf8"),
     "../config/productChains",
   ),
   "./unsignedTransactionHandoff",
-);
+));
 const riskSource = stripImport(
   readFileSync(resolve(root, "src/types/riskReview.ts"), "utf8"),
   "./unsignedTransactionHandoff",
@@ -93,10 +94,10 @@ try {
     actionKind: "robinhood_reviewed_transaction",
     chainId: productChainId,
     recipient: "0x1111111111111111111111111111111111111111",
-    valueWei: "0",
+    valueWei: "100000000000000",
     data: "0x",
     routeSummary: "Owner reviewed Robinhood Chain transaction preview.",
-    valueSummary: "No token spend in this dual approval test.",
+    valueSummary: "Fixed 0.0001 ETH self-transfer in this dual approval test.",
   });
 
   assertEquals(policyReview.status, "owner_review_required");

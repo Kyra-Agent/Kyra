@@ -1,4 +1,8 @@
 import type { FrozenPreparedAction } from "./dualApprovalExecution";
+import {
+  isAllowedOwnerTransactionValueWei,
+  ownerTransactionValueLabel,
+} from "../config/ownerTransactionPolicy";
 import { productChainId } from "./unsignedTransactionHandoff";
 
 export type Phase8LiveWindowStatus =
@@ -48,7 +52,7 @@ export type Phase8LiveWindowPreparationBlockReason =
   | "frozen_action_owner_mismatch"
   | "frozen_action_workspace_mismatch"
   | "frozen_action_agent_mismatch"
-  | "zero_value_action_required"
+  | "transaction_value_required"
   | "no_calldata_required"
   | "owner_wallet_prompt_ready_required"
   | "telegram_authority_forbidden"
@@ -118,7 +122,7 @@ const blockMessages: Record<Phase8LiveWindowPreparationBlockReason, string> = {
   frozen_action_owner_mismatch: "The frozen action owner does not match the active owner.",
   frozen_action_workspace_mismatch: "The frozen action workspace does not match the selected workspace.",
   frozen_action_agent_mismatch: "The frozen action agent does not match the selected agent.",
-  zero_value_action_required: "Live-window preparation only permits a zero-value first transaction.",
+  transaction_value_required: `Live-window preparation only permits the fixed ${ownerTransactionValueLabel} self-transfer.`,
   no_calldata_required: "Live-window preparation only permits a no-calldata first transaction.",
   owner_wallet_prompt_ready_required: "Owner-wallet prompt readiness must be ready, opened, or approved.",
   telegram_authority_forbidden: "Telegram cannot request or authorize controlled execution.",
@@ -237,8 +241,8 @@ export function evaluatePhase8LiveWindowPreparation(
     reasons.push("frozen_action_agent_mismatch");
   }
 
-  if (input.frozenAction && input.frozenAction.valueWei !== "0") {
-    reasons.push("zero_value_action_required");
+  if (input.frozenAction && !isAllowedOwnerTransactionValueWei(input.frozenAction.valueWei)) {
+    reasons.push("transaction_value_required");
   }
 
   if (input.frozenAction && input.frozenAction.data !== "0x") {

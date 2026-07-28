@@ -25,6 +25,22 @@ const receiptVerifier = readFileSync(
   "supabase/migrations/20260726121000_verify_transaction_intent_receipt_verification.sql",
   "utf8",
 );
+const boundedTransactionMigration = readFileSync(
+  "supabase/migrations/20260729120000_enable_bounded_owner_transaction.sql",
+  "utf8",
+);
+const boundedTransactionVerifier = readFileSync(
+  "supabase/migrations/20260729121000_verify_bounded_owner_transaction.sql",
+  "utf8",
+);
+const transactionIntentPrepareEndpoint = readFileSync(
+  "supabase/functions/transaction-intent-prepare/index.ts",
+  "utf8",
+);
+const transactionResultCloseoutEndpoint = readFileSync(
+  "supabase/functions/transaction-result-closeout/index.ts",
+  "utf8",
+);
 const telegramDeliveryRetryMigration = readFileSync(
   "supabase/migrations/20260726122000_telegram_delivery_retry.sql",
   "utf8",
@@ -104,10 +120,51 @@ for (const expected of [
   "execution_results_prepared_action_record_idx",
   "execution_result_receipt_verification_required",
   "p_chain_key not in ('robinhood_mainnet', 'robinhood_testnet')",
+  "policy_version smallint not null default 2",
+  "value_wei = '100000000000000'",
+  "enforce_prepared_action_policy_on_insert",
+  "execution_results_one_result_per_intent_idx",
 ]) {
   if (!schema.includes(expected)) {
     throw new Error("Final schema snapshot missing: " + expected);
   }
+}
+
+for (const expected of [
+  "policy_version",
+  "value_wei = '100000000000000'",
+  "new.policy_version is distinct from old.policy_version",
+  "enforce_prepared_action_policy_on_insert",
+  "execution_results_one_result_per_intent_idx",
+]) {
+  if (!boundedTransactionMigration.includes(expected)) {
+    throw new Error("Bounded transaction migration missing: " + expected);
+  }
+}
+for (const expected of [
+  "prepared action policy version is missing or unsafe",
+  "bounded owner transaction constraint missing",
+  "prepared action insert policy trigger missing",
+  "prepared action insert policy function is publicly executable",
+  "one execution result per prepared intent index is missing",
+]) {
+  if (!boundedTransactionVerifier.includes(expected)) {
+    throw new Error("Bounded transaction verifier missing: " + expected);
+  }
+}
+for (const expected of [
+  "preparedActionId: body.requestId",
+  "preparedActionRecordId: existing.id",
+  "preparedActionRecordId: inserted.id",
+]) {
+  if (!transactionIntentPrepareEndpoint.includes(expected)) {
+    throw new Error("Transaction intent response contract missing: " + expected);
+  }
+}
+if (!transactionResultCloseoutEndpoint.includes(
+  '.eq("prepared_action_record_id", intent.id)',
+)) {
+  throw new Error("Transaction closeout replay lookup is not intent-scoped.");
 }
 
 if (

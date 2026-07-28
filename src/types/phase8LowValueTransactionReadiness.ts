@@ -1,4 +1,9 @@
 
+import {
+  ownerTransactionValue,
+  ownerTransactionValueLabel,
+  ownerTransactionValueWei,
+} from "../config/ownerTransactionPolicy";
 import { productChainId } from "./unsignedTransactionHandoff";
 
 export type Phase8LowValueTransactionReadinessStatus =
@@ -51,7 +56,7 @@ export interface Phase8LowValueTransactionReadinessResult {
   message: string;
 }
 
-const maxLowValueWei = 100_000_000_000_000n;
+const maxLowValueWei = ownerTransactionValue;
 
 const blockMessages: Record<Phase8LowValueTransactionReadinessReason, string> = {
   owner_session_required:
@@ -71,7 +76,7 @@ const blockMessages: Record<Phase8LowValueTransactionReadinessReason, string> = 
   value_required:
     "A positive transaction value is required for low-value transaction review.",
   value_cap_exceeded:
-    "Requested value exceeds the controlled execution cap.",
+    `Requested value must match the fixed ${ownerTransactionValueLabel} owner self-transfer.`,
   gas_estimate_required:
     "A gas estimate is required before low-value transaction review.",
   gas_balance_required:
@@ -104,7 +109,7 @@ export function evaluatePhase8LowValueTransactionReadiness(
   if (!input.preparedActionId?.trim()) reasons.push("prepared_action_required");
   if (!input.ownerApprovalRecorded) reasons.push("owner_approval_required");
   if (requestedValue === null || requestedValue <= 0n) reasons.push("value_required");
-  if (requestedValue !== null && requestedValue > maxLowValueWei) {
+  if (requestedValue !== null && requestedValue !== maxLowValueWei) {
     reasons.push("value_cap_exceeded");
   }
   if (estimatedGasFee === null || estimatedGasFee <= 0n) {

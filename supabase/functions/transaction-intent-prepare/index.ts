@@ -213,7 +213,7 @@ Deno.serve(async (request) => {
     const { data: existing, error: existingError } = await serviceClient
       .from("prepared_actions")
       .select(
-        "id,workspace_id,agent_id,request_id,action_kind,chain_key,chain_id,status,risk,provider,recipient,value_wei,calldata,expires_at",
+        "id,workspace_id,agent_id,request_id,action_kind,chain_key,chain_id,status,risk,provider,recipient,value_wei,calldata,policy_version,expires_at",
       )
       .eq("workspace_id", body.workspaceId)
       .eq("agent_id", body.agentId)
@@ -242,8 +242,15 @@ Deno.serve(async (request) => {
       return jsonResponse(request, {
         ok: true,
         status: "prepared",
-        preparedActionId: existing.id,
+        preparedActionId: body.requestId,
+        preparedActionRecordId: existing.id,
         expiresAt: existing.expires_at,
+        chainKey: body.chainKey,
+        chainId: body.chainId,
+        recipient: body.recipient,
+        valueWei: body.valueWei,
+        data: body.data,
+        policyVersion: body.policyVersion,
       });
     }
 
@@ -260,17 +267,18 @@ Deno.serve(async (request) => {
         chain_id: body.chainId,
         status: "approved",
         risk: "review",
-        route_summary: "Owner wallet self-check controlled transaction.",
+        route_summary: "Owner wallet self-transfer transaction proof.",
         value_summary:
-          "Zero ETH, no token spend, no calldata, self-address recipient.",
+          "0.0001 ETH, no calldata, self-address recipient.",
         approval_requirement:
           "Authenticated owner review and wallet confirmation required.",
         safety_note:
-          "Owner-only zero-value self-check. Telegram and public execution are blocked.",
+          "Owner-only fixed-value self-transfer. Telegram and public execution are blocked.",
         provider: "owner_dashboard",
         recipient: body.recipient,
         value_wei: body.valueWei,
         calldata: body.data,
+        policy_version: body.policyVersion,
         expires_at: expiresAt,
         created_at: now.toISOString(),
         updated_at: now.toISOString(),
@@ -284,8 +292,15 @@ Deno.serve(async (request) => {
     return jsonResponse(request, {
       ok: true,
       status: "prepared",
-      preparedActionId: inserted.id,
+      preparedActionId: body.requestId,
+      preparedActionRecordId: inserted.id,
       expiresAt,
+      chainKey: body.chainKey,
+      chainId: body.chainId,
+      recipient: body.recipient,
+      valueWei: body.valueWei,
+      data: body.data,
+      policyVersion: body.policyVersion,
     }, 201);
   } catch (error) {
     if (error instanceof HttpError) {

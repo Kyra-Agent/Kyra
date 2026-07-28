@@ -3,6 +3,7 @@ import {
   currentProductChain,
   currentWalletDisplayName,
 } from "../config/productChains";
+import { ownerTransactionValue, ownerTransactionValueLabel } from "../config/ownerTransactionPolicy";
 
 export type Phase8FundingReadinessStatus =
   | "wallet_required"
@@ -79,11 +80,11 @@ export function evaluatePhase8FundingReadiness(
     });
   }
 
-  if (input.value <= 0n) {
+  if (input.value < ownerTransactionValue) {
     return createResult({
       status: "empty",
-      label: "0 ETH",
-      message: `Add native ETH on ${networkName} to the connected ${walletDisplayName} before submitting. The transaction is zero-value, but gas still requires ETH.`,
+      label: input.value <= 0n ? "0 ETH" : "insufficient",
+      message: `Add enough native ETH on ${networkName} for the fixed ${ownerTransactionValueLabel} self-transfer plus gas.`,
       ownerAction: `Fund the connected ${walletDisplayName} with ${gasDisplayName}, then refresh the dashboard.`,
       canOpenSubmitter: false,
     });

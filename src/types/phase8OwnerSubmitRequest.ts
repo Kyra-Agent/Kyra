@@ -1,17 +1,22 @@
 import { currentProductChain } from "../config/productChains";
+import {
+  isAllowedOwnerTransactionValueWei,
+  ownerTransactionCalldata,
+  ownerTransactionValue,
+} from "../config/ownerTransactionPolicy";
 import type { FrozenPreparedAction } from "./dualApprovalExecution";
 import { productChainId, isEvmAddress, isHexData } from "./unsignedTransactionHandoff";
 
 export type Phase8OwnerSubmitRequestFailure =
   | "frozen_action_required"
   | "product_chain_required"
-  | "zero_value_required"
+  | "transaction_value_required"
   | "no_calldata_required"
   | "recipient_required";
 
 export interface Phase8OwnerSubmitRequest {
   to: `0x${string}`;
-  value: 0n;
+  value: typeof ownerTransactionValue;
   data: "0x";
   chainId: typeof productChainId;
 }
@@ -39,8 +44,8 @@ export function createPhase8OwnerSubmitRequest(
     return reject("product_chain_required");
   }
 
-  if (frozenAction.valueWei !== "0") {
-    return reject("zero_value_required");
+  if (!isAllowedOwnerTransactionValueWei(frozenAction.valueWei)) {
+    return reject("transaction_value_required");
   }
 
   if (frozenAction.data !== "0x" || !isHexData(frozenAction.data)) {
@@ -55,8 +60,8 @@ export function createPhase8OwnerSubmitRequest(
     ok: true,
     request: {
       to: frozenAction.recipient,
-      value: 0n,
-      data: "0x",
+      value: ownerTransactionValue,
+      data: ownerTransactionCalldata,
       chainId: productChainId,
     },
     reason: null,

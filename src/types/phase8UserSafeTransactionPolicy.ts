@@ -1,4 +1,9 @@
 
+import {
+  isAllowedOwnerTransactionValueWei,
+  ownerTransactionValueLabel,
+  ownerTransactionValueWei,
+} from "../config/ownerTransactionPolicy";
 import { productChainId } from "./unsignedTransactionHandoff";
 
 export type Phase8UserSafeTransactionPolicyStatus =
@@ -13,7 +18,7 @@ export type Phase8UserSafeTransactionPolicyReason =
   | "product_chain_required"
   | "prepared_action_required"
   | "unsupported_action_kind"
-  | "non_zero_value_forbidden"
+  | "transaction_value_not_allowed"
   | "calldata_forbidden"
   | "token_approval_forbidden"
   | "swap_forbidden"
@@ -41,7 +46,7 @@ export interface Phase8UserSafeTransactionPolicyInput {
 export interface Phase8UserSafeTransactionPolicyResult {
   status: Phase8UserSafeTransactionPolicyStatus;
   canEnterOwnerReview: boolean;
-  maxValueWei: "0";
+  maxValueWei: typeof ownerTransactionValueWei;
   allowedActionKinds: readonly ["robinhood_reviewed_transaction"];
   reasons: Phase8UserSafeTransactionPolicyReason[];
   message: string;
@@ -62,8 +67,8 @@ const blockMessages: Record<Phase8UserSafeTransactionPolicyReason, string> = {
     "A reviewed prepared action is required before user-safe transaction review.",
   unsupported_action_kind:
     "Only the controlled reviewed transaction kind is allowed.",
-  non_zero_value_forbidden:
-    "Non-zero value remains disabled until the next explicit expansion gate.",
+  transaction_value_not_allowed:
+    `Only the fixed ${ownerTransactionValueLabel} owner self-transfer is allowed.`,
   calldata_forbidden:
     "Calldata remains disabled until the next explicit expansion gate.",
   token_approval_forbidden:
@@ -92,7 +97,9 @@ export function evaluatePhase8UserSafeTransactionPolicy(
   if (input.actionKind !== "robinhood_reviewed_transaction") {
     reasons.push("unsupported_action_kind");
   }
-  if (input.valueWei !== "0") reasons.push("non_zero_value_forbidden");
+  if (!isAllowedOwnerTransactionValueWei(input.valueWei)) {
+    reasons.push("transaction_value_not_allowed");
+  }
   if (normalizeCalldata(input.data) !== "0x") reasons.push("calldata_forbidden");
   if (input.includesTokenApproval) reasons.push("token_approval_forbidden");
   if (input.includesSwap) reasons.push("swap_forbidden");
@@ -106,7 +113,7 @@ export function evaluatePhase8UserSafeTransactionPolicy(
     return {
       status: "blocked",
       canEnterOwnerReview: false,
-      maxValueWei: "0",
+      maxValueWei: ownerTransactionValueWei,
       allowedActionKinds: ["robinhood_reviewed_transaction"],
       reasons: uniqueReasons,
       message: blockMessages[uniqueReasons[0]],
@@ -116,11 +123,11 @@ export function evaluatePhase8UserSafeTransactionPolicy(
   return {
     status: "ready_for_owner_review",
     canEnterOwnerReview: true,
-    maxValueWei: "0",
+    maxValueWei: ownerTransactionValueWei,
     allowedActionKinds: ["robinhood_reviewed_transaction"],
     reasons: [],
     message:
-      "User-safe transaction policy is ready for owner review under zero-value, no-calldata limits.",
+      `User-safe transaction policy is ready for owner review under fixed ${ownerTransactionValueLabel}, no-calldata limits.`,
   };
 }
 

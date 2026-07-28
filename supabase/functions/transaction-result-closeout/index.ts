@@ -201,7 +201,7 @@ Deno.serve(async (request) => {
     const { data: intentData, error: intentError } = await serviceClient
       .from("prepared_actions")
       .select(
-        "id,workspace_id,agent_id,request_id,action_kind,chain_key,chain_id,status,recipient,value_wei,calldata,expires_at",
+        "id,workspace_id,agent_id,request_id,action_kind,chain_key,chain_id,status,recipient,value_wei,calldata,policy_version,expires_at",
       )
       .eq("workspace_id", body.workspaceId)
       .eq("agent_id", body.agentId)
@@ -227,7 +227,7 @@ Deno.serve(async (request) => {
         "id,owner_user_id,workspace_id,agent_id,prepared_action_id,prepared_action_record_id,submission_key,tx_hash,status",
       )
       .eq("owner_user_id", userData.user.id)
-      .eq("submission_key", submissionKey)
+      .eq("prepared_action_record_id", intent.id)
       .maybeSingle();
     if (existingError) throw existingError;
 

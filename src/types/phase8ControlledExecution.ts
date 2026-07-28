@@ -1,3 +1,7 @@
+import {
+  isAllowedOwnerTransactionValueWei,
+  ownerTransactionValueLabel,
+} from "../config/ownerTransactionPolicy";
 
 import type {
   ExecutionLaunchReadinessResult,
@@ -23,7 +27,7 @@ export type Phase8ControlledExecutionBlockReason =
   | "runtime_enablement_required"
   | "owner_click_required"
   | "frozen_action_required"
-  | "zero_value_action_required"
+  | "transaction_value_required"
   | "no_calldata_required"
   | "owner_wallet_prompt_required"
   | "result_monitoring_required"
@@ -81,8 +85,8 @@ const blockMessages: Record<Phase8ControlledExecutionBlockReason, string> = {
     "Controlled execution requires an explicit owner click in the private dashboard.",
   frozen_action_required:
     "A frozen reviewed prepared action is required before wallet prompt.",
-  zero_value_action_required:
-    "The first controlled live action must be zero-value.",
+  transaction_value_required:
+    `The controlled live action must use the fixed ${ownerTransactionValueLabel} self-transfer.`,
   no_calldata_required:
     "The first controlled live action must not include calldata.",
   owner_wallet_prompt_required:
@@ -139,8 +143,8 @@ export function evaluatePhase8ControlledExecution(
     reasons.push("frozen_action_required");
   }
 
-  if (input.frozenAction && input.frozenAction.valueWei !== "0") {
-    reasons.push("zero_value_action_required");
+  if (input.frozenAction && !isAllowedOwnerTransactionValueWei(input.frozenAction.valueWei)) {
+    reasons.push("transaction_value_required");
   }
 
   if (input.frozenAction && input.frozenAction.data !== "0x") {

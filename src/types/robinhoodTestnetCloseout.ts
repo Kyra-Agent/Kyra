@@ -1,3 +1,4 @@
+import { ownerTransactionValueLabel } from "../config/ownerTransactionPolicy";
 import type { Phase8TransactionVerificationStatus } from "./phase8TransactionVerification";
 
 export type RobinhoodTestnetCloseoutStepStatus =
@@ -86,7 +87,7 @@ export function evaluateRobinhoodTestnetCloseout(
     createStep("agent", "Agent binding", "Selected agent matches Robinhood Chain Testnet.", checkpoints, firstIncomplete, 1),
     createStep("network", "Network status", "Owner-scoped read-only chain check prepared.", checkpoints, firstIncomplete, 2),
     createStep("wallet", "Wallet connection", "Owner wallet connected in browser memory.", checkpoints, firstIncomplete, 3),
-    createStep("action", "Reviewed action", "Zero-value self-send frozen with no calldata.", checkpoints, firstIncomplete, 4),
+    createStep("action", "Reviewed action", `${ownerTransactionValueLabel} self-transfer frozen with no calldata.`, checkpoints, firstIncomplete, 4),
     createStep("review", "Owner review", "One-time review window opened explicitly.", checkpoints, firstIncomplete, 5),
     createStep("submission", "Wallet confirmation", "Transaction submitted by the owner wallet.", checkpoints, firstIncomplete, 6, transactionFailed),
     createStep("receipt", "Network receipt", "Receipt verified under owner-only monitoring.", checkpoints, firstIncomplete, 7, transactionFailed),
@@ -106,7 +107,7 @@ export function evaluateRobinhoodTestnetCloseout(
     return build("failed", "Transaction closed safely", "The provider returned a sanitized failure. Close the review window before retrying.", "retry_transaction", steps);
   }
   if (transactionConfirmed) {
-    return build("complete", "Testnet transaction verified", "The owner-only zero-value transaction is confirmed and the testnet closeout is complete.", "complete", steps);
+    return build("complete", "Testnet transaction verified", `The owner-only ${ownerTransactionValueLabel} transaction is confirmed and the testnet closeout is complete.`, "complete", steps);
   }
   if (transactionSubmitted) {
     return build("waiting_for_receipt", "Waiting for receipt", "The transaction was submitted and is waiting for a Robinhood Chain Testnet receipt.", "wait_for_receipt", steps);
@@ -118,17 +119,17 @@ export function evaluateRobinhoodTestnetCloseout(
     return build("setup_required", "Connect owner wallet", "Connect a wallet on Robinhood Chain Testnet. The connection stays in browser memory.", "connect_wallet", steps);
   }
   if (!input.reviewedActionReady) {
-    return build("setup_required", "Preparing reviewed action", "Kyra is freezing the zero-value owner self-check for review.", "check_chain_status", steps);
+    return build("setup_required", "Preparing reviewed action", `Kyra is freezing the ${ownerTransactionValueLabel} owner self-transfer for review.`, "check_chain_status", steps);
   }
   if (!input.ownerWindowArmed) {
-    return build("ready_for_review", "Ready for owner review", "Open the one-time review window after confirming the selected agent and zero-value action.", "open_review_window", steps);
+    return build("ready_for_review", "Ready for owner review", `Open the one-time review window after confirming the selected agent and ${ownerTransactionValueLabel} action.`, "open_review_window", steps);
   }
 
   if (!input.submitterReady) {
     return build("ready_to_submit", "Final checks in progress", "The owner review is open while Kyra completes the isolated submitter checks.", "submit_transaction", steps);
   }
 
-  return build("ready_to_submit", "Ready for wallet confirmation", "Review the frozen action, then confirm the zero-value transaction in the connected wallet.", "submit_transaction", steps);
+  return build("ready_to_submit", "Ready for wallet confirmation", `Review the frozen action, then confirm the ${ownerTransactionValueLabel} transaction in the connected wallet.`, "submit_transaction", steps);
 }
 
 function createStep(

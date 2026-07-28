@@ -3,6 +3,10 @@ import {
   HttpError,
   matchesExistingIntent,
 } from "./core.ts";
+import {
+  ownerTransactionPolicyVersion,
+  ownerTransactionValueWei,
+} from "../_shared/owner-transaction-policy.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -26,18 +30,38 @@ const validBody = {
   chainKey: "robinhood_mainnet",
   chainId: 4663,
   recipient: "0x3333333333333333333333333333333333333333",
-  valueWei: "0",
+  valueWei: ownerTransactionValueWei,
   data: "0x",
 };
 
-Deno.test("accepts a bounded zero-value owner intent", () => {
+Deno.test("accepts the bounded fixed-value owner intent", () => {
   const body = assertTransactionIntentPrepareBody(validBody);
   assert(body.recipient === validBody.recipient, "recipient expected");
+  assert(
+    body.policyVersion === ownerTransactionPolicyVersion,
+    "current policy version expected",
+  );
 });
 
 Deno.test("rejects value, calldata, chain, and extra fields", () => {
   assertThrowsCode(
-    () => assertTransactionIntentPrepareBody({ ...validBody, valueWei: "1" }),
+    () => assertTransactionIntentPrepareBody({ ...validBody, valueWei: "0" }),
+    "invalid_transaction_intent",
+  );
+  assertThrowsCode(
+    () =>
+      assertTransactionIntentPrepareBody({
+        ...validBody,
+        valueWei: "99999999999999",
+      }),
+    "invalid_transaction_intent",
+  );
+  assertThrowsCode(
+    () =>
+      assertTransactionIntentPrepareBody({
+        ...validBody,
+        valueWei: "100000000000001",
+      }),
     "invalid_transaction_intent",
   );
   assertThrowsCode(
@@ -73,6 +97,7 @@ Deno.test("matches only the immutable stored intent", () => {
     recipient: body.recipient,
     value_wei: body.valueWei,
     calldata: body.data,
+    policy_version: body.policyVersion,
   };
   assert(matchesExistingIntent(stored, body), "stored intent should match");
   assert(
@@ -81,5 +106,12 @@ Deno.test("matches only the immutable stored intent", () => {
       recipient: "0x4444444444444444444444444444444444444444",
     }, body),
     "recipient mutation must fail",
+  );
+  assert(
+    !matchesExistingIntent({
+      ...stored,
+      policy_version: 1,
+    }, body),
+    "legacy policy mutation must fail",
   );
 });

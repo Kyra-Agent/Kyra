@@ -27,7 +27,8 @@
 
 Sanitized production evidence recorded for the owner-controlled mainnet lane:
 
-- one bounded owner-approved mainnet transaction - completed with zero value
+- historical zero-value owner-controlled proof - completed on Robinhood Chain mainnet
+- bounded value-bearing policy - fixed `0.0001 ETH` self-transfer to the connected owner wallet, no calldata
 - verified receipt and confirmation - completed on Robinhood Chain mainnet
 - authenticated backend persistence - one owner-only result record observed
 - owner dashboard backend closeout recorded as `saved` - completed
@@ -35,7 +36,7 @@ Sanitized production evidence recorded for the owner-controlled mainnet lane:
 - tested emergency disable and rollback - completed
 - explicit owner-controlled release decision - recorded
 
-This release does not enable Telegram execution, public-profile execution, autonomous fund movement, token approvals, arbitrary calldata, or hidden signing. Each transaction still requires a signed-in user, selected deployed agent, matching Robinhood Chain wallet, reviewed immutable action, NYX-05 policy approval, and a fresh one-time wallet prompt.
+This release does not enable Telegram execution, public-profile execution, autonomous fund movement, token approvals, swaps, arbitrary recipients, arbitrary values, arbitrary calldata, or hidden signing. Each bounded self-transfer still requires a signed-in user, selected deployed agent, matching Robinhood Chain wallet, reviewed immutable action, NYX-05 policy approval, a backend-prepared one-time intent, and a fresh wallet prompt.
 
 ## Production Hardening Closeout
 

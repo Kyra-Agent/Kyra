@@ -102,12 +102,13 @@ export async function verifyTransactionReceipt(input: {
     input.intent.recipient,
     "transaction_intent_invalid",
   );
+  const expectedValue = parseDecimalWei(input.intent.value_wei);
   if (
     normalizeHash(tx.hash) !== expectedHash ||
     normalizeAddress(tx.from, "receipt_scope_mismatch") !== expectedRecipient ||
     normalizeAddress(tx.to, "receipt_scope_mismatch") !== expectedRecipient ||
-    parseRpcQuantity(tx.value, "receipt_scope_mismatch") !== 0n ||
-    normalizeCalldata(tx.input) !== "0x" ||
+    parseRpcQuantity(tx.value, "receipt_scope_mismatch") !== expectedValue ||
+    normalizeCalldata(tx.input) !== input.intent.calldata ||
     (tx.chainId !== undefined &&
       String(tx.chainId).toLowerCase() !== expectedChainId)
   ) {
@@ -230,6 +231,17 @@ function parseRpcQuantity(value: unknown, code: string) {
       409,
       code,
       "The transaction does not match the prepared owner action.",
+    );
+  }
+  return BigInt(value);
+}
+
+function parseDecimalWei(value: unknown) {
+  if (typeof value !== "string" || !/^[1-9][0-9]*$/u.test(value)) {
+    throw new HttpError(
+      409,
+      "transaction_intent_invalid",
+      "The prepared transaction value is invalid.",
     );
   }
   return BigInt(value);

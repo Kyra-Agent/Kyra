@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import ts from "typescript";
+import { inlineOwnerTransactionPolicy } from "./test-owner-transaction-policy.mjs";
 
 const root = process.cwd();
 const outDir = resolve(root, ".tmp-phase-8-controlled-execution-test");
@@ -27,9 +28,9 @@ function stripImports(source) {
 
 mkdirSync(outDir, { recursive: true });
 
-const source = stripImports(
+const source = inlineOwnerTransactionPolicy(stripImports(
   readFileSync(resolve(root, "src/types/phase8ControlledExecution.ts"), "utf8"),
-);
+));
 const transpiled = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.ES2020,
@@ -66,10 +67,10 @@ try {
     actionKind: "robinhood_reviewed_transaction",
     chain: "Robinhood Chain",
     recipient: "0x0000000000000000000000000000000000000000",
-    valueWei: "0",
+    valueWei: "100000000000000",
     data: "0x",
-    routeSummary: "Controlled zero-value Robinhood Chain execution check.",
-    valueSummary: "Zero-value first transaction.",
+    routeSummary: "Controlled fixed-value Robinhood Chain self-transfer.",
+    valueSummary: "Fixed 0.0001 ETH self-transfer.",
     freezeKey: "phase8-freeze",
     frozen: true,
   };
@@ -160,7 +161,7 @@ try {
       data: "0x1234",
     },
   });
-  assert(unsafeAction.reasons.includes("zero_value_action_required"));
+  assert(unsafeAction.reasons.includes("transaction_value_required"));
   assert(unsafeAction.reasons.includes("no_calldata_required"));
 
   const unsafeSurfaces = evaluatePhase8ControlledExecution({

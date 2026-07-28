@@ -1,4 +1,22 @@
-import { evaluatePhase8SecurityAbuseHardening } from "../src/types/phase8SecurityAbuseHardening.ts";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import ts from "typescript";
+import { inlineOwnerTransactionPolicy } from "./test-owner-transaction-policy.mjs";
+
+const source = inlineOwnerTransactionPolicy(readFileSync(
+  resolve(process.cwd(), "src/types/phase8SecurityAbuseHardening.ts"),
+  "utf8",
+));
+const transpiled = ts.transpileModule(source, {
+  compilerOptions: {
+    module: ts.ModuleKind.ES2020,
+    target: ts.ScriptTarget.ES2020,
+  },
+});
+const moduleUrl = `data:text/javascript;base64,${
+  Buffer.from(transpiled.outputText).toString("base64")
+}`;
+const { evaluatePhase8SecurityAbuseHardening } = await import(moduleUrl);
 
 function assert(condition, message) {
   if (!condition) {
@@ -73,6 +91,23 @@ assert(unsafeShape.reasons.includes("unsafe_calldata"), "calldata must be blocke
 assert(unsafeShape.reasons.includes("token_approval_forbidden"), "token approvals must be blocked");
 assert(unsafeShape.reasons.includes("swap_forbidden"), "swaps must be blocked");
 
+const belowFixedValue = evaluatePhase8SecurityAbuseHardening({
+  ...baselineInput,
+  requestedValueWei: "1",
+});
+assert(
+  belowFixedValue.reasons.includes("unsafe_value"),
+  "values below the exact transaction policy must be blocked",
+);
+
+const tamperedCap = evaluatePhase8SecurityAbuseHardening({
+  ...baselineInput,
+  maxValueWei: "100000000000001",
+});
+assert(
+  tamperedCap.reasons.includes("unsafe_value"),
+  "a client-authored value cap must not weaken the fixed transaction policy",
+);
 const unsanitizedFailure = evaluatePhase8SecurityAbuseHardening({
   ...baselineInput,
   failureMessage: "raw provider stack trace",

@@ -1,4 +1,9 @@
-
+import {
+  ownerTransactionCalldata,
+  ownerTransactionValue,
+  ownerTransactionValueLabel,
+  ownerTransactionValueWei,
+} from "../config/ownerTransactionPolicy";
 import { productChainId, isEvmAddress, isHexData } from "./unsignedTransactionHandoff";
 
 export type Phase8LowValueSubmitRequestFailure =
@@ -40,7 +45,7 @@ export interface Phase8LowValueSubmitRequest {
   value: bigint;
   data: "0x";
   chainId: typeof productChainId;
-  maxValueWei: "100000000000000";
+  maxValueWei: typeof ownerTransactionValueWei;
   ownerOnly: true;
 }
 
@@ -58,7 +63,6 @@ export type Phase8LowValueSubmitRequestResult =
       message: string;
     };
 
-const maxLowValueWei = 100_000_000_000_000n;
 
 const failureMessages: Record<Phase8LowValueSubmitRequestFailure, string> = {
   owner_scope_required:
@@ -78,7 +82,7 @@ const failureMessages: Record<Phase8LowValueSubmitRequestFailure, string> = {
   value_required:
     "Low-value submit request requires a positive value.",
   value_cap_exceeded:
-    "Low-value submit request exceeds the controlled execution cap.",
+    `Low-value submit request must use the fixed ${ownerTransactionValueLabel} owner self-transfer.`,
   no_calldata_required:
     "Low-value submit request does not allow calldata.",
   token_approval_forbidden:
@@ -107,8 +111,13 @@ export function createPhase8LowValueSubmitRequest(
   if (!input.ownerApprovalRecorded) reasons.push("owner_approval_required");
   if (!isEvmAddress(input.recipient)) reasons.push("recipient_required");
   if (value === null) reasons.push("value_required");
-  if (value !== null && value > maxLowValueWei) reasons.push("value_cap_exceeded");
-  if (input.data !== "0x" || !isHexData(input.data)) reasons.push("no_calldata_required");
+  if (value !== null && value !== ownerTransactionValue) {
+    reasons.push("value_cap_exceeded");
+  }
+  if (
+    input.data !== ownerTransactionCalldata ||
+    !isHexData(input.data)
+  ) reasons.push("no_calldata_required");
   if (input.includesTokenApproval) reasons.push("token_approval_forbidden");
   if (input.includesSwap) reasons.push("swap_forbidden");
   if (input.requestedFromTelegram) reasons.push("telegram_forbidden");
@@ -130,9 +139,9 @@ export function createPhase8LowValueSubmitRequest(
     request: {
       to: input.recipient,
       value,
-      data: "0x",
+      data: ownerTransactionCalldata,
       chainId: productChainId,
-      maxValueWei: "100000000000000",
+      maxValueWei: ownerTransactionValueWei,
       ownerOnly: true,
     },
     reasons: [],

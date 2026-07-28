@@ -58,10 +58,10 @@ try {
     actionKind: "robinhood_reviewed_transaction",
     chain: "Robinhood Chain",
     recipient: "0x0000000000000000000000000000000000000000",
-    valueWei: "0",
+    valueWei: "100000000000000",
     data: "0x",
-    routeSummary: "Controlled zero-value Robinhood Chain execution check.",
-    valueSummary: "Zero-value first transaction.",
+    routeSummary: "Controlled fixed-value Robinhood Chain self-transfer.",
+    valueSummary: "Fixed 0.0001 ETH self-transfer.",
     freezeKey: "phase8-freeze",
     frozen: true,
   };

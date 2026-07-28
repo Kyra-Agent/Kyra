@@ -2,8 +2,9 @@ import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import ts from "typescript";
+import { inlineOwnerTransactionPolicy } from "./test-owner-transaction-policy.mjs";
 
-const source = readFileSync(
+const source = inlineOwnerTransactionPolicy(readFileSync(
   resolve(process.cwd(), "src/types/phase8OwnerActionCandidate.ts"),
   "utf8",
 ).replace(
@@ -12,7 +13,7 @@ const source = readFileSync(
 ).replace(
   'import { productChainId } from "./unsignedTransactionHandoff";',
   "const productChainId = 4663;",
-);
+));
 const transpiled = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.ES2020,
@@ -38,9 +39,9 @@ const ready = createPhase8OwnerActionCandidate({
 
 assert.equal(ready.ok, true);
 assert.equal(ready.candidate?.recipient, address);
-assert.equal(ready.candidate?.valueWei, "0");
+assert.equal(ready.candidate?.valueWei, "100000000000000");
 assert.equal(ready.candidate?.data, "0x");
-assert.equal(ready.candidate?.routeSummary.includes("self-check"), true);
+assert.equal(ready.candidate?.routeSummary.includes("self-transfer"), true);
 
 const missingAddress = createPhase8OwnerActionCandidate({
   ownerUserId: "owner-1",

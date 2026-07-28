@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import ts from "typescript";
+import { inlineOwnerTransactionPolicy } from "./test-owner-transaction-policy.mjs";
 
 const root = process.cwd();
 const outDir = resolve(root, ".tmp-phase-8-low-value-submit-request-test");
@@ -27,9 +28,9 @@ function stripImports(source) {
 
 mkdirSync(outDir, { recursive: true });
 
-const source = stripImports(
+const source = inlineOwnerTransactionPolicy(stripImports(
   readFileSync(resolve(root, "src/types/phase8LowValueSubmitRequest.ts"), "utf8"),
-);
+));
 const transpiled = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.ES2020,
@@ -117,7 +118,7 @@ try {
 
   assertEquals(
     getPhase8LowValueSubmitRequestFailureMessage("value_cap_exceeded"),
-    "Low-value submit request exceeds the controlled execution cap.",
+    "Low-value submit request must use the fixed 0.0001 ETH owner self-transfer.",
   );
 } finally {
   rmSync(outDir, { recursive: true, force: true });

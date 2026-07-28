@@ -126,9 +126,9 @@ Kyra is an independent product and does not imply affiliation with, sponsorship 
 
 ## Product Status
 
-Kyra's product foundation, backend persistence, privacy boundaries, agent deployment, Telegram and LLM layer, wallet policy, Robinhood Chain execution workflow, and mainnet release lane are implemented and verified. A bounded zero-value Robinhood Chain mainnet transaction has completed through the owner-controlled path with a confirmed receipt and private backend closeout.
+Kyra's product foundation, backend persistence, privacy boundaries, agent deployment, Telegram and LLM layer, wallet policy, Robinhood Chain execution workflow, and mainnet release lane are implemented and verified. The current transaction lane is deliberately bounded to one owner-approved `0.0001 ETH` self-transfer on Robinhood Chain mainnet, with immutable backend intent, exact receipt verification, and private backend closeout.
 
-Transaction access remains deliberately narrower than the rest of the product. It is available only from an authenticated private workspace with selected-agent binding, user wallet approval, deterministic policy and NYX-05 review, receipt verification, emergency disable, and privacy-safe evidence. Telegram and public profiles cannot sign or submit.
+Transaction access remains deliberately narrower than the rest of the product. It is available only from an authenticated private workspace with selected-agent binding, a matching Robinhood Chain wallet, explicit user approval, deterministic policy and NYX-05 review, a short-lived one-time window, exact receipt verification, emergency disable, and privacy-safe evidence. Telegram and public profiles cannot sign or submit. Swaps, token approvals, arbitrary recipients, arbitrary values, and calldata remain blocked.
 
 The current production hardening is live: immutable backend transaction intents, RPC-verified receipts, retry-safe Telegram delivery, session-scoped browser authentication, fresh-database bootstrap coverage, dependency scanning, and CI are deployed and verified. These controls strengthen the existing owner-controlled release lane without widening Telegram, public-profile, autonomous, token-approval, arbitrary-calldata, or hidden-signing access.
 

@@ -7,7 +7,9 @@ Frontend production:
 - VITE_KYRA_CHAIN_RELEASE_TARGET=robinhood_mainnet
 - VITE_KYRA_ROBINHOOD_MAINNET_WINDOW=owner_mainnet_cutover
 - VITE_KYRA_ROBINHOOD_MAINNET_RELEASE=owner_release_approved
-- controlled submission flags remain independently gated
+- VITE_KYRA_PHASE8_CONTROLLED_SUBMISSION=owner_approved_window
+- VITE_KYRA_PHASE8_LOW_VALUE_SUBMISSION=owner_low_value_window
+- submission remains restricted to the fixed owner self-transfer policy
 
 Backend:
 
@@ -42,14 +44,16 @@ Netlify production builds with npm run build:robinhood-mainnet.
 - verify provider identity and chain match
 - prepare and review an action
 - confirm Telegram and public execution remain blocked
-- run one zero-value owner self-transfer before any value-bearing release
+- prepare the backend-bound fixed `0.0001 ETH` owner self-transfer
+- verify the recipient exactly matches the connected owner wallet and calldata is `0x`
+- explicitly approve the one-time wallet prompt
 - wait for a confirmed receipt and the backend closeout status `saved`
 - confirm owner-only receipt and support data remain private
 - disable the submitter and verify rollback before recording release approval
 
 ## Mainnet Evidence
 
-Sanitized production evidence recorded on 2026-07-25:
+Historical sanitized production evidence recorded on 2026-07-25:
 
 - Robinhood Chain mainnet transaction confirmed by the connected wallet provider
 - owner-controlled self-transfer with zero ETH value and no calldata
@@ -58,6 +62,16 @@ Sanitized production evidence recorded on 2026-07-25:
 - one owner-only `execution_results` record was present in the production database
 - Telegram and public-profile execution remained blocked
 - transaction address and full hash are intentionally omitted from public documentation
+
+The current value-bearing release remains narrower than general wallet execution:
+
+- exact value: `0.0001 ETH`
+- recipient: the same connected owner wallet
+- calldata: `0x`
+- authenticated private dashboard and selected persisted agent only
+- immutable backend policy version 2 intent with a 10-minute expiry
+- one-time owner approval, receipt verification, and owner-only closeout
+- swaps, token approvals, arbitrary transfers, Telegram execution, public-profile execution, and automation remain blocked
 
 The owner dashboard reported backend closeout `saved`, and disconnect/reset
 invalidated the live window without replay. The explicit owner-controlled release

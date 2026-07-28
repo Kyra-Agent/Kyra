@@ -7,6 +7,10 @@ import {
   HttpError,
   isStaleSubmittedResult,
 } from "./core.ts";
+import {
+  ownerTransactionPolicyVersion,
+  ownerTransactionValueWei,
+} from "../_shared/owner-transaction-policy.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -73,8 +77,9 @@ Deno.test("stored intent is immutable, owner-scoped, and unexpired", () => {
     chain_id: 4663 as const,
     status: "approved" as const,
     recipient: "0x1111111111111111111111111111111111111111",
-    value_wei: "0" as const,
+    value_wei: ownerTransactionValueWei,
     calldata: "0x" as const,
+    policy_version: ownerTransactionPolicyVersion,
     expires_at: "2026-07-26T13:00:00.000Z",
   };
   const result = assertStoredTransactionIntent(stored, {
@@ -85,7 +90,7 @@ Deno.test("stored intent is immutable, owner-scoped, and unexpired", () => {
   assert(result.id === stored.id, "matching prepared intent expected");
   assertThrowsCode(
     () =>
-      assertStoredTransactionIntent({ ...stored, value_wei: "1" }, {
+      assertStoredTransactionIntent({ ...stored, value_wei: "0" }, {
         workspaceId: validBody.workspaceId,
         agentId: validBody.agentId,
         preparedActionId: validBody.preparedActionId,
@@ -93,6 +98,14 @@ Deno.test("stored intent is immutable, owner-scoped, and unexpired", () => {
     "transaction_intent_invalid",
   );
   assertThrowsCode(
+    () =>
+      assertStoredTransactionIntent({ ...stored, policy_version: 1 }, {
+        workspaceId: validBody.workspaceId,
+        agentId: validBody.agentId,
+        preparedActionId: validBody.preparedActionId,
+      }, new Date("2026-07-26T12:00:00.000Z")),
+    "transaction_intent_invalid",
+  );  assertThrowsCode(
     () =>
       assertStoredTransactionIntent(stored, {
         workspaceId: validBody.workspaceId,

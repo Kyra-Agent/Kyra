@@ -1,3 +1,10 @@
+import {
+  isAllowedOwnerTransactionValueWei,
+  ownerTransactionCalldata,
+  ownerTransactionPolicyVersion,
+  ownerTransactionValueWei,
+} from "../_shared/owner-transaction-policy.ts";
+
 export type ExecutionResultStatus = "submitted" | "confirmed" | "failed";
 export type ExecutionResultFailureCode =
   | "submission_failed"
@@ -33,8 +40,9 @@ export interface StoredTransactionIntent {
   chain_id: 4663;
   status: "approved";
   recipient: string;
-  value_wei: "0";
-  calldata: "0x";
+  value_wei: typeof ownerTransactionValueWei;
+  calldata: typeof ownerTransactionCalldata;
+  policy_version: typeof ownerTransactionPolicyVersion;
   expires_at: string;
 }
 
@@ -140,8 +148,9 @@ export function assertStoredTransactionIntent(
     intent.status === "approved" &&
     typeof intent.recipient === "string" &&
     addressPattern.test(intent.recipient) &&
-    intent.value_wei === "0" &&
-    intent.calldata === "0x" &&
+    isAllowedOwnerTransactionValueWei(intent.value_wei) &&
+    intent.calldata === ownerTransactionCalldata &&
+    intent.policy_version === ownerTransactionPolicyVersion &&
     Number.isFinite(expiresAt) &&
     (allowExpired || expiresAt > now.getTime());
 

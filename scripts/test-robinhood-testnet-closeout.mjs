@@ -2,8 +2,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
 import vm from "node:vm";
+import { inlineOwnerTransactionPolicy } from "./test-owner-transaction-policy.mjs";
 
-const source = readFileSync("src/types/robinhoodTestnetCloseout.ts", "utf8");
+const source = inlineOwnerTransactionPolicy(
+  readFileSync("src/types/robinhoodTestnetCloseout.ts", "utf8"),
+);
 const output = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.CommonJS,

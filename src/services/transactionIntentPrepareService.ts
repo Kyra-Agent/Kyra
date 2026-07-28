@@ -1,4 +1,9 @@
 import { appConfig } from "../config/appConfig";
+import {
+  ownerTransactionCalldata,
+  ownerTransactionPolicyVersion,
+  ownerTransactionValueWei,
+} from "../config/ownerTransactionPolicy";
 import { productChainId } from "../types/unsignedTransactionHandoff";
 import type { KyraAuthSession } from "./supabaseAuthService";
 import { getSupabaseApiKey, sanitizeSupabaseMessage } from "./supabaseRestClient";
@@ -8,6 +13,8 @@ export interface TransactionIntentPrepareInput {
   agentId: string;
   requestId: string;
   recipient: `0x${string}`;
+  valueWei: typeof ownerTransactionValueWei;
+  data: typeof ownerTransactionCalldata;
 }
 
 export interface TransactionIntentPrepareResult {
@@ -21,7 +28,14 @@ interface PrepareResponse {
   status?: string;
   message?: string;
   preparedActionId?: string;
+  preparedActionRecordId?: string;
   expiresAt?: string;
+  chainKey?: string;
+  chainId?: number;
+  recipient?: string;
+  valueWei?: string;
+  data?: string;
+  policyVersion?: number;
 }
 
 export async function prepareTransactionIntent(
@@ -60,8 +74,8 @@ export async function prepareTransactionIntent(
         chainKey: "robinhood_mainnet",
         chainId: productChainId,
         recipient: input.recipient,
-        valueWei: "0",
-        data: "0x",
+        valueWei: input.valueWei,
+        data: input.data,
       }),
     });
     const payload = await readResponse(response);
@@ -70,6 +84,23 @@ export async function prepareTransactionIntent(
         ok: false,
         status: "error",
         message: sanitizeSupabaseMessage(payload.message ?? "Transaction preparation failed safely."),
+      };
+    }
+
+    if (
+      payload.preparedActionId !== input.requestId ||
+      !payload.preparedActionRecordId ||
+      payload.chainKey !== "robinhood_mainnet" ||
+      payload.chainId !== productChainId ||
+      payload.recipient?.toLowerCase() !== input.recipient.toLowerCase() ||
+      payload.valueWei !== input.valueWei ||
+      payload.data !== input.data ||
+      payload.policyVersion !== ownerTransactionPolicyVersion
+    ) {
+      return {
+        ok: false,
+        status: "error",
+        message: "Prepared transaction does not match the reviewed owner action.",
       };
     }
 

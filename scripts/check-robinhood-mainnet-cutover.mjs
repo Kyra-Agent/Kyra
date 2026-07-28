@@ -22,7 +22,7 @@ for (const expected of [
   "VITE_KYRA_ROBINHOOD_MAINNET_WINDOW=owner_mainnet_cutover",
   "VITE_KYRA_ROBINHOOD_MAINNET_RELEASE=owner_release_approved",
   "VITE_KYRA_PHASE8_CONTROLLED_SUBMISSION=owner_approved_window",
-  "VITE_KYRA_PHASE8_LOW_VALUE_SUBMISSION=disabled",
+  "VITE_KYRA_PHASE8_LOW_VALUE_SUBMISSION=owner_low_value_window",
 ]) {
   if (!env.includes(expected)) throw new Error("Frontend release boundary missing: " + expected);
 }
@@ -48,7 +48,7 @@ for (const expected of [
   'VITE_KYRA_ROBINHOOD_MAINNET_WINDOW = "owner_mainnet_cutover"',
   'VITE_KYRA_ROBINHOOD_MAINNET_RELEASE = "owner_release_approved"',
   'VITE_KYRA_PHASE8_CONTROLLED_SUBMISSION = "owner_approved_window"',
-  'VITE_KYRA_PHASE8_LOW_VALUE_SUBMISSION = "disabled"',
+  'VITE_KYRA_PHASE8_LOW_VALUE_SUBMISSION = "owner_low_value_window"',
 ]) {
   if (!netlify.includes(expected)) throw new Error("Netlify release boundary missing: " + expected);
 }

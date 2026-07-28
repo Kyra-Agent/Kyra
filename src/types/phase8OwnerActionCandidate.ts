@@ -1,5 +1,10 @@
 import type { PreparedActionCanonicalInput } from "./preparedAction";
 import { currentProductChain } from "../config/productChains";
+import {
+  ownerTransactionCalldata,
+  ownerTransactionValueLabel,
+  ownerTransactionValueWei,
+} from "../config/ownerTransactionPolicy";
 import { productChainId } from "./unsignedTransactionHandoff";
 
 const evmAddressPattern = /^0x[0-9a-fA-F]{40}$/u;
@@ -70,16 +75,17 @@ export function createPhase8OwnerActionCandidate(
     candidate: {
       actionKind: "robinhood_reviewed_transaction",
       chain: currentProductChain.name,
-      routeSummary: "Owner wallet self-check controlled transaction.",
-      valueSummary: "Zero ETH, no token spend, no calldata, self-address recipient.",
+      routeSummary: "Owner wallet self-transfer transaction proof.",
+      valueSummary:
+        `${ownerTransactionValueLabel}, no calldata, self-address recipient.`,
       risk: "review",
       requiresWallet: true,
       recipient: input.ownerWalletAddress as `0x${string}`,
-      valueWei: "0",
-      data: "0x",
+      valueWei: ownerTransactionValueWei,
+      data: ownerTransactionCalldata,
     },
     reasons: [],
     message:
-      "Owner wallet self-check candidate is ready for private-dashboard review.",
+      `Owner wallet ${ownerTransactionValueLabel} self-transfer is ready for private-dashboard review.`,
   };
 }

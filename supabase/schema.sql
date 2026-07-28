@@ -143,6 +143,7 @@ create table if not exists public.prepared_actions (
   recipient text,
   value_wei text,
   calldata text,
+  policy_version smallint not null default 2,
   expires_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -165,6 +166,7 @@ create table if not exists public.prepared_actions (
       and recipient is null
       and value_wei is null
       and calldata is null
+      and policy_version in (1, 2)
     )
     or (
       action_kind = 'robinhood_reviewed_transaction'
@@ -174,7 +176,13 @@ create table if not exists public.prepared_actions (
       and risk = 'review'
       and provider = 'owner_dashboard'
       and recipient ~* '^0x[0-9a-f]{40}$'
-      and value_wei = '0'
+      and (
+        (policy_version = 1 and value_wei = '0')
+        or (
+          policy_version = 2
+          and value_wei = '100000000000000'
+        )
+      )
       and calldata = '0x'
       and expires_at is not null
     )
@@ -441,6 +449,9 @@ create index if not exists execution_results_agent_updated_idx on public.executi
 create index if not exists activity_logs_agent_id_created_at_idx on public.activity_logs(agent_id, created_at desc);
 create index if not exists execution_results_prepared_action_record_idx
 on public.execution_results(prepared_action_record_id);
+create unique index if not exists execution_results_one_result_per_intent_idx
+on public.execution_results(prepared_action_record_id)
+where prepared_action_record_id is not null;
 create index if not exists telegram_processed_updates_retry_idx
 on public.telegram_processed_updates(delivery_status, lease_expires_at)
 where delivery_status = 'processing';
@@ -616,6 +627,7 @@ begin
     or new.recipient is distinct from old.recipient
     or new.value_wei is distinct from old.value_wei
     or new.calldata is distinct from old.calldata
+    or new.policy_version is distinct from old.policy_version
     or new.expires_at is distinct from old.expires_at
     or new.created_at is distinct from old.created_at
   then
@@ -712,12 +724,29 @@ begin
 end;
 $$;
 
+create or replace function public.enforce_prepared_action_policy_on_insert()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.action_kind = 'robinhood_reviewed_transaction'
+    and new.policy_version <> 2
+  then
+    raise exception 'New owner transaction intents require policy version 2';
+  end if;
+
+  return new;
+end;
+$$;
 revoke all on function public.enforce_chain_action_agent_scope()
 from public, anon, authenticated, service_role;
 revoke all on function public.enforce_agent_network_rebinding()
 from public, anon, authenticated, service_role;
 revoke all on function public.enforce_prepared_action_immutable_fields()
 from public, anon, authenticated, service_role;
+revoke all on function public.enforce_prepared_action_policy_on_insert()
+from public, anon, authenticated;
 revoke all on function public.consume_chain_action_rate_limit(uuid, uuid, uuid, text)
 from public, anon, authenticated;
 grant execute on function public.consume_chain_action_rate_limit(uuid, uuid, uuid, text)
@@ -746,6 +775,10 @@ create trigger enforce_prepared_action_immutable_fields
 before update on public.prepared_actions
 for each row execute function public.enforce_prepared_action_immutable_fields();
 
+drop trigger if exists enforce_prepared_action_policy_on_insert on public.prepared_actions;
+create trigger enforce_prepared_action_policy_on_insert
+before insert on public.prepared_actions
+for each row execute function public.enforce_prepared_action_policy_on_insert();
 drop trigger if exists enforce_chain_action_rate_limit_agent_scope on public.chain_action_rate_limits;
 create trigger enforce_chain_action_rate_limit_agent_scope
 before insert or update of workspace_id, agent_id, chain_key

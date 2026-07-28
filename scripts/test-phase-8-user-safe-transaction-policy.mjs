@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import ts from "typescript";
+import { inlineOwnerTransactionPolicy } from "./test-owner-transaction-policy.mjs";
 
 const root = process.cwd();
 const outDir = resolve(root, ".tmp-phase-8-user-safe-policy-test");
@@ -20,13 +21,13 @@ function assertEquals(actual, expected, message) {
 
 mkdirSync(outDir, { recursive: true });
 
-const source = readFileSync(
+const source = inlineOwnerTransactionPolicy(readFileSync(
   resolve(root, "src/types/phase8UserSafeTransactionPolicy.ts"),
   "utf8",
 ).replace(
   'import { productChainId } from "./unsignedTransactionHandoff";',
   "const productChainId = 4663;",
-);
+));
 const transpiled = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.ES2020,
@@ -50,7 +51,7 @@ try {
     chainId: 4663,
     preparedActionId: "phase8_request_16",
     actionKind: "robinhood_reviewed_transaction",
-    valueWei: "0",
+    valueWei: "100000000000000",
     data: "0x",
     includesTokenApproval: false,
     includesSwap: false,
@@ -62,7 +63,7 @@ try {
   const ready = evaluatePhase8UserSafeTransactionPolicy(baselineInput);
   assertEquals(ready.status, "ready_for_owner_review");
   assertEquals(ready.canEnterOwnerReview, true);
-  assertEquals(ready.maxValueWei, "0");
+  assertEquals(ready.maxValueWei, "100000000000000");
   assert(ready.allowedActionKinds.includes("robinhood_reviewed_transaction"));
 
   const noOwner = evaluatePhase8UserSafeTransactionPolicy({
@@ -89,7 +90,7 @@ try {
     ...baselineInput,
     valueWei: "1",
   });
-  assert(unsafeValue.reasons.includes("non_zero_value_forbidden"));
+  assert(unsafeValue.reasons.includes("transaction_value_not_allowed"));
 
   const calldata = evaluatePhase8UserSafeTransactionPolicy({
     ...baselineInput,

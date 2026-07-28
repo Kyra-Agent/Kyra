@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import ts from "typescript";
+import { inlineOwnerTransactionPolicy } from "./test-owner-transaction-policy.mjs";
 
 const root = process.cwd();
 const outDir = resolve(root, ".tmp-prepared-action-allowlist-test");
@@ -37,7 +38,7 @@ const preparedSource = readFileSync(
   /import\s+\{[\s\S]*?\}\s+from\s+"\.\/unsignedTransactionHandoff";/u,
   "",
 );
-const transpiled = ts.transpileModule(`${unsignedSource}\n${preparedSource}`, {
+const transpiled = ts.transpileModule(`${unsignedSource}\n${inlineOwnerTransactionPolicy(preparedSource)}`, {
   compilerOptions: {
     module: ts.ModuleKind.ES2020,
     target: ts.ScriptTarget.ES2020,
@@ -77,12 +78,12 @@ try {
     actionKind: "robinhood_reviewed_transaction",
     chainId: productChainId,
     recipient: "0x1111111111111111111111111111111111111111",
-    valueWei: "0",
+    valueWei: "100000000000000",
     data: "0x",
     routeSummary: "Owner reviewed Robinhood Chain transaction preview.",
-    valueSummary: "No token spend in this Phase 7F preview.",
+    valueSummary: "Fixed 0.0001 ETH owner self-transfer.",
   });
-  assert(ownerPreview.allowed, "Owner dashboard zero-value preview should pass.");
+  assert(ownerPreview.allowed, "Owner dashboard fixed-value preview should pass.");
   assertEquals(ownerPreview.risk, "review");
   assertEquals(ownerPreview.requiresWallet, true);
   assertEquals(ownerPreview.canonical.chain, "Robinhood Chain");
@@ -103,10 +104,10 @@ try {
     actionKind: "robinhood_reviewed_transaction",
     chainId: productChainId,
     recipient: "0x1111111111111111111111111111111111111111",
-    valueWei: "0",
+    valueWei: "100000000000000",
     data: "0x",
     routeSummary: "Owner reviewed Robinhood Chain transaction preview.",
-    valueSummary: "No token spend in this Phase 7F preview.",
+    valueSummary: "Fixed 0.0001 ETH owner self-transfer.",
   });
   assert(!disabled.allowed, "Value-moving action must obey runtime wallet gate.");
   assert(disabled.reasons.includes("wallet_execution_disabled"));
@@ -123,7 +124,7 @@ try {
     valueSummary: "Spend one wei.",
   });
   assert(!tokenSpend.allowed, "Phase 7F must not allow token spend.");
-  assert(tokenSpend.reasons.includes("token_spend_not_allowed"));
+  assert(tokenSpend.reasons.includes("transaction_value_not_allowed"));
 
   const calldata = reviewPreparedActionAllowlist({
     source: "owner_dashboard",
@@ -131,10 +132,10 @@ try {
     actionKind: "robinhood_reviewed_transaction",
     chainId: productChainId,
     recipient: "0x1111111111111111111111111111111111111111",
-    valueWei: "0",
+    valueWei: "100000000000000",
     data: "0x1234",
     routeSummary: "Owner reviewed Robinhood Chain transaction preview.",
-    valueSummary: "No token spend.",
+    valueSummary: "Fixed 0.0001 ETH owner self-transfer.",
   });
   assert(!calldata.allowed, "Phase 7F must not allow calldata.");
   assert(calldata.reasons.includes("calldata_not_allowed"));
@@ -145,10 +146,10 @@ try {
     actionKind: "robinhood_reviewed_transaction",
     chainId: 1,
     recipient: "0x1111111111111111111111111111111111111111",
-    valueWei: "0",
+    valueWei: "100000000000000",
     data: "0x",
     routeSummary: "Owner reviewed Ethereum transaction preview.",
-    valueSummary: "No token spend.",
+    valueSummary: "Fixed 0.0001 ETH owner self-transfer.",
   });
   assert(!wrongChain.allowed, "Unsupported-chain action must fail closed.");
   assert(wrongChain.reasons.includes("product_chain_required"));

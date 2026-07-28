@@ -1,4 +1,5 @@
 import { currentProductChain } from "../config/productChains";
+import { isAllowedOwnerTransactionValueWei } from "../config/ownerTransactionPolicy";
 import {
   productChainId,
   isEvmAddress,
@@ -77,7 +78,7 @@ export type PreparedActionAllowlistBlockReason =
   | "invalid_value"
   | "invalid_calldata"
   | "calldata_not_allowed"
-  | "token_spend_not_allowed"
+  | "transaction_value_not_allowed"
   | "wallet_execution_disabled";
 
 export interface PreparedActionAllowlistInput {
@@ -195,8 +196,11 @@ export function reviewPreparedActionAllowlist(
     return blockPreparedActionAllowlist("calldata_not_allowed", input.actionKind);
   }
 
-  if (input.valueWei !== "0") {
-    return blockPreparedActionAllowlist("token_spend_not_allowed", input.actionKind);
+  if (!isAllowedOwnerTransactionValueWei(input.valueWei)) {
+    return blockPreparedActionAllowlist(
+      "transaction_value_not_allowed",
+      input.actionKind,
+    );
   }
 
   if (

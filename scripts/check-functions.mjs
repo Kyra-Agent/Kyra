@@ -120,7 +120,8 @@ for (const boundary of [
   "createChainActionRateLimitChecker",
   "transaction_intent_rate_limited",
   'body.chainKey !== "robinhood_mainnet"',
-  'body.valueWei !== "0"',
+  "isAllowedOwnerTransactionValueWei(body.valueWei)",
+  "policyVersion: ownerTransactionPolicyVersion",
 ]) {
   if (
     !intentFunction.includes(boundary) && !intentCore.includes(boundary)
@@ -148,6 +149,20 @@ const closeoutCore = readFileSync(
   "supabase/functions/transaction-result-closeout/core.ts",
   "utf8",
 );
+const receiptVerifier = readFileSync(
+  "supabase/functions/transaction-result-closeout/receipt-verifier.ts",
+  "utf8",
+);
+for (const boundary of [
+  "parseRpcQuantity(tx.value",
+  "normalizeCalldata(tx.input)",
+  "normalizeAddress(tx.from",
+  "normalizeAddress(tx.to",
+]) {
+  if (!receiptVerifier.includes(boundary)) {
+    throw new Error("Transaction receipt verification boundary missing: " + boundary);
+  }
+}
 const closeoutMigration = readFileSync(
   "supabase/migrations/20260724130000_execution_result_closeout.sql",
   "utf8",
@@ -159,6 +174,7 @@ for (const boundary of [
   'chain_key: "robinhood_mainnet"',
   'visibility: "owner-only"',
   "isStaleSubmittedResult",
+  "intent.policy_version === ownerTransactionPolicyVersion",
 ]) {
   if (!closeoutFunction.includes(boundary) && !closeoutCore.includes(boundary)) {
     throw new Error("Transaction closeout boundary missing: " + boundary);
