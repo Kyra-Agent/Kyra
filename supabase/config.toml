@@ -1,3 +1,9 @@
+[functions.deploy-agent]
+verify_jwt = true
+
+[functions.reset-demo-workspace]
+verify_jwt = true
+
 # Telegram connect is called by a signed-in dashboard user. Keep Supabase
 # gateway JWT verification enabled in addition to the function's ownership
 # validation.

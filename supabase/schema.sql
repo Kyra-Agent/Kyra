@@ -1958,6 +1958,7 @@ drop policy if exists "Online demo agent instances are public readable" on publi
 create policy "Online demo agent instances are public readable"
 on public.agent_instances
 for select
+to anon
 using (status = 'online' and mode = 'demo');
 
 drop policy if exists "Workspace owners can manage wallet policies" on public.wallet_policies;
@@ -2111,6 +2112,10 @@ revoke all on function public.revoke_telegram_bot_token(text)
 revoke all on function public.resolve_telegram_delivery_token(uuid)
   from public, anon, authenticated, service_role;
 revoke all on function public.claim_telegram_disconnect_session(uuid,uuid,text)
+  from public, anon, authenticated, service_role;
+revoke all on function public.enforce_demo_agent_limit()
+  from public, anon, authenticated, service_role;
+revoke all on function public.owns_workspace(uuid)
   from public, anon, authenticated, service_role;
 
 grant select on public.workspaces to authenticated;

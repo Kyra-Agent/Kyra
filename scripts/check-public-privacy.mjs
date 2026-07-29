@@ -135,6 +135,7 @@ assertNoForbidden(".env.example", envExample, [
 ]);
 
 const schema = read("supabase/schema.sql");
+const supabaseConfig = read("supabase/config.toml");
 const publicAgentProfilesView = getSqlView(schema, "public_agent_profiles");
 const telegramSessionSummariesView = getSqlView(
   schema,
@@ -158,6 +159,29 @@ assertNoForbidden(
   ],
 );
 
+assert(
+  /create policy "Online demo agent instances are public readable"[\s\S]*?for select\s+to anon\s+using \(status = 'online' and mode = 'demo'\);/u
+    .test(schema),
+  "Public demo-agent table policy must apply only to anon; authenticated users must remain workspace-scoped.",
+);
+assert(
+  schema.includes(
+    "revoke all on function public.enforce_demo_agent_limit()\n  from public, anon, authenticated, service_role;",
+  ) &&
+    schema.includes(
+      "revoke all on function public.owns_workspace(uuid)\n  from public, anon, authenticated, service_role;",
+    ),
+  "Security-definer workspace helpers must not retain default public execution privileges.",
+);
+for (const functionName of ["deploy-agent", "reset-demo-workspace"]) {
+  assert(
+    new RegExp(
+      `\\[functions\\.${functionName}\\]\\s+verify_jwt\\s*=\\s*true`,
+      "u",
+    ).test(supabaseConfig),
+    `${functionName} must explicitly require Supabase gateway JWT verification.`,
+  );
+}
 const publicAgentService = read("src/services/supabasePublicAgentService.ts");
 assert(
   publicAgentService.includes("public_agent_profiles?select=*"),
@@ -186,6 +210,7 @@ assert(
 );
 
 const dashboardService = read("src/services/supabaseDashboardService.ts");
+const deployService = read("src/services/supabaseDeployService.ts");
 const deployAgentFunction = read("supabase/functions/deploy-agent/index.ts");
 assert(
   !dashboardService.includes("agent_instances?select=*"),
@@ -204,6 +229,18 @@ assert(
   "Dashboard approval request reads must not use select=*.",
 );
 
+assert(
+  dashboardService.includes(
+    "owner_user_id=eq.${\n        encodeURIComponent(session.user.id)",
+  ),
+  "Dashboard workspace discovery must explicitly filter by the signed-in owner.",
+);
+assert(
+  deployService.includes(
+    "owner_user_id=eq.${\n      encodeURIComponent(session.user.id)",
+  ),
+  "Deploy workspace discovery must explicitly filter by the signed-in owner.",
+);
 const walletPolicyQuery = dashboardService.match(
   /wallet_policies\?select=([^`"]+)/,
 );

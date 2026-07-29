@@ -10,7 +10,6 @@ import {
   maxTelegramWebhookBodyBytes,
   readTelegramWebhookUpdateBody,
   sanitizeErrorMessage,
-  sanitizeTelegramWebhookSessionLookupError,
   type TelegramWebhookChatAuthorization,
   type TelegramWebhookCommandKind,
   type TelegramWebhookSessionLookupRecord,
@@ -973,14 +972,7 @@ export async function handleTelegramWebhookRequest(
             command: parsedUpdate.command,
             text: agentBrainReply.text,
           };
-        } catch (error) {
-          const supportCode = getTelegramAgentBrainSupportCode(error);
-
-          console.warn(JSON.stringify({
-            event: "telegram_agent_brain_fallback",
-            command: parsedUpdate.command,
-            supportCode,
-          }));
+        } catch {
           // Agent-brain is optional. Preserve read-only delivery if the provider
           // times out, rejects output, or returns a malformed response.
         }
@@ -1061,32 +1053,6 @@ export async function handleTelegramWebhookRequest(
       },
       500,
     );
-  }
-}
-
-export function getTelegramAgentBrainSupportCode(error: unknown) {
-  if (!(error instanceof HttpError)) {
-    return "agent_brain_unavailable";
-  }
-
-  switch (error.code) {
-    case "agent_brain_auth_failed":
-    case "agent_brain_incomplete_response":
-    case "agent_brain_invalid_response":
-    case "agent_brain_model_unavailable":
-    case "agent_brain_network_error":
-    case "agent_brain_output_rejected":
-    case "agent_brain_payment_required":
-    case "agent_brain_provider_invalid_response":
-    case "agent_brain_rate_limited":
-    case "agent_brain_request_rejected":
-    case "agent_brain_timeout":
-    case "agent_brain_unavailable":
-    case "agent_brain_upstream_error":
-    case "agent_brain_upstream_timeout":
-      return error.code;
-    default:
-      return "agent_brain_unavailable";
   }
 }
 

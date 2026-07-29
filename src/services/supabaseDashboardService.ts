@@ -637,7 +637,9 @@ export async function fetchSupabaseDashboardData(
   try {
     const workspaces = await selectRows<WorkspaceRow>(
       session,
-      "workspaces?select=id,owner_user_id,name,mode,created_at&mode=eq.demo&order=created_at.asc&limit=1",
+      `workspaces?select=id,owner_user_id,name,mode,created_at&owner_user_id=eq.${
+        encodeURIComponent(session.user.id)
+      }&mode=eq.demo&order=created_at.asc&limit=1`,
     );
     const workspace = workspaces[0];
 

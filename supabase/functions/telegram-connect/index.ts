@@ -10,7 +10,6 @@ import {
   type OwnershipLookupClient,
   type PersistTelegramSessionInput,
   persistTelegramSessionRecord,
-  type RegisterTelegramWebhookInput,
   type TelegramConnectDependencies,
   telegramConnectGetMeEnabledEnvKey,
   telegramConnectSessionWriteEnabledEnvKey,
