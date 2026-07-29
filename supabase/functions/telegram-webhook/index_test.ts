@@ -1483,7 +1483,7 @@ Deno.test("telegram-webhook agent brain gate stays off by default", async () => 
   assertEquals(deliveredResponse?.text, "Strategist template reply.");
 });
 
-Deno.test("telegram-webhook agent brain gate enriches template response", async () => {
+Deno.test("telegram-webhook keeps actions command deterministic", async () => {
   const deliveries: Array<Record<string, unknown>> = [];
   const brainInputs: Array<Record<string, unknown>> = [];
 
@@ -1544,26 +1544,11 @@ Deno.test("telegram-webhook agent brain gate enriches template response", async 
 
   assertEquals(response.status, 200);
   assertEquals(body.status, "delivered");
-  assertEquals(brainInputs.length, 1);
-  assertEquals(brainInputs[0]?.command, "actions");
-  assertEquals(brainInputs[0]?.agentName, "Strategist");
-  assertEquals(
-    brainInputs[0]?.agentRole,
-    "Market and campaign intelligence agent",
-  );
-  assertEquals(
-    Array.isArray(brainInputs[0]?.capabilities),
-    true,
-  );
-  assertEquals(brainInputs[0]?.agentSummary, "Market planning agent.");
-  assertEquals(
-    Array.isArray(brainInputs[0]?.gatedActions),
-    true,
-  );
+  assertEquals(brainInputs.length, 0);
   assertEquals(deliveredResponse?.command, "actions");
   assertEquals(
     deliveredResponse?.text,
-    "Strategist can summarize read-only campaign options.",
+    "Template fallback should be replaced.",
   );
 });
 
@@ -1739,8 +1724,8 @@ Deno.test("telegram-webhook natural chat uses template-aware fallback on brain f
     "Brain failure must not fall back to Strategist actions.",
   );
   assert(
-    deliveredText.includes("Support code: agent_brain_payment_required"),
-    "Owner fallback must include a sanitized support code.",
+    !deliveredText.includes("Support code:"),
+    "Brain diagnostics must remain out of user-facing replies.",
   );
   assert(
     !deliveredText.includes("raw provider billing detail"),
@@ -1840,7 +1825,7 @@ Deno.test("telegram-webhook natural chat keeps safe fallback on brain failure", 
   );
 });
 
-Deno.test("telegram-webhook agent brain gate enriches modules response", async () => {
+Deno.test("telegram-webhook keeps modules command deterministic", async () => {
   const deliveries: Array<Record<string, unknown>> = [];
   const brainInputs: Array<Record<string, unknown>> = [];
 
@@ -1912,17 +1897,11 @@ Deno.test("telegram-webhook agent brain gate enriches modules response", async (
 
   assertEquals(response.status, 200);
   assertEquals(body.status, "delivered");
-  assertEquals(brainInputs.length, 1);
-  assertEquals(brainInputs[0]?.command, "modules");
-  assertEquals(brainInputs[0]?.agentName, "Strategist");
-  assertEquals(
-    Array.isArray(brainInputs[0]?.modules),
-    true,
-  );
+  assertEquals(brainInputs.length, 0);
   assertEquals(deliveredResponse?.command, "modules");
   assertEquals(
     deliveredResponse?.text,
-    "Strategist modules are available in read-only mode.",
+    "Template modules fallback should be replaced.",
   );
 });
 
@@ -1985,7 +1964,7 @@ Deno.test("telegram-webhook agent brain gate falls back without dependency", asy
   assertEquals(deliveredResponse?.text, "Template fallback remains available.");
 });
 
-Deno.test("telegram-webhook agent brain provider failure keeps template fallback", async () => {
+Deno.test("telegram-webhook modules command bypasses agent brain provider", async () => {
   const deliveries: Array<Record<string, unknown>> = [];
   let agentBrainCalled = false;
 
@@ -2050,7 +2029,7 @@ Deno.test("telegram-webhook agent brain provider failure keeps template fallback
 
   assertEquals(response.status, 200);
   assertEquals(body.status, "delivered");
-  assertEquals(agentBrainCalled, true);
+  assertEquals(agentBrainCalled, false);
   assertEquals(deliveredResponse?.command, "modules");
   assertEquals(
     deliveredResponse?.text,

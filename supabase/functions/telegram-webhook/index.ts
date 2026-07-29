@@ -976,12 +976,11 @@ export async function handleTelegramWebhookRequest(
         } catch (error) {
           const supportCode = getTelegramAgentBrainSupportCode(error);
 
-          if (chatAuthorization?.role === "owner") {
-            response = {
-              ...response,
-              text: `${response.text}\n\nSupport code: ${supportCode}`,
-            };
-          }
+          console.warn(JSON.stringify({
+            event: "telegram_agent_brain_fallback",
+            command: parsedUpdate.command,
+            supportCode,
+          }));
           // Agent-brain is optional. Preserve read-only delivery if the provider
           // times out, rejects output, or returns a malformed response.
         }
@@ -1102,9 +1101,7 @@ function shouldUseTelegramTemplateContext(
 function shouldUseTelegramAgentBrain(
   command: TelegramWebhookParsedCommand["command"],
 ) {
-  return command === "agent" || command === "actions" ||
-    command === "modules" ||
-    command === "chat";
+  return command === "chat";
 }
 
 function getTelegramTemplateContextCommand(
