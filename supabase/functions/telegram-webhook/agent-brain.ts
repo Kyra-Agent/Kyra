@@ -4,6 +4,7 @@ import type { TelegramWebhookParsedCommandName } from "./update-parser.ts";
 
 export interface TelegramAgentBrainPromptInput {
   command: unknown;
+  templateId?: unknown;
   agentName?: unknown;
   agentRole?: unknown;
   agentSummary?: unknown;
@@ -43,6 +44,7 @@ interface TelegramAgentBrainPromptModule {
 
 interface NormalizedTelegramAgentBrainPromptInput {
   command: TelegramWebhookParsedCommandName;
+  templateId: string;
   agentName: string;
   agentRole: string;
   agentSummary: string;
@@ -65,6 +67,7 @@ const supportedReadOnlyCommands = new Set<TelegramWebhookParsedCommandName>([
   "chat",
 ]);
 const maxAgentNameLength = 48;
+const maxTemplateIdLength = 48;
 const maxAgentRoleLength = 72;
 const maxAgentSummaryLength = 180;
 const maxCapabilityCount = 6;
@@ -79,6 +82,25 @@ const maxSafetyNoteLength = 180;
 const maxUserRequestLength = 1000;
 const maxLanguageCodeLength = 35;
 const maxAgentBrainOutputCharacters = 3000;
+const maxGenericContentReplyCharacters = 320;
+const maxAgentBrainAttempts = 2;
+const templateDisplayNames = new Map<string, string>([
+  ["operator", "Operator"],
+  ["scout", "Scout"],
+  ["steward", "Steward"],
+  ["executor", "Executor"],
+  ["strategist", "Strategist"],
+  ["custom", "Custom"],
+]);
+const retryableAgentBrainErrorCodes = new Set([
+  "agent_brain_output_rejected",
+  "agent_brain_provider_invalid_response",
+  "agent_brain_incomplete_response",
+  "agent_brain_network_error",
+  "agent_brain_timeout",
+  "agent_brain_upstream_error",
+  "agent_brain_upstream_timeout",
+]);
 const supportedChatIntents = new Set<TelegramReadOnlyChatIntent>([
   "market_brief",
   "campaign_plan",
@@ -93,6 +115,21 @@ const supportedChatIntents = new Set<TelegramReadOnlyChatIntent>([
   "unsafe_execution",
   "general",
 ]);
+const contentProducingChatIntents = new Set<TelegramReadOnlyChatIntent>([
+  "market_brief",
+  "campaign_plan",
+  "narrative_map",
+  "launch_copy",
+  "community_pulse",
+  "risk_review",
+  "module_status",
+  "agent_profile",
+]);
+const genericContentReplyPatterns = [
+  /\b(?:Kyra\s+)?read-only chat is online\b/i,
+  /\bAsk for (?:available )?planning support\b/i,
+  /\b(?:chat|session)\s*:\s*active\b/i,
+];
 const secretLikePatterns = [
   /\d{5,20}:[A-Za-z0-9_-]{20,128}/,
   /sb_secret_[A-Za-z0-9_-]+/,
@@ -115,14 +152,6 @@ const secretMaterialPatterns = [
   /\b(?:0x)?[A-Fa-f0-9]{64}\b/,
   /\bprivate\s+key\s*[:=]\s*(?!not\b|never\b|none\b|disabled\b|unavailable\b|hidden\b)[^\s]+/i,
   /\bseed\s+phrase\s*[:=]\s*(?!not\b|never\b|none\b|disabled\b|unavailable\b|hidden\b).+/i,
-];
-const rawMarkdownPatterns = [
-  /\*\*/,
-  /^#{1,6}\s/m,
-  /^```/m,
-  /^---+$/m,
-  /^\s*\|.+\|\s*$/m,
-  /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/m,
 ];
 const incompleteTrailingLinePattern =
   /(?:^|\n)\s*(?:[-*]|\d+[.)]|[A-Z]{1,3})\s*$/;
@@ -151,9 +180,12 @@ export function buildTelegramAgentBrainRequest(
           "Keep the complete reply under 2600 characters.",
           "Finish every sentence and bullet. Never end with an empty bullet or an unfinished label.",
           "Answer the requested command directly and do not add unfinished helper text.",
+          "When the user asks for a concrete plan, review, brief, or draft, produce that content directly instead of returning a capability menu or generic status reply.",
           "Do not claim live, real-time, current, latest, price, or market data unless the user provides that data in the request.",
           "Support multilingual users. For natural chat, reply in the same language and writing system as the user's request. For slash commands without a natural-language request, use the Telegram language hint when you can write it fluently; otherwise use English.",
           "Infer the user's semantic intent from their request in any language. The supplied intent is only a heuristic hint.",
+          "Treat the deployed template context in the user message as the sole source of agent identity, role, capabilities, actions, and modules.",
+          "Never identify as another Kyra template or import another template's role, capabilities, actions, modules, or strategy.",
           "Regardless of language, refuse requests to sign, approve, submit, or execute wallet and onchain actions. Offer only read-only planning, review, or checklist help.",
         ].join(" "),
       },
@@ -161,6 +193,7 @@ export function buildTelegramAgentBrainRequest(
         role: "user",
         content: [
           `Command: /${context.command}`,
+          `Template: ${formatPromptTemplate(context.templateId)}`,
           `Agent: ${context.agentName}`,
           `Role: ${context.agentRole}`,
           `Summary: ${context.agentSummary}`,
@@ -183,20 +216,63 @@ export async function generateTelegramAgentBrainReply(
   provider: TelegramAgentBrainProvider,
 ): Promise<TelegramAgentBrainReply> {
   const context = normalizeTelegramAgentBrainPromptInput(input);
-  const request = buildTelegramAgentBrainRequest(input);
+  let request = buildTelegramAgentBrainRequest(input);
+  let lastError: HttpError | undefined;
 
-  try {
-    const response = await provider.complete(request);
-    const reply = assertTelegramAgentBrainReply(response);
-    assertContextualTelegramAgentBrainReply(reply.text, context);
-    return reply;
-  } catch (error) {
-    if (error instanceof HttpError) {
-      throw error;
+  for (let attempt = 0; attempt < maxAgentBrainAttempts; attempt += 1) {
+    try {
+      const response = await provider.complete(request);
+      const reply = assertTelegramAgentBrainReply(response);
+      assertContextualTelegramAgentBrainReply(reply.text, context);
+      return reply;
+    } catch (error) {
+      const normalizedError = error instanceof HttpError
+        ? error
+        : sanitizeTelegramAgentBrainProviderError(error);
+      lastError = normalizedError;
+
+      if (
+        attempt + 1 >= maxAgentBrainAttempts ||
+        !retryableAgentBrainErrorCodes.has(normalizedError.code)
+      ) {
+        throw normalizedError;
+      }
+
+      request = buildTelegramAgentBrainRepairRequest(request, context);
     }
-
-    throw sanitizeTelegramAgentBrainProviderError(error);
   }
+
+  throw lastError ?? sanitizeTelegramAgentBrainProviderError(undefined);
+}
+
+function buildTelegramAgentBrainRepairRequest(
+  request: TelegramAgentBrainRequest,
+  context: NormalizedTelegramAgentBrainPromptInput,
+): TelegramAgentBrainRequest {
+  return {
+    ...request,
+    messages: [
+      ...request.messages,
+      {
+        role: "user",
+        content: [
+          "Regenerate the answer from scratch because the previous attempt was incomplete, malformed, or did not satisfy the response contract.",
+          "Do not mention retries, fallback, providers, validation, or the previous attempt.",
+          "Answer the original request directly; do not return a generic capability menu when concrete content was requested.",
+          "Use the same language and writing system as the original user request. Language hint: " +
+          context.languageCode + ".",
+          "Keep the exact deployed identity: agent " + context.agentName +
+          ", template " + formatPromptTemplate(context.templateId) + ".",
+          "Stay faithful to the deployed role: " + context.agentRole + ".",
+          "Stay inside these read-only actions: " +
+          formatPromptList(context.capabilities) + ".",
+          "Do not identify as or borrow behavior from any other Kyra template.",
+          "Use complete plain-text labels and bullets without tables or code fences.",
+          "Never expose secrets or internal IDs, and never claim that a wallet or onchain action was executed.",
+        ].join(" "),
+      },
+    ],
+  };
 }
 
 export function assertTelegramAgentBrainCommand(
@@ -344,6 +420,7 @@ function normalizeTelegramAgentBrainPromptInput(
 ): NormalizedTelegramAgentBrainPromptInput {
   return {
     command: assertTelegramAgentBrainCommand(input.command),
+    templateId: sanitizeTemplateId(input.templateId),
     agentName: sanitizePromptFragment(
       input.agentName,
       maxAgentNameLength,
@@ -398,6 +475,10 @@ function formatPromptList(values: readonly string[]) {
   return values.length ? values.join(", ") : "none";
 }
 
+function formatPromptTemplate(templateId: string) {
+  return templateDisplayNames.get(templateId) ?? "unspecified";
+}
+
 function buildCommandResponseGuide(command: TelegramWebhookParsedCommandName) {
   if (command === "chat") {
     return [
@@ -428,6 +509,19 @@ function assertContextualTelegramAgentBrainReply(
   text: string,
   context: NormalizedTelegramAgentBrainPromptInput,
 ) {
+  if (hasForeignTemplateIdentityClaim(text, context)) {
+    throw invalidAgentBrainResponse();
+  }
+
+  if (
+    context.command === "chat" &&
+    context.chatIntent === "agent_profile" &&
+    context.templateId &&
+    !includesTextFolded(text, formatPromptTemplate(context.templateId))
+  ) {
+    throw invalidAgentBrainResponse();
+  }
+
   if (
     context.command === "modules" &&
     context.modules.length &&
@@ -584,23 +678,8 @@ function assertContextualTelegramAgentBrainReply(
 
   if (
     context.command === "chat" &&
-    usesStrictSemanticChatValidation(context) &&
-    context.chatIntent === "agent_profile" &&
-    !/\b(template|templat|strategy|strategi|role|peran|agent profile|profil agen)\b/i
-      .test(text)
-  ) {
-    throw invalidAgentBrainResponse();
-  }
-
-  if (
-    context.command === "chat" &&
-    usesStrictSemanticChatValidation(context) &&
-    context.chatIntent === "risk_review" &&
-    (
-      !/\b(?:risk|risiko)\b/i.test(text) ||
-      !/\b(?:market|pasar|timing|waktu|liquidity|likuiditas|control|kontrol|exposure|eksposur|drawdown|penurunan)\b/i
-        .test(text)
-    )
+    contentProducingChatIntents.has(context.chatIntent) &&
+    isGenericContentReply(text)
   ) {
     throw invalidAgentBrainResponse();
   }
@@ -638,6 +717,15 @@ function sanitizeLanguageCode(value: unknown) {
   return languageCode;
 }
 
+function sanitizeTemplateId(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const templateId = value.trim().toLowerCase().slice(0, maxTemplateIdLength);
+  return templateDisplayNames.has(templateId) ? templateId : "";
+}
+
 function usesStrictEnglishCommandLabels(
   context: NormalizedTelegramAgentBrainPromptInput,
 ) {
@@ -667,6 +755,43 @@ function includesTextFolded(text: string, fragment: string) {
   return text.toLowerCase().includes(fragment.toLowerCase());
 }
 
+function hasForeignTemplateIdentityClaim(
+  text: string,
+  context: NormalizedTelegramAgentBrainPromptInput,
+) {
+  if (!context.templateId) {
+    return false;
+  }
+
+  for (const [templateId, displayName] of templateDisplayNames) {
+    if (templateId === context.templateId) {
+      continue;
+    }
+
+    const escapedName = escapeRegExp(displayName);
+    const identityPatterns = [
+      new RegExp(
+        `(?:^|\\n)\\s*(?:template|templat|agent template|deployed template|type)\\s*:\\s*${escapedName}\\b`,
+        "i",
+      ),
+      new RegExp(
+        `(?:^|\\n)\\s*(?:i am|i'm|saya adalah|aku adalah)\\s+(?:an?\\s+)?${escapedName}\\b`,
+        "i",
+      ),
+    ];
+
+    if (identityPatterns.some((pattern) => pattern.test(text))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function hasExpectedActions(context: NormalizedTelegramAgentBrainPromptInput) {
   return context.capabilities.length > 0 || context.gatedActions.length > 0;
 }
@@ -683,6 +808,16 @@ function hasUnsafeExecutionOveranswer(text: string) {
   );
 }
 
+function isGenericContentReply(text: string) {
+  const patternMatches = genericContentReplyPatterns.reduce(
+    (count, pattern) => count + Number(pattern.test(text)),
+    0,
+  );
+
+  return patternMatches >= 2 ||
+    (patternMatches === 1 && text.length <= maxGenericContentReplyCharacters);
+}
+
 function normalizeTelegramAgentBrainText(text: string) {
   return text
     .replace(/\r\n?/g, "\n")
@@ -695,10 +830,44 @@ function normalizeTelegramAgentBrainText(text: string) {
         .replace(/__(.+?)__/g, "$1")
         .trimEnd()
     )
-    .filter((line) => !/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line))
+    .filter((line) => {
+      const trimmed = line.trim();
+      return !/^```/.test(trimmed) &&
+        !/^(?:-{3,}|\*{3,}|_{3,})$/.test(trimmed) &&
+        !isMarkdownTableSeparator(trimmed);
+    })
+    .map((line) => {
+      const trimmed = line.trim();
+
+      if (/^\|.+\|$/.test(trimmed)) {
+        return trimmed
+          .slice(1, -1)
+          .split("|")
+          .map((cell) => cell.trim())
+          .filter(Boolean)
+          .join(" - ");
+      }
+
+      return line;
+    })
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function isMarkdownTableSeparator(line: string) {
+  const normalized = line.replace(/^\||\|$/g, "").trim();
+
+  if (!normalized.includes("|")) {
+    return false;
+  }
+
+  const cells = normalized
+    .split("|")
+    .map((cell) => cell.trim())
+    .filter(Boolean);
+
+  return cells.length > 1 && cells.every((cell) => /^:?-{3,}:?$/.test(cell));
 }
 
 function assertSafeTelegramAgentBrainText(text: string) {
@@ -707,12 +876,6 @@ function assertSafeTelegramAgentBrainText(text: string) {
     orphanTrailingHeadingPattern.test(text)
   ) {
     throw invalidAgentBrainResponse();
-  }
-
-  for (const pattern of rawMarkdownPatterns) {
-    if (pattern.test(text)) {
-      throw invalidAgentBrainResponse();
-    }
   }
 
   for (const pattern of secretLikePatterns) {

@@ -949,6 +949,7 @@ export async function handleTelegramWebhookRequest(
       if (
         agentBrainRuntimeConfig.enabled &&
         dependencies.generateTelegramAgentBrainReply &&
+        templateContext !== null &&
         shouldUseTelegramAgentBrain(parsedUpdate.command) &&
         executionGate?.status !== "blocked" &&
         executionGate?.status !== "approval_draft_candidate"
@@ -957,6 +958,7 @@ export async function handleTelegramWebhookRequest(
           const agentBrainReply = await dependencies
             .generateTelegramAgentBrainReply({
               command: parsedUpdate.command,
+              templateId: templateContext?.context.templateId,
               agentName: templateContext?.context.name,
               agentRole: templateContext?.context.role,
               agentSummary: templateContext?.context.summary,

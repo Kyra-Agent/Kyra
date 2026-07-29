@@ -1630,11 +1630,182 @@ Deno.test("telegram-webhook natural chat reaches agent brain with template conte
   );
   assertEquals(brainInputs[0]?.chatIntent, "campaign_plan");
   assertEquals(brainInputs[0]?.languageCode, "en-GB");
+  assertEquals(brainInputs[0]?.templateId, "strategist");
   assertEquals(brainInputs[0]?.agentName, "Agent 666");
   assertEquals(deliveredResponse?.command, "chat");
   assert(
     String(deliveredResponse?.text).includes("Campaign plan"),
     "Natural chat must deliver generated read-only content.",
+  );
+});
+
+Deno.test("telegram-webhook binds all six deployed templates before calling the brain", async () => {
+  const cases = [
+    {
+      id: "operator",
+      name: "Operator",
+      role: "Personal wallet readiness agent",
+      capabilities: ["balance", "swap review"],
+    },
+    {
+      id: "scout",
+      name: "Scout",
+      role: "Recon and launch monitor",
+      capabilities: ["launch monitor", "token scan"],
+    },
+    {
+      id: "steward",
+      name: "Steward",
+      role: "Project and community agent",
+      capabilities: ["faq", "announcement"],
+    },
+    {
+      id: "executor",
+      name: "Executor",
+      role: "Rule-based action readiness agent",
+      capabilities: ["conditional review", "dca plan"],
+    },
+    {
+      id: "strategist",
+      name: "Strategist",
+      role: "Market and campaign intelligence agent",
+      capabilities: ["market brief", "campaign plan"],
+    },
+    {
+      id: "custom",
+      name: "Custom",
+      role: "Build your own agent",
+      capabilities: ["choose modules", "choose actions"],
+    },
+  ] as const;
+
+  for (const testCase of cases) {
+    const deliveries: Array<Record<string, unknown>> = [];
+    const expectedAgentId = "agent-" + testCase.id;
+    let lookupAgentId = "";
+    let brainInput: Record<string, unknown> | undefined;
+
+    const response = await handleTelegramWebhookRequest(
+      createJsonWebhookRequest(
+        createWebhookUpdate("What template do you run?"),
+      ),
+      {
+        lookupRuntimeConfig: { enabled: true },
+        parseRuntimeConfig: { enabled: true },
+        chatAuthRuntimeConfig: { enabled: true },
+        claimRuntimeConfig: { enabled: true },
+        deliveryRuntimeConfig: { enabled: true },
+        templateContextRuntimeConfig: { enabled: true },
+        agentBrainRuntimeConfig: { enabled: true },
+        lookupTelegramWebhookSession: async () => ({
+          sessionId: "telegram-session-" + testCase.id,
+          agentId: expectedAgentId,
+          workspaceId: "workspace-1",
+          ownerUserId: "owner-1",
+          botHandle: "@kyra_" + testCase.id,
+          webhookStatus: "active",
+        }),
+        lookupTelegramChatAuthorization: async () => ({
+          authorized: true,
+          role: "owner",
+        }),
+        claimTelegramUpdate: async () => ({ claimed: true, status: "claimed" }),
+        lookupTelegramTemplateContext: async (agentId, command) => {
+          lookupAgentId = agentId;
+          assertEquals(command, "agent");
+          return {
+            context: {
+              templateId: testCase.id,
+              name: "Kyra " + testCase.name,
+              role: testCase.role,
+              summary: testCase.role + " summary.",
+              actions: testCase.capabilities.map((name) => ({
+                name,
+                availability: "read_only_ready" as const,
+              })),
+              modules: [],
+              readOnlyActions: [...testCase.capabilities],
+              dashboardGatedActions: [],
+              phase6GatedActions: [],
+              gatedActions: [],
+              safetyNote: "Telegram is read-only.",
+            },
+            text: "Template fallback: " + testCase.name,
+          };
+        },
+        generateTelegramAgentBrainReply: async (input) => {
+          brainInput = input as unknown as Record<string, unknown>;
+          return { text: "Template: " + testCase.name };
+        },
+        deliverTelegramReadOnlyResponse: async (input) => {
+          deliveries.push(input);
+          return { delivered: true };
+        },
+      },
+    );
+
+    const deliveredResponse = deliveries[0]?.response as
+      | Record<string, unknown>
+      | undefined;
+    assertEquals(response.status, 200);
+    assertEquals(lookupAgentId, expectedAgentId);
+    assertEquals(brainInput?.templateId, testCase.id);
+    assertEquals(brainInput?.agentName, "Kyra " + testCase.name);
+    assertEquals(brainInput?.agentRole, testCase.role);
+    assertEquals(
+      JSON.stringify(brainInput?.capabilities),
+      JSON.stringify(testCase.capabilities),
+    );
+    assertEquals(deliveredResponse?.text, "Template: " + testCase.name);
+  }
+});
+
+Deno.test("telegram-webhook never calls the brain without exact template context", async () => {
+  const deliveries: Array<Record<string, unknown>> = [];
+  let brainCalled = false;
+
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("What template do you run?")),
+    {
+      lookupRuntimeConfig: { enabled: true },
+      parseRuntimeConfig: { enabled: true },
+      chatAuthRuntimeConfig: { enabled: true },
+      claimRuntimeConfig: { enabled: true },
+      deliveryRuntimeConfig: { enabled: true },
+      templateContextRuntimeConfig: { enabled: false },
+      agentBrainRuntimeConfig: { enabled: true },
+      lookupTelegramWebhookSession: async () => ({
+        sessionId: "telegram-session-1",
+        agentId: "agent-1",
+        workspaceId: "workspace-1",
+        ownerUserId: "owner-1",
+        botHandle: "@kyra_test_bot",
+        webhookStatus: "active",
+      }),
+      lookupTelegramChatAuthorization: async () => ({
+        authorized: true,
+        role: "owner",
+      }),
+      claimTelegramUpdate: async () => ({ claimed: true, status: "claimed" }),
+      generateTelegramAgentBrainReply: async () => {
+        brainCalled = true;
+        return { text: "Unscoped brain output must not be delivered." };
+      },
+      deliverTelegramReadOnlyResponse: async (input) => {
+        deliveries.push(input);
+        return { delivered: true };
+      },
+    },
+  );
+
+  const deliveredResponse = deliveries[0]?.response as
+    | Record<string, unknown>
+    | undefined;
+  assertEquals(response.status, 200);
+  assertEquals(brainCalled, false);
+  assert(
+    !String(deliveredResponse?.text).includes("Unscoped brain output"),
+    "A brain response without exact template context must never be delivered.",
   );
 });
 

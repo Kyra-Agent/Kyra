@@ -165,6 +165,164 @@ Deno.test("telegram agent brain provider receives bounded request and returns re
   assertNoSensitiveMaterial(capturedRequest);
 });
 
+Deno.test("telegram agent brain retries rejected content with a clean repair request", async () => {
+  const requests: Array<{
+    readonly messages: readonly {
+      readonly role: string;
+      readonly content: string;
+    }[];
+  }> = [];
+  const rejectedText =
+    "Kyra read-only chat is online. Ask for available planning support.";
+  let calls = 0;
+
+  const reply = await generateTelegramAgentBrainReply(
+    {
+      command: "chat",
+      userRequest:
+        "Buatkan strategi DCA ETH mingguan dengan budget 100 USDC selama 8 minggu dan 3 guardrail risiko.",
+      chatIntent: "risk_review",
+      languageCode: "id",
+      agentName: "Kyra'sHOOD",
+      agentRole: "rule-based action readiness agent",
+      capabilities: ["conditional review", "dca plan", "stop loss check"],
+    },
+    {
+      async complete(request) {
+        requests.push(request);
+        calls += 1;
+
+        if (calls === 1) {
+          return { text: rejectedText };
+        }
+
+        return {
+          text:
+            "Strategi DCA ETH\n- Total: 100 USDC selama 8 minggu\n- Alokasi: 12.5 USDC per minggu\n- Guardrail: batasi slippage, hentikan saat volatilitas ekstrem, dan tinjau ulang drawdown sebelum melanjutkan.",
+        };
+      },
+    },
+  );
+
+  assertEquals(
+    calls,
+    2,
+    "Rejected content must receive one LLM repair attempt.",
+  );
+  assertEquals(requests.length, 2);
+  assertEquals(requests[0].messages.length, 2);
+  assertEquals(requests[1].messages.length, 3);
+  const repairMessage = requests[1].messages[2]?.content ?? "";
+  assert(
+    repairMessage.includes("Regenerate the answer from scratch"),
+    "Repair request must explicitly request a fresh answer.",
+  );
+  assert(
+    repairMessage.includes("same language and writing system"),
+    "Repair request must preserve the user's language.",
+  );
+  assert(
+    repairMessage.includes("rule-based action readiness agent"),
+    "Repair request must preserve the deployed role.",
+  );
+  assert(
+    !repairMessage.includes(rejectedText),
+    "Rejected provider content must not be copied into the repair request.",
+  );
+  assert(
+    reply.text.startsWith("Strategi DCA ETH"),
+    "The repaired LLM answer must be returned.",
+  );
+});
+
+Deno.test("telegram agent brain does not retry non-retryable provider failures", async () => {
+  let calls = 0;
+  const error = await assertRejectsHttpError(
+    () =>
+      generateTelegramAgentBrainReply(
+        { command: "chat", userRequest: "Draft a launch brief." },
+        {
+          async complete() {
+            calls += 1;
+            throw new HttpError(
+              401,
+              "agent_brain_auth_error",
+              "Kyra agent brain provider rejected authentication.",
+            );
+          },
+        },
+      ),
+    401,
+    "agent_brain_auth_error",
+  );
+
+  assertEquals(calls, 1, "Authentication failures must not be retried.");
+  assertEquals(
+    error.message,
+    "Kyra agent brain provider rejected authentication.",
+  );
+});
+
+Deno.test("telegram agent brain stops after two retryable failures", async () => {
+  let calls = 0;
+  await assertRejectsHttpError(
+    () =>
+      generateTelegramAgentBrainReply(
+        {
+          command: "chat",
+          userRequest: "Create a campaign plan for the launch.",
+          chatIntent: "campaign_plan",
+        },
+        {
+          async complete() {
+            calls += 1;
+            return {
+              text:
+                "Kyra read-only chat is online. Ask for available planning support.",
+            };
+          },
+        },
+      ),
+    502,
+    "agent_brain_output_rejected",
+  );
+
+  assertEquals(
+    calls,
+    2,
+    "Retryable failures must stop after one repair attempt.",
+  );
+});
+
+Deno.test("telegram agent brain accepts a substantive answer with a generic opening", async () => {
+  let calls = 0;
+  const reply = await generateTelegramAgentBrainReply(
+    {
+      command: "chat",
+      userRequest:
+        "Create an eight-week DCA plan with a 100 USDC budget and three risk guardrails.",
+      chatIntent: "risk_review",
+      agentRole: "rule-based action readiness agent",
+      capabilities: ["dca plan", "conditional review"],
+    },
+    {
+      async complete() {
+        calls += 1;
+        return {
+          text:
+            "Kyra read-only chat is online. Here is the requested eight-week DCA plan.\n\nBudget and schedule\n- Total budget: 100 USDC\n- Weekly allocation: 12.5 USDC\n- Duration: 8 weeks\n\nRisk guardrails\n- Pause when volatility exceeds the selected threshold.\n- Reject routes above the configured slippage cap.\n- Review cumulative drawdown before every weekly allocation.\n\nThis is a planning draft and does not execute a wallet transaction.",
+        };
+      },
+    },
+  );
+
+  assertEquals(calls, 1, "Substantive answers must not trigger a repair call.");
+  assert(
+    reply.text.includes("Weekly allocation: 12.5 USDC"),
+    "The substantive LLM answer must be preserved.",
+  );
+});
+
 Deno.test("telegram agent brain prompt carries actionable template context", () => {
   const request = buildTelegramAgentBrainRequest({
     command: "modules",
@@ -621,6 +779,235 @@ Deno.test("telegram agent brain supports every template family", async () => {
     );
   }
 });
+Deno.test("telegram agent brain binds all six deployed template identities", async () => {
+  const cases = [
+    {
+      id: "operator",
+      name: "Operator",
+      role: "Personal wallet readiness agent",
+      capabilities: ["balance", "swap review", "portfolio"],
+    },
+    {
+      id: "scout",
+      name: "Scout",
+      role: "Recon and launch monitor",
+      capabilities: ["launch monitor", "token scan", "market brief"],
+    },
+    {
+      id: "steward",
+      name: "Steward",
+      role: "Project and community agent",
+      capabilities: ["faq", "token info", "announcement"],
+    },
+    {
+      id: "executor",
+      name: "Executor",
+      role: "Rule-based action readiness agent",
+      capabilities: ["conditional review", "dca plan", "stop loss check"],
+    },
+    {
+      id: "strategist",
+      name: "Strategist",
+      role: "Market and campaign intelligence agent",
+      capabilities: ["market brief", "campaign plan", "launch copy"],
+    },
+    {
+      id: "custom",
+      name: "Custom",
+      role: "Build your own agent",
+      capabilities: ["choose modules", "choose actions", "safety limits"],
+    },
+  ] as const;
+
+  for (let index = 0; index < cases.length; index += 1) {
+    const active = cases[index];
+    const foreign = cases[(index + 1) % cases.length];
+    const requests: Array<{
+      readonly messages: readonly {
+        readonly role: string;
+        readonly content: string;
+      }[];
+    }> = [];
+
+    const reply = await generateTelegramAgentBrainReply(
+      {
+        command: "chat",
+        templateId: active.id,
+        agentName: "Kyra Workspace",
+        agentRole: active.role,
+        capabilities: [...active.capabilities],
+        userRequest: "What template and role do you run?",
+        chatIntent: "agent_profile",
+        languageCode: "en",
+      },
+      {
+        async complete(request) {
+          requests.push(request);
+
+          if (requests.length === 1) {
+            return {
+              text: "Template: " + foreign.name + "\nRole: " + foreign.role +
+                ".",
+            };
+          }
+
+          return {
+            text: "Template: " + active.name + "\nRole: " + active.role +
+              ".\nCapabilities: " + active.capabilities.join(", ") + ".",
+          };
+        },
+      },
+    );
+
+    assertEquals(
+      requests.length,
+      2,
+      active.name + " must reject a foreign template identity and repair once.",
+    );
+
+    const initialPrompt = requests[0].messages[1]?.content ?? "";
+    assert(
+      initialPrompt.includes("Template: " + active.name),
+      active.name + " prompt must carry the exact deployed template.",
+    );
+    assert(
+      initialPrompt.includes("Role: " + active.role),
+      active.name + " prompt must carry the exact deployed role.",
+    );
+
+    for (const capability of active.capabilities) {
+      assert(
+        initialPrompt.includes(capability),
+        active.name + " prompt must carry capability " + capability + ".",
+      );
+    }
+
+    const repairPrompt = requests[1].messages[2]?.content ?? "";
+    assert(
+      repairPrompt.includes("template " + active.name),
+      active.name + " repair prompt must retain the deployed template.",
+    );
+    assert(
+      repairPrompt.includes("agent Kyra Workspace"),
+      active.name + " repair prompt must retain the deployed agent.",
+    );
+    assert(
+      reply.text.includes("Template: " + active.name),
+      active.name + " repaired reply must keep its deployed identity.",
+    );
+    assert(
+      !reply.text.includes("Template: " + foreign.name),
+      active.name + " reply must not drift to " + foreign.name + ".",
+    );
+  }
+});
+
+Deno.test("telegram agent brain allows an explicit cross-template comparison", async () => {
+  let calls = 0;
+  const reply = await generateTelegramAgentBrainReply(
+    {
+      command: "chat",
+      templateId: "steward",
+      agentName: "Kyra Community",
+      agentRole: "Project and community agent",
+      capabilities: ["faq", "token info", "announcement"],
+      userRequest: "Compare this Steward template with Scout.",
+      chatIntent: "agent_profile",
+      languageCode: "en",
+    },
+    {
+      async complete() {
+        calls += 1;
+        return {
+          text:
+            "Template: Steward\nRole: Project and community agent.\nComparison: Scout focuses on recon, while Steward stays focused on project and community workflows.",
+        };
+      },
+    },
+  );
+
+  assertEquals(calls, 1, "An explicit comparison must not trigger repair.");
+  assert(
+    reply.text.includes("Template: Steward"),
+    "The active template must remain explicit during comparison.",
+  );
+  assert(
+    reply.text.includes("Scout"),
+    "The requested comparison target may be mentioned.",
+  );
+});
+
+Deno.test("telegram agent brain rejects foreign identity during a requested comparison", async () => {
+  let calls = 0;
+
+  await assertRejectsHttpError(
+    () =>
+      generateTelegramAgentBrainReply(
+        {
+          command: "chat",
+          templateId: "steward",
+          agentName: "Kyra Community",
+          agentRole: "Project and community agent",
+          capabilities: ["faq", "token info", "announcement"],
+          userRequest: "Compare this Steward template with Scout.",
+          chatIntent: "agent_profile",
+          languageCode: "en",
+        },
+        {
+          async complete() {
+            calls += 1;
+            return {
+              text:
+                "Template: Scout\nComparison: Steward focuses on project and community workflows.",
+            };
+          },
+        },
+      ),
+    502,
+    "agent_brain_output_rejected",
+  );
+
+  assertEquals(
+    calls,
+    2,
+    "Foreign identity must fail both bounded LLM attempts.",
+  );
+});
+Deno.test("telegram agent brain permits template words outside identity claims", async () => {
+  let calls = 0;
+  const reply = await generateTelegramAgentBrainReply(
+    {
+      command: "chat",
+      templateId: "steward",
+      agentName: "Kyra Community",
+      agentRole: "Project and community agent",
+      capabilities: ["faq", "token info", "announcement"],
+      userRequest: "Draft a custom community announcement.",
+      chatIntent: "launch_copy",
+      languageCode: "en",
+    },
+    {
+      async complete() {
+        calls += 1;
+        return {
+          text:
+            "Custom community announcement\\nKyra Community is opening a new feedback round. Share your questions and priorities before Friday so the Steward team can prepare the next update.",
+        };
+      },
+    },
+  );
+
+  assertEquals(
+    calls,
+    1,
+    "A template name used as ordinary content must not trigger repair.",
+  );
+  assert(
+    reply.text.startsWith("Custom community announcement"),
+    "The original substantive answer must be preserved.",
+  );
+});
+
 Deno.test("telegram agent brain rejects generic template and risk replies", async () => {
   for (
     const input of [
@@ -1121,22 +1508,22 @@ Deno.test("telegram agent brain normalizes compatible Markdown provider text", (
   }
 });
 
-Deno.test("telegram agent brain rejects unsafe Markdown provider text", async () => {
-  const unsafeTexts = [
-    "| Module | Description |\n|---|---|\n| market | brief |",
-    "```text\nAgent\n```",
+Deno.test("telegram agent brain normalizes harmless Markdown provider text", () => {
+  const cases = [
+    {
+      input: "| Module | Description |\n|---|---|\n| market | brief |",
+      expected: "Module - Description\nmarket - brief",
+    },
+    {
+      input: "```text\nAgent\n```",
+      expected: "Agent",
+    },
   ];
 
-  for (const text of unsafeTexts) {
-    const error = await assertRejectsHttpError(
-      () => assertTelegramAgentBrainReply({ text }),
-      502,
-      "agent_brain_output_rejected",
-    );
-
+  for (const testCase of cases) {
     assertEquals(
-      error.message,
-      "Kyra agent brain output did not pass its safety contract.",
+      assertTelegramAgentBrainReply({ text: testCase.input }).text,
+      testCase.expected,
     );
   }
 });
