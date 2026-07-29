@@ -1,10 +1,25 @@
 # Product Readiness Snapshot
 
+Snapshot date: 2026-07-30.
+
+## User-Available Product
+
+Signed-in users can create a private workspace, deploy up to three agents,
+publish sanitized agent profiles, connect and authorize a Telegram bot, use
+multilingual LLM-assisted read-only planning, connect a compatible EVM wallet
+on Robinhood Chain, and complete the bounded self-transfer review flow.
+
+The transaction surface is not general-purpose. Only the exact `0.0001 ETH`
+self-transfer policy described below is released.
+
 ## Ready
 
 - Robinhood Chain is the only active product chain family.
 - Mainnet 4663 and testnet 46630 are the only accepted chain identities.
 - React production UI, Supabase Auth, RLS, Edge Functions, agent deployment, public profiles, Telegram, and LLM replies are implemented.
+- Exact template context is enforced across all six templates, with multilingual
+  identity preservation, foreign-template rejection, one bounded repair
+  attempt, and a template-safe fallback when provider output remains invalid.
 - EVM wallet discovery supports compatible injected wallets with provider identity shown after connection.
 - Prepared actions are immutable, allowlisted, rate-limited, owner-scoped, workspace-bound, agent-bound, chain-bound, and sanitized.
 - Wallet signing is user-controlled and Telegram execution is blocked.
@@ -45,3 +60,21 @@ The July 27 hardening batch is deployed and verified in production. The four int
 ## v1.0.0 Qualification
 
 Release qualification was completed on 2026-07-29. Product checks, all 44 selected test scripts, the Robinhood mainnet build, and the production dependency audit passed. Public production routes remained healthy, the linked Supabase project retained migration parity, and every deployed Edge Function remained active.
+
+## Post-Release Verification
+
+The 2026-07-30 Telegram hardening batch passed the current 45-script automated
+suite, targeted agent-brain and webhook tests, product checks, the Robinhood
+Chain mainnet build, and GitHub CI. The active production webhook was confirmed
+to fail closed with a sanitized `401` when its secret header was absent, and
+the public site remained healthy. This verification did not widen wallet,
+transaction, Telegram, or public-profile permissions.
+
+## Planned Transaction Expansion
+
+The next release track contains four grouped phases: native and allowlisted
+ERC-20 transfers, allowlisted swaps with exact approvals, security and
+operations hardening, then an audited mainnet canary and staged release.
+Nothing in this plan is public until every release gate passes.
+
+See [Transaction Expansion Roadmap](transaction-expansion-roadmap.md).

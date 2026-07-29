@@ -6,6 +6,18 @@ Each deployed agent can link one Telegram bot through an owner-scoped backend fl
 
 Supported commands include /help, /status, /agent, /actions, /modules, and /policy. Natural-language planning requests are supported through the configured agent brain.
 
+## Template Isolation
+
+- The webhook loads the persisted template, role, allowed actions, and module
+  stack before requesting an LLM response.
+- All six templates preserve their own identity across supported languages.
+- A user may ask for a comparison with another template, but the deployed agent
+  cannot claim that template's role or capabilities.
+- Foreign-template output is rejected and repaired once. If the provider still
+  fails or returns invalid output, the reply remains bound to the deployed
+  template through a deterministic safe response.
+- Execution-like requests never enter the LLM path.
+
 ## Security Boundary
 
 - bot tokens never enter persistent frontend state
@@ -15,6 +27,7 @@ Supported commands include /help, /status, /agent, /actions, /modules, and /poli
 - execution-like requests are rejected before the LLM path
 - Telegram cannot create wallet prompts, approvals, signatures, calldata, or transaction submissions
 - errors are sanitized and do not expose provider or token details
+- provider prompts, raw responses, validation reasons, and credentials remain backend-only
 
 ## Robinhood Context
 

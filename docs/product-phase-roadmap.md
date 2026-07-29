@@ -1,6 +1,6 @@
 # Kyra Product Roadmap
 
-Kyra uses one ten-phase product roadmap. Historical sub-batches are implementation evidence, not additional product phases.
+Kyra v1 uses one ten-phase product roadmap. Historical sub-batches are implementation evidence, not additional product phases. The roadmap is complete for the bounded v1 release; it does not claim that arbitrary transfers, swaps, token approvals, or contract calls are live. Post-release hardening through 2026-07-30 preserves exact six-template LLM isolation without widening the transaction boundary.
 
 | Phase | Outcome | Status |
 | --- | --- | --- |
@@ -27,15 +27,42 @@ Live now:
 - selected-agent chain binding
 - prepared-action allowlist and NYX-05 risk review
 - explicit owner approval and transaction preflight
+- one exact `0.0001 ETH` Robinhood Chain self-transfer lane
 - private monitoring, removal, disconnect, and emergency controls
 
 Per-transaction gate:
 
 - every transaction must independently pass eligibility, immutable intent, wallet prompt, receipt verification, and owner-only closeout; completing the roadmap does not bypass these runtime controls
 
+Not live:
+
+- general native or ERC-20 transfers
+- swaps and token approvals
+- arbitrary recipients, values, routers, or calldata
+- Telegram, public-profile, or autonomous transaction execution
+
+## Post-v1 Transaction Expansion
+
+Transaction expansion is tracked separately so the completed v1 roadmap is not
+rewritten or extended into an open-ended phase list.
+
+| Expansion phase | Outcome | Status | Estimate |
+| --- | --- | --- | --- |
+| T1 | Native and allowlisted ERC-20 transfer lane | Planned | 2-3 working days |
+| T2 | Allowlisted swap and exact-approval lane | Planned | 2-3 working days |
+| T3 | Security, abuse controls, monitoring, and incident operations | Planned | 2-3 working days |
+| T4 | Full audit, bounded mainnet canary, and staged public release | Planned | 2-3 working days |
+
+Total estimate: 8-12 working days after the supported assets, router, value
+limits, and release configuration are fixed. Expanded transactions remain
+disabled until all four phases and the explicit release decision are complete.
+
+See [Transaction Expansion Roadmap](transaction-expansion-roadmap.md) for the
+scope, acceptance criteria, and retained safety boundaries.
+
 ## Production Hardening Closeout
 
-Release hardening is complete and is not an eleventh phase. Server-verified transaction intent and receipt binding, retry-safe Telegram delivery, session-scoped auth storage, fresh-database bootstrap coverage, dependency updates, and CI are deployed. Linked migration parity, active Edge Functions, the Robinhood mainnet frontend build, automated checks, and live health checks were verified on 2026-07-28.
+Release hardening for the bounded v1 lane is complete and is not an eleventh phase. Server-verified transaction intent and receipt binding, retry-safe Telegram delivery, session-scoped auth storage, fresh-database bootstrap coverage, dependency updates, and CI are deployed. Linked migration parity, active Edge Functions, the Robinhood mainnet frontend build, automated checks, and live health checks were verified on 2026-07-29.
 
 ## Non-Negotiable Rules
 

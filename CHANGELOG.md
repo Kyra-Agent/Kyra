@@ -2,6 +2,28 @@
 
 All notable public releases of Kyra Agent are documented here.
 
+## [Unreleased]
+
+### Telegram And LLM
+
+- Bound every natural-language reply to the persisted agent template, role,
+  actions, and module stack across all six product templates.
+- Added multilingual template-isolation checks, foreign-template identity
+  rejection, one bounded repair attempt, and a template-safe fallback.
+- Kept cross-template comparisons available without allowing the active agent
+  to adopt another template identity.
+- Rejected execution-like requests before the LLM path so Telegram remains
+  read-only and cannot create wallet authority.
+
+### Documentation
+
+- Clarified that the live v1 transaction lane is the exact owner-approved
+  `0.0001 ETH` self-transfer, not general-purpose transaction execution.
+- Added the four-phase roadmap for native and allowlisted ERC-20 transfers,
+  allowlisted swaps, hardening, and staged release.
+- Synchronized public, writer, readiness, and engineering documentation around
+  the same live-versus-planned product boundary.
+
 ## [1.0.0] - 2026-07-29
 
 ### Product

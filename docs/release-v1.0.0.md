@@ -14,6 +14,7 @@ Kyra Agent v1.0.0 is the first stable public release of the Robinhood Chain AI a
 - Compatible EVM wallet discovery with provider identity shown after connection.
 - Robinhood Chain mainnet and testnet identity enforcement.
 - Immutable prepared actions, NYX-05 risk review, explicit approval, wallet prompt, receipt verification, and owner-only result closeout.
+- One released value-bearing lane: an exact `0.0001 ETH` self-transfer to the connected owner wallet with no calldata.
 
 ## Safety Boundary
 
@@ -21,6 +22,7 @@ Kyra Agent v1.0.0 is the first stable public release of the Robinhood Chain AI a
 - Telegram and public profiles cannot sign, approve, or submit transactions.
 - Private keys, seed phrases, Telegram bot tokens, raw provider payloads, and sensitive session data are never published.
 - Autonomous fund movement, token approvals, arbitrary calldata, and hidden signing are not enabled.
+- General native transfers, ERC-20 transfers, swaps, arbitrary recipients, and arbitrary values are not part of v1.0.0.
 - Every transaction independently revalidates account, workspace, agent, chain, intent, policy, approval, wallet, and receipt scope.
 
 ## Release Qualification
@@ -40,3 +42,11 @@ Manual account, deployment, Telegram, wallet, and controlled transaction flows w
 ## Runtime Contract
 
 `v1.0.0` marks the product release, not unrestricted execution. Runtime gates remain mandatory and fail closed whenever a prerequisite drifts or is missing.
+
+## Post-Release Hardening
+
+The original release qualification remains the historical 44-script gate. On
+2026-07-30, exact six-template Telegram brain isolation, multilingual identity
+preservation, foreign-template rejection, bounded repair, and template-safe
+fallback behavior were added and verified with the expanded 45-script suite.
+Execution-like Telegram requests continue to fail before the LLM path.

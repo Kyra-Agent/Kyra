@@ -67,6 +67,17 @@ Connected Telegram agents support a read-only command surface:
 | `/modules` | Show the deployed template module stack |
 | `/policy` | Explain the wallet and onchain safety boundary |
 
+Every natural-language reply is bound to the deployed agent's persisted
+template, role, actions, and module stack. The agent keeps that identity across
+supported languages. Users may compare templates, but a deployed agent cannot
+adopt another template's identity or capabilities. Foreign-template output is
+rejected, repaired once through the backend provider, and replaced with a
+template-safe response only if the provider still fails validation.
+
+Execution-like requests are rejected before any LLM call. The LLM can enrich
+eligible read-only planning, but it cannot authorize, approve, sign, or submit
+an onchain action.
+
 Natural prompts can produce campaign plans, market briefs, narrative maps, launch copy, community pulse summaries, and risk reviews. Swap, transfer, approval, contract, wallet, and transaction requests from Telegram are refused and converted into safe review output.
 
 ## Agent Templates
@@ -132,11 +143,24 @@ Transaction access remains deliberately narrower than the rest of the product. I
 
 The current production hardening is live: immutable backend transaction intents, RPC-verified receipts, retry-safe Telegram delivery, session-scoped browser authentication, fresh-database bootstrap coverage, dependency scanning, and CI are deployed and verified. These controls strengthen the existing owner-controlled release lane without widening Telegram, public-profile, autonomous, token-approval, arbitrary-calldata, or hidden-signing access.
 
+## Transaction Expansion
+
+Kyra's next release track expands the bounded transaction lane in four grouped
+phases: native and allowlisted ERC-20 transfers, allowlisted swaps with exact
+token approvals, security and operations hardening, then an audited mainnet
+canary and staged public release. These capabilities are planned, not currently
+public. Telegram, public profiles, autonomous execution, arbitrary calldata,
+hidden signing, and private-key custody remain outside the product boundary.
+
+See the [Transaction Expansion Roadmap](docs/transaction-expansion-roadmap.md)
+for scope, release gates, and the current 8-12 working-day estimate.
+
 Detailed engineering evidence is tracked in:
 
 - [v1.0.0 Release Notes](docs/release-v1.0.0.md)
 - [Changelog](CHANGELOG.md)
 - [`docs/product-phase-roadmap.md`](docs/product-phase-roadmap.md)
+- [Transaction Expansion Roadmap](docs/transaction-expansion-roadmap.md)
 - [`docs/robinhood-chain-migration-blueprint.md`](docs/robinhood-chain-migration-blueprint.md)
 - [`docs/robinhood-mainnet-cutover-runbook.md`](docs/robinhood-mainnet-cutover-runbook.md)
 - [Product Readiness Snapshot](docs/product-readiness-snapshot.md)

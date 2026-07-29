@@ -8,6 +8,7 @@ This directory records the production architecture, safety boundaries, migration
 | --- | --- |
 | [v1.0.0 Release Notes](release-v1.0.0.md) | Public release scope, verification, and retained safety boundaries |
 | [Product Roadmap](product-phase-roadmap.md) | Canonical ten-phase product roadmap and current completion state |
+| [Transaction Expansion Roadmap](transaction-expansion-roadmap.md) | Four-phase plan for transfers, allowlisted swaps, hardening, and staged release |
 | [Product Readiness Snapshot](product-readiness-snapshot.md) | Live capability, controlled boundaries, and sanitized release evidence |
 | [Backend Blueprint](backend-blueprint.md) | Runtime architecture, privacy model, chain contract, and execution boundary |
 | [Controlled Execution Launch Packet](controlled-execution-launch-packet.md) | Required sequence and hard blocks for an onchain transaction |
@@ -23,7 +24,7 @@ This directory records the production architecture, safety boundaries, migration
 
 | Document | Purpose |
 | --- | --- |
-| [Telegram Integration](telegram-integration-plan.md) | Live Telegram, LLM, owner-linking, and read-only execution boundary |
+| [Telegram Integration](telegram-integration-plan.md) | Live Telegram, exact six-template LLM isolation, owner-linking, and read-only execution boundary |
 
 ## Source-Level Contracts
 
@@ -36,7 +37,9 @@ Each deployed Edge Function has a colocated README under `supabase/functions/<fu
 - Telegram is live for read-only commands and multilingual planning; it never signs or submits.
 - Wallet authority remains with the connected user wallet.
 - Transaction access is private, selected-agent bound, explicitly approved, and verified per action.
+- The released transaction lane is one exact `0.0001 ETH` self-transfer; general transfers and swaps remain planned.
 - Secret values, raw logs, internal identifiers, full wallet addresses, and provider payloads never belong in public documentation.
 - A completed roadmap does not disable runtime safety gates.
 
-Production documentation was reconciled with the `v1.0.0` release state on 2026-07-29.
+Production documentation was reconciled with the post-release Telegram
+hardening state on 2026-07-30.

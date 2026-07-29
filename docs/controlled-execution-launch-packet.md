@@ -3,13 +3,15 @@
 ## Purpose
 
 This packet defines the only acceptable route from an agent recommendation to a Robinhood Chain transaction.
+For the released v1 lane, that transaction is an exact `0.0001 ETH`
+self-transfer to the connected owner wallet with no calldata.
 
 ## Required Sequence
 
 1. The user signs in to a private Kyra workspace.
 2. The user selects a deployed agent.
 3. The user connects a compatible EVM wallet on the agent's Robinhood network.
-4. Kyra prepares an allowlisted action with bounded value and calldata.
+4. Kyra prepares the exact allowlisted self-transfer intent with immutable recipient, value, empty calldata, and expiry.
 5. NYX-05 completes risk review.
 6. The owner reviews and explicitly approves the frozen action.
 7. A short-lived owner window is armed.
