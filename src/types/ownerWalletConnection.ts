@@ -65,7 +65,7 @@ export function createOwnerWalletConnectionBinding(
   nowEpochSeconds = Math.floor(Date.now() / 1000),
 ): OwnerWalletConnectionBinding {
   if (!isOwnerWalletConnectionTarget(input, nowEpochSeconds)) {
-    throw new Error("Owner wallet connection target is invalid or expired.");
+    throw new Error("Wallet connection target is invalid or expired.");
   }
 
   if (
@@ -76,7 +76,7 @@ export function createOwnerWalletConnectionBinding(
     typeof input.address !== "string" ||
     !addressPattern.test(input.address)
   ) {
-    throw new Error("Owner wallet connection response is invalid.");
+    throw new Error("Wallet connection response is invalid.");
   }
 
   return {
@@ -145,7 +145,7 @@ const ownerWalletConnectionFailureMessages: Record<
   network_mismatch:
     `Wallet must connect on ${currentProductChain.name}.`,
   binding_changed:
-    "The owner, session, agent, account, network, or wallet provider changed. Connect again.",
+    "The account, session, agent, network, or wallet provider changed. Connect again.",
   unknown:
     "Wallet connection failed safely.",
 };

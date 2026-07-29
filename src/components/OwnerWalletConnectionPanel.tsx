@@ -228,13 +228,13 @@ export function OwnerWalletConnectionPanel({
 
   async function handleConnect() {
     if (!session || !target || !connector || !canConnect) {
-    if (agentId && !agentChainMatchesRuntime) {
-      setUiState("error");
-      setMessage(
-        "Selected agent is not eligible for " + currentProductChain.name + ".",
-      );
-      return;
-    }
+      if (agentId && !agentChainMatchesRuntime) {
+        setUiState("error");
+        setMessage(
+          "Selected agent is not eligible for " + currentProductChain.name + ".",
+        );
+        return;
+      }
 
       setUiState("error");
       setMessage(
@@ -253,7 +253,7 @@ export function OwnerWalletConnectionPanel({
 
     const requestSequence = ++requestSequenceRef.current;
     setUiState("connecting");
-    setMessage("Checking the owner session before opening the wallet...");
+    setMessage("Checking your account session before opening the wallet...");
 
     const freshAuth = await ensureFreshAuthSession(session);
 
@@ -324,7 +324,7 @@ export function OwnerWalletConnectionPanel({
       setBinding(nextBinding);
       setUiState("connected");
       setMessage(
-        "Wallet connected to the selected agent. Signing and transactions remain disabled.",
+        "Wallet connected to the selected agent. Signing and transactions remain disabled. Continue to transaction review when ready.",
       );
     } catch (error) {
       disconnectMutation.disconnect();
@@ -356,12 +356,12 @@ export function OwnerWalletConnectionPanel({
           <WalletCards size={16} />
         </span>
         <div>
-          <small>Owner wallet connection</small>
+          <small>Your wallet</small>
           <strong>
             {binding
               ? maskOwnerWalletAddress(binding.address)
               : target
-              ? "Ready for owner action"
+              ? "Ready to connect"
               : "Connection locked"}
           </strong>
         </div>
@@ -371,7 +371,7 @@ export function OwnerWalletConnectionPanel({
       <div className="owner-wallet-binding-grid">
         <span>
           Agent
-          <strong>{agentName ?? "No persisted agent"}</strong>
+          <strong>{agentName ?? "No deployed agent"}</strong>
         </span>
         <span>
           Network
@@ -386,8 +386,8 @@ export function OwnerWalletConnectionPanel({
           <strong>Browser memory only</strong>
         </span>
         <span>
-          Execution
-          <strong>Disabled</strong>
+          Transaction policy
+          <strong>Approval required</strong>
         </span>
         {activeProviderName && (
           <span className="owner-wallet-provider-binding">

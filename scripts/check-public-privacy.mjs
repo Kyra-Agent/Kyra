@@ -245,6 +245,7 @@ assert(
 
 const appPage = read("src/App.tsx");
 const heroConsole = read("src/components/HeroConsole.tsx");
+const authSessionPanel = read("src/components/AuthSessionPanel.tsx");
 const dashboardPage = read("src/pages/Dashboard.tsx");
 assert(
   !appPage.includes("operator-demo") &&
@@ -264,8 +265,14 @@ assert(
 );
 assert(
   dashboardPage.includes("!authSession ?") &&
-    dashboardPage.includes("Transaction controls, release readiness, closeout records, and wallet details are visible only after owner sign-in."),
-  "Dashboard operational panels must stay behind an owner session gate.",
+    dashboardPage.includes("Transaction controls, release readiness, closeout records, and wallet details are visible only after account sign-in."),
+  "Dashboard operational panels must stay behind an account session gate.",
+);
+assert(
+  authSessionPanel.includes("Wallet connection is separate") &&
+    authSessionPanel.includes("Wallet confirmation required") &&
+    !authSessionPanel.includes("No wallet access"),
+  "Account-session copy must not contradict a separate live wallet connection.",
 );
 assert(
   dashboardPage.includes("const canViewOperationalReadiness = isAdmin") &&

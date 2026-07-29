@@ -218,30 +218,30 @@ function formatGateReasons(reasons: readonly string[]) {
   }
 
   const labels = new Map<string, string>([
-    ["owner_session_required", "sign in to the owner account"],
+    ["owner_session_required", "sign in to your account"],
     ["selected_agent_required", "select a deployed agent"],
     ["deployed_agent_required", "publish an agent first"],
     ["owner_wallet_required", `connect ${currentWalletDisplayName}`],
     ["owner_wallet_address_required", `connect ${currentWalletDisplayName}`],
     ["product_chain_required", `switch to ${currentProductChain.name}`],
     ["controlled_submission_required", "prepare the reviewed transaction"],
-    ["operator_ack_required", "confirm owner review"],
-    ["live_window_activation_required", "open the owner transaction window"],
-    ["live_window_approval_required", "approve the owner transaction window"],
-    ["runtime_window_disabled", "enable the owner runtime window"],
-    ["owner_click_required", "confirm with an owner click"],
-    ["owner_approval_required", "record owner approval"],
+    ["operator_ack_required", "confirm transaction review"],
+    ["live_window_activation_required", "open the transaction review window"],
+    ["live_window_approval_required", "approve the transaction review window"],
+    ["runtime_window_disabled", "enable the transaction review window"],
+    ["owner_click_required", "confirm with your click"],
+    ["owner_approval_required", "record your approval"],
     ["owner_wallet_approval_required", `confirm in ${currentWalletDisplayName}`],
     ["submission_nonce_required", "bind the one-time submit session"],
     ["one_time_prompt_nonce_required", "bind the one-time wallet prompt"],
-    ["owner_only_audit_required", "record private owner audit evidence"],
+    ["owner_only_audit_required", "record private account audit evidence"],
     ["controlled_submission_runtime_disabled", "Submitter is disabled"],
     ["runtime_submitter_disabled", "Submitter is disabled"],
     ["private_dashboard_required", "use the private dashboard"],
     ["telegram_authority_forbidden", "Telegram cannot execute this action"],
     ["public_visibility_forbidden", "public profiles cannot execute this action"],
     ["result_closeout_required", "complete result closeout"],
-    ["owner_closeout_required", "complete owner closeout"],
+    ["owner_closeout_required", "complete private transaction closeout"],
     ["receipt_verification_required", "verify the transaction receipt"],
     ["kyra_approval_required", "record Kyra approval"],
     ["rollback_required", "keep rollback ready"],
@@ -253,7 +253,7 @@ function formatGateReasons(reasons: readonly string[]) {
     ["monitoring_support_required", "complete monitoring and support readiness"],
     ["public_privacy_release_required", "complete public privacy review"],
     ["phase10_readiness_required", "complete release readiness review"],
-    ["owner_scope_required", "use the private owner workspace"],
+    ["owner_scope_required", "use your private account workspace"],
   ]);
 
   const readable = reasons.map((reason) => {
@@ -318,16 +318,16 @@ function getWalletReadinessFallback(
 ): DemoWalletReadiness {
   return {
     state: "not_connected",
-    label: hasAgentRecord ? "Execution disabled" : "No wallet record",
+    label: hasAgentRecord ? "Wallet not connected" : "No wallet record",
     addressLabel: "Not connected",
     network: currentProductChain.name + " pending",
     approvalGate: "Not created",
     execution: "Disabled",
     nextAction: signedIn
       ? "Deploy an agent before wallet readiness checks."
-      : "Sign in to load owner-only wallet readiness.",
+      : "Sign in to load private wallet readiness.",
     privacyNote:
-      "Wallet data stays owner-only and never appears on public profiles.",
+      "Wallet data stays private to your account and never appears on public profiles.",
   };
 }
 
@@ -343,6 +343,57 @@ function getWalletReadinessTone(state: DemoWalletReadinessState) {
   return state === "execution_disabled" ? "locked" : "standby";
 }
 
+function getDisplayedWalletReadiness(
+  persistedReadiness: DemoWalletReadiness,
+  connection: OwnerWalletConnectionStatus,
+  selectedAgentMatchesRuntime: boolean,
+): DemoWalletReadiness {
+  if (!selectedAgentMatchesRuntime) {
+    return persistedReadiness;
+  }
+
+  if (!connection.connected || !connection.address) {
+    return {
+      state: "not_connected",
+      label: "Wallet not connected",
+      addressLabel: "Not connected",
+      network: currentProductChain.name,
+      approvalGate: "Required",
+      execution: "Disabled",
+      nextAction:
+        "Connect your wallet to continue to private transaction review.",
+      privacyNote:
+        "Wallet data stays in this browser session and never appears on public profiles.",
+    };
+  }
+
+  if (connection.chainId !== currentProductChain.id) {
+    return {
+      state: "connected_wrong_network",
+      label: "Switch wallet network",
+      addressLabel: maskOwnerWalletAddress(connection.address),
+      network: `${currentProductChain.name} required`,
+      approvalGate: "Required",
+      execution: "Blocked",
+      nextAction: `Switch the connected wallet to ${currentProductChain.name} before reviewing a transaction.`,
+      privacyNote:
+        "The wallet connection stays in this browser session and never appears on public profiles.",
+    };
+  }
+
+  return {
+    state: "connected_ready_for_approval",
+    label: "Wallet connected",
+    addressLabel: maskOwnerWalletAddress(connection.address),
+    network: currentProductChain.name,
+    approvalGate: "Required",
+    execution: "Ready for approval",
+    nextAction:
+      "Continue to transaction review. Nothing is signed or submitted without your wallet confirmation.",
+    privacyNote:
+      "The wallet connection stays in this browser session and never appears on public profiles.",
+  };
+}
 function getWalletProviderStatusFallback(): DemoWalletProviderStatus {
   const connectionEnabled =
     appConfig.integrations.walletConnection === "owner_click_only";
@@ -354,7 +405,7 @@ function getWalletProviderStatusFallback(): DemoWalletProviderStatus {
     promptAccess: connectionEnabled ? "owner_click_only" : "disabled",
     connectorPriority: [currentWalletDisplayName],
     safetyNote: connectionEnabled
-      ? "Connection is owner-initiated. Signing and transactions remain disabled."
+      ? "Connection starts only after your click. Signing always requires wallet confirmation."
       : `${currentWalletDisplayName} connection is disabled.`,
   };
 }
@@ -375,8 +426,8 @@ function getPreparedActionPreviewFallback(
     expiresLabel: "Not issued",
     approvalRequirement: signedIn
       ? "Deploy an agent before preparation."
-      : "Sign in before owner-scoped preparation.",
-    ownerScope: "Signed-in dashboard owner only",
+      : "Sign in before private transaction preparation.",
+    ownerScope: "Signed-in account only",
     safetyNote: "No wallet prompt, no signing, no transaction submission.",
   };
 }
@@ -410,7 +461,7 @@ function createChainActionPreparedActionPreview(
       })
       : "No expiry",
     approvalRequirement: "Read-only result. No wallet approval was requested.",
-    ownerScope: "Signed-in dashboard owner only",
+    ownerScope: "Signed-in account only",
     safetyNote: "No wallet prompt, signing, or transaction submission.",
   };
 }
@@ -426,7 +477,7 @@ function getExecutionResultFallback(
       status: "pending",
       label: signedIn ? "No execution record" : "Sign-in required",
       summary: signedIn
-        ? "Deploy an agent before Kyra can show owner-only execution states."
+        ? "Deploy an agent before Kyra can show private transaction states."
         : "Execution results are hidden until an account session is active.",
       txHashLabel: "Not submitted",
       failureReason: null,
@@ -459,9 +510,28 @@ function formatActivityLog(log: DemoActivityLog) {
     activity_logs: "activity",
   }[log.source] ?? "backend";
 
-  return `[${log.timestamp}] ${sourceLabel}: ${log.message}`;
+  return `[${log.timestamp}] ${sourceLabel}: ${formatProductRecordText(log.message)}`;
 }
 
+function formatProductRecordText(value: string) {
+  return value
+    .replace(/\bdemo agent\b/giu, "agent")
+    .replace(/\bdemo action\b/giu, "review draft")
+    .replace(/\bdemo review draft\b/giu, "review draft")
+    .replace(/\bsimulated session\b/giu, "backend-managed session")
+    .replace(/\bdemo deployment\b/giu, "agent deployment")
+    .replace(/\bdemo Robinhood Chain wallet\b/giu, "Robinhood Chain wallet")
+    .replace(/\bowner-only\b/giu, "private account")
+    .replace(/\bowner scoped\b/giu, "account scoped")
+    .replace(/\bowner session\b/giu, "account session")
+    .replace(/\bowner chat\b/giu, "private chat");
+}
+
+function formatWalletPromptAccess(value: string) {
+  return value === "owner_click_only"
+    ? "your confirmation only"
+    : value.replace(/_/g, " ");
+}
 function getCatalogValue(
   status: SupabaseConnectionStatus,
   templateCount: number,
@@ -625,11 +695,11 @@ function getTelegramSessionDescription(
   }
 
   if (session.ownerChatLinked) {
-    return "Owner chat is linked. Read-only Telegram commands can use the authorized chat when delivery is enabled.";
+    return "Your private Telegram chat is linked. Read-only commands can use the authorized chat when delivery is enabled.";
   }
 
   if (session.webhookStatus === "active") {
-    return "Backend-only bot session and webhook are active. Link the owner chat before read-only Telegram commands are enabled.";
+    return "Backend-only bot session and webhook are active. Link your private Telegram chat before read-only commands are enabled.";
   }
 
   if (session.webhookStatus === "queued") {
@@ -648,10 +718,10 @@ function getTelegramOwnerPairingLabel(
   ownerChatLinked = false,
 ) {
   if (ownerChatLinked) {
-    return "Owner chat linked";
+    return "Chat linked";
   }
 
-  return active ? "Owner chat pending" : "Waiting for bot";
+  return active ? "Chat link pending" : "Waiting for bot";
 }
 
 function getTelegramCommandAccessLabel(
@@ -829,7 +899,7 @@ export function Dashboard({
     "idle" | "running" | "ready" | "error"
   >("idle");
   const [telegramOwnerLinkMessage, setTelegramOwnerLinkMessage] = useState(
-    "Link the private owner chat before Telegram commands are enabled.",
+    "Link your private Telegram chat before commands are enabled.",
   );
   const [telegramOwnerLink, setTelegramOwnerLink] = useState<string | null>(null);
   const [chainStatusState, setChainStatusState] = useState<
@@ -839,7 +909,7 @@ export function Dashboard({
     DashboardPrepareStatus | null
   >(null);
   const [chainStatusMessage, setChainStatusMessage] = useState(
-    "Run an owner-only read-only capability check.",
+    "Run a private read-only capability check.",
   );
   const [chainPreparedSummary, setChainPreparedSummary] = useState<
     DashboardPreparedSummary | null
@@ -873,7 +943,7 @@ export function Dashboard({
     recordId: null,
     resultStatus: null,
     status: "idle",
-    message: "No owner-only transaction result has been persisted yet.",
+    message: "No private transaction result has been persisted yet.",
   });
   const transactionCloseoutRequestSequenceRef = useRef(0);
   const chainStatusRequestSequenceRef = useRef(0);
@@ -916,6 +986,14 @@ export function Dashboard({
     window.dispatchEvent(new PopStateEvent("popstate"));
   }
 
+  function openTransactionReview() {
+    openDashboardSection("approvals");
+    window.setTimeout(() => {
+      document
+        .getElementById("transaction-review")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+  }
   useEffect(() => {
     if (!authSession) {
       setDashboardStatus(
@@ -1141,7 +1219,7 @@ export function Dashboard({
     setChainStatusState("idle");
     setChainStatusCode(null);
     setChainStatusMessage(
-      "Run an owner-only read-only capability check.",
+      "Run a private read-only capability check.",
     );
     setChainPreparedSummary(null);
   }, [authSession?.user.id, selectedDashboardAgentId]);
@@ -1150,7 +1228,7 @@ export function Dashboard({
     setTelegramOwnerLinkStatus("idle");
     setTelegramOwnerLink(null);
     setTelegramOwnerLinkMessage(
-      "Link the private owner chat before Telegram commands are enabled.",
+      "Link your private Telegram chat before commands are enabled.",
     );
   }, [authSession?.user.id, selectedDashboardAgentId]);
 
@@ -1223,10 +1301,15 @@ export function Dashboard({
     return [];
   }, [agentRecord, dashboardData]);
   const walletPolicies = dashboardData?.walletPolicies ?? [];
-  const walletReadiness = agentRecord
+  const persistedWalletReadiness = agentRecord
     ? dashboardData?.walletReadinessByAgent[agentRecord.id] ??
       getWalletReadinessFallback(Boolean(authSession), true)
     : getWalletReadinessFallback(Boolean(authSession), false);
+  const walletReadiness = getDisplayedWalletReadiness(
+    persistedWalletReadiness,
+    ownerWalletConnectionStatus,
+    selectedAgentMatchesRuntime,
+  );
   const walletProviderStatus = dashboardData?.walletProviderStatus ??
     getWalletProviderStatusFallback();
   const walletReadinessTone = getWalletReadinessTone(walletReadiness.state);
@@ -1270,8 +1353,8 @@ export function Dashboard({
         recipient: "0x1111111111111111111111111111111111111111",
         valueWei: ownerTransactionValueWei,
         data: ownerTransactionCalldata,
-        routeSummary: `Owner reviewed ${currentProductChain.name} transaction preview.`,
-        valueSummary: `Fixed ${ownerTransactionValueLabel} owner self-transfer.`,
+        routeSummary: `Transaction reviewed for ${currentProductChain.name}.`,
+        valueSummary: `Fixed ${ownerTransactionValueLabel} wallet self-transfer.`,
       }),
     [],
   );
@@ -1290,8 +1373,8 @@ export function Dashboard({
         recipient: "0x1111111111111111111111111111111111111111",
         valueWei: ownerTransactionValueWei,
         data: ownerTransactionCalldata,
-        routeSummary: `Owner reviewed ${currentProductChain.name} transaction preview.`,
-        valueSummary: `Fixed ${ownerTransactionValueLabel} owner self-transfer.`,
+        routeSummary: `Transaction reviewed for ${currentProductChain.name}.`,
+        valueSummary: `Fixed ${ownerTransactionValueLabel} wallet self-transfer.`,
       }),
     [agentRecord, authSession, selectedAgentReadyForExecution],
   );
@@ -1432,7 +1515,7 @@ export function Dashboard({
     : "idle";
   const transactionCloseoutMessage = transactionCloseoutMatchesCurrentResult
     ? transactionCloseoutState.message
-    : "No matching owner-only backend closeout is recorded for this result.";
+    : "No matching private backend closeout is recorded for this result.";
   const phase8SubmittedTxHash = isTransactionHash(phase8SubmitterResult?.txHash)
     ? phase8SubmitterResult.txHash
     : isTransactionHash(phase8ScopedPersistedResult?.txHash)
@@ -1517,7 +1600,7 @@ export function Dashboard({
       recordId: record.id,
       resultStatus: record.status,
       status: "saving",
-      message: "Persisting sanitized result to the owner-only backend...",
+      message: "Persisting the sanitized result to the private backend...",
     });
     const result = await persistTransactionResultCloseout(authSession, record);
     if (requestSequence !== transactionCloseoutRequestSequenceRef.current) {
@@ -1617,7 +1700,7 @@ export function Dashboard({
       recordId: null,
       resultStatus: null,
       status: "idle",
-      message: "No owner-only transaction result has been persisted yet.",
+      message: "No private transaction result has been persisted yet.",
     });
     setPhase8SubmitterResult(null);
     setPhase8OwnerArming({
@@ -2291,7 +2374,7 @@ export function Dashboard({
             type: "prompt_approved",
             ownerOnly: true,
             sanitized: true,
-            message: "Owner approved browser-session prompt readiness.",
+            message: "Wallet confirmation readiness recorded for this browser session.",
             createdAt: activePhase8OwnerArming.armedAt,
           }]
           : [],
@@ -2638,7 +2721,7 @@ export function Dashboard({
 
     setChainStatusState("checking");
     setChainStatusCode(null);
-    setChainStatusMessage(`Checking owner session and ${currentProductChain.name} capability...`);
+    setChainStatusMessage(`Checking account session and ${currentProductChain.name} capability...`);
     setChainPreparedSummary(null);
 
     const requestSequence = ++chainStatusRequestSequenceRef.current;
@@ -2804,7 +2887,7 @@ export function Dashboard({
     recordBackendEvent({
       kind: "agent-remove",
       status: "running",
-      message: "Owner-scoped agent removal requested.",
+      message: "Account-scoped agent removal requested.",
       source: "remove-agent",
     });
 
@@ -2897,7 +2980,7 @@ export function Dashboard({
       kind: "deploy",
       status: result.ok ? "success" : "error",
       message: result.ok
-        ? "Telegram owner chat activation link is ready."
+        ? "Telegram private chat activation link is ready."
         : result.message,
       source: "telegram-link",
       code: result.status,
@@ -2929,7 +3012,7 @@ export function Dashboard({
     recordBackendEvent({
       kind: "telegram-disconnect",
       status: "running",
-      message: "Owner-scoped Telegram revoke requested.",
+      message: "Account-scoped Telegram revoke requested.",
       source: "telegram-disconnect",
     });
 
@@ -3019,7 +3102,7 @@ export function Dashboard({
 
             <section className="dashboard-public-owner-notice">
               <div className="result-monitoring-header">
-                <span>Owner-only workspace</span>
+                <span>Private workspace</span>
                 <strong>private by default</strong>
               </div>
               <p>
@@ -3030,7 +3113,7 @@ export function Dashboard({
               <small>
                 Signing in only loads account-scoped Kyra records. Wallet keys,
                 Telegram bot tokens, and transaction execution stay behind
-                separate owner approvals.
+                separate wallet confirmations.
               </small>
             </section>
           </div>
@@ -3429,7 +3512,7 @@ export function Dashboard({
                         </strong>
                       </span>
                       <span>
-                        <small>Owner chat</small>
+                        <small>Private chat</small>
                         <strong>
                           {getTelegramOwnerPairingLabel(
                             selectedTelegramActive,
@@ -3449,7 +3532,7 @@ export function Dashboard({
                     </div>
                     <p className="telegram-connect-message telegram-connect-idle">
                       Bot credentials stay backend-only. This private workspace
-                      links one owner chat before read-only commands can run.
+                      links one private Telegram chat before read-only commands can run.
                     </p>
                     {telegramDashboardStatusEnabled &&
                         telegramDashboardStatusState !== "ready"
@@ -3485,7 +3568,7 @@ export function Dashboard({
                           <Bot size={16} />
                           {telegramOwnerLinkStatus === "running"
                             ? "Creating secure link..."
-                            : "Link owner chat"}
+                            : "Link Telegram chat"}
                         </button>
                       )}
                       {telegramOwnerLinkStatus === "ready" ? (
@@ -3505,7 +3588,7 @@ export function Dashboard({
                   ) : selectedTelegramOwnerChatLinked ? (
                     <p className="telegram-owner-link-linked">
                       <CheckCircle2 size={15} />
-                      Owner chat linked. Read-only Telegram commands are enabled.
+                      Telegram chat linked. Read-only commands are enabled.
                     </p>
                   ) : null}
                   {selectedTelegramActive
@@ -3570,8 +3653,8 @@ export function Dashboard({
                           : <ShieldCheck size={16} />}
                       </span>
                       <div>
-                        <strong>{item.title}</strong>
-                        <small>{item.command}</small>
+                        <strong>{formatProductRecordText(item.title)}</strong>
+                        <small>{formatProductRecordText(item.command)}</small>
                       </div>
                       <em>{formatQueueStatus(item.status)}</em>
                     </article>
@@ -3624,7 +3707,7 @@ export function Dashboard({
                     <small>Robinhood Chain Testnet</small>
                     <strong>{robinhoodTestnetCloseout.label}</strong>
                   </div>
-                  <span>owner only</span>
+                  <span>private account</span>
                 </div>
                 <div className="robinhood-testnet-closeout-steps">
                   {robinhoodTestnetCloseout.steps.map((step, index) => {
@@ -3713,13 +3796,13 @@ export function Dashboard({
                     <small>Use the wallet connection control directly above.</small>
                   ) : null}
                   {robinhoodTestnetCloseout.nextAction === "sign_in" ? (
-                    <small>Use the account panel to start a private owner session.</small>
+                    <small>Use the account panel to start a private account session.</small>
                   ) : null}
                   {robinhoodTestnetCloseout.nextAction === "select_agent" ? (
                     <small>Select a deployed Robinhood Chain Testnet agent at the top of the dashboard.</small>
                   ) : null}
                   {robinhoodTestnetCloseout.nextAction === "wait_for_receipt" ? (
-                    <small>Receipt monitoring is active. Keep this owner session open.</small>
+                    <small>Receipt monitoring is active. Keep this account session open.</small>
                   ) : null}
                 </div>
                 <small className="robinhood-testnet-closeout-note">
@@ -3756,13 +3839,13 @@ export function Dashboard({
               <div className="wallet-signing-boundary-grid">
                 <span>
                   Source
-                  <strong>Owner dashboard click</strong>
+                  <strong>Your dashboard confirmation</strong>
                 </span>
                 <span>
                   Connection
                   <strong>
                     {runtimeBoundWalletConnected
-                        ? "Owner wallet ready"
+                        ? "Wallet connected"
                       : "Required"}
                   </strong>
                 </span>
@@ -3789,7 +3872,7 @@ export function Dashboard({
                   <WalletCards size={16} />
                 </span>
                 <div>
-                  <small>Owner wallet readiness</small>
+                  <small>Wallet readiness</small>
                   <strong>{walletReadiness.label}</strong>
                 </div>
               </div>
@@ -3813,6 +3896,21 @@ export function Dashboard({
               </div>
               <p>{walletReadiness.nextAction}</p>
               <small>{walletReadiness.privacyNote}</small>
+              <div className="wallet-next-step">
+                <button
+                  className="button button-primary"
+                  onClick={openTransactionReview}
+                  type="button"
+                >
+                  <ShieldCheck size={16} />
+                  {runtimeBoundWalletConnected
+                    ? "Continue to transaction review"
+                    : "View transaction requirements"}
+                </button>
+                <small>
+                  Private to your account. Wallet confirmation is always required before submission.
+                </small>
+              </div>
             </div>
             <div className="wallet-policy-list">
               <article>
@@ -3826,7 +3924,7 @@ export function Dashboard({
               <article>
                 <span>Prompt access</span>
                 <strong>
-                  {walletProviderStatus.promptAccess.replace(/_/g, " ")}
+                  {formatWalletPromptAccess(walletProviderStatus.promptAccess)}
                 </strong>
                 <small>{walletProviderStatus.safetyNote}</small>
               </article>
@@ -3845,9 +3943,11 @@ export function Dashboard({
                 ? (
                   walletPolicies.map((policy) => (
                     <article key={policy.id}>
-                      <span>{policy.label}</span>
-                      <strong>{policy.value}</strong>
-                      <small>{policy.status}: {policy.description}</small>
+                      <span>{formatProductRecordText(policy.label)}</span>
+                      <strong>{formatProductRecordText(policy.value)}</strong>
+                      <small>
+                        {policy.status}: {formatProductRecordText(policy.description)}
+                      </small>
                     </article>
                   ))
                 )
@@ -4064,7 +4164,7 @@ export function Dashboard({
                             deploy-agent{" "}
                             {getDeployFunctionHealthLabel(deployFunctionStatus)}
                           </span>
-                          <span>{appConfig.chain.testnetEvidenceMode ? "owner-only testnet execution" : "onchain execution disabled"}</span>
+                          <span>{appConfig.chain.testnetEvidenceMode ? "private testnet execution" : "onchain execution disabled"}</span>
                         </div>
                       </div>
                     </details>
@@ -4126,7 +4226,7 @@ export function Dashboard({
                 max {demoAgentLimits.maxAgentsPerWorkspace} agents
               </span>
               <span>approval-first workflows</span>
-              <span>{appConfig.chain.testnetEvidenceMode ? "owner-only testnet execution" : "onchain execution disabled"}</span>
+              <span>{appConfig.chain.testnetEvidenceMode ? "private testnet execution" : "onchain execution disabled"}</span>
             </div>
           </section>
 
@@ -4138,7 +4238,7 @@ export function Dashboard({
             <div className="chain-action-boundary-banner">
               <ShieldCheck size={16} />
               <span>
-                {currentProductChain.name} status preparation is read-only. Transaction review and wallet confirmation remain isolated in the private owner workflow.
+                {currentProductChain.name} status preparation is read-only. Transaction review and wallet confirmation remain isolated in the private account workflow.
               </span>
             </div>
             <div className="prepared-action-allowlist-grid">
@@ -4156,7 +4256,7 @@ export function Dashboard({
               </article>
               <article>
                 <small>Source</small>
-                <strong>owner dashboard</strong>
+                <strong>private dashboard</strong>
               </article>
               <article>
                 <small>Allowed kinds</small>
@@ -4185,7 +4285,7 @@ export function Dashboard({
                   Storage
                   <strong>
                     {preparedActionPolicyReview.allowedForStorage
-                      ? "owner scoped"
+                      ? "account scoped"
                       : "disabled"}
                   </strong>
                 </span>
@@ -4196,7 +4296,7 @@ export function Dashboard({
                   </strong>
                 </span>
                 <span>
-                  Owner approval
+                  Wallet approval
                   <strong>
                     {preparedActionPolicyReview.reasons.includes(
                         "owner_approval_required",
@@ -4274,6 +4374,7 @@ export function Dashboard({
             </div>
             <div
               className={`prepared-action-card readiness-${preparedActionTone}`}
+              id="transaction-review"
             >
               <div className="prepared-action-header">
                 <span className="queue-icon">
@@ -4323,7 +4424,7 @@ export function Dashboard({
                   <strong>
                     {chainStatusCode
                       ? formatRuntimeValue(chainStatusCode)
-                      : "owner-only read-only"}
+                      : "private read-only"}
                   </strong>
                   <small>{chainStatusMessage}</small>
                 </span>
@@ -4334,7 +4435,7 @@ export function Dashboard({
           <section className={"dashboard-panel execution-result-panel" + (appConfig.chain.testnetEvidenceMode ? " is-robinhood-testnet" : "")}>
             <div className="panel-title">
               <span>{appConfig.chain.testnetEvidenceMode ? "Testnet transaction" : "Execution audit trail"}</span>
-              <span>{appConfig.chain.testnetEvidenceMode ? robinhoodTestnetCloseout.label : "owner-only"}</span>
+              <span>{appConfig.chain.testnetEvidenceMode ? robinhoodTestnetCloseout.label : "private account"}</span>
             </div>
             <div className="controlled-live-gate-panel">
               <div className="controlled-live-gate-header">
@@ -4345,8 +4446,8 @@ export function Dashboard({
               </div>
               <div className="controlled-live-gate-grid">
                 <span>
-                  Owner scope
-                  <strong>{controlledLiveTransactionGate.ownerOnly ? "owner-only" : "blocked"}</strong>
+                  Account scope
+                  <strong>{controlledLiveTransactionGate.ownerOnly ? "private account" : "blocked"}</strong>
                 </span>
                 <span>
                   Live window
@@ -4434,7 +4535,7 @@ export function Dashboard({
                 )
                 : (
                   <small>
-                    Owner review can be prepared. Access wallet prompt,
+                    Transaction review can be prepared. Access wallet prompt,
                     signing, and submission still require a separate enablement
                     window.
                   </small>
@@ -4442,7 +4543,7 @@ export function Dashboard({
             </div>
             <div className="phase-8-execution-panel">
               <div className="phase-8-execution-header">
-                <span>Owner-controlled execution</span>
+                <span>User-confirmed execution</span>
                 <strong>{phase8ControlledExecution.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-8-execution-grid">
@@ -4474,7 +4575,7 @@ export function Dashboard({
                   Scope
                   <strong>
                     {phase8ControlledExecution.ownerOnly
-                      ? "owner-only"
+                      ? "private account"
                       : "blocked"}
                   </strong>
                 </span>
@@ -4488,19 +4589,19 @@ export function Dashboard({
                 )
                 : (
                   <small>
-                    Ready for wallet prompt only after an explicit owner live
+                    Ready for wallet prompt only after an explicit transaction review
                     window. Telegram and public profiles still cannot execute.
                   </small>
                 )}
             </div>
             <div className="phase-8-live-window-panel">
               <div className="phase-8-live-window-header">
-                <span>Owner review window</span>
+                <span>Transaction review window</span>
                 <strong>{phase8LiveWindowPreparation.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-8-live-window-grid">
                 <span>
-                  owner-approved window
+                  user-confirmed window
                   <strong>
                     {phase8LiveWindowPreparation.reasons.includes(
                         "live_window_approval_required",
@@ -4547,9 +4648,9 @@ export function Dashboard({
                 )
                 : (
                   <small>
-                    owner-approved window, private dashboard intent, frozen
+                    user-confirmed window, private dashboard intent, frozen
                     action binding, and {currentWalletDisplayName} prompt readiness are ready.
-                    Transaction submission remains disabled until owner approval is complete.
+                    Transaction submission remains disabled until wallet approval is complete.
                   </small>
                 )}
             </div>
@@ -4570,7 +4671,7 @@ export function Dashboard({
                   </strong>
                 </span>
                 <span>
-                  owner-only audit
+                  private account audit
                   <strong>
                     {phase8WalletPromptOpening.reasons.includes(
                         "owner_only_audit_required",
@@ -4605,8 +4706,8 @@ export function Dashboard({
                 )
                 : (
                   <small>
-                    One owner-click {currentWalletDisplayName} prompt can open under
-                    owner-only audit. Transaction submission remains disabled in
+                    One user-confirmed {currentWalletDisplayName} prompt can open under
+                    private account audit. Transaction submission remains disabled in
                     this step.
                   </small>
                 )}
@@ -4643,7 +4744,7 @@ export function Dashboard({
                   submit allowed
                   <strong>
                     {phase8ControlledSubmission.transactionSubmissionAllowed
-                      ? "owner-only"
+                      ? "private account"
                       : "locked"}
                   </strong>
                 </span>
@@ -4665,7 +4766,7 @@ export function Dashboard({
                 )
                 : (
                   <small>
-                    One owner-controlled {currentProductChain.name} submission can proceed only from
+                    One user-confirmed {currentProductChain.name} submission can proceed only from
                     the private dashboard. Telegram, public profiles, token
                     approvals, swaps, calldata, and arbitrary values remain
                     blocked.
@@ -4715,7 +4816,7 @@ export function Dashboard({
               <div className="phase-8-owner-candidate-panel">
                 <span>
                   Candidate
-                  <strong>{phase8OwnerActionCandidate.ok ? "owner self-check" : "locked"}</strong>
+                  <strong>{phase8OwnerActionCandidate.ok ? "wallet self-check" : "locked"}</strong>
                 </span>
                 <span>
                   Recipient
@@ -4782,7 +4883,7 @@ export function Dashboard({
                 )
                 : (
                   <small>
-                    One owner-controlled transaction review window is open. Telegram, public
+                    One user-confirmed transaction review window is open. Telegram, public
                     profiles, automation, token approvals, swaps, calldata, and
                     arbitrary values remain blocked.
                   </small>
@@ -4829,7 +4930,7 @@ export function Dashboard({
                 : (
                   <small>
                     Transaction submission is available only from the private dashboard, selected agent,
-                    connected {currentWalletDisplayName}, and one owner-controlled {ownerTransactionValueLabel} self-transfer.
+                    connected {currentWalletDisplayName}, and one user-confirmed {ownerTransactionValueLabel} self-transfer.
                     Telegram and public profiles remain blocked.
                   </small>
                 )}
@@ -4844,7 +4945,7 @@ export function Dashboard({
               <div className="result-monitoring-grid">
                 <span>
                   Scope
-                  <strong>{resultMonitoringCloseout.ownerOnly ? "owner-only" : "blocked"}</strong>
+                  <strong>{resultMonitoringCloseout.ownerOnly ? "private account" : "blocked"}</strong>
                 </span>
                 <span>
                   Tx hash
@@ -4935,7 +5036,7 @@ export function Dashboard({
               <p>{phase8UserExecutionFlow.message}</p>
               {phase8UserExecutionFlow.reasons.length
                 ? <small>{formatGateHint(phase8UserExecutionFlow.reasons)}</small>
-                : <small>Owner-only flow map. Telegram and public profiles cannot start, inspect, or complete execution.</small>}
+                : <small>Private account flow map. Telegram and public profiles cannot start, inspect, or complete execution.</small>}
             </div>
             <div className="phase-8-security-hardening-panel">
               <div className="result-monitoring-header">
@@ -4986,7 +5087,7 @@ export function Dashboard({
               <p>{phase8LowValueTransactionReadiness.message}</p>
               {phase8LowValueTransactionReadiness.reasons.length
                 ? <small>{formatGateHint(phase8LowValueTransactionReadiness.reasons)}</small>
-                : <small>Low-value review is owner-dashboard only. Execution still requires a separate submit gate.</small>}
+                : <small>Low-value review is private-dashboard only. Execution still requires a separate submit gate.</small>}
             </div>
             <div className="phase-8-low-value-request-panel">
               <div className="result-monitoring-header">
@@ -5003,7 +5104,7 @@ export function Dashboard({
                   <strong>{phase8LowValueSubmitRequest.ok ? currentProductChain.name : "required"}</strong>
                 </span>
                 <span>
-                  Owner only
+                  Account only
                   <strong>{phase8LowValueSubmitRequest.ok ? "true" : "locked"}</strong>
                 </span>
                 <span>
@@ -5017,7 +5118,7 @@ export function Dashboard({
               </div>
               <p>{phase8LowValueSubmitRequest.message}</p>
               {phase8LowValueSubmitRequest.ok
-                ? <small>Low-value request is ready for the isolated owner-dashboard submitter. Telegram and public profiles remain blocked.</small>
+                ? <small>Low-value request is ready for the isolated private-dashboard submitter. Telegram and public profiles remain blocked.</small>
                 : <small>{formatGateHint(phase8LowValueSubmitRequest.reasons)}</small>}
             </div>
             <Phase8LowValueSubmitter
@@ -5056,7 +5157,7 @@ export function Dashboard({
                 </span>
                 <span>
                   Visibility
-                  <strong>{phase8TransactionVerification.ownerOnly ? "owner-only" : "blocked"}</strong>
+                  <strong>{phase8TransactionVerification.ownerOnly ? "private account" : "blocked"}</strong>
                 </span>
                 <span>
                   Backend closeout
@@ -5067,7 +5168,7 @@ export function Dashboard({
               <small>{transactionCloseoutMessage}</small>
               {phase8TransactionVerification.reasons.length
                 ? <small>{formatGateHint(phase8TransactionVerification.reasons)}</small>
-                : <small>Receipt verification is owner-only. Telegram and public profiles cannot read or expose this state.</small>}
+                : <small>Receipt verification is private to this account. Telegram and public profiles cannot read or expose this state.</small>}
             </div>
             <div className="phase-8-production-closeout-panel">
               <div className="result-monitoring-header">
@@ -5086,7 +5187,7 @@ export function Dashboard({
               <p>{phase8ProductionCloseout.message}</p>
               {phase8ProductionCloseout.reasons.length
                 ? <small>{formatGateHint(phase8ProductionCloseout.reasons)}</small>
-                : <small>Closeout remains owner-only. Public execution requires the separate release gate.</small>}
+                : <small>Closeout remains private to this account. Public execution requires the separate release gate.</small>}
             </div>
             <div className="phase-9-execution-eligibility-panel">
               <div className="result-monitoring-header">
@@ -5204,13 +5305,13 @@ export function Dashboard({
             </div>
             <div className="phase-8-smoke-closeout-panel">
               <div className="result-monitoring-header">
-                <span>Owner transaction closeout</span>
+                <span>Private transaction closeout</span>
                 <strong>{phase8SmokeCloseout.status.replace(/_/g, " ")}</strong>
               </div>
               <div className="phase-8-smoke-closeout-grid">
                 <span>
                   Scope
-                  <strong>{phase8SmokeCloseout.ownerOnly ? "owner-only" : "blocked"}</strong>
+                  <strong>{phase8SmokeCloseout.ownerOnly ? "private account" : "blocked"}</strong>
                 </span>
                 <span>
                   Tx hash
@@ -5228,15 +5329,15 @@ export function Dashboard({
               <p>{phase8SmokeCloseout.message}</p>
               {phase8SmokeCloseout.reasons.length
                 ? <small>{formatGateHint(phase8SmokeCloseout.reasons)}</small>
-                : <small>Smoke closeout is owner-only. Public profiles and Telegram cannot expose or submit this state.</small>}
+                : <small>Smoke closeout is private to this account. Public profiles and Telegram cannot expose or submit this state.</small>}
             </div>
             </>) : (
               <div className="dashboard-public-owner-notice">
                 <div className="result-monitoring-header">
-                  <span>Owner console</span>
+                  <span>Private console</span>
                   <strong>private</strong>
                 </div>
-                <p>Transaction controls, release readiness, closeout records, and wallet details are visible only after owner sign-in.</p>
+                <p>Transaction controls, release readiness, closeout records, and wallet details are visible only after account sign-in.</p>
                 <small>Public visitors can view product status and deployed agent information without seeing operational internals.</small>
               </div>
             )}
@@ -5267,7 +5368,7 @@ export function Dashboard({
                     </span>
                     <span>
                       Visibility
-                      <strong>{result.visibility.replace(/-/g, " ")}</strong>
+                      <strong>{formatProductRecordText(result.visibility)}</strong>
                     </span>
                   </div>
                   {result.failureReason
@@ -5284,7 +5385,7 @@ export function Dashboard({
           <section className="dashboard-panel" id="logs">
             <div className="panel-title">
               <span>Activity log</span>
-              <span>release replay</span>
+              <span>private account activity</span>
             </div>
             <div className="dashboard-log-box">
               {activityLines.map((log) => <p key={log}>{log}</p>)}
@@ -5386,7 +5487,7 @@ export function Dashboard({
               </div>
               <div className="approval-warning reset-confirm-warning">
                 <ShieldCheck size={17} />
-                Reconnecting this bot later requires a fresh owner-approved BotFather
+                Reconnecting this bot later requires a fresh authenticated BotFather
                 token flow.
               </div>
               <div className="modal-actions">

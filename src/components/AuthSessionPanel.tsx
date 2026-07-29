@@ -273,8 +273,8 @@ export function AuthSessionPanel({
 
       <div className="auth-safety-line">
         <span>Email account only</span>
-        <span>No wallet access</span>
-        <span>No transaction signing</span>
+        <span>Wallet connection is separate</span>
+        <span>Wallet confirmation required</span>
         <span>Account-scoped agent records</span>
       </div>
     </section>
