@@ -201,7 +201,7 @@ Deno.serve(async (request) => {
     const { data: intentData, error: intentError } = await serviceClient
       .from("prepared_actions")
       .select(
-        "id,workspace_id,agent_id,request_id,action_kind,chain_key,chain_id,status,recipient,value_wei,calldata,policy_version,expires_at",
+        "id,workspace_id,agent_id,request_id,action_kind,chain_key,chain_id,status,sender_address,recipient,asset_kind,token_address,token_symbol,token_decimals,amount_atomic,value_wei,calldata,policy_version,expires_at",
       )
       .eq("workspace_id", body.workspaceId)
       .eq("agent_id", body.agentId)

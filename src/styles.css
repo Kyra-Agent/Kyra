@@ -7644,3 +7644,324 @@ h2 {
   .official-token-action {
     min-width: 0;
   }
+}
+
+/* Private T1 transfer lane */
+.transfer-lane-panel {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(77, 150, 255, 0.34);
+  border-radius: 8px;
+  background: rgba(9, 20, 34, 0.88);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.22);
+}
+
+.transfer-lane-panel.state-confirmed {
+  border-color: rgba(104, 224, 164, 0.5);
+}
+
+.transfer-lane-panel.state-error {
+  border-color: rgba(255, 119, 132, 0.48);
+}
+
+.transfer-lane-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.transfer-lane-heading > div {
+  min-width: 0;
+}
+
+.transfer-lane-heading h3 {
+  margin: 0.35rem 0;
+  font-size: 1.08rem;
+}
+
+.transfer-lane-heading p,
+.transfer-lane-message,
+.transfer-lane-boundary,
+.transfer-lane-requirement,
+.transfer-lane-agent {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.transfer-lane-kicker,
+.transfer-lane-state,
+.transfer-confirmed-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  color: var(--green);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.transfer-lane-state {
+  flex: 0 0 auto;
+  padding: 0.42rem 0.6rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--text);
+}
+
+.transfer-lane-assets,
+.transfer-lane-form,
+.transfer-review-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.transfer-lane-assets button {
+  display: grid;
+  gap: 0.22rem;
+  min-height: 68px;
+  padding: 0.78rem;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) ease, background var(--motion-fast) ease, transform var(--motion-fast) ease;
+}
+
+.transfer-lane-assets button:hover:not(:disabled),
+.transfer-lane-assets button:focus-visible,
+.transfer-lane-assets button.is-selected {
+  border-color: rgba(77, 150, 255, 0.62);
+  background: rgba(77, 150, 255, 0.1);
+}
+
+.transfer-lane-assets button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.transfer-lane-assets button:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.transfer-lane-assets button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.transfer-lane-assets span {
+  font-weight: 800;
+}
+
+.transfer-lane-assets small,
+.transfer-hash {
+  color: var(--muted);
+}
+
+.transfer-lane-form label {
+  display: grid;
+  gap: 0.42rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.transfer-lane-form input {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 0 0.78rem;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(4, 12, 22, 0.76);
+  color: var(--text);
+}
+
+.transfer-lane-form input:focus {
+  border-color: rgba(77, 150, 255, 0.7);
+  outline: 2px solid rgba(77, 150, 255, 0.18);
+  outline-offset: 1px;
+}
+
+.transfer-amount-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(4, 12, 22, 0.76);
+}
+
+.transfer-amount-input input {
+  border: 0;
+  background: transparent;
+}
+
+.transfer-amount-input:focus-within {
+  border-color: rgba(77, 150, 255, 0.7);
+  outline: 2px solid rgba(77, 150, 255, 0.18);
+  outline-offset: 1px;
+}
+
+.transfer-amount-input input:focus {
+  outline: 0;
+}
+
+.transfer-amount-input span {
+  padding: 0 0.75rem;
+  color: var(--green);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.transfer-lane-limits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.transfer-lane-limits > span,
+.transfer-token-contract,
+.transfer-review-summary > span {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.transfer-lane-limits > span {
+  padding: 0.48rem 0.6rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.transfer-lane-limits strong {
+  color: var(--text);
+}
+
+.transfer-token-contract {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.68rem;
+}
+
+.transfer-token-contract span {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.transfer-token-contract code,
+.transfer-hash {
+  overflow-wrap: anywhere;
+  color: var(--green);
+  font-size: 0.73rem;
+}
+
+.transfer-review-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.transfer-review-summary > span {
+  display: grid;
+  gap: 0.28rem;
+  padding: 0.68rem;
+}
+
+.transfer-review-summary small {
+  color: var(--muted);
+}
+
+.transfer-review-summary strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.transfer-lane-message {
+  padding: 0.68rem 0.76rem;
+  border-left: 2px solid rgba(77, 150, 255, 0.62);
+  background: rgba(77, 150, 255, 0.06);
+}
+
+.state-error .transfer-lane-message {
+  border-left-color: rgba(255, 119, 132, 0.72);
+  color: #ffabb4;
+}
+
+.state-confirmed .transfer-lane-message {
+  border-left-color: rgba(104, 224, 164, 0.72);
+  color: var(--green);
+}
+
+.transfer-lane-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.58rem;
+}
+
+.transfer-lane-boundary {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.transfer-lane-requirement {
+  color: #ffcf72;
+}
+
+.transfer-lane-agent {
+  color: var(--green);
+}
+
+:root[data-theme="light"] .transfer-lane-panel {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 18px 42px rgba(15, 36, 67, 0.09);
+}
+
+:root[data-theme="light"] .transfer-lane-form input,
+:root[data-theme="light"] .transfer-amount-input {
+  background: rgba(248, 251, 255, 0.92);
+}
+
+@media (max-width: 760px) {
+  .transfer-lane-heading {
+    display: grid;
+  }
+
+  .transfer-lane-state {
+    justify-self: start;
+  }
+
+  .transfer-lane-assets,
+  .transfer-lane-form,
+  .transfer-review-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .transfer-lane-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .transfer-lane-actions .button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .transfer-lane-assets button {
+    transition: none;
+  }
+}
+
+.transfer-pending-label {
+  color: #ffcf72;
+  font-size: 0.78rem;
+  font-weight: 700;
+}

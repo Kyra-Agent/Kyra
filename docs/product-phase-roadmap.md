@@ -48,7 +48,7 @@ rewritten or extended into an open-ended phase list.
 
 | Expansion phase | Outcome | Status | Estimate |
 | --- | --- | --- | --- |
-| T1 | Native and allowlisted ERC-20 transfer lane | Planned | 2-3 working days |
+| T1 | Native ETH and official KYRA transfer lane | Implemented locally; production activation pending | 2-3 working days |
 | T2 | Allowlisted swap and exact-approval lane | Planned | 2-3 working days |
 | T3 | Security, abuse controls, monitoring, and incident operations | Planned | 2-3 working days |
 | T4 | Full audit, bounded mainnet canary, and staged public release | Planned | 2-3 working days |

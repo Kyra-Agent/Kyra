@@ -154,8 +154,9 @@ for (const expected of [
 }
 for (const expected of [
   "preparedActionId: body.requestId",
-  "preparedActionRecordId: existing.id",
-  "preparedActionRecordId: inserted.id",
+  "preparedActionRecordId,",
+  "preparedResponse(body, existing.id",
+  "preparedResponse(body, inserted.id",
 ]) {
   if (!transactionIntentPrepareEndpoint.includes(expected)) {
     throw new Error("Transaction intent response contract missing: " + expected);

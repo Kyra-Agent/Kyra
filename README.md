@@ -146,7 +146,10 @@ The current production hardening is live: immutable backend transaction intents,
 ## Transaction Expansion
 
 Kyra's next release track expands the bounded transaction lane in four grouped
-phases: native and allowlisted ERC-20 transfers, allowlisted swaps with exact
+phases. T1, native ETH plus official KYRA transfers, is implemented and verified
+locally but is not production-active; migrations, Edge Function deployment,
+bounded mainnet smoke, and explicit release approval remain. Later phases add
+allowlisted swaps with exact
 token approvals, security and operations hardening, then an audited mainnet
 canary and staged public release. These capabilities are planned, not currently
 public. Telegram, public profiles, autonomous execution, arbitrary calldata,

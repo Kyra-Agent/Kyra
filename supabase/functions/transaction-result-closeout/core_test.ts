@@ -76,7 +76,13 @@ Deno.test("stored intent is immutable, owner-scoped, and unexpired", () => {
     chain_key: "robinhood_mainnet" as const,
     chain_id: 4663 as const,
     status: "approved" as const,
+    sender_address: "0x1111111111111111111111111111111111111111",
     recipient: "0x1111111111111111111111111111111111111111",
+    asset_kind: "native" as const,
+    token_address: null,
+    token_symbol: "ETH" as const,
+    token_decimals: 18 as const,
+    amount_atomic: ownerTransactionValueWei,
     value_wei: ownerTransactionValueWei,
     calldata: "0x" as const,
     policy_version: ownerTransactionPolicyVersion,
@@ -105,7 +111,8 @@ Deno.test("stored intent is immutable, owner-scoped, and unexpired", () => {
         preparedActionId: validBody.preparedActionId,
       }, new Date("2026-07-26T12:00:00.000Z")),
     "transaction_intent_invalid",
-  );  assertThrowsCode(
+  );
+  assertThrowsCode(
     () =>
       assertStoredTransactionIntent(stored, {
         workspaceId: validBody.workspaceId,

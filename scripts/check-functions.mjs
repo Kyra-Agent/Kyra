@@ -119,7 +119,7 @@ for (const boundary of [
   "agent_transaction_locked",
   "createChainActionRateLimitChecker",
   "transaction_intent_rate_limited",
-  'body.chainKey !== "robinhood_mainnet"',
+  'body.chainKey !== robinhoodMainnetChainKey',
   "isAllowedOwnerTransactionValueWei(body.valueWei)",
   "policyVersion: ownerTransactionPolicyVersion",
 ]) {

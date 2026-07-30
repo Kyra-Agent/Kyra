@@ -70,6 +70,20 @@ to fail closed with a sanitized `401` when its secret header was absent, and
 the public site remained healthy. This verification did not widen wallet,
 transaction, Telegram, or public-profile permissions.
 
+## T1 Local Release Candidate
+
+The native ETH and official KYRA transfer lane is implemented and verified
+locally. The fixed allowlist contains only native Robinhood Chain ETH and KYRA
+contract `0xa2D99dB0593fFd57AE9b92103515bbA061fa5EC1`. Per-action limits are
+`0.005 ETH` and `10,000 KYRA`; per-workspace UTC-day limits are `0.02 ETH` and
+`50,000 KYRA`. Self-transfers, arbitrary ERC-20 contracts, token approvals,
+swaps, arbitrary calldata, Telegram submission, and public-profile submission
+remain blocked.
+
+This candidate is not production-active. Database migrations, updated Edge
+Functions, the production frontend build, bounded mainnet smoke, and an explicit
+release decision are still required before the public product statement changes.
+
 ## Planned Transaction Expansion
 
 The next release track contains four grouped phases: native and allowlisted

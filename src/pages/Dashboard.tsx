@@ -27,6 +27,7 @@ import {
   type OwnerWalletConnectionStatus,
 } from "../components/OwnerWalletConnectionPanel";
 import { Phase8LowValueSubmitter } from "../components/Phase8LowValueSubmitter";
+import { TransferLanePanel } from "../components/TransferLanePanel";
 import type { AgentTemplate } from "../types/agent";
 import { appConfig } from "../config/appConfig";
 import {
@@ -5057,6 +5058,14 @@ export function Dashboard({
                 ? <small>{formatGateHint(phase8SecurityAbuseHardening.reasons)}</small>
                 : <small>Replay, double-submit, public, Telegram, calldata, swap, token approval, and unsanitized failure boundaries are hardened.</small>}
             </div>
+            <TransferLanePanel
+              session={authSession}
+              workspaceId={dashboardData?.workspace.id ?? null}
+              agentId={agentRecord?.id ?? null}
+              agentName={agentRecord?.displayName ?? null}
+              agentChainKey={agentRecord?.chainKey ?? null}
+              walletStatus={ownerWalletConnectionStatus}
+            />
             <div className="phase-8-low-value-panel">
               <div className="result-monitoring-header">
                 <span>Low-value readiness</span>

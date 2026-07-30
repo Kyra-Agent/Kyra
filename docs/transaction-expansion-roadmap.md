@@ -1,7 +1,8 @@
 # Transaction Expansion Roadmap
 
-Status: planned. None of the expanded transaction capabilities in this document
-are public until all four phases pass their release gates.
+Status: T1 is implemented and verified locally as a release candidate. It is not
+public until its database migrations, Edge Functions, production build, and bounded
+mainnet smoke pass an explicit release decision. T2-T4 remain planned.
 
 ## Starting Point
 
@@ -35,24 +36,29 @@ supported assets, and release limits are fixed.
 
 ## T1 - Transfer Lane
 
-Estimated time: 2-3 working days.
+Status: implementation complete locally; production activation pending.
+
+Original estimate: 2-3 working days.
 
 Scope:
 
 - native Robinhood Chain ETH transfers
-- allowlisted ERC-20 transfers
+- the official KYRA ERC-20 only: `0xa2D99dB0593fFd57AE9b92103515bbA061fa5EC1`
 - checksummed recipient validation and explicit recipient confirmation
 - token contract, decimals, amount, balance, gas, and chain validation
-- per-action and daily value limits
+- per-action limits: `0.005 ETH` or `10,000 KYRA`
+- per-workspace daily limits: `0.02 ETH` or `50,000 KYRA`
 - immutable backend intent binding for recipient, asset, amount, and expiry
 - wallet simulation or estimation before the confirmation prompt
 - backend receipt and ERC-20 transfer-event verification
 
 Release gate:
 
+- local policy, Edge Function, receipt-verification, privacy, product, and build checks pass
 - recipient, asset, amount, chain, agent, or account drift fails closed
 - failed, replaced, delayed, and replayed transactions have deterministic tests
 - no Telegram, public-profile, or background submission path exists
+- production migrations, Edge Function deployment, bounded mainnet smoke, and release approval remain pending
 
 ## T2 - Swap Lane
 

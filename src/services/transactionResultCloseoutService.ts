@@ -93,7 +93,9 @@ export async function persistTransactionResultCloseout(
       verifiedStatus,
       message: verifiedStatus === "confirmed"
         ? "Confirmed receipt persisted to the owner-only Kyra backend."
-        : "Transaction result verified and persisted to the owner-only Kyra backend.",
+        : verifiedStatus === "failed"
+        ? "Transaction reverted and was closed safely in the owner-only Kyra backend."
+        : "Transaction submitted. Receipt verification remains owner-only.",
     };
   } catch {
     return {

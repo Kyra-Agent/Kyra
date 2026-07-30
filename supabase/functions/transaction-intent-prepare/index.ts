@@ -3,7 +3,9 @@ import {
   assertTransactionIntentPrepareBody,
   HttpError,
   matchesExistingIntent,
+  type TransactionIntentPrepareBody,
 } from "./core.ts";
+import { getTransferDailyLimit } from "../_shared/transfer-transaction-policy.ts";
 import {
   type ChainActionRateLimitRpcClient,
   createChainActionRateLimitChecker,
@@ -92,6 +94,71 @@ async function readJsonBody(request: Request) {
       400,
       "invalid_json",
       "Transaction intent contains invalid JSON.",
+    );
+  }
+}
+
+function preparedResponse(
+  body: TransactionIntentPrepareBody,
+  preparedActionRecordId: string,
+  expiresAt: string,
+) {
+  const base = {
+    ok: true,
+    status: "prepared",
+    preparedActionId: body.requestId,
+    preparedActionRecordId,
+    expiresAt,
+    chainKey: body.chainKey,
+    chainId: body.chainId,
+    recipient: body.recipient,
+    valueWei: body.valueWei,
+    data: body.data,
+    policyVersion: body.policyVersion,
+  };
+  return body.policyVersion === 2 ? base : {
+    ...base,
+    sender: body.sender,
+    assetKind: body.assetKind,
+    tokenAddress: body.tokenAddress,
+    tokenSymbol: body.tokenSymbol,
+    tokenDecimals: body.tokenDecimals,
+    amountAtomic: body.amountAtomic,
+  };
+}
+
+async function enforceDailyTransferReservation(
+  serviceClient: ReturnType<typeof createClient<any>>,
+  body: TransactionIntentPrepareBody,
+) {
+  if (body.policyVersion !== 3) return;
+
+  const dayStart = new Date();
+  dayStart.setUTCHours(0, 0, 0, 0);
+  const { data, error } = await serviceClient
+    .from("prepared_actions")
+    .select("amount_atomic")
+    .eq("workspace_id", body.workspaceId)
+    .eq("policy_version", 3)
+    .eq("asset_kind", body.assetKind)
+    .gte("created_at", dayStart.toISOString());
+  if (error) throw error;
+
+  const records = (data ?? []) as Array<{ amount_atomic: string | null }>;
+  const reserved = records.reduce((total, record) => {
+    const value = typeof record.amount_atomic === "string" &&
+        /^[1-9][0-9]*$/u.test(record.amount_atomic)
+      ? BigInt(record.amount_atomic)
+      : 0n;
+    return total + value;
+  }, 0n);
+  if (
+    reserved + BigInt(body.amountAtomic) > getTransferDailyLimit(body.assetKind)
+  ) {
+    throw new HttpError(
+      429,
+      "daily_transfer_limit_exceeded",
+      `The daily ${body.tokenSymbol} transfer review limit has been reached.`,
     );
   }
 }
@@ -213,7 +280,7 @@ Deno.serve(async (request) => {
     const { data: existing, error: existingError } = await serviceClient
       .from("prepared_actions")
       .select(
-        "id,workspace_id,agent_id,request_id,action_kind,chain_key,chain_id,status,risk,provider,recipient,value_wei,calldata,policy_version,expires_at",
+        "id,workspace_id,agent_id,request_id,action_kind,chain_key,chain_id,status,risk,provider,sender_address,recipient,asset_kind,token_address,token_symbol,token_decimals,amount_atomic,value_wei,calldata,policy_version,expires_at",
       )
       .eq("workspace_id", body.workspaceId)
       .eq("agent_id", body.agentId)
@@ -239,20 +306,13 @@ Deno.serve(async (request) => {
           "The reviewed transaction intent expired. Review it again.",
         );
       }
-      return jsonResponse(request, {
-        ok: true,
-        status: "prepared",
-        preparedActionId: body.requestId,
-        preparedActionRecordId: existing.id,
-        expiresAt: existing.expires_at,
-        chainKey: body.chainKey,
-        chainId: body.chainId,
-        recipient: body.recipient,
-        valueWei: body.valueWei,
-        data: body.data,
-        policyVersion: body.policyVersion,
-      });
+      return jsonResponse(
+        request,
+        preparedResponse(body, existing.id, existing.expires_at),
+      );
     }
+
+    await enforceDailyTransferReservation(serviceClient, body);
 
     const now = new Date();
     const expiresAt = new Date(now.getTime() + intentLifetimeMs).toISOString();
@@ -267,15 +327,27 @@ Deno.serve(async (request) => {
         chain_id: body.chainId,
         status: "approved",
         risk: "review",
-        route_summary: "Owner wallet self-transfer transaction proof.",
-        value_summary:
-          "0.0001 ETH, no calldata, self-address recipient.",
+        route_summary: body.policyVersion === 2
+          ? "Owner wallet self-transfer transaction proof."
+          : `${body.tokenSymbol} transfer to ${body.recipient.slice(0, 8)}...${
+            body.recipient.slice(-6)
+          }.`,
+        value_summary: body.policyVersion === 2
+          ? "0.0001 ETH, no calldata, self-address recipient."
+          : `${body.amountAtomic} atomic ${body.tokenSymbol}; policy-capped owner transfer.`,
         approval_requirement:
-          "Authenticated owner review and wallet confirmation required.",
-        safety_note:
-          "Owner-only fixed-value self-transfer. Telegram and public execution are blocked.",
+          "Authenticated account review and explicit wallet confirmation required.",
+        safety_note: body.policyVersion === 2
+          ? "Owner-only fixed-value self-transfer. Telegram and public execution are blocked."
+          : "Private-dashboard transfer with immutable sender, recipient, asset, amount, and expiry. Telegram and public execution are blocked.",
         provider: "owner_dashboard",
+        sender_address: body.sender,
         recipient: body.recipient,
+        asset_kind: body.assetKind,
+        token_address: body.tokenAddress,
+        token_symbol: body.tokenSymbol,
+        token_decimals: body.tokenDecimals,
+        amount_atomic: body.amountAtomic,
         value_wei: body.valueWei,
         calldata: body.data,
         policy_version: body.policyVersion,
@@ -285,23 +357,22 @@ Deno.serve(async (request) => {
       })
       .select("id")
       .single();
+    if (insertError?.message?.includes("daily_transfer_limit_exceeded")) {
+      throw new HttpError(
+        429,
+        "daily_transfer_limit_exceeded",
+        `The daily ${body.tokenSymbol} transfer review limit has been reached.`,
+      );
+    }
     if (insertError || !inserted?.id) {
       throw insertError ?? new Error("insert failed");
     }
 
-    return jsonResponse(request, {
-      ok: true,
-      status: "prepared",
-      preparedActionId: body.requestId,
-      preparedActionRecordId: inserted.id,
-      expiresAt,
-      chainKey: body.chainKey,
-      chainId: body.chainId,
-      recipient: body.recipient,
-      valueWei: body.valueWei,
-      data: body.data,
-      policyVersion: body.policyVersion,
-    }, 201);
+    return jsonResponse(
+      request,
+      preparedResponse(body, inserted.id, expiresAt),
+      201,
+    );
   } catch (error) {
     if (error instanceof HttpError) {
       return jsonResponse(

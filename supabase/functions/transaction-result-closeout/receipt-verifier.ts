@@ -1,3 +1,4 @@
+import { decodeEventLog, erc20Abi } from "npm:viem@2.52.2";
 import {
   deriveVerifiedResult,
   HttpError,
@@ -98,25 +99,27 @@ export async function verifyTransactionReceipt(input: {
 
   const tx = transaction as Record<string, unknown>;
   const expectedHash = input.txHash.toLowerCase();
-  const expectedRecipient = normalizeAddress(
-    input.intent.recipient,
+  const expectedSender = normalizeAddress(
+    input.intent.sender_address,
     "transaction_intent_invalid",
   );
-  const expectedValue = parseDecimalWei(input.intent.value_wei);
+  const expectedTarget = normalizeAddress(
+    input.intent.asset_kind === "native"
+      ? input.intent.recipient
+      : input.intent.token_address,
+    "transaction_intent_invalid",
+  );
+  const expectedValue = parseDecimalQuantity(input.intent.value_wei);
   if (
     normalizeHash(tx.hash) !== expectedHash ||
-    normalizeAddress(tx.from, "receipt_scope_mismatch") !== expectedRecipient ||
-    normalizeAddress(tx.to, "receipt_scope_mismatch") !== expectedRecipient ||
+    normalizeAddress(tx.from, "receipt_scope_mismatch") !== expectedSender ||
+    normalizeAddress(tx.to, "receipt_scope_mismatch") !== expectedTarget ||
     parseRpcQuantity(tx.value, "receipt_scope_mismatch") !== expectedValue ||
-    normalizeCalldata(tx.input) !== input.intent.calldata ||
+    normalizeCalldata(tx.input) !== input.intent.calldata.toLowerCase() ||
     (tx.chainId !== undefined &&
       String(tx.chainId).toLowerCase() !== expectedChainId)
   ) {
-    throw new HttpError(
-      409,
-      "receipt_scope_mismatch",
-      "The transaction does not match the prepared owner action.",
-    );
+    throw scopeMismatch();
   }
 
   const receiptValue = await rpcRequest(
@@ -141,20 +144,27 @@ export async function verifyTransactionReceipt(input: {
     if (
       normalizeHash(receipt.transactionHash) !== expectedHash ||
       normalizeAddress(receipt.from, "receipt_scope_mismatch") !==
-        expectedRecipient ||
-      normalizeAddress(receipt.to, "receipt_scope_mismatch") !==
-        expectedRecipient
+        expectedSender ||
+      normalizeAddress(receipt.to, "receipt_scope_mismatch") !== expectedTarget
     ) {
-      throw new HttpError(
-        409,
-        "receipt_scope_mismatch",
-        "The receipt does not match the prepared owner action.",
-      );
+      throw scopeMismatch();
     }
+
+    const derived = deriveVerifiedResult(
+      receipt as { status?: unknown; blockNumber?: unknown },
+      (input.now ?? new Date()).toISOString(),
+    );
+    if (
+      derived.status === "confirmed" &&
+      input.intent.asset_kind === "erc20"
+    ) {
+      assertErc20TransferReceipt(receipt, input.intent);
+    }
+    return derived;
   }
 
   return deriveVerifiedResult(
-    receiptValue as { status?: unknown; blockNumber?: unknown } | null,
+    null,
     (input.now ?? new Date()).toISOString(),
   );
 }
@@ -203,6 +213,72 @@ async function rpcRequest(
   }
 }
 
+function assertErc20TransferReceipt(
+  receipt: Record<string, unknown>,
+  intent: StoredTransactionIntent,
+) {
+  if (!Array.isArray(receipt.logs)) throw scopeMismatch();
+  const expectedToken = normalizeAddress(
+    intent.token_address,
+    "transaction_intent_invalid",
+  );
+  const expectedSender = normalizeAddress(
+    intent.sender_address,
+    "transaction_intent_invalid",
+  );
+  const expectedRecipient = normalizeAddress(
+    intent.recipient,
+    "transaction_intent_invalid",
+  );
+  const expectedAmount = parseDecimalQuantity(intent.amount_atomic);
+
+  const matches = receipt.logs.some((candidate) => {
+    if (
+      !candidate || typeof candidate !== "object" || Array.isArray(candidate)
+    ) {
+      return false;
+    }
+    const log = candidate as Record<string, unknown>;
+    try {
+      if (
+        normalizeAddress(log.address, "receipt_scope_mismatch") !==
+          expectedToken ||
+        !Array.isArray(log.topics) ||
+        typeof log.data !== "string"
+      ) {
+        return false;
+      }
+      const decoded = decodeEventLog({
+        abi: erc20Abi,
+        eventName: "Transfer",
+        topics: log.topics as [`0x${string}`, ...`0x${string}`[]],
+        data: log.data as `0x${string}`,
+        strict: true,
+      });
+      const args = decoded.args as {
+        from?: string;
+        to?: string;
+        value?: bigint;
+      };
+      return normalizeAddress(args.from, "receipt_scope_mismatch") ===
+          expectedSender &&
+        normalizeAddress(args.to, "receipt_scope_mismatch") ===
+          expectedRecipient &&
+        args.value === expectedAmount;
+    } catch {
+      return false;
+    }
+  });
+
+  if (!matches) {
+    throw new HttpError(
+      409,
+      "receipt_transfer_event_mismatch",
+      "The confirmed token transfer event does not match the reviewed action.",
+    );
+  }
+}
+
 function normalizeAddress(value: unknown, code: string) {
   if (typeof value !== "string" || !addressPattern.test(value)) {
     throw new HttpError(
@@ -236,12 +312,12 @@ function parseRpcQuantity(value: unknown, code: string) {
   return BigInt(value);
 }
 
-function parseDecimalWei(value: unknown) {
-  if (typeof value !== "string" || !/^[1-9][0-9]*$/u.test(value)) {
+function parseDecimalQuantity(value: unknown) {
+  if (typeof value !== "string" || !/^(?:0|[1-9][0-9]*)$/u.test(value)) {
     throw new HttpError(
       409,
       "transaction_intent_invalid",
-      "The prepared transaction value is invalid.",
+      "The prepared transaction amount is invalid.",
     );
   }
   return BigInt(value);
@@ -256,4 +332,12 @@ function normalizeCalldata(value: unknown) {
     );
   }
   return value.toLowerCase();
+}
+
+function scopeMismatch() {
+  return new HttpError(
+    409,
+    "receipt_scope_mismatch",
+    "The transaction does not match the prepared owner action.",
+  );
 }

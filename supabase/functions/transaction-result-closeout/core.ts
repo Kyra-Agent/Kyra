@@ -4,6 +4,11 @@ import {
   ownerTransactionPolicyVersion,
   ownerTransactionValueWei,
 } from "../_shared/owner-transaction-policy.ts";
+import {
+  createTransferTransactionShape,
+  type TransferAssetKind,
+  transferTransactionPolicyVersion,
+} from "../_shared/transfer-transaction-policy.ts";
 
 export type ExecutionResultStatus = "submitted" | "confirmed" | "failed";
 export type ExecutionResultFailureCode =
@@ -30,7 +35,7 @@ export interface ExistingExecutionResult {
   status: ExecutionResultStatus;
 }
 
-export interface StoredTransactionIntent {
+interface StoredTransactionIntentBase {
   id: string;
   workspace_id: string;
   agent_id: string;
@@ -39,12 +44,37 @@ export interface StoredTransactionIntent {
   chain_key: "robinhood_mainnet";
   chain_id: 4663;
   status: "approved";
+  sender_address: string;
   recipient: string;
+  asset_kind: TransferAssetKind;
+  token_address: string | null;
+  token_symbol: "ETH" | "KYRA";
+  token_decimals: 18;
+  amount_atomic: string;
+  value_wei: string;
+  calldata: `0x${string}`;
+  expires_at: string;
+}
+
+export interface StoredLegacyTransactionIntent
+  extends StoredTransactionIntentBase {
+  asset_kind: "native";
+  token_address: null;
+  token_symbol: "ETH";
+  amount_atomic: typeof ownerTransactionValueWei;
   value_wei: typeof ownerTransactionValueWei;
   calldata: typeof ownerTransactionCalldata;
   policy_version: typeof ownerTransactionPolicyVersion;
-  expires_at: string;
 }
+
+export interface StoredTransferTransactionIntent
+  extends StoredTransactionIntentBase {
+  policy_version: typeof transferTransactionPolicyVersion;
+}
+
+export type StoredTransactionIntent =
+  | StoredLegacyTransactionIntent
+  | StoredTransferTransactionIntent;
 
 export interface VerifiedTransactionResult {
   status: ExecutionResultStatus;
@@ -139,22 +169,21 @@ export function assertStoredTransactionIntent(
 
   const intent = value as StoredTransactionIntent;
   const expiresAt = Date.parse(intent.expires_at);
-  const matches = intent.workspace_id === expected.workspaceId &&
+  const scopeMatches = intent.workspace_id === expected.workspaceId &&
     intent.agent_id === expected.agentId &&
     intent.request_id === expected.preparedActionId &&
     intent.action_kind === "robinhood_reviewed_transaction" &&
     intent.chain_key === "robinhood_mainnet" &&
     intent.chain_id === 4663 &&
     intent.status === "approved" &&
-    typeof intent.recipient === "string" &&
-    addressPattern.test(intent.recipient) &&
-    isAllowedOwnerTransactionValueWei(intent.value_wei) &&
-    intent.calldata === ownerTransactionCalldata &&
-    intent.policy_version === ownerTransactionPolicyVersion &&
     Number.isFinite(expiresAt) &&
     (allowExpired || expiresAt > now.getTime());
+  const policyMatches = intent.policy_version === ownerTransactionPolicyVersion
+    ? isLegacyIntent(intent)
+    : intent.policy_version === transferTransactionPolicyVersion &&
+      isTransferIntent(intent);
 
-  if (!matches) {
+  if (!scopeMatches || !policyMatches) {
     throw new HttpError(
       409,
       "transaction_intent_invalid",
@@ -246,6 +275,41 @@ export function isStaleSubmittedResult(
 ) {
   return next === "submitted" &&
     (current === "confirmed" || current === "failed");
+}
+
+function isLegacyIntent(
+  intent: StoredTransactionIntent,
+): intent is StoredLegacyTransactionIntent {
+  return typeof intent.sender_address === "string" &&
+    addressPattern.test(intent.sender_address) &&
+    typeof intent.recipient === "string" &&
+    addressPattern.test(intent.recipient) &&
+    intent.sender_address.toLowerCase() === intent.recipient.toLowerCase() &&
+    intent.asset_kind === "native" &&
+    intent.token_address === null &&
+    intent.token_symbol === "ETH" &&
+    intent.token_decimals === 18 &&
+    intent.amount_atomic === ownerTransactionValueWei &&
+    isAllowedOwnerTransactionValueWei(intent.value_wei) &&
+    intent.calldata === ownerTransactionCalldata;
+}
+
+function isTransferIntent(
+  intent: StoredTransactionIntent,
+): intent is StoredTransferTransactionIntent {
+  const reviewed = createTransferTransactionShape({
+    sender: intent.sender_address,
+    recipient: intent.recipient,
+    assetKind: intent.asset_kind,
+    tokenAddress: intent.token_address,
+    tokenSymbol: intent.token_symbol,
+    tokenDecimals: intent.token_decimals,
+    amountAtomic: intent.amount_atomic,
+    valueWei: intent.value_wei,
+    data: intent.calldata,
+    policyVersion: intent.policy_version,
+  });
+  return reviewed.ok;
 }
 
 function readUuid(value: unknown, code: string) {
