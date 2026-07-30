@@ -1,4 +1,4 @@
-import {
+﻿import {
   Component,
   lazy,
   Suspense,
@@ -26,6 +26,7 @@ import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { HeroConsole } from "./components/HeroConsole";
 import { MotionRuntime } from "./components/MotionRuntime";
+import { OfficialTokenCard } from "./components/OfficialTokenCard";
 import { SecuritySection } from "./components/SecuritySection";
 import { TemplatePicker } from "./components/TemplatePicker";
 import { WalletApprovalModal } from "./components/WalletApprovalModal";
@@ -764,6 +765,8 @@ function App() {
                   <p className="hero-subtitle">
                     Launch AI workspaces with live Telegram chat, private account records, {currentWalletDisplayName} connection, and explicit approval for every onchain action.
                   </p>
+
+                  <OfficialTokenCard />
 
                   <div className="hero-proof-strip" aria-label="Kyra production readiness">
                     <span>
