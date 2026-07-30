@@ -93,6 +93,39 @@ function asStringArray(value: SupabaseTemplateRow["actions"]): string[] {
   return value.filter((item): item is string => typeof item === "string");
 }
 
+function isBoundedString(value: unknown, maxLength: number): value is string {
+  return typeof value === "string" && value.trim() === value && value.length > 0 &&
+    value.length <= maxLength;
+}
+
+function isBoundedStringArray(
+  value: unknown,
+  maxItems: number,
+  maxItemLength: number,
+): value is string[] {
+  return Array.isArray(value) && value.length <= maxItems &&
+    value.every((item) => isBoundedString(item, maxItemLength));
+}
+
+function isTemplateRow(value: unknown): value is SupabaseTemplateRow {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  const row = value as Record<string, unknown>;
+  return Object.keys(row).sort().join(",") ===
+      "actions,best_for,id,modules,name,role,status,summary,terminal_seed" &&
+    typeof row.id === "string" && safetyReviewedTemplateById.has(row.id) &&
+    isBoundedString(row.name, 80) &&
+    isBoundedString(row.role, 120) &&
+    (row.status === "mvp" || row.status === "advanced" || row.status === "coming-soon") &&
+    isBoundedString(row.summary, 600) &&
+    isBoundedString(row.best_for, 300) &&
+    isBoundedStringArray(row.actions, 32, 96) &&
+    isBoundedStringArray(row.modules, 16, 64) &&
+    isBoundedString(row.terminal_seed, 160);
+}
+
 function mapTemplateRow(row: SupabaseTemplateRow): AgentTemplate {
   return {
     id: row.id,
@@ -165,17 +198,8 @@ function normalizeTemplateCatalog(templates: AgentTemplate[]) {
     : activeTemplates;
 }
 
-function sanitizeSupabaseError(message: string) {
-  return message
-    .replace(/sb_publishable_[A-Za-z0-9_-]+/g, "sb_publishable_[hidden]")
-    .replace(
-      /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g,
-      "jwt_[hidden]",
-    )
-    .slice(0, 220);
-}
 
-async function fetchSupabaseJson<T>(query: string): Promise<T> {
+async function fetchSupabaseJson(query: string): Promise<unknown> {
   if (!appConfig.supabase.configured) {
     throw new Error("Supabase URL or publishable key is missing.");
   }
@@ -185,13 +209,10 @@ async function fetchSupabaseJson<T>(query: string): Promise<T> {
   });
 
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(
-      message || `Supabase request failed with ${response.status}.`,
-    );
+    throw new Error(`Supabase request failed with HTTP ${response.status}.`);
   }
 
-  return response.json() as Promise<T>;
+  return response.json() as Promise<unknown>;
 }
 
 export async function fetchSupabaseTemplates(): Promise<
@@ -210,27 +231,28 @@ export async function fetchSupabaseTemplates(): Promise<
   }
 
   try {
-    const rows = await fetchSupabaseJson<SupabaseTemplateRow[]>(
+    const payload = await fetchSupabaseJson(
       "agent_templates?select=id,name,role,status,summary,best_for,actions,modules,terminal_seed",
     );
+    if (!Array.isArray(payload) || !payload.every(isTemplateRow)) {
+      throw new Error("Template catalog response is invalid.");
+    }
 
     return {
       ok: true,
       status: "connected",
       templates: sortTemplates(
-        normalizeTemplateCatalog(rows.map(mapTemplateRow)),
+        normalizeTemplateCatalog(payload.map(mapTemplateRow)),
       ),
       error: null,
       checkedAt,
     };
-  } catch (error) {
+  } catch {
     return {
       ok: false,
       status: "error",
       templates: [],
-      error: error instanceof Error
-        ? sanitizeSupabaseError(error.message)
-        : "Supabase request failed.",
+      error: "Template catalog is temporarily unavailable.",
       checkedAt,
     };
   }

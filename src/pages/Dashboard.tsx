@@ -3550,7 +3550,7 @@ export function Dashboard({
                           className="button button-primary"
                           href={telegramOwnerLink}
                           target="_blank"
-                          rel="noreferrer"
+                          rel="noopener noreferrer"
                         >
                           <ExternalLink size={16} />
                           Open Telegram and press Start
@@ -3785,7 +3785,7 @@ export function Dashboard({
                     <a
                       className="button button-ghost"
                       href={currentProductChain.explorerUrl + "/tx/" + phase8TransactionVerification.txHash}
-                      rel="noreferrer"
+                      rel="noopener noreferrer"
                       target="_blank"
                     >
                       <ExternalLink size={16} />

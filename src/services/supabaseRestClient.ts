@@ -62,7 +62,7 @@ export async function parseSupabaseResponse<T>(response: Response): Promise<T> {
   const text = await response.text();
 
   if (!response.ok) {
-    throw new Error(text || `Supabase request failed with ${response.status}.`);
+    throw new Error(`Supabase request failed with HTTP ${response.status}.`);
   }
 
   return text ? (JSON.parse(text) as T) : ([] as T);

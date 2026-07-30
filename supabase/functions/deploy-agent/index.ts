@@ -330,17 +330,6 @@ function getApprovalStatus(scenario: DemoScenario): ApprovalStatus {
   return scenario.risk === "read-only" ? "read_only_ready" : "review_required";
 }
 
-function sanitizeErrorMessage(message: string) {
-  return message
-    .replace(/sb_secret_[A-Za-z0-9_-]+/g, "sb_secret_[hidden]")
-    .replace(/sb_publishable_[A-Za-z0-9_-]+/g, "sb_publishable_[hidden]")
-    .replace(
-      /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g,
-      "jwt_[hidden]",
-    )
-    .slice(0, 240);
-}
-
 function sanitizeActivityLogMessage(message: string) {
   return message
     .replace(/\b\d{8,10}:[A-Za-z0-9_-]{35,}\b/g, "[telegram_token_hidden]")
@@ -354,27 +343,6 @@ function sanitizeActivityLogMessage(message: string) {
     .replace(/\b0x[a-fA-F0-9]{64}\b/g, "[private_key_or_hash_hidden]")
     .replace(/\b(?:seed phrase|private key|mnemonic)\b/gi, "[secret_hidden]")
     .slice(0, 180);
-}
-
-function getUnknownErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (typeof error === "object" && error) {
-    const payload = error as Record<string, unknown>;
-    const parts = [payload.message, payload.details, payload.hint, payload.code]
-      .filter((part): part is string =>
-        typeof part === "string" && Boolean(part.trim())
-      )
-      .map((part) => part.trim());
-
-    if (parts.length) {
-      return parts.join(" ");
-    }
-  }
-
-  return "Deploy agent function failed.";
 }
 
 async function getUserClient(
@@ -844,7 +812,7 @@ Deno.serve(async (request) => {
       {
         ok: false,
         status: "server_error",
-        message: sanitizeErrorMessage(getUnknownErrorMessage(error)),
+        message: "Kyra could not deploy this agent safely.",
       },
       500,
     );

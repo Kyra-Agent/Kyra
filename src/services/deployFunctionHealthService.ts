@@ -1,5 +1,5 @@
 import { appConfig } from "../config/appConfig";
-import { getSupabaseApiKey, sanitizeSupabaseMessage } from "./supabaseRestClient";
+import { getSupabaseApiKey } from "./supabaseRestClient";
 
 export type DeployFunctionHealthStatus =
   | "not-configured"
@@ -60,9 +60,7 @@ async function parseHealthPayload(response: Response): Promise<DeployFunctionHea
   try {
     return JSON.parse(text) as DeployFunctionHealthPayload;
   } catch {
-    return {
-      message: text,
-    };
+    return {};
   }
 }
 
@@ -108,15 +106,12 @@ export async function fetchDeployFunctionHealth(): Promise<DeployFunctionHealthR
 
     return {
       status: "error",
-      message: sanitizeSupabaseMessage(payload.message ?? `Health check failed with ${response.status}.`),
+      message: "Kyra deployment backend health check failed.",
     };
-  } catch (error) {
+  } catch {
     return {
       status: "unavailable",
-      message:
-        error instanceof Error
-          ? sanitizeSupabaseMessage(error.message)
-          : "deploy-agent health check failed.",
+      message: "Kyra deployment backend is temporarily unavailable.",
     };
   }
 }

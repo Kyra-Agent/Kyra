@@ -1230,7 +1230,7 @@ export function DeployPanel({
                             className="button button-primary telegram-owner-link-button"
                             href={telegramOwnerLink}
                             target="_blank"
-                            rel="noreferrer"
+                            rel="noopener noreferrer"
                           >
                             <ExternalLink size={15} />
                             Open Telegram and press Start

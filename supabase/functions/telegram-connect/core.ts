@@ -983,7 +983,7 @@ export async function handleTelegramConnectRequest(
       {
         ok: false,
         status: "server_error",
-        message: sanitizeErrorMessage(getUnknownErrorMessage(error)),
+        message: "Kyra could not connect this Telegram bot safely.",
       },
       500,
     );

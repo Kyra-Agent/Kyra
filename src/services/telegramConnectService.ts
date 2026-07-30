@@ -1,6 +1,6 @@
 import { appConfig } from "../config/appConfig";
 import type { KyraAuthSession } from "./supabaseAuthService";
-import { getSupabaseApiKey, sanitizeSupabaseMessage } from "./supabaseRestClient";
+import { getSupabaseApiKey } from "./supabaseRestClient";
 
 export type TelegramConnectStatus =
   | "validated"
@@ -36,11 +36,6 @@ export interface TelegramConnectResult {
   webhookStatus: "queued" | "active" | null;
 }
 
-const tokenLikePattern = /\b\d{5,20}:[A-Za-z0-9_-]{20,128}\b/g;
-
-function sanitizeTelegramConnectMessage(message: string) {
-  return sanitizeSupabaseMessage(message).replace(tokenLikePattern, "[telegram_token_hidden]");
-}
 
 async function parseTelegramConnectResponse(response: Response): Promise<TelegramConnectPayload> {
   const text = await response.text();
@@ -52,9 +47,7 @@ async function parseTelegramConnectResponse(response: Response): Promise<Telegra
   try {
     return JSON.parse(text) as TelegramConnectPayload;
   } catch {
-    return {
-      message: text,
-    };
+    return {};
   }
 }
 
@@ -80,6 +73,41 @@ function normalizeTelegramConnectStatus(status: string | undefined): TelegramCon
   }
 }
 
+
+function getTelegramConnectMessage(status: TelegramConnectStatus) {
+  switch (status) {
+    case "validated":
+      return "Telegram bot token validated.";
+    case "review":
+    case "queued":
+      return "Telegram connection is pending backend activation.";
+    case "active":
+      return "Telegram connection is active.";
+    case "not_configured":
+    case "function_not_configured":
+      return "Telegram connect backend is not configured yet.";
+    case "invalid_request":
+      return "Telegram connection request is incomplete or invalid.";
+    case "unauthorized":
+      return "Account session expired. Sign in again before connecting Telegram.";
+    case "forbidden":
+      return "This account cannot connect Telegram for the selected agent.";
+    case "agent_not_found":
+      return "The selected deployed agent was not found.";
+    case "telegram_validation_failed":
+      return "Telegram could not validate this bot token. Check the token and try again.";
+    case "secret_store_unavailable":
+      return "Telegram credential storage is temporarily unavailable.";
+    case "duplicate_bot_active":
+      return "This Telegram bot is already connected to another active agent.";
+    case "webhook_registration_failed":
+      return "Telegram webhook activation failed safely. No live command access was enabled.";
+    case "server_error":
+    case "function_unavailable":
+    default:
+      return "Telegram connect backend is temporarily unavailable.";
+  }
+}
 function readTelegramBotHandle(value: unknown) {
   return typeof value === "string" && /^@[A-Za-z0-9_]{5,32}$/.test(value)
     ? value
@@ -125,25 +153,19 @@ export async function connectTelegramBot({
     });
     const payload = await parseTelegramConnectResponse(response);
     const status = normalizeTelegramConnectStatus(payload.status);
-    const fallbackMessage = response.ok
-      ? "Telegram connect request completed."
-      : `Telegram connect request failed with ${response.status}.`;
 
     return {
       ok: Boolean(payload.ok) && response.ok,
       status,
-      message: sanitizeTelegramConnectMessage(payload.message ?? fallbackMessage),
+      message: getTelegramConnectMessage(status),
       botHandle: readTelegramBotHandle(payload.botHandle),
       webhookStatus: readTelegramWebhookStatus(payload.webhookStatus),
     };
-  } catch (error) {
+  } catch {
     return {
       ok: false,
       status: "function_unavailable",
-      message:
-        error instanceof Error
-          ? sanitizeTelegramConnectMessage(error.message)
-          : "Telegram connect backend is unavailable.",
+      message: "Telegram connect backend is temporarily unavailable.",
       botHandle: null,
       webhookStatus: null,
     };
@@ -183,25 +205,19 @@ export async function validateTelegramBotTokenForDeploy({
     });
     const payload = await parseTelegramConnectResponse(response);
     const status = normalizeTelegramConnectStatus(payload.status);
-    const fallbackMessage = response.ok
-      ? "Telegram bot token validated."
-      : `Telegram token validation failed with ${response.status}.`;
 
     return {
       ok: Boolean(payload.ok) && response.ok && status === "validated",
       status,
-      message: sanitizeTelegramConnectMessage(payload.message ?? fallbackMessage),
+      message: getTelegramConnectMessage(status),
       botHandle: readTelegramBotHandle(payload.botHandle),
       webhookStatus: readTelegramWebhookStatus(payload.webhookStatus),
     };
-  } catch (error) {
+  } catch {
     return {
       ok: false,
       status: "function_unavailable",
-      message:
-        error instanceof Error
-          ? sanitizeTelegramConnectMessage(error.message)
-          : "Telegram connect backend is unavailable.",
+      message: "Telegram connect backend is temporarily unavailable.",
       botHandle: null,
       webhookStatus: null,
     };

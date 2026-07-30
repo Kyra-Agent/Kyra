@@ -1,6 +1,6 @@
 import { appConfig } from "../config/appConfig";
 import type { KyraAuthSession } from "./supabaseAuthService";
-import { getSupabaseApiKey, sanitizeSupabaseMessage } from "./supabaseRestClient";
+import { getSupabaseApiKey } from "./supabaseRestClient";
 
 export type TelegramLinkStatus =
   | "link_ready"
@@ -31,19 +31,30 @@ export interface TelegramLinkResult {
   expiresAt: string | null;
 }
 
-function sanitizeTelegramLinkMessage(message: string) {
-  return sanitizeSupabaseMessage(message)
-    .replace(/\b\d{5,20}:[A-Za-z0-9_-]{20,128}\b/g, "[telegram_token_hidden]")
-    .replace(/\b(start|link)=[A-Za-z0-9_-]{16,256}\b/gi, "$1=[hidden]")
-    .replace(/\/start\s+[A-Za-z0-9_-]{32,128}/gi, "/start [hidden]");
-}
-
-function getTelegramLinkMessage(status: TelegramLinkStatus, message: string) {
-  if (status === "owner_link_unavailable") {
-    return "Owner link needs one active Telegram session for the selected agent. Refresh dashboard status, then reconnect via deploy if it still stays unavailable.";
+function getTelegramLinkMessage(status: TelegramLinkStatus) {
+  switch (status) {
+    case "link_ready":
+      return "Secure owner-chat link is ready.";
+    case "not_configured":
+    case "function_not_configured":
+      return "Telegram owner-link backend is not configured yet.";
+    case "invalid_request":
+      return "Telegram owner-link request is incomplete or invalid.";
+    case "unauthorized":
+      return "Account session expired. Sign in again before linking Telegram.";
+    case "forbidden":
+      return "This account cannot link the selected Telegram agent.";
+    case "agent_not_found":
+      return "The selected deployed agent was not found.";
+    case "owner_link_unavailable":
+      return "Owner link needs one active Telegram session for the selected agent. Refresh dashboard status, then reconnect via deploy if it stays unavailable.";
+    case "rate_limited":
+      return "Owner-link requests are temporarily rate limited. Wait briefly and try again.";
+    case "server_error":
+    case "function_unavailable":
+    default:
+      return "Telegram owner-link backend is temporarily unavailable.";
   }
-
-  return message;
 }
 
 async function parseTelegramLinkResponse(response: Response): Promise<TelegramLinkPayload> {
@@ -56,9 +67,7 @@ async function parseTelegramLinkResponse(response: Response): Promise<TelegramLi
   try {
     return JSON.parse(text) as TelegramLinkPayload;
   } catch {
-    return {
-      message: text,
-    };
+    return {};
   }
 }
 
@@ -130,28 +139,19 @@ export async function issueTelegramOwnerLink({
     const payload = await parseTelegramLinkResponse(response);
     const status = normalizeTelegramLinkStatus(payload.status);
     const telegramLink = readTelegramLink(payload.telegramLink);
-    const fallbackMessage = response.ok
-      ? "Telegram owner-link request completed."
-      : `Telegram owner-link request failed with ${response.status}.`;
 
     return {
       ok: Boolean(payload.ok) && response.ok && Boolean(telegramLink),
       status,
-      message: getTelegramLinkMessage(
-        status,
-        sanitizeTelegramLinkMessage(payload.message ?? fallbackMessage),
-      ),
+      message: getTelegramLinkMessage(status),
       telegramLink,
       expiresAt: readExpiresAt(payload.expiresAt),
     };
-  } catch (error) {
+  } catch {
     return {
       ok: false,
       status: "function_unavailable",
-      message:
-        error instanceof Error
-          ? sanitizeTelegramLinkMessage(error.message)
-          : "Telegram owner-link backend is unavailable.",
+      message: "Telegram owner-link backend is temporarily unavailable.",
       telegramLink: null,
       expiresAt: null,
     };

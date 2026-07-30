@@ -1,6 +1,6 @@
 import { appConfig } from "../config/appConfig";
 import type { KyraAuthSession } from "./supabaseAuthService";
-import { getSupabaseApiKey, sanitizeSupabaseMessage } from "./supabaseRestClient";
+import { getSupabaseApiKey } from "./supabaseRestClient";
 
 export type TelegramDisconnectStatus =
   | "paused"
@@ -50,11 +50,35 @@ function normalizeStatus(status: string | undefined): TelegramDisconnectStatus {
   }
 }
 
-function sanitizeMessage(message: string) {
-  return sanitizeSupabaseMessage(message)
-    .replace(/\b\d{5,20}:[A-Za-z0-9_-]{20,128}\b/g, "[telegram_token_hidden]")
-    .replace(/vault:telegram:[A-Za-z0-9:_-]+/gi, "telegram_secret_[hidden]")
-    .replace(/webhook:telegram:[A-Za-z0-9:_-]+/gi, "webhook_secret_[hidden]");
+function getTelegramDisconnectMessage(status: TelegramDisconnectStatus) {
+  switch (status) {
+    case "paused":
+      return "Telegram connection paused.";
+    case "disconnected":
+      return "Telegram connection disconnected.";
+    case "revoked":
+      return "Telegram connection and backend credentials revoked.";
+    case "not_configured":
+    case "function_not_configured":
+      return "Telegram disconnect backend is not configured.";
+    case "invalid_request":
+      return "Telegram disconnect request is incomplete or invalid.";
+    case "unauthorized":
+      return "Account session expired. Sign in again before disconnecting Telegram.";
+    case "forbidden":
+      return "This account cannot disconnect the selected Telegram agent.";
+    case "telegram_session_not_found":
+      return "No active Telegram session was found for this agent.";
+    case "telegram_session_conflict":
+      return "Telegram connection changed during this request. Refresh and try again.";
+    case "telegram_disconnect_cleanup_failed":
+      return "Telegram access was stopped, but backend cleanup needs another attempt.";
+    case "telegram_disconnect_unavailable":
+    case "server_error":
+    case "function_unavailable":
+    default:
+      return "Telegram disconnect backend is temporarily unavailable.";
+  }
 }
 
 async function parseResponse(response: Response): Promise<TelegramDisconnectPayload> {
@@ -102,22 +126,17 @@ export async function revokeTelegramAgentConnection({
     });
     const payload = await parseResponse(response);
     const status = normalizeStatus(payload.status);
-    const fallback = response.ok
-      ? "Telegram connection revoked."
-      : "Telegram connection could not be revoked safely.";
 
     return {
       ok: response.ok && payload.ok === true && status === "revoked",
       status,
-      message: sanitizeMessage(payload.message ?? fallback),
+      message: getTelegramDisconnectMessage(status),
     };
-  } catch (error) {
+  } catch {
     return {
       ok: false,
       status: "function_unavailable",
-      message: error instanceof Error
-        ? sanitizeMessage(error.message)
-        : "Telegram disconnect backend is unavailable.",
+      message: "Telegram disconnect backend is temporarily unavailable.",
     };
   }
 }

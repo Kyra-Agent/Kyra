@@ -5,7 +5,7 @@ import {
   type ProductChainKey,
 } from "../config/productChains";
 import type { DemoAgentInstance, DemoBackendTable, DemoRecordStatus } from "../types/backend";
-import { sanitizeSupabaseMessage, selectPublicRows } from "./supabaseRestClient";
+import { selectPublicRows } from "./supabaseRestClient";
 
 type PublicAgentMode = "demo" | "live";
 type PublicAgentNetwork = ProductChainKey;
@@ -48,12 +48,101 @@ export interface PublicAgentProfileResult {
   error: string | null;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isBoundedString(
+  value: unknown,
+  maxLength: number,
+  pattern?: RegExp,
+): value is string {
+  return typeof value === "string" &&
+    value.trim() === value &&
+    value.length > 0 &&
+    value.length <= maxLength &&
+    (!pattern || pattern.test(value));
+}
+
+function isStringList(
+  value: unknown,
+  maxItems = 32,
+  maxItemLength = 96,
+): value is string[] {
+  return Array.isArray(value) &&
+    value.length <= maxItems &&
+    value.every((item) =>
+      typeof item === "string" &&
+      item.trim() === item &&
+      item.length > 0 &&
+      item.length <= maxItemLength
+    );
+}
+
+function isIsoTimestamp(value: unknown): value is string {
+  return typeof value === "string" &&
+    value.length <= 40 &&
+    !Number.isNaN(Date.parse(value));
+}
+
+function isPublicAgentSlug(value: unknown): value is string {
+  return isBoundedString(
+    value,
+    96,
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+  );
+}
+
+function isPublicAgentProfileRow(
+  value: unknown,
+  expectedSlug: string,
+): value is PublicAgentProfileRow {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  const templateStatus = value.template_status;
+  const network = value.network;
+
+  return value.public_slug === expectedSlug &&
+    isPublicAgentSlug(value.public_slug) &&
+    isBoundedString(value.display_name, 120) &&
+    isBoundedString(value.handle, 64, /^@[A-Za-z][A-Za-z0-9_]{4,31}$/) &&
+    (value.status === "online" ||
+      value.status === "draft" ||
+      value.status === "paused") &&
+    (value.mode === "demo" || value.mode === "live") &&
+    typeof network === "string" &&
+    Boolean(getProductChainByKey(network as ProductChainKey)) &&
+    (value.telegram_status === "mocked" ||
+      value.telegram_status === "active" ||
+      value.telegram_status === "queued" ||
+      value.telegram_status === "review") &&
+    (value.chain_action_status === "disabled" ||
+      value.chain_action_status === "ready" ||
+      value.chain_action_status === "active" ||
+      value.chain_action_status === "paused") &&
+    isIsoTimestamp(value.created_at) &&
+    isIsoTimestamp(value.last_sync_at) &&
+    isBoundedString(value.template_id, 48, /^[a-z0-9_-]+$/) &&
+    isBoundedString(value.template_name, 80) &&
+    isBoundedString(value.template_role, 160) &&
+    (templateStatus === undefined ||
+      templateStatus === "mvp" ||
+      templateStatus === "advanced" ||
+      templateStatus === "coming-soon") &&
+    isBoundedString(value.template_summary, 600) &&
+    isBoundedString(value.template_best_for, 300) &&
+    isStringList(value.template_actions) &&
+    isStringList(value.template_modules);
+}
+
 function asStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) {
+  if (!isStringList(value)) {
     return [];
   }
 
-  return value.filter((item): item is string => typeof item === "string");
+  return value;
 }
 
 function mapRecordStatus(status: PublicAgentRouteStatus): DemoRecordStatus {
@@ -129,6 +218,15 @@ function mapPublicAgentProfile(row: PublicAgentProfileRow): PublicAgentProfile {
 export async function fetchPublicAgentProfile(
   agentSlug: string,
 ): Promise<PublicAgentProfileResult> {
+  if (!isPublicAgentSlug(agentSlug)) {
+    return {
+      ok: false,
+      status: "empty",
+      profile: null,
+      error: "No public Supabase agent profile found for this route.",
+    };
+  }
+
 
   if (!appConfig.supabase.configured) {
     return {
@@ -140,11 +238,11 @@ export async function fetchPublicAgentProfile(
   }
 
   try {
-    const rows = await selectPublicRows<PublicAgentProfileRow>(
+    const rows = await selectPublicRows<unknown>(
       buildPublicAgentQuery(agentSlug),
     );
 
-    if (!rows[0]) {
+    if (!rows[0] || !isPublicAgentProfileRow(rows[0], agentSlug)) {
       return {
         ok: false,
         status: "empty",
@@ -159,15 +257,12 @@ export async function fetchPublicAgentProfile(
       profile: mapPublicAgentProfile(rows[0]),
       error: null,
     };
-  } catch (error) {
+  } catch {
     return {
       ok: false,
       status: "error",
       profile: null,
-      error:
-        error instanceof Error
-          ? sanitizeSupabaseMessage(error.message)
-          : "Supabase public agent query failed.",
+      error: "This public agent is temporarily unavailable.",
     };
   }
 }

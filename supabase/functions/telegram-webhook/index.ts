@@ -1051,7 +1051,7 @@ export async function handleTelegramWebhookRequest(
       {
         ok: false,
         status: "server_error",
-        message: sanitizeErrorMessage(getUnknownErrorMessage(error)),
+        message: "Kyra could not process this Telegram update safely.",
       },
       500,
     );

@@ -2498,7 +2498,7 @@ Deno.test("telegram-connect enforces streaming body size limit", async () => {
   assertEquals((error as HttpError).code, "payload_too_large");
 });
 
-Deno.test("telegram-connect returns sanitized server errors", async () => {
+Deno.test("telegram-connect returns generic server errors", async () => {
   const response = await handleTelegramConnectRequest(
     makeConnectRequest({
       authorization: "Bearer valid-test-jwt",
@@ -2519,11 +2519,7 @@ Deno.test("telegram-connect returns sanitized server errors", async () => {
 
   assertEquals(response.status, 500);
   assertEquals(body.status, "server_error");
-  assert(
-    message.includes("sb_secret_[hidden]"),
-    "Secret-like value must be redacted.",
-  );
-  assert(message.includes("jwt_[hidden]"), "JWT-like value must be redacted.");
+  assertEquals(message, "Kyra could not connect this Telegram bot safely.");
   assert(
     !message.includes("sb_secret_testvalue"),
     "Raw secret marker must not be returned.",

@@ -98,16 +98,63 @@ function getSessionAuthHeaders(accessToken: string) {
   };
 }
 
-function sanitizeAuthMessage(message: string) {
-  return message
-    .replace(/sb_publishable_[A-Za-z0-9_-]+/g, "sb_publishable_[hidden]")
-    .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "jwt_[hidden]")
-    .slice(0, 220);
+function getSafeAuthProviderMessage(message: string | null | undefined, fallback: string) {
+  const normalized = (message ?? "").trim().toLowerCase();
+
+  if (normalized.includes("invalid login credentials")) {
+    return "Email or password is incorrect.";
+  }
+
+  if (normalized.includes("email not confirmed")) {
+    return "Confirm your email before signing in.";
+  }
+
+  if (
+    normalized.includes("user already registered") ||
+    normalized.includes("already been registered")
+  ) {
+    return "An account already exists for this email. Sign in instead.";
+  }
+
+  if (normalized.includes("signup is disabled") || normalized.includes("signups not allowed")) {
+    return "Account creation is currently unavailable.";
+  }
+
+  if (
+    normalized.includes("rate limit") ||
+    normalized.includes("over_email_send_rate_limit") ||
+    normalized.includes("email rate limit exceeded")
+  ) {
+    return "Too many email requests. Wait a moment and try again.";
+  }
+
+  if (
+    normalized.includes("weak password") ||
+    normalized.includes("password should") ||
+    normalized.includes("password must")
+  ) {
+    return "Password does not meet the security requirements.";
+  }
+
+  if (normalized.includes("invalid email") || normalized.includes("email address is invalid")) {
+    return "Enter a valid email address.";
+  }
+
+  if (
+    normalized.includes("token has expired") ||
+    normalized.includes("jwt expired") ||
+    normalized.includes("invalid jwt")
+  ) {
+    return "Session expired. Sign in again.";
+  }
+
+  return fallback;
 }
 
 function getAuthErrorMessage(payload: SupabaseAuthTokenResponse, fallback: string) {
-  return sanitizeAuthMessage(
-    payload.error_description ?? payload.msg ?? payload.message ?? payload.error ?? fallback,
+  return getSafeAuthProviderMessage(
+    payload.error_description ?? payload.msg ?? payload.message ?? payload.error,
+    fallback,
   );
 }
 
@@ -191,7 +238,10 @@ async function processAuthCallbackSession(): Promise<KyraAuthResult | null> {
   const callbackError = params.get("error_description") ?? params.get("error");
 
   if (callbackError) {
-    return makeResult("error", sanitizeAuthMessage(callbackError));
+    return makeResult(
+      "error",
+      getSafeAuthProviderMessage(callbackError, "Email confirmation failed. Sign in again."),
+    );
   }
 
   const accessToken = params.get("access_token");
@@ -231,13 +281,8 @@ async function processAuthCallbackSession(): Promise<KyraAuthResult | null> {
 
     saveStoredAuthSession(session);
     return makeResult("signed-in", "Email confirmed. Session active.", session);
-  } catch (error) {
-    return makeResult(
-      "error",
-      error instanceof Error
-        ? sanitizeAuthMessage(error.message)
-        : "Email confirmation session failed.",
-    );
+  } catch {
+    return makeResult("error", "Email confirmation session failed.");
   }
 }
 
@@ -283,11 +328,8 @@ async function requestAuth(path: string, body: Record<string, unknown>) {
       "Confirmation email sent. Verify the email, then sign in again.",
       null,
     );
-  } catch (error) {
-    return makeResult(
-      "error",
-      error instanceof Error ? sanitizeAuthMessage(error.message) : "Account session request failed.",
-    );
+  } catch {
+    return makeResult("error", "Account session request failed.");
   }
 }
 
@@ -428,7 +470,7 @@ export async function ensureFreshAuthSession(
 
   return makeResult(
     "error",
-    `Session expired and refresh failed. Sign in again before using private workspace records. ${result.message}`,
+    "Session expired. Sign in again before using private workspace records.",
   );
 }
 
@@ -458,11 +500,8 @@ export async function getCurrentAuthUser(session: KyraAuthSession): Promise<Kyra
 
     saveStoredAuthSession(nextSession);
     return makeResult("signed-in", "Session active.", nextSession);
-  } catch (error) {
-    return makeResult(
-      "error",
-      error instanceof Error ? sanitizeAuthMessage(error.message) : "Session validation failed.",
-    );
+  } catch {
+    return makeResult("error", "Session validation failed.");
   }
 }
 

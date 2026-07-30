@@ -6,7 +6,7 @@ import {
 } from "../config/ownerTransactionPolicy";
 import { productChainId } from "../types/unsignedTransactionHandoff";
 import type { KyraAuthSession } from "./supabaseAuthService";
-import { getSupabaseApiKey, sanitizeSupabaseMessage } from "./supabaseRestClient";
+import { getSupabaseApiKey } from "./supabaseRestClient";
 
 export interface TransactionIntentPrepareInput {
   workspaceId: string;
@@ -36,6 +36,39 @@ interface PrepareResponse {
   valueWei?: string;
   data?: string;
   policyVersion?: number;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isCanonicalUuid(value: unknown): value is string {
+  return typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u
+      .test(value);
+}
+
+function isPreparedResponse(value: unknown): value is Required<PrepareResponse> {
+  if (!isRecord(value)) return false;
+
+  const expiresAt = typeof value.expiresAt === "string"
+    ? Date.parse(value.expiresAt)
+    : Number.NaN;
+  const now = Date.now();
+  return Object.keys(value).sort().join(",") ===
+      "chainId,chainKey,data,expiresAt,ok,policyVersion,preparedActionId,preparedActionRecordId,recipient,status,valueWei" &&
+    value.ok === true && value.status === "prepared" &&
+    typeof value.preparedActionId === "string" &&
+    isCanonicalUuid(value.preparedActionRecordId) &&
+    Number.isFinite(expiresAt) && expiresAt > now &&
+    expiresAt <= now + 10 * 60 * 1000 &&
+    value.chainKey === "robinhood_mainnet" &&
+    value.chainId === productChainId &&
+    typeof value.recipient === "string" &&
+    /^0x[0-9a-fA-F]{40}$/u.test(value.recipient) &&
+    typeof value.valueWei === "string" &&
+    typeof value.data === "string" &&
+    value.policyVersion === ownerTransactionPolicyVersion;
 }
 
 export async function prepareTransactionIntent(
@@ -79,17 +112,16 @@ export async function prepareTransactionIntent(
       }),
     });
     const payload = await readResponse(response);
-    if (!response.ok || payload.ok !== true || payload.status !== "prepared") {
+    if (!response.ok || !isPreparedResponse(payload)) {
       return {
         ok: false,
         status: "error",
-        message: sanitizeSupabaseMessage(payload.message ?? "Transaction preparation failed safely."),
+        message: "Transaction preparation failed safely.",
       };
     }
 
     if (
       payload.preparedActionId !== input.requestId ||
-      !payload.preparedActionRecordId ||
       payload.chainKey !== "robinhood_mainnet" ||
       payload.chainId !== productChainId ||
       payload.recipient?.toLowerCase() !== input.recipient.toLowerCase() ||
@@ -118,11 +150,11 @@ export async function prepareTransactionIntent(
   }
 }
 
-async function readResponse(response: Response): Promise<PrepareResponse> {
+async function readResponse(response: Response): Promise<unknown> {
   const text = await response.text();
   if (!text) return {};
   try {
-    return JSON.parse(text) as PrepareResponse;
+    return JSON.parse(text) as unknown;
   } catch {
     return {};
   }

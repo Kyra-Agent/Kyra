@@ -12,7 +12,6 @@ import {
   insertRow,
   insertRows,
   patchRow,
-  sanitizeSupabaseMessage,
   selectRows,
   type SupabaseTableInsert,
   type SupabaseTableRow,
@@ -90,21 +89,100 @@ function createQuota(
   };
 }
 
-interface DeployFunctionResponse {
-  ok?: boolean;
-  status?: string;
-  message?: string;
-  workspaceId?: string | null;
-  agentId?: string | null;
-  publicSlug?: string | null;
-  quota?: {
-    used?: number;
-    limit?: number;
-    remaining?: number;
+interface DeployFunctionSuccessResponse {
+  ok: true;
+  status: "saved";
+  workspaceId: string;
+  agentId: string;
+  publicSlug: string;
+  quota: {
+    used: number;
+    limit: number;
+    remaining: number;
   };
-  receipt?: {
-    telegram?: string | null;
+  receipt: {
+    telegram: string | null;
   };
+}
+
+const deployResponseCodes = new Set([
+  "unauthorized",
+  "quota_exceeded",
+  "template_not_found",
+  "invalid_request",
+  "invalid_chain",
+  "chain_release_locked",
+  "missing_env",
+  "server_error",
+]);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isUuid(value: unknown): value is string {
+  return typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      .test(value);
+}
+
+function isPublicSlug(value: unknown): value is string {
+  return typeof value === "string" &&
+    value.length <= 96 &&
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
+}
+
+function isTelegramHandle(value: unknown): value is string | null {
+  return value === null ||
+    (typeof value === "string" &&
+      /^@[A-Za-z][A-Za-z0-9_]{4,31}$/.test(value));
+}
+
+function isValidDeployQuota(value: unknown): value is DeployFunctionSuccessResponse["quota"] {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  const { used, limit, remaining } = value;
+
+  return typeof used === "number" &&
+    typeof limit === "number" &&
+    typeof remaining === "number" &&
+    Number.isSafeInteger(used) &&
+    Number.isSafeInteger(limit) &&
+    Number.isSafeInteger(remaining) &&
+    used >= 0 &&
+    limit === demoAgentLimits.maxAgentsPerWorkspace &&
+    used <= limit &&
+    remaining === Math.max(0, limit - used);
+}
+
+function isDeployFunctionSuccessResponse(
+  value: unknown,
+): value is DeployFunctionSuccessResponse {
+  if (!isRecord(value) || !isRecord(value.receipt)) {
+    return false;
+  }
+
+  return value.ok === true &&
+    value.status === "saved" &&
+    isUuid(value.workspaceId) &&
+    isUuid(value.agentId) &&
+    isPublicSlug(value.publicSlug) &&
+    isValidDeployQuota(value.quota) &&
+    isTelegramHandle(value.receipt.telegram);
+}
+
+function getDeployResponseCode(payload: unknown, responseStatus: number) {
+  if (
+    isRecord(payload) &&
+    typeof payload.status === "string" &&
+    deployResponseCodes.has(payload.status)
+  ) {
+    return payload.status;
+  }
+
+  return responseStatus === 404 ? "function_not_found" : "function_error";
 }
 
 class DeployFunctionError extends Error {
@@ -338,7 +416,7 @@ function canUseRestDeployFallback() {
 
 function getDeployFunctionBlockedMessage(error: unknown) {
   if (error instanceof DeployFunctionError) {
-    return getDeployFailureMessage(error.code, error.message);
+    return getDeployFailureMessage(error.code);
   }
 
   return "Backend persistence is unavailable. No workspace records were written. Try again after the Kyra backend is ready.";
@@ -365,41 +443,36 @@ function getDeployFailureKind(code: string): DeployFailureKind {
     return "configuration";
   }
 
-  if (code === "function_not_found" || code === "function_error") {
+  if (code === "function_not_found" || code === "function_error" || code === "invalid_response" || code === "server_error") {
     return "backend";
   }
 
   return "unknown";
 }
 
-function getDeployFailureMessage(code: string, fallback: string) {
-  const safeFallback = sanitizeSupabaseMessage(fallback);
-
+function getDeployFailureMessage(code: string) {
   switch (getDeployFailureKind(code)) {
     case "session":
       return "Account session expired or is invalid. Sign in again before deploying an agent.";
     case "quota":
-      return safeFallback ||
-        "Agent limit reached. No new agent records were written.";
+      return "Agent limit reached. No new agent records were written.";
     case "template":
       return "This agent template is unavailable. Refresh the catalog and choose an active template.";
     case "request":
-      return safeFallback ||
-        "Deploy request is incomplete. Review the template, agent name, and selected actions.";
+      return "Deploy request is incomplete. Review the template, agent name, and selected actions.";
     case "configuration":
       return "Backend persistence is not fully configured. No workspace records were written.";
     case "backend":
       return "Kyra backend is unavailable. No workspace records were written. Try again after backend persistence is ready.";
     case "unknown":
     default:
-      return safeFallback ||
-        "Agent persistence failed. No public route was confirmed.";
+      return "Agent persistence failed. No public route was confirmed.";
   }
 }
 
 async function parseDeployFunctionResponse(
   response: Response,
-): Promise<DeployFunctionResponse> {
+): Promise<unknown> {
   const text = await response.text();
 
   if (!text) {
@@ -407,11 +480,9 @@ async function parseDeployFunctionResponse(
   }
 
   try {
-    return JSON.parse(text) as DeployFunctionResponse;
+    return JSON.parse(text) as unknown;
   } catch {
-    return {
-      message: text,
-    };
+    return {};
   }
 }
 
@@ -452,37 +523,35 @@ async function saveViaDeployFunction({
     }),
   });
   const payload = await parseDeployFunctionResponse(response);
-  const code = payload.status ??
-    (response.status === 404 ? "function_not_found" : "function_error");
+  const code = getDeployResponseCode(payload, response.status);
 
-  if (!response.ok || payload.ok === false) {
+  if (!response.ok || (isRecord(payload) && payload.ok === false)) {
     throw new DeployFunctionError(
       response.status,
       code,
-      sanitizeSupabaseMessage(
-        payload.message ?? "Deploy function request failed.",
-      ),
+      "Deploy function request failed safely.",
       shouldFallbackFromFunction(response.status, code),
+    );
+  }
+
+  if (!isDeployFunctionSuccessResponse(payload)) {
+    throw new DeployFunctionError(
+      502,
+      "invalid_response",
+      "Deploy function returned an invalid response.",
+      false,
     );
   }
 
   return {
     status: "saved",
     message: "Agent deployment persisted by the Kyra backend.",
-    workspaceId: payload.workspaceId ?? null,
-    agentId: payload.agentId ?? null,
-    publicSlug: payload.publicSlug ?? null,
-    telegramHandle: payload.receipt?.telegram ?? null,
+    workspaceId: payload.workspaceId,
+    agentId: payload.agentId,
+    publicSlug: payload.publicSlug,
+    telegramHandle: payload.receipt.telegram,
     source: "edge-function",
-    quota: typeof payload.quota?.used === "number" &&
-        typeof payload.quota?.limit === "number" &&
-        typeof payload.quota?.remaining === "number"
-      ? {
-        used: payload.quota.used,
-        limit: payload.quota.limit,
-        remaining: payload.quota.remaining,
-      }
-      : undefined,
+    quota: payload.quota,
   } satisfies DeployPersistenceResult;
 }
 
@@ -630,7 +699,7 @@ export async function saveSupabaseDemoDeployment({
     return {
       status: "error",
       message: error instanceof Error
-        ? getDeployFailureMessage("unknown", error.message)
+        ? getDeployFailureMessage("unknown")
         : "Agent persistence failed. No public route was confirmed.",
       workspaceId: null,
       agentId: null,

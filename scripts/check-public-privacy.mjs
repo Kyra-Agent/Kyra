@@ -201,6 +201,12 @@ assert(
   publicAgentService.includes('mode: "backend-connected"'),
   "Persisted public agent profiles must be labeled backend-connected.",
 );
+assert(
+  publicAgentService.includes("function isPublicAgentProfileRow") &&
+    publicAgentService.includes("selectPublicRows<unknown>") &&
+    publicAgentService.includes("isPublicAgentProfileRow(rows[0], agentSlug)"),
+  "Public agent profiles must pass runtime shape validation before rendering.",
+);
 
 const publicAgentPage = read("src/pages/PublicAgent.tsx");
 assert(
@@ -211,6 +217,18 @@ assert(
 
 const dashboardService = read("src/services/supabaseDashboardService.ts");
 const deployService = read("src/services/supabaseDeployService.ts");
+const restClient = read("src/services/supabaseRestClient.ts");
+assert(
+  deployService.includes("function isDeployFunctionSuccessResponse") &&
+    deployService.includes('"invalid_response"') &&
+    deployService.includes("selectPublicRows") === false,
+  "Deploy success must pass a strict runtime response contract.",
+);
+assert(
+  !restClient.includes("throw new Error(text ||") &&
+    restClient.includes("Supabase request failed with HTTP"),
+  "Supabase REST failures must not carry raw backend response bodies.",
+);
 const deployAgentFunction = read("supabase/functions/deploy-agent/index.ts");
 assert(
   !dashboardService.includes("agent_instances?select=*"),
@@ -230,15 +248,13 @@ assert(
 );
 
 assert(
-  dashboardService.includes(
-    "owner_user_id=eq.${\n        encodeURIComponent(session.user.id)",
-  ),
+  /owner_user_id=eq\.\$\{\s*encodeURIComponent\(session\.user\.id\)/u
+    .test(dashboardService),
   "Dashboard workspace discovery must explicitly filter by the signed-in owner.",
 );
 assert(
-  deployService.includes(
-    "owner_user_id=eq.${\n      encodeURIComponent(session.user.id)",
-  ),
+  /owner_user_id=eq\.\$\{\s*encodeURIComponent\(session\.user\.id\)/u
+    .test(deployService),
   "Deploy workspace discovery must explicitly filter by the signed-in owner.",
 );
 const walletPolicyQuery = dashboardService.match(
@@ -279,6 +295,51 @@ assert(
   "Operator swap deploy scenario must remain approval-required.",
 );
 
+const authService = read("src/services/supabaseAuthService.ts");
+const rawErrorBoundaryServices = [
+  "src/services/deployFunctionHealthService.ts",
+  "src/services/supabaseDashboardService.ts",
+  "src/services/supabaseDeployService.ts",
+  "src/services/supabaseKyraRepository.ts",
+  "src/services/supabasePublicAgentService.ts",
+  "src/services/telegramConnectService.ts",
+  "src/services/telegramDashboardStatusService.ts",
+  "src/services/telegramDisconnectService.ts",
+  "src/services/telegramLinkService.ts",
+  "src/services/transactionIntentPrepareService.ts",
+  "src/services/transactionResultCloseoutService.ts",
+];
+const genericEdgeFailureMessages = [
+  ["supabase/functions/deploy-agent/index.ts", "Kyra could not deploy this agent safely."],
+  ["supabase/functions/reset-demo-workspace/index.ts", "Kyra could not reset this workspace safely."],
+  ["supabase/functions/telegram-connect/core.ts", "Kyra could not connect this Telegram bot safely."],
+  ["supabase/functions/telegram-webhook/index.ts", "Kyra could not process this Telegram update safely."],
+];
+assert(
+  authService.includes("function getSafeAuthProviderMessage") &&
+    !authService.includes("function sanitizeAuthMessage"),
+  "Authentication errors must pass through the reviewed provider-message allowlist.",
+);
+for (const path of rawErrorBoundaryServices) {
+  const source = read(path);
+  assert(
+    !source.includes("payload.message ||") &&
+      !source.includes("error.message ||") &&
+      !source.includes("data.message ||"),
+    `${path} must not use unreviewed backend error text as a public fallback.`,
+  );
+}
+for (const [path, message] of genericEdgeFailureMessages) {
+  assert(
+    read(path).includes(message),
+    `${path} must return a fixed generic message for unexpected failures.`,
+  );
+}
+assert(
+  read("src/App.tsx").includes("errorName: error.name") &&
+    !read("src/App.tsx").includes("componentStack: info.componentStack"),
+  "Route error logging must not emit raw errors or component stacks.",
+);
 
 const appPage = read("src/App.tsx");
 const heroConsole = read("src/components/HeroConsole.tsx");

@@ -3,10 +3,7 @@ import type {
   Phase8PersistedExecutionResult,
 } from "../types/phase8ResultPersistence";
 import type { KyraAuthSession } from "./supabaseAuthService";
-import {
-  getSupabaseApiKey,
-  sanitizeSupabaseMessage,
-} from "./supabaseRestClient";
+import { getSupabaseApiKey } from "./supabaseRestClient";
 
 export type TransactionResultCloseoutStatus =
   | "not-configured"
@@ -23,6 +20,23 @@ interface CloseoutResponse {
   ok?: boolean;
   status?: string;
   message?: string;
+}
+
+function isCloseoutResponse(value: unknown): value is CloseoutResponse {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  const payload = value as Record<string, unknown>;
+  return Object.keys(payload).sort().join(",") ===
+      "chain,ok,status,txHashLabel,visibility" &&
+    payload.ok === true &&
+    (payload.status === "submitted" || payload.status === "confirmed" ||
+      payload.status === "failed") &&
+    payload.chain === "robinhood_mainnet" &&
+    typeof payload.txHashLabel === "string" &&
+    /^0x[0-9a-fA-F]{8}\.\.\.[0-9a-fA-F]{8}$/u.test(payload.txHashLabel) &&
+    payload.visibility === "owner-only";
 }
 
 export async function persistTransactionResultCloseout(
@@ -58,13 +72,11 @@ export async function persistTransactionResultCloseout(
     );
     const payload = await readResponse(response);
 
-    if (!response.ok || payload.ok === false) {
+    if (!response.ok || !isCloseoutResponse(payload)) {
       return {
         status: "error",
         verifiedStatus: null,
-        message: sanitizeSupabaseMessage(
-          payload.message ?? "Owner-only result closeout failed safely.",
-        ),
+        message: "Owner-only result closeout failed safely.",
       };
     }
 
@@ -98,12 +110,12 @@ function readVerifiedStatus(value: unknown): Phase8PersistedExecutionResult["sta
     : null;
 }
 
-async function readResponse(response: Response): Promise<CloseoutResponse> {
+async function readResponse(response: Response): Promise<unknown> {
   const text = await response.text();
   if (!text) return {};
 
   try {
-    return JSON.parse(text) as CloseoutResponse;
+    return JSON.parse(text) as unknown;
   } catch {
     return {};
   }

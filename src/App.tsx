@@ -1,4 +1,4 @@
-﻿import {
+import {
   Component,
   lazy,
   Suspense,
@@ -157,8 +157,8 @@ class RouteErrorBoundary extends Component<
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("Kyra deferred route failed to load.", {
       route: this.props.route,
-      error,
-      componentStack: info.componentStack,
+      errorName: error.name,
+      hasComponentStack: Boolean(info.componentStack),
     });
   }
 

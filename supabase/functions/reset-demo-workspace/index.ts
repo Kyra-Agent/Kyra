@@ -37,33 +37,6 @@ function getEnv(key: string) {
   return value;
 }
 
-function sanitizeErrorMessage(message: string) {
-  return message
-    .replace(/sb_secret_[A-Za-z0-9_-]+/g, "sb_secret_[hidden]")
-    .replace(/sb_publishable_[A-Za-z0-9_-]+/g, "sb_publishable_[hidden]")
-    .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "jwt_[hidden]")
-    .slice(0, 240);
-}
-
-function getUnknownErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (typeof error === "object" && error) {
-    const payload = error as Record<string, unknown>;
-    const parts = [payload.message, payload.details, payload.hint, payload.code]
-      .filter((part): part is string => typeof part === "string" && Boolean(part.trim()))
-      .map((part) => part.trim());
-
-    if (parts.length) {
-      return parts.join(" ");
-    }
-  }
-
-  return "Workspace reset function failed.";
-}
-
 async function getAdminUser(supabaseUrl: string, anonKey: string, authorization: string) {
   const userClient = createClient(supabaseUrl, anonKey, {
     auth: {
@@ -155,7 +128,7 @@ Deno.serve(async (request) => {
       {
         ok: false,
         status: "server_error",
-        message: sanitizeErrorMessage(getUnknownErrorMessage(error)),
+        message: "Kyra could not reset this workspace safely.",
       },
       500,
     );

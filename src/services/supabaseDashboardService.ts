@@ -22,7 +22,6 @@ import type {
 import type { KyraDatabase } from "../types/database";
 import {
   getSupabaseApiKey,
-  sanitizeSupabaseMessage,
   selectRows,
   type SupabaseTableRow,
 } from "./supabaseRestClient";
@@ -164,13 +163,7 @@ function getResetFailureKind(statusCode: number, code: string) {
   return "unknown" as const;
 }
 
-function getResetFailureMessage(
-  statusCode: number,
-  code: string,
-  fallback: string,
-) {
-  const safeFallback = sanitizeSupabaseMessage(fallback);
-
+function getResetFailureMessage(statusCode: number, code: string) {
   switch (getResetFailureKind(statusCode, code)) {
     case "session":
       return "Account session expired or is invalid. Sign in again before resetting workspace agents.";
@@ -182,7 +175,7 @@ function getResetFailureMessage(
       return "Kyra reset backend is unavailable. No workspace records were deleted.";
     case "unknown":
     default:
-      return safeFallback || "Workspace reset failed.";
+      return "Workspace reset failed safely. No workspace records were deleted.";
   }
 }
 
@@ -729,14 +722,12 @@ export async function fetchSupabaseDashboardData(
       },
       error: null,
     };
-  } catch (error) {
+  } catch {
     return {
       ok: false,
       status: "error",
       data: null,
-      error: error instanceof Error
-        ? sanitizeSupabaseMessage(error.message)
-        : "Workspace query failed.",
+      error: "Private workspace data is temporarily unavailable.",
     };
   }
 }
@@ -784,11 +775,7 @@ export async function resetSupabaseDemoWorkspace(
 
       return {
         ok: false,
-        message: getResetFailureMessage(
-          response.status,
-          code,
-          payload.message ?? "Backend reset endpoint is unavailable.",
-        ),
+        message: getResetFailureMessage(response.status, code),
         recordsRemoved: false,
         code,
         failureKind: getResetFailureKind(response.status, code),
@@ -797,16 +784,14 @@ export async function resetSupabaseDemoWorkspace(
 
     return {
       ok: true,
-      message: payload.message ?? "Workspace reset. Agent quota is clear.",
+      message: "Workspace reset. Agent quota is clear.",
       recordsRemoved: payload.reset?.recordsRemoved ?? false,
       code: "reset_complete",
     };
-  } catch (error) {
+  } catch {
     return {
       ok: false,
-      message: error instanceof Error
-        ? getResetFailureMessage(503, "function_error", error.message)
-        : "Kyra reset backend is unavailable. No workspace records were deleted.",
+      message: "Kyra reset backend is unavailable. No workspace records were deleted.",
       recordsRemoved: false,
       code: "function_error",
       failureKind: "backend",
@@ -862,6 +847,24 @@ function getRemoveAgentFailureKind(statusCode: number, code: string) {
   return "unknown" as const;
 }
 
+function getRemoveAgentFailureMessage(
+  failureKind: ReturnType<typeof getRemoveAgentFailureKind>,
+) {
+  switch (failureKind) {
+    case "session":
+      return "Account session expired or is invalid. Sign in again before removing an agent.";
+    case "protected":
+      return "Disconnect Telegram and close active execution history before removing this agent.";
+    case "configuration":
+      return "Agent removal backend is not fully configured.";
+    case "backend":
+      return "Agent removal backend is temporarily unavailable.";
+    case "unknown":
+    default:
+      return "Kyra could not safely remove this agent.";
+  }
+}
+
 export async function removeSupabaseAgent(
   session: KyraAuthSession | null,
   agentId: string,
@@ -907,17 +910,10 @@ export async function removeSupabaseAgent(
       const code = payload.status ??
         (response.status === 404 ? "function_not_found" : "function_error");
       const failureKind = getRemoveAgentFailureKind(response.status, code);
-      const fallback = sanitizeSupabaseMessage(
-        payload.message ?? "Agent removal backend is unavailable.",
-      );
 
       return {
         ok: false,
-        message: fallback || (
-          failureKind === "protected"
-            ? "Kyra protected this agent from removal."
-            : "Kyra could not safely remove this agent."
-        ),
+        message: getRemoveAgentFailureMessage(failureKind),
         remainingCount: null,
         code,
         failureKind,
@@ -926,18 +922,16 @@ export async function removeSupabaseAgent(
 
     return {
       ok: true,
-      message: payload.message ?? "Agent removed. One agent slot is now available.",
+      message: "Agent removed. One agent slot is now available.",
       remainingCount: typeof payload.quota?.used === "number"
         ? payload.quota.used
         : null,
       code: "removed",
     };
-  } catch (error) {
+  } catch {
     return {
       ok: false,
-      message: error instanceof Error
-        ? sanitizeSupabaseMessage(error.message)
-        : "Agent removal backend is unavailable.",
+      message: "Agent removal backend is temporarily unavailable.",
       remainingCount: null,
       code: "function_error",
       failureKind: "backend",

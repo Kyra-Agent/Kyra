@@ -1,7 +1,7 @@
 import { appConfig } from "../config/appConfig";
 import type { DemoTelegramWebhookStatus } from "../types/backend";
 import type { KyraAuthSession } from "./supabaseAuthService";
-import { getSupabaseApiKey, sanitizeSupabaseMessage } from "./supabaseRestClient";
+import { getSupabaseApiKey } from "./supabaseRestClient";
 
 export type TelegramDashboardStatusCode =
   | "ready"
@@ -49,9 +49,7 @@ async function parseTelegramDashboardStatusResponse(
   try {
     return JSON.parse(text) as TelegramDashboardStatusPayload;
   } catch {
-    return {
-      message: text,
-    };
+    return {};
   }
 }
 
@@ -150,11 +148,25 @@ function readTelegramDashboardStatuses(value: unknown) {
   return records as TelegramDashboardStatusRecord[];
 }
 
-function sanitizeTelegramDashboardStatusMessage(message: string) {
-  return sanitizeSupabaseMessage(message)
-    .replace(/\b\d{5,20}:[A-Za-z0-9_-]{20,128}\b/g, "[telegram_token_hidden]")
-    .replace(/\b(start|link)=[A-Za-z0-9_-]{16,256}\b/gi, "$1=[hidden]")
-    .replace(/\/start\s+[A-Za-z0-9_-]{32,128}/gi, "/start [hidden]");
+function getTelegramDashboardStatusMessage(status: TelegramDashboardStatusCode) {
+  switch (status) {
+    case "ready":
+      return "Telegram dashboard status loaded.";
+    case "not_configured":
+    case "function_not_configured":
+      return "Telegram dashboard status is not configured.";
+    case "invalid_request":
+      return "Telegram dashboard status request is invalid.";
+    case "unauthorized":
+      return "Sign in again to load Telegram dashboard status.";
+    case "forbidden":
+      return "Telegram dashboard status is not available for this account.";
+    case "agent_not_found":
+      return "The selected agent is not available in this workspace.";
+    case "server_error":
+    case "function_unavailable":
+      return "Telegram dashboard status is temporarily unavailable.";
+  }
 }
 
 export async function fetchTelegramDashboardStatuses({
@@ -199,15 +211,12 @@ export async function fetchTelegramDashboardStatuses({
     const payload = await parseTelegramDashboardStatusResponse(response);
     const status = normalizeTelegramDashboardStatusCode(payload.status);
     const telegramStatuses = readTelegramDashboardStatuses(payload.telegramStatuses);
-    const fallbackMessage = response.ok
-      ? "Telegram dashboard status loaded."
-      : `Telegram dashboard status failed with ${response.status}.`;
 
     if (!response.ok || payload.ok !== true || !telegramStatuses) {
       return {
         ok: false,
         status,
-        message: sanitizeTelegramDashboardStatusMessage(payload.message ?? fallbackMessage),
+        message: getTelegramDashboardStatusMessage(status),
         telegramStatuses: [],
       };
     }
@@ -215,17 +224,14 @@ export async function fetchTelegramDashboardStatuses({
     return {
       ok: true,
       status,
-      message: sanitizeTelegramDashboardStatusMessage(payload.message ?? fallbackMessage),
+      message: getTelegramDashboardStatusMessage(status),
       telegramStatuses,
     };
-  } catch (error) {
+  } catch {
     return {
       ok: false,
       status: "function_unavailable",
-      message:
-        error instanceof Error
-          ? sanitizeTelegramDashboardStatusMessage(error.message)
-          : "Telegram dashboard status backend is unavailable.",
+      message: "Telegram dashboard status is temporarily unavailable.",
       telegramStatuses: [],
     };
   }
