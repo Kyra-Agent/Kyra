@@ -145,18 +145,18 @@ The current production hardening is live: immutable backend transaction intents,
 
 ## Transaction Expansion
 
-Kyra's next release track expands the bounded transaction lane in four grouped
-phases. T1, native ETH plus official KYRA transfers, is implemented and verified
-locally but is not production-active; migrations, Edge Function deployment,
-bounded mainnet smoke, and explicit release approval remain. Later phases add
-allowlisted swaps with exact
-token approvals, security and operations hardening, then an audited mainnet
-canary and staged public release. These capabilities are planned, not currently
-public. Telegram, public profiles, autonomous execution, arbitrary calldata,
-hidden signing, and private-key custody remain outside the product boundary.
+Kyra's transaction expansion is organized into four grouped phases. T1 is
+production-active on Robinhood Chain: authenticated users can prepare protected
+native ETH or official KYRA transfers from the private dashboard, subject to
+fixed per-action and daily limits, deterministic policy checks, and explicit
+confirmation in the connected wallet. Later phases add allowlisted swaps with
+exact token approvals, security and operations hardening, then an audited
+mainnet canary and staged public release. T2-T4 remain planned and locked.
+Telegram, public profiles, autonomous execution, arbitrary calldata, hidden
+signing, and private-key custody remain outside the product boundary.
 
 See the [Transaction Expansion Roadmap](docs/transaction-expansion-roadmap.md)
-for scope, release gates, and the current 8-12 working-day estimate.
+for scope, release gates, and the remaining 6-9 working-day estimate for T2-T4.
 
 Detailed engineering evidence is tracked in:
 

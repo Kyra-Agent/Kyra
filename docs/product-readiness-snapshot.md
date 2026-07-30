@@ -70,25 +70,28 @@ to fail closed with a sanitized `401` when its secret header was absent, and
 the public site remained healthy. This verification did not widen wallet,
 transaction, Telegram, or public-profile permissions.
 
-## T1 Local Release Candidate
+## T1 Production Active
 
-The native ETH and official KYRA transfer lane is implemented and verified
-locally. The fixed allowlist contains only native Robinhood Chain ETH and KYRA
-contract `0xa2D99dB0593fFd57AE9b92103515bbA061fa5EC1`. Per-action limits are
-`0.005 ETH` and `10,000 KYRA`; per-workspace UTC-day limits are `0.02 ETH` and
-`50,000 KYRA`. Self-transfers, arbitrary ERC-20 contracts, token approvals,
-swaps, arbitrary calldata, Telegram submission, and public-profile submission
-remain blocked.
+The native ETH and official KYRA transfer lane was activated in production on
+2026-07-31. The fixed allowlist contains only native Robinhood Chain ETH and
+KYRA contract `0xa2D99dB0593fFd57AE9b92103515bbA061fa5EC1`.
+Per-action limits are `0.005 ETH` and `10,000 KYRA`; per-workspace UTC-day
+limits are `0.02 ETH` and `50,000 KYRA`. Self-transfers, arbitrary ERC-20
+contracts, token approvals, swaps, arbitrary calldata, Telegram submission, and
+public-profile submission remain blocked.
 
-This candidate is not production-active. Database migrations, updated Edge
-Functions, the production frontend build, bounded mainnet smoke, and an explicit
-release decision are still required before the public product statement changes.
+Production evidence includes synchronized transfer-policy migrations, active
+JWT-protected intent and closeout Edge Functions, the live Netlify dashboard
+bundle, successful CORS preflight checks, denied unauthenticated requests, and
+a clean signed-out privacy smoke. The release smoke did not submit a value
+transfer; every real transfer still requires the user's connected wallet and
+explicit wallet confirmation.
 
 ## Planned Transaction Expansion
 
-The next release track contains four grouped phases: native and allowlisted
-ERC-20 transfers, allowlisted swaps with exact approvals, security and
-operations hardening, then an audited mainnet canary and staged release.
-Nothing in this plan is public until every release gate passes.
+The remaining release track contains three grouped phases: allowlisted swaps
+with exact approvals, security and operations hardening, then an audited
+mainnet canary and staged release. T2-T4 remain planned and locked until their
+respective release gates pass.
 
 See [Transaction Expansion Roadmap](transaction-expansion-roadmap.md).

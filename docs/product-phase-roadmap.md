@@ -48,14 +48,14 @@ rewritten or extended into an open-ended phase list.
 
 | Expansion phase | Outcome | Status | Estimate |
 | --- | --- | --- | --- |
-| T1 | Native ETH and official KYRA transfer lane | Implemented locally; production activation pending | 2-3 working days |
+| T1 | Native ETH and official KYRA transfer lane | Production-active; protected private-dashboard lane live | Complete |
 | T2 | Allowlisted swap and exact-approval lane | Planned | 2-3 working days |
 | T3 | Security, abuse controls, monitoring, and incident operations | Planned | 2-3 working days |
 | T4 | Full audit, bounded mainnet canary, and staged public release | Planned | 2-3 working days |
 
-Total estimate: 8-12 working days after the supported assets, router, value
-limits, and release configuration are fixed. Expanded transactions remain
-disabled until all four phases and the explicit release decision are complete.
+Original T1-T4 estimate: 8-12 working days. With T1 complete, the remaining
+T2-T4 estimate is 6-9 working days after the router, security, and release
+configuration are fixed. T2-T4 remain locked until their release gates pass.
 
 See [Transaction Expansion Roadmap](transaction-expansion-roadmap.md) for the
 scope, acceptance criteria, and retained safety boundaries.

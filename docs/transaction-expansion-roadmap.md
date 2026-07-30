@@ -1,8 +1,9 @@
 # Transaction Expansion Roadmap
 
-Status: T1 is implemented and verified locally as a release candidate. It is not
-public until its database migrations, Edge Functions, production build, and bounded
-mainnet smoke pass an explicit release decision. T2-T4 remain planned.
+Status: T1 is production-active on Robinhood Chain as a protected,
+private-dashboard transfer lane. Its database migrations, JWT-protected Edge
+Functions, production build, and bounded non-transactional release smoke passed
+on 2026-07-31. T2-T4 remain planned and locked.
 
 ## Starting Point
 
@@ -20,23 +21,26 @@ onchain work:
 - sanitized account-only closeout evidence
 - emergency disable and rollback controls
 
-The live transaction lane is intentionally narrow: one exact `0.0001 ETH`
-self-transfer on Robinhood Chain mainnet with no calldata. Telegram and public
-profiles cannot approve, sign, or submit.
+Before T1, the transaction lane was limited to one exact `0.0001 ETH`
+self-transfer on Robinhood Chain mainnet with no calldata. T1 replaces that
+qualification lane with the bounded native ETH and official KYRA transfer policy
+documented below. Telegram and public profiles still cannot approve, sign, or
+submit.
 
 ## Target
 
-Open user-controlled native transfers, allowlisted ERC-20 transfers, and
-allowlisted swaps without weakening the current privacy and approval boundary.
-Every transaction must remain initiated from the authenticated private
-workspace and signed by the user's connected wallet.
+Continue from T1 into allowlisted swaps, hardening, and staged public release
+without weakening the current privacy and approval boundary. Every transaction
+must remain initiated from the authenticated private workspace and signed by
+the user's connected wallet.
 
-Estimated engineering time: 8-12 working days after integration targets,
-supported assets, and release limits are fixed.
+Original T1-T4 estimate: 8-12 working days. With T1 production-active, the
+remaining T2-T4 estimate is 6-9 working days after the router, security, and
+release configuration are fixed.
 
 ## T1 - Transfer Lane
 
-Status: implementation complete locally; production activation pending.
+Status: production-active since 2026-07-31.
 
 Original estimate: 2-3 working days.
 
@@ -52,13 +56,16 @@ Scope:
 - wallet simulation or estimation before the confirmation prompt
 - backend receipt and ERC-20 transfer-event verification
 
-Release gate:
+Release evidence:
 
 - local policy, Edge Function, receipt-verification, privacy, product, and build checks pass
 - recipient, asset, amount, chain, agent, or account drift fails closed
 - failed, replaced, delayed, and replayed transactions have deterministic tests
 - no Telegram, public-profile, or background submission path exists
-- production migrations, Edge Function deployment, bounded mainnet smoke, and release approval remain pending
+- production migrations are synchronized and the updated Edge Functions are active with JWT verification
+- the production frontend exposes the protected transfer flow while signed-out and public surfaces remain private
+- CORS preflight succeeds and unauthenticated function requests fail closed
+- the activation smoke was non-transactional; value transfers still require explicit confirmation in the user's connected wallet
 
 ## T2 - Swap Lane
 
