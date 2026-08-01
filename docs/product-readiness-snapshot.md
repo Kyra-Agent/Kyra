@@ -1,16 +1,19 @@
 # Product Readiness Snapshot
 
-Snapshot date: 2026-07-30.
+Snapshot date: 2026-07-31.
 
 ## User-Available Product
 
 Signed-in users can create a private workspace, deploy up to three agents,
 publish sanitized agent profiles, connect and authorize a Telegram bot, use
 multilingual LLM-assisted read-only planning, connect a compatible EVM wallet
-on Robinhood Chain, and complete the bounded self-transfer review flow.
+on Robinhood Chain, and use the bounded native ETH and official KYRA transfer
+lane from their authenticated private workspace.
 
-The transaction surface is not general-purpose. Only the exact `0.0001 ETH`
-self-transfer policy described below is released.
+The transaction surface is not general-purpose. Production policy permits at
+most `0.005 ETH` or `10,000 KYRA` per action and `0.02 ETH` or `50,000 KYRA`
+per workspace per UTC day. Unsupported assets, self-transfers, amounts above
+those caps, token approvals, swaps, and arbitrary calldata fail closed.
 
 ## Ready
 
@@ -43,7 +46,7 @@ self-transfer policy described below is released.
 Sanitized production evidence recorded for the owner-controlled mainnet lane:
 
 - historical zero-value owner-controlled proof - completed on Robinhood Chain mainnet
-- bounded value-bearing policy - fixed `0.0001 ETH` self-transfer to the connected owner wallet, no calldata
+- historical qualification policy - fixed `0.0001 ETH` self-transfer proof, superseded by the T1 bounded transfer policy
 - verified receipt and confirmation - completed on Robinhood Chain mainnet
 - authenticated backend persistence - one owner-only result record observed
 - owner dashboard backend closeout recorded as `saved` - completed
@@ -51,7 +54,7 @@ Sanitized production evidence recorded for the owner-controlled mainnet lane:
 - tested emergency disable and rollback - completed
 - explicit owner-controlled release decision - recorded
 
-This release does not enable Telegram execution, public-profile execution, autonomous fund movement, token approvals, swaps, arbitrary recipients, arbitrary values, arbitrary calldata, or hidden signing. Each bounded self-transfer still requires a signed-in user, selected deployed agent, matching Robinhood Chain wallet, reviewed immutable action, NYX-05 policy approval, a backend-prepared one-time intent, and a fresh wallet prompt.
+This release does not enable Telegram execution, public-profile execution, autonomous fund movement, token approvals, swaps, unsupported assets, self-transfers, values above policy caps, arbitrary calldata, or hidden signing. Each bounded transfer still requires a signed-in user, selected deployed agent, matching Robinhood Chain wallet, reviewed immutable action, NYX-05 policy approval, a backend-prepared one-time intent, and a fresh wallet prompt.
 
 ## Production Hardening Closeout
 
@@ -89,9 +92,11 @@ explicit wallet confirmation.
 
 ## Planned Transaction Expansion
 
-The remaining release track contains three grouped phases: allowlisted swaps
-with exact approvals, security and operations hardening, then an audited
-mainnet canary and staged release. T2-T4 remain planned and locked until their
-respective release gates pass.
+The remaining release track contains three grouped phases: qualify and release
+the protected swap lane, complete security and operations hardening, then run
+an audited mainnet canary and staged release. The complete T2 foundation is
+implemented and verified locally, including exact allowance, calldata review,
+wallet prompts, receipt closeout, and allowance cleanup. It remains default-off,
+undeployed, and unreleased. T3-T4 remain planned until their release gates pass.
 
 See [Transaction Expansion Roadmap](transaction-expansion-roadmap.md).

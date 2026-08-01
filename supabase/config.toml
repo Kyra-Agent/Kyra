@@ -56,3 +56,18 @@ verify_jwt = true
 # sanitized Robinhood mainnet receipt state.
 [functions.transaction-result-closeout]
 verify_jwt = true
+
+# Protected swap quote review is owner-scoped. Provider credentials, router
+# allowlists, and calldata remain backend-only; this endpoint never submits.
+[functions.swap-quote-prepare]
+verify_jwt = true
+
+# Protected swap execution preparation is owner-scoped and returns only one
+# immutable, server-verified wallet step at a time.
+[functions.swap-execution-prepare]
+verify_jwt = true
+
+# Protected swap closeout is owner-scoped and persists only RPC-verified,
+# sanitized receipt state.
+[functions.swap-result-closeout]
+verify_jwt = true

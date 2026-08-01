@@ -27,7 +27,7 @@ Live now:
 - selected-agent chain binding
 - prepared-action allowlist and NYX-05 risk review
 - explicit owner approval and transaction preflight
-- one exact `0.0001 ETH` Robinhood Chain self-transfer lane
+- bounded native ETH and official KYRA transfers: `0.005 ETH` or `10,000 KYRA` per action, with `0.02 ETH` or `50,000 KYRA` per-workspace UTC-day caps
 - private monitoring, removal, disconnect, and emergency controls
 
 Per-transaction gate:
@@ -36,9 +36,9 @@ Per-transaction gate:
 
 Not live:
 
-- general native or ERC-20 transfers
+- transfers involving unsupported assets, self-transfers, or amounts above the fixed policy caps
 - swaps and token approvals
-- arbitrary recipients, values, routers, or calldata
+- arbitrary routers, contracts, or calldata
 - Telegram, public-profile, or autonomous transaction execution
 
 ## Post-v1 Transaction Expansion
@@ -49,13 +49,14 @@ rewritten or extended into an open-ended phase list.
 | Expansion phase | Outcome | Status | Estimate |
 | --- | --- | --- | --- |
 | T1 | Native ETH and official KYRA transfer lane | Production-active; protected private-dashboard lane live | Complete |
-| T2 | Allowlisted swap and exact-approval lane | Planned | 2-3 working days |
+| T2 | Allowlisted swap and exact-approval lane | Complete local foundation; default-off, undeployed, and unreleased pending qualification | Original estimate: 2-3 working days |
 | T3 | Security, abuse controls, monitoring, and incident operations | Planned | 2-3 working days |
 | T4 | Full audit, bounded mainnet canary, and staged public release | Planned | 2-3 working days |
 
-Original T1-T4 estimate: 8-12 working days. With T1 complete, the remaining
-T2-T4 estimate is 6-9 working days after the router, security, and release
-configuration are fixed. T2-T4 remain locked until their release gates pass.
+Original T1-T4 estimate: 8-12 working days. T1 is complete and the full T2
+protected-swap foundation is complete locally. T2 remains default-off,
+undeployed, and unreleased pending qualification; T3-T4 remain planned. Every
+phase remains locked until its release gate passes.
 
 See [Transaction Expansion Roadmap](transaction-expansion-roadmap.md) for the
 scope, acceptance criteria, and retained safety boundaries.

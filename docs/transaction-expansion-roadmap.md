@@ -3,7 +3,7 @@
 Status: T1 is production-active on Robinhood Chain as a protected,
 private-dashboard transfer lane. Its database migrations, JWT-protected Edge
 Functions, production build, and bounded non-transactional release smoke passed
-on 2026-07-31. T2-T4 remain planned and locked.
+on 2026-07-31. The complete T2 protected-swap foundation is implemented and verified locally, including exact allowance preparation, calldata verification, explicit wallet review, receipt closeout, and allowance cleanup. It remains default-off, undeployed, and unreleased; T3-T4 remain planned.
 
 ## Starting Point
 
@@ -35,8 +35,7 @@ must remain initiated from the authenticated private workspace and signed by
 the user's connected wallet.
 
 Original T1-T4 estimate: 8-12 working days. With T1 production-active, the
-remaining T2-T4 estimate is 6-9 working days after the router, security, and
-release configuration are fixed.
+remaining T2-T4 estimate was 6-9 working days before the local T2 foundation was completed. The remaining schedule is gate-driven and will be revised only after provider configuration, security qualification, and release evidence are fixed.
 
 ## T1 - Transfer Lane
 
@@ -69,23 +68,37 @@ Release evidence:
 
 ## T2 - Swap Lane
 
-Estimated time: 2-3 working days.
+Status: the complete protected-swap foundation is implemented and verified locally as of 2026-08-01. It is default-off, undeployed, and unreleased. Production swap prompts, approvals, and submissions remain disabled.
 
-Scope:
+Original estimate: 2-3 working days.
 
-- approved Robinhood Chain router and token allowlists
-- reviewed quote binding with input, minimum output, route, slippage, and deadline
-- exact allowance policy with no unlimited default approval
-- decoded calldata verification against the backend-stored quote
-- balance, gas, liquidity, price-impact, and stale-quote checks
-- explicit approval for both allowance and swap when two wallet actions are needed
-- verified receipt and swap-result closeout
+Implemented locally:
+
+- exact-input requests are limited to native ETH and the official KYRA token on Robinhood Chain mainnet
+- 0x AllowanceHolder access is backend-only and constrained by provider, router, allowance-target, liquidity-source, token, amount, slippage, deadline, and response-size policy
+- owner, workspace, selected agent, wallet, chain, quote fingerprint, route, taker, amount, allowance target, and calldata are bound into immutable service-only records
+- exact allowance preparation is used only when needed; unlimited approvals, arbitrary spenders, and browser-authored approval payloads are rejected
+- a fresh backend quote is required after allowance, and decoded swap calldata must match the stored quote before any wallet prompt is prepared
+- the private dashboard uses explicit, sequential wallet review for allowance and swap actions; no automatic prompt or background submission exists
+- backend receipt verification, replay-safe terminal closeout, failed-swap recovery, and allowance revoke-to-zero routing are implemented
+- insufficient balance, incomplete simulation, stale responses, provider drift, request drift, changed wallet scope, and terminal-state replay fail closed
+- browser responses and persisted owner records are sanitized; API keys, raw provider payloads, internal router material, secrets, and public execution state stay hidden
+- the frontend lane is protected by `VITE_KYRA_PROTECTED_SWAP_ENABLED=false`, while backend execution independently requires `KYRA_PROTECTED_SWAP_EXECUTION_ENABLED=true`
+
+Remaining before T2 release:
+
+- configure production 0x credentials and exact provider, host, router, allowance-target, and liquidity-source allowlists as backend secrets
+- apply the T2 migrations and deploy all three Edge Functions with execution still disabled
+- qualify RLS, JWT ownership, CORS, rate limits, wallet prompts, quote expiry, receipt verification, replay handling, failure recovery, cleanup, privacy, and browser UX end to end
+- record one bounded owner-controlled mainnet canary and verify allowance cleanup plus sanitized closeout evidence
+- obtain an explicit release decision before enabling the backend execution flag and frontend feature flag
 
 Release gate:
 
-- arbitrary routers, tokens, recipients, values, and calldata remain blocked
-- stale quotes and changed wallet prompts fail closed
-- approval revocation and failed-swap recovery are tested
+- arbitrary routers, tokens, recipients, values, calldata, unlimited approvals, Telegram prompts, public-profile prompts, and autonomous execution remain blocked
+- stale quotes, changed wallet prompts, changed agent scope, receipt mismatches, replay attempts, and provider disagreement fail closed
+- allowance revocation, failed-swap recovery, emergency disable, and rollback are tested and recorded
+- no T2 production-live claim is allowed until deployment, canary, and explicit release approval are complete
 
 ## T3 - Security And Operations
 

@@ -38,10 +38,18 @@ const transactionIntentPrepareFunctionUrl =
   supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/transaction-intent-prepare` : "";
 const transactionResultCloseoutFunctionUrl =
   supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/transaction-result-closeout` : "";
+const swapQuotePrepareFunctionUrl =
+  supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/swap-quote-prepare` : "";
+const swapExecutionPrepareFunctionUrl =
+  supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/swap-execution-prepare` : "";
+const swapResultCloseoutFunctionUrl =
+  supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/swap-result-closeout` : "";
 const telegramConnectTokenInputEnabled =
   readEnv("VITE_KYRA_ENABLE_TELEGRAM_CONNECT_TOKEN_INPUT").toLowerCase() === "true";
 const telegramDashboardStatusReadModelEnabled =
   readEnv("VITE_KYRA_ENABLE_TELEGRAM_DASHBOARD_STATUS").toLowerCase() === "true";
+const protectedSwapLaneEnabled =
+  readEnv("VITE_KYRA_PROTECTED_SWAP_ENABLED").toLowerCase() === "true";
 const robinhoodSubmissionReleaseReady = currentProductChain.key === "robinhood_testnet"
   ? readEnv("VITE_KYRA_CHAIN_RELEASE_TARGET") === "robinhood_testnet" &&
     readEnv("VITE_KYRA_ROBINHOOD_TESTNET_WINDOW") === "owner_testnet_window"
@@ -112,10 +120,23 @@ export const appConfig = {
     transactionResultCloseoutConfigured: Boolean(
       transactionResultCloseoutFunctionUrl && supabaseConfigured,
     ),
+    swapQuotePrepareUrl: swapQuotePrepareFunctionUrl,
+    swapQuotePrepareConfigured: Boolean(
+      swapQuotePrepareFunctionUrl && supabaseConfigured,
+    ),
+    swapExecutionPrepareUrl: swapExecutionPrepareFunctionUrl,
+    swapExecutionPrepareConfigured: Boolean(
+      swapExecutionPrepareFunctionUrl && supabaseConfigured,
+    ),
+    swapResultCloseoutUrl: swapResultCloseoutFunctionUrl,
+    swapResultCloseoutConfigured: Boolean(
+      swapResultCloseoutFunctionUrl && supabaseConfigured,
+    ),
   },
   featureFlags: {
     telegramConnectTokenInput: telegramConnectTokenInputEnabled,
     telegramDashboardStatusReadModel: telegramDashboardStatusReadModelEnabled,
+    protectedSwapLane: protectedSwapLaneEnabled,
   },
   integrations: {
     auth: requestedDataProvider === "supabase" && supabaseConfigured ? "supabase" : "not configured",

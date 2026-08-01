@@ -1,5 +1,10 @@
 # Controlled Execution Launch Packet
 
+> Historical v1 launch evidence. The exact `0.0001 ETH` self-transfer lane
+> described below has been superseded by the current T1 bounded transfer
+> policy in the Transaction Expansion Roadmap. This document is retained as
+> release evidence, not as the active runtime contract.
+
 ## Purpose
 
 This packet defines the only acceptable route from an agent recommendation to a Robinhood Chain transaction.

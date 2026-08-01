@@ -137,9 +137,9 @@ Kyra is an independent product and does not imply affiliation with, sponsorship 
 
 ## Product Status
 
-Kyra's product foundation, backend persistence, privacy boundaries, agent deployment, Telegram and LLM layer, wallet policy, Robinhood Chain execution workflow, and mainnet release lane are implemented and verified. The current transaction lane is deliberately bounded to one owner-approved `0.0001 ETH` self-transfer on Robinhood Chain mainnet, with immutable backend intent, exact receipt verification, and private backend closeout.
+Kyra's product foundation, backend persistence, privacy boundaries, agent deployment, Telegram and LLM layer, wallet policy, Robinhood Chain execution workflow, and mainnet release lane are implemented and verified. The production transaction lane supports owner-approved native ETH and official KYRA transfers on Robinhood Chain mainnet. Per-action caps are `0.005 ETH` or `10,000 KYRA`; per-workspace UTC-day caps are `0.02 ETH` or `50,000 KYRA`. Every transfer uses immutable backend intent, exact receipt verification, and private backend closeout.
 
-Transaction access remains deliberately narrower than the rest of the product. It is available only from an authenticated private workspace with selected-agent binding, a matching Robinhood Chain wallet, explicit user approval, deterministic policy and NYX-05 review, a short-lived one-time window, exact receipt verification, emergency disable, and privacy-safe evidence. Telegram and public profiles cannot sign or submit. Swaps, token approvals, arbitrary recipients, arbitrary values, and calldata remain blocked.
+Transaction access remains deliberately narrower than the rest of the product. It is available only from an authenticated private workspace with selected-agent binding, a matching Robinhood Chain wallet, explicit user approval, deterministic policy and NYX-05 review, a short-lived one-time window, exact receipt verification, emergency disable, and privacy-safe evidence. Telegram and public profiles cannot sign or submit. Swaps, token approvals, unsupported assets, self-transfers, amounts above policy caps, and arbitrary calldata remain blocked.
 
 The current production hardening is live: immutable backend transaction intents, RPC-verified receipts, retry-safe Telegram delivery, session-scoped browser authentication, fresh-database bootstrap coverage, dependency scanning, and CI are deployed and verified. These controls strengthen the existing owner-controlled release lane without widening Telegram, public-profile, autonomous, token-approval, arbitrary-calldata, or hidden-signing access.
 
@@ -151,12 +151,12 @@ native ETH or official KYRA transfers from the private dashboard, subject to
 fixed per-action and daily limits, deterministic policy checks, and explicit
 confirmation in the connected wallet. Later phases add allowlisted swaps with
 exact token approvals, security and operations hardening, then an audited
-mainnet canary and staged public release. T2-T4 remain planned and locked.
+mainnet canary and staged public release. The complete T2 protected-swap foundation is implemented and verified locally, including exact allowance preparation, backend calldata verification, explicit wallet review, receipt closeout, and allowance cleanup. It remains default-off, undeployed, and unreleased; T3-T4 remain planned.
 Telegram, public profiles, autonomous execution, arbitrary calldata, hidden
 signing, and private-key custody remain outside the product boundary.
 
 See the [Transaction Expansion Roadmap](docs/transaction-expansion-roadmap.md)
-for scope, release gates, and the remaining 6-9 working-day estimate for T2-T4.
+for scope, release gates, and the remaining work before T2-T4 can be released.
 
 Detailed engineering evidence is tracked in:
 

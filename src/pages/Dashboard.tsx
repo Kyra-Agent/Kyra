@@ -28,6 +28,7 @@ import {
 } from "../components/OwnerWalletConnectionPanel";
 import { Phase8LowValueSubmitter } from "../components/Phase8LowValueSubmitter";
 import { TransferLanePanel } from "../components/TransferLanePanel";
+import { ProtectedSwapLanePanel } from "../components/ProtectedSwapLanePanel";
 import type { AgentTemplate } from "../types/agent";
 import { appConfig } from "../config/appConfig";
 import {
@@ -5066,6 +5067,16 @@ export function Dashboard({
               agentChainKey={agentRecord?.chainKey ?? null}
               walletStatus={ownerWalletConnectionStatus}
             />
+            {appConfig.featureFlags.protectedSwapLane ? (
+              <ProtectedSwapLanePanel
+                session={authSession}
+                workspaceId={dashboardData?.workspace.id ?? null}
+                agentId={agentRecord?.id ?? null}
+                agentName={agentRecord?.displayName ?? null}
+                agentChainKey={agentRecord?.chainKey ?? null}
+                walletStatus={ownerWalletConnectionStatus}
+              />
+            ) : null}
             <div className="phase-8-low-value-panel">
               <div className="result-monitoring-header">
                 <span>Low-value readiness</span>

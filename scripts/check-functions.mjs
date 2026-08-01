@@ -7,6 +7,9 @@ const entrypoints = [
   "deploy-agent",
   "remove-agent",
   "reset-demo-workspace",
+  "swap-execution-prepare",
+  "swap-quote-prepare",
+  "swap-result-closeout",
   "telegram-connect",
   "telegram-dashboard-status",
   "telegram-disconnect",
@@ -20,6 +23,9 @@ const expectedJwt = new Map([
   ["chain-action-prepare", true],
   ["chain-status-provider", false],
   ["remove-agent", true],
+  ["swap-execution-prepare", true],
+  ["swap-quote-prepare", true],
+  ["swap-result-closeout", true],
   ["telegram-connect", true],
   ["telegram-dashboard-status", true],
   ["telegram-disconnect", true],
@@ -51,6 +57,91 @@ for (const name of entrypoints) {
   if (result.status !== 0) process.exit(result.status || 1);
 }
 
+const swapExecutionCore = readFileSync(
+  "supabase/functions/swap-execution-prepare/core.ts",
+  "utf8",
+);
+const swapExecutionFunction = readFileSync(
+  "supabase/functions/swap-execution-prepare/index.ts",
+  "utf8",
+);
+const swapCloseoutFunction = readFileSync(
+  "supabase/functions/swap-result-closeout/index.ts",
+  "utf8",
+);
+const swapReceiptVerifier = readFileSync(
+  "supabase/functions/swap-result-closeout/receipt-verifier.ts",
+  "utf8",
+);
+for (const boundary of [
+  "createExactAllowanceTransaction",
+  "fresh_quote_required",
+  "allowance_revoke",
+  "KYRA_PROTECTED_SWAP_EXECUTION_ENABLED",
+  'executionScope: "private_account_wallet"',
+]) {
+  if (
+    !swapExecutionCore.includes(boundary) &&
+    !swapExecutionFunction.includes(boundary)
+  ) {
+    throw new Error("Protected swap execution boundary missing: " + boundary);
+  }
+}
+for (const boundary of [
+  "verifySwapExecutionReceipt",
+  "nextSwapExecutionAction",
+  'visibility: "owner-only"',
+  "KYRA_PROTECTED_SWAP_EXECUTION_ENABLED",
+  "normalizeCalldata",
+  "reconcileSwapExecutionResultStatus",
+  'insertError?.code === "23505"',
+]) {
+  if (
+    !swapCloseoutFunction.includes(boundary) &&
+    !swapReceiptVerifier.includes(boundary)
+  ) {
+    throw new Error("Protected swap closeout boundary missing: " + boundary);
+  }
+}
+
+const swapQuoteMigration = readFileSync(
+  "supabase/migrations/20260731120000_add_protected_swap_quote_lane.sql",
+  "utf8",
+);
+const swapExecutionMigration = readFileSync(
+  "supabase/migrations/20260731122000_add_protected_swap_execution_lane.sql",
+  "utf8",
+);
+const swapExecutionVerifier = readFileSync(
+  "supabase/migrations/20260731123000_verify_protected_swap_execution_lane.sql",
+  "utf8",
+);
+for (const boundary of [
+  "enable row level security",
+  "revoke all on table public.swap_quote_reviews",
+  "grant select, insert on table public.swap_quote_reviews to service_role",
+  "reject_swap_quote_review_mutation",
+  "enforce_swap_quote_review_agent_scope",
+]) {
+  if (!swapQuoteMigration.includes(boundary)) {
+    throw new Error("Protected swap quote migration boundary missing: " + boundary);
+  }
+}
+for (const boundary of [
+  "enable row level security",
+  "prevent_swap_execution_intent_mutation",
+  "old.status in ('confirmed', 'failed')",
+  "new.receipt_block_number is distinct from old.receipt_block_number",
+  "new.receipt_checked_at is distinct from old.receipt_checked_at",
+  "swap execution terminal result immutability missing",
+]) {
+  if (
+    !swapExecutionMigration.includes(boundary) &&
+    !swapExecutionVerifier.includes(boundary)
+  ) {
+    throw new Error("Protected swap result migration boundary missing: " + boundary);
+  }
+}
 const telegramGate = readFileSync(
   "supabase/functions/telegram-webhook/execution-gate.ts",
   "utf8",

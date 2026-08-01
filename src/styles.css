@@ -7965,3 +7965,108 @@ h2 {
   font-size: 0.78rem;
   font-weight: 700;
 }
+
+/* Private T2 protected swap lane */
+.protected-swap-panel {
+  border-color: rgba(104, 224, 164, 0.34);
+  background:
+    linear-gradient(145deg, rgba(18, 77, 64, 0.16), transparent 48%),
+    rgba(7, 15, 25, 0.94);
+}
+
+.protected-swap-panel.state-confirmed,
+.protected-swap-panel.state-complete {
+  border-color: rgba(104, 224, 164, 0.62);
+  box-shadow: inset 0 0 0 1px rgba(104, 224, 164, 0.08);
+}
+
+.protected-swap-panel.state-complete .transfer-lane-message {
+  border-left-color: rgba(104, 224, 164, 0.78);
+  color: var(--green);
+}
+
+.swap-slippage-control {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.swap-slippage-control legend {
+  margin-bottom: 0.42rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.swap-slippage-control > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.42rem;
+}
+
+.swap-slippage-control button {
+  min-width: 0;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(4, 12, 22, 0.76);
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.swap-slippage-control button:hover:not(:disabled),
+.swap-slippage-control button:focus-visible,
+.swap-slippage-control button.is-selected {
+  border-color: rgba(104, 224, 164, 0.62);
+  background: rgba(104, 224, 164, 0.1);
+  color: var(--green);
+}
+
+.swap-slippage-control button:focus-visible {
+  outline: 2px solid rgba(104, 224, 164, 0.22);
+  outline-offset: 2px;
+}
+
+.swap-slippage-control button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.swap-review-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.swap-route-summary {
+  grid-column: 1 / -1;
+}
+
+:root[data-theme="light"] .protected-swap-panel {
+  background:
+    linear-gradient(145deg, rgba(23, 133, 104, 0.09), transparent 48%),
+    rgba(255, 255, 255, 0.92);
+}
+
+:root[data-theme="light"] .swap-slippage-control button {
+  background: rgba(248, 251, 255, 0.92);
+}
+
+@media (max-width: 760px) {
+  .swap-review-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .swap-route-summary {
+    grid-column: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swap-slippage-control button {
+    transition: none;
+  }
+}

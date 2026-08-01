@@ -1,5 +1,9 @@
 # Robinhood Chain Mainnet Runbook
 
+> Historical original-cutover runbook. References to the fixed owner
+> self-transfer describe the initial release evidence. The current T1 bounded
+> transfer policy in the Transaction Expansion Roadmap supersedes those limits.
+
 ## Configuration
 
 Frontend production:
@@ -63,7 +67,7 @@ Historical sanitized production evidence recorded on 2026-07-25:
 - Telegram and public-profile execution remained blocked
 - transaction address and full hash are intentionally omitted from public documentation
 
-The current value-bearing release remains narrower than general wallet execution:
+At the original cutover, the value-bearing release was narrower than general wallet execution:
 
 - exact value: `0.0001 ETH`
 - recipient: the same connected owner wallet

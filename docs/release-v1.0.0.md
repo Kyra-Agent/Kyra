@@ -2,6 +2,10 @@
 
 Released 2026-07-29.
 
+> Historical release scope as of 2026-07-29. The current T1 transaction
+> contract in the Transaction Expansion Roadmap and Product Readiness Snapshot
+> supersedes the original value-bearing lane recorded below.
+
 Kyra Agent v1.0.0 is the first stable public release of the Robinhood Chain AI agent platform. It closes the canonical ten-phase roadmap with agent deployment, private workspaces, Telegram and LLM interaction, user-controlled wallet connectivity, approval-first action review, and a bounded transaction release lane.
 
 ## Available

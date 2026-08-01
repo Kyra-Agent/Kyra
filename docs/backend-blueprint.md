@@ -56,8 +56,16 @@ reviewed prepared action, explicit owner approval, and a fresh live window.
 Backend closeout verifies the transaction and receipt against that intent
 before sanitized owner-only persistence.
 
-The current public lane permits only one exact `0.0001 ETH` self-transfer to
-the connected owner wallet with no calldata. General transfers, ERC-20
-transfers, swaps, token approvals, arbitrary recipients, arbitrary values, and
-arbitrary calldata remain disabled until the separate transaction-expansion
-release gates pass. Submission fails closed when any prerequisite is absent.
+The current T1 production lane permits bounded ETH and KYRA transfers to a
+recipient other than the connected wallet: at most `0.005 ETH` or `10,000
+KYRA` per action, and `0.02 ETH` or `50,000 KYRA` per UTC day. Self-transfers
+remain blocked. Arbitrary calldata and swaps remain disabled in production.
+
+T2 is implemented locally as a complete protected ETH/KYRA swap foundation.
+Backend quote, exact allowance, calldata, router, liquidity source, amount,
+slippage, deadline, ownership, rate-limit, receipt, and cleanup checks fail
+closed. The private browser flow receives sanitized review data, requires an
+explicit wallet prompt for each necessary action, verifies closeout from the
+backend, and routes allowance cleanup after terminal outcomes. The feature is
+default-off, undeployed, and unreleased; production swaps and token approvals
+remain disabled.

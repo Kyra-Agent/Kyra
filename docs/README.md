@@ -37,7 +37,8 @@ Each deployed Edge Function has a colocated README under `supabase/functions/<fu
 - Telegram is live for read-only commands and multilingual planning; it never signs or submits.
 - Wallet authority remains with the connected user wallet.
 - Transaction access is private, selected-agent bound, explicitly approved, and verified per action.
-- The released transaction lane is one exact `0.0001 ETH` self-transfer; general transfers and swaps remain planned.
+- T1 is live for bounded ETH and KYRA transfers to a different recipient: at most `0.005 ETH` or `10,000 KYRA` per action, and `0.02 ETH` or `50,000 KYRA` per UTC day. Self-transfers remain blocked.
+- T2 remains local-only and default-off: quote preparation, exact allowance preparation, backend calldata verification, explicit wallet review, receipt closeout, allowance cleanup, and failed-swap recovery are implemented. No T2 function, wallet prompt, or swap submission is deployed or released.
 - Secret values, raw logs, internal identifiers, full wallet addresses, and provider payloads never belong in public documentation.
 - A completed roadmap does not disable runtime safety gates.
 
