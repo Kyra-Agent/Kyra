@@ -3,7 +3,7 @@
 Status: T1 is production-active on Robinhood Chain as a protected,
 private-dashboard transfer lane. Its database migrations, JWT-protected Edge
 Functions, production build, and bounded non-transactional release smoke passed
-on 2026-07-31. The complete T2 protected-swap foundation is implemented and verified locally, including exact allowance preparation, calldata verification, explicit wallet review, receipt closeout, and allowance cleanup. It remains default-off, undeployed, and unreleased; T3-T4 remain planned.
+on 2026-07-31. The complete T2 protected-swap foundation is implemented and verified locally, including exact allowance preparation, calldata verification, explicit wallet review, receipt closeout, and allowance cleanup. Its schema and JWT-protected functions were deployed default-off on 2026-08-02; it remains unreleased pending provider configuration and qualification, while T3-T4 remain planned.
 
 ## Starting Point
 
@@ -68,7 +68,7 @@ Release evidence:
 
 ## T2 - Swap Lane
 
-Status: the complete protected-swap foundation is implemented and verified locally as of 2026-08-01. It is default-off, undeployed, and unreleased. Production swap prompts, approvals, and submissions remain disabled.
+Status: the complete protected-swap foundation was implemented and verified locally on 2026-08-01. Its schema and three JWT-protected Edge Functions were deployed default-off on 2026-08-02. Provider credentials are not configured, the frontend gate remains off, and production swap prompts, approvals, and submissions remain disabled.
 
 Original estimate: 2-3 working days.
 
@@ -88,7 +88,7 @@ Implemented locally:
 Remaining before T2 release:
 
 - configure production 0x credentials and exact provider, host, router, allowance-target, and liquidity-source allowlists as backend secrets
-- apply the T2 migrations and deploy all three Edge Functions with execution still disabled
+- confirm the deployed T2 migrations and all three JWT-protected Edge Functions remain healthy and execution-disabled before provider qualification
 - qualify RLS, JWT ownership, CORS, rate limits, wallet prompts, quote expiry, receipt verification, replay handling, failure recovery, cleanup, privacy, and browser UX end to end
 - record one bounded owner-controlled mainnet canary and verify allowance cleanup plus sanitized closeout evidence
 - obtain an explicit release decision before enabling the backend execution flag and frontend feature flag

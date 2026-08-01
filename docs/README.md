@@ -38,7 +38,7 @@ Each deployed Edge Function has a colocated README under `supabase/functions/<fu
 - Wallet authority remains with the connected user wallet.
 - Transaction access is private, selected-agent bound, explicitly approved, and verified per action.
 - T1 is live for bounded ETH and KYRA transfers to a different recipient: at most `0.005 ETH` or `10,000 KYRA` per action, and `0.02 ETH` or `50,000 KYRA` per UTC day. Self-transfers remain blocked.
-- T2 remains local-only and default-off: quote preparation, exact allowance preparation, backend calldata verification, explicit wallet review, receipt closeout, allowance cleanup, and failed-swap recovery are implemented. No T2 function, wallet prompt, or swap submission is deployed or released.
+- T2 backend foundations were deployed default-off on 2026-08-02: quote preparation, exact allowance preparation, backend calldata verification, explicit wallet review, receipt closeout, allowance cleanup, and failed-swap recovery are implemented. Provider credentials are not configured, and no T2 wallet prompt or swap submission is released.
 - Secret values, raw logs, internal identifiers, full wallet addresses, and provider payloads never belong in public documentation.
 - A completed roadmap does not disable runtime safety gates.
 

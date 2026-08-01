@@ -96,7 +96,8 @@ The remaining release track contains three grouped phases: qualify and release
 the protected swap lane, complete security and operations hardening, then run
 an audited mainnet canary and staged release. The complete T2 foundation is
 implemented and verified locally, including exact allowance, calldata review,
-wallet prompts, receipt closeout, and allowance cleanup. It remains default-off,
-undeployed, and unreleased. T3-T4 remain planned until their release gates pass.
+wallet prompts, receipt closeout, and allowance cleanup. Its schema and
+JWT-protected backend functions were deployed default-off on 2026-08-02, but it
+remains unreleased pending provider configuration and qualification. T3-T4 remain planned until their release gates pass.
 
 See [Transaction Expansion Roadmap](transaction-expansion-roadmap.md).

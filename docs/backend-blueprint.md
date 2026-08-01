@@ -67,5 +67,5 @@ slippage, deadline, ownership, rate-limit, receipt, and cleanup checks fail
 closed. The private browser flow receives sanitized review data, requires an
 explicit wallet prompt for each necessary action, verifies closeout from the
 backend, and routes allowance cleanup after terminal outcomes. The feature is
-default-off, undeployed, and unreleased; production swaps and token approvals
-remain disabled.
+deployed behind default-off backend and frontend gates as of 2026-08-02, but
+remains unreleased; production swaps and token approvals remain disabled.

@@ -49,13 +49,14 @@ rewritten or extended into an open-ended phase list.
 | Expansion phase | Outcome | Status | Estimate |
 | --- | --- | --- | --- |
 | T1 | Native ETH and official KYRA transfer lane | Production-active; protected private-dashboard lane live | Complete |
-| T2 | Allowlisted swap and exact-approval lane | Complete local foundation; default-off, undeployed, and unreleased pending qualification | Original estimate: 2-3 working days |
+| T2 | Allowlisted swap and exact-approval lane | Backend schema and JWT-protected functions deployed default-off; unreleased pending provider configuration and qualification | Original estimate: 2-3 working days |
 | T3 | Security, abuse controls, monitoring, and incident operations | Planned | 2-3 working days |
 | T4 | Full audit, bounded mainnet canary, and staged public release | Planned | 2-3 working days |
 
 Original T1-T4 estimate: 8-12 working days. T1 is complete and the full T2
-protected-swap foundation is complete locally. T2 remains default-off,
-undeployed, and unreleased pending qualification; T3-T4 remain planned. Every
+protected-swap foundation is complete. Its schema and JWT-protected functions
+were deployed default-off on 2026-08-02; T2 remains unreleased pending provider
+configuration and qualification, while T3-T4 remain planned. Every
 phase remains locked until its release gate passes.
 
 See [Transaction Expansion Roadmap](transaction-expansion-roadmap.md) for the
