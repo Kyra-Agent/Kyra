@@ -17,7 +17,9 @@ import {
 import { HttpError } from "./core.ts";
 import {
   fetchReviewedZeroExQuote,
+  readAddressAllowlist,
   readBoundedProviderBody,
+  readSourceAllowlist,
   reviewZeroExQuote,
 } from "./provider.ts";
 
@@ -127,6 +129,75 @@ const config = {
   allowedAllowanceTargets: new Set([allowanceTarget.toLowerCase()]),
   allowedLiquiditySources: new Set(["Uniswap_V3"]),
 };
+
+Deno.test("sends the exact 0x Swap API v2 quote contract", async () => {
+  let capturedUrl = "";
+  let capturedInit: RequestInit | undefined;
+  const fetcher = (
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ): Promise<Response> => {
+    capturedUrl = String(input);
+    capturedInit = init;
+    return Promise.resolve(
+      new Response(JSON.stringify(payload()), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+  };
+
+  await fetchReviewedZeroExQuote(
+    request(),
+    {
+      ...config,
+      apiKey: "dedicated-provider-key",
+      timeoutMs: 1000,
+    },
+    fetcher as typeof fetch,
+  );
+
+  const url = new URL(capturedUrl);
+  assertEquals(
+    `${url.origin}${url.pathname}`,
+    "https://api.0x.org/swap/allowance-holder/quote",
+  );
+  assertEquals(url.searchParams.get("chainId"), String(robinhoodMainnetChainId));
+  assertEquals(url.searchParams.get("sellToken"), zeroExNativeTokenAddress);
+  assertEquals(url.searchParams.get("buyToken"), kyraTokenAddress);
+  assertEquals(url.searchParams.get("sellAmount"), "1000000000000000");
+  assertEquals(url.searchParams.get("taker"), taker);
+  assertEquals(url.searchParams.get("slippageBps"), "50");
+  assertEquals(capturedInit?.method, "GET");
+  assertEquals(capturedInit?.redirect, "error");
+  const headers = new Headers(capturedInit?.headers);
+  assertEquals(headers.get("0x-api-key"), "dedicated-provider-key");
+  assertEquals(headers.get("0x-version"), "v2");
+});
+
+Deno.test("rejects unsafe provider allowlist configuration", () => {
+  for (
+    const value of [
+      "",
+      "0x0000000000000000000000000000000000000000",
+      `${transactionTarget},${transactionTarget}`,
+    ]
+  ) {
+    assertThrows(() => readAddressAllowlist(value), Error);
+  }
+
+  assertThrows(
+    () => readSourceAllowlist("Uniswap_V3,Uniswap_V3"),
+    Error,
+  );
+  assertThrows(
+    () =>
+      readSourceAllowlist(
+        Array.from({ length: 33 }, (_, index) => `Source_${index}`).join(","),
+      ),
+    Error,
+  );
+});
 
 Deno.test("accepts a fully allowlisted native quote", () => {
   const quote = reviewZeroExQuote(

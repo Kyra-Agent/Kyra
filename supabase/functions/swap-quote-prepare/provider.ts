@@ -16,6 +16,8 @@ const maxRouteSummaryLength = 240;
 const maxTransactionDataLength = 32_770;
 const maxSettlerActions = 64;
 const maxSettlerActionDataLength = 16_386;
+const maxConfiguredAddresses = 16;
+const maxConfiguredSources = 32;
 const allowanceHolderAbi = [{
   type: "function",
   name: "exec",
@@ -430,15 +432,22 @@ function reviewSettlerExecute(
 
 export function readAddressAllowlist(value: string): ReadonlySet<string> {
   const entries = value.split(",").map((entry) => entry.trim()).filter(Boolean);
-  if (entries.length === 0) {
-    throw new Error("Address allowlist is empty.");
+  if (entries.length === 0 || entries.length > maxConfiguredAddresses) {
+    throw new Error("Address allowlist must contain between 1 and 16 entries.");
   }
   const normalized = entries.map((entry) => {
     if (!isAddress(entry, { strict: true })) {
       throw new Error("Address allowlist contains an invalid address.");
     }
-    return getAddress(entry).toLowerCase();
+    const address = getAddress(entry).toLowerCase();
+    if (address === "0x0000000000000000000000000000000000000000") {
+      throw new Error("Address allowlist contains the zero address.");
+    }
+    return address;
   });
+  if (new Set(normalized).size !== normalized.length) {
+    throw new Error("Address allowlist contains duplicates.");
+  }
   return new Set(normalized);
 }
 
@@ -446,9 +455,15 @@ export function readSourceAllowlist(value: string): ReadonlySet<string> {
   const entries = value.split(",").map((entry) => entry.trim()).filter(Boolean);
   if (
     entries.length === 0 ||
+    entries.length > maxConfiguredSources ||
     entries.some((entry) => !/^[A-Za-z0-9_.:-]{1,64}$/u.test(entry))
   ) {
-    throw new Error("Liquidity source allowlist is invalid.");
+    throw new Error(
+      "Liquidity source allowlist must contain between 1 and 32 valid entries.",
+    );
+  }
+  if (new Set(entries).size !== entries.length) {
+    throw new Error("Liquidity source allowlist contains duplicates.");
   }
   return new Set(entries);
 }

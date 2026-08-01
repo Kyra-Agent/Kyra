@@ -9,6 +9,7 @@ This directory records the production architecture, safety boundaries, migration
 | [v1.0.0 Release Notes](release-v1.0.0.md) | Public release scope, verification, and retained safety boundaries |
 | [Product Roadmap](product-phase-roadmap.md) | Canonical ten-phase product roadmap and current completion state |
 | [Transaction Expansion Roadmap](transaction-expansion-roadmap.md) | Four-phase plan for transfers, allowlisted swaps, hardening, and staged release |
+| [Protected Swap Qualification](protected-swap-qualification-runbook.md) | Default-off provider qualification, fail-closed validation, bounded canary, release, and rollback procedure |
 | [Product Readiness Snapshot](product-readiness-snapshot.md) | Live capability, controlled boundaries, and sanitized release evidence |
 | [Backend Blueprint](backend-blueprint.md) | Runtime architecture, privacy model, chain contract, and execution boundary |
 | [Controlled Execution Launch Packet](controlled-execution-launch-packet.md) | Required sequence and hard blocks for an onchain transaction |

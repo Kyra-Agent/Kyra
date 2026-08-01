@@ -46,6 +46,7 @@
     "test:risk-review": "node scripts/test-risk-review.mjs",
     "test:execution-result": "node scripts/test-execution-result.mjs",
     "check:functions": "node scripts/check-functions.mjs",
+    "check:protected-swap-provider-config": "node scripts/check-protected-swap-provider-config.mjs",
     "check:privacy": "node scripts/check-public-privacy.mjs",
     "check:execution-launch-readiness": "npm run test:execution-launch-readiness && node scripts/check-controlled-execution-launch-packet.mjs",
     "test:phase-8-owner-live-window-activation": "node scripts/test-phase-8-owner-live-window-activation.mjs",
@@ -100,7 +101,7 @@
     "test:swap-closeout-receipt": "deno test --no-check supabase/functions/swap-result-closeout/receipt-verifier_test.ts",
     "test:swap-result-closeout": "npm run test:swap-closeout-core && npm run test:swap-closeout-receipt",
     "check:protected-swap-types": "deno check supabase/functions/swap-quote-prepare/core.ts supabase/functions/swap-quote-prepare/provider.ts supabase/functions/swap-execution-prepare/core.ts supabase/functions/swap-result-closeout/core.ts supabase/functions/swap-result-closeout/receipt-verifier.ts",
-    "test:protected-swap": "npm run check:protected-swap-types && npm run test:swap-frontend-policy && npm run test:swap-quote-prepare && npm run test:swap-execution-prepare && npm run test:swap-result-closeout",
+    "test:protected-swap": "npm run check:protected-swap-provider-config && npm run check:protected-swap-types && npm run test:swap-frontend-policy && npm run test:swap-quote-prepare && npm run test:swap-execution-prepare && npm run test:swap-result-closeout",
     "test:all": "node scripts/run-all-tests.mjs",
     "check:robinhood-only": "node scripts/check-robinhood-only-repository.mjs"
   },

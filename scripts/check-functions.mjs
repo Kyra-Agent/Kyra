@@ -116,6 +116,41 @@ const swapExecutionVerifier = readFileSync(
   "supabase/migrations/20260731123000_verify_protected_swap_execution_lane.sql",
   "utf8",
 );
+const swapQuoteProvider = readFileSync(
+  "supabase/functions/swap-quote-prepare/provider.ts",
+  "utf8",
+);
+const swapQuoteFunction = readFileSync(
+  "supabase/functions/swap-quote-prepare/index.ts",
+  "utf8",
+);
+for (const boundary of [
+  "https://api.0x.org/swap/allowance-holder/quote",
+  'url.searchParams.set("chainId"',
+  '"0x-api-key": config.apiKey',
+  '"0x-version": "v2"',
+  "allowedTransactionTargets",
+  "allowedAllowanceTargets",
+  "allowedLiquiditySources",
+  "reviewTransactionEnvelope",
+  "readAddressAllowlist",
+  "readSourceAllowlist",
+]) {
+  if (!swapQuoteProvider.includes(boundary)) {
+    throw new Error("Protected swap provider boundary missing: " + boundary);
+  }
+}
+for (const boundary of [
+  "KYRA_ZEROX_API_KEY",
+  "KYRA_ZEROX_SWAP_ALLOWED_TARGETS",
+  "KYRA_ZEROX_ALLOWANCE_ALLOWED_TARGETS",
+  "KYRA_ZEROX_ALLOWED_SOURCES",
+  "KYRA_ZEROX_TIMEOUT_MS",
+]) {
+  if (!swapQuoteFunction.includes(boundary)) {
+    throw new Error("Protected swap provider config missing: " + boundary);
+  }
+}
 for (const boundary of [
   "enable row level security",
   "revoke all on table public.swap_quote_reviews",

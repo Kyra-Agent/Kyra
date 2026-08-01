@@ -87,11 +87,13 @@ Implemented locally:
 
 Remaining before T2 release:
 
-- configure production 0x credentials and exact provider, host, router, allowance-target, and liquidity-source allowlists as backend secrets
+- configure a dedicated production 0x credential and exact transaction-target, allowance-target, and liquidity-source allowlists as backend secrets; the v2 endpoint contract stays hardcoded
 - confirm the deployed T2 migrations and all three JWT-protected Edge Functions remain healthy and execution-disabled before provider qualification
 - qualify RLS, JWT ownership, CORS, rate limits, wallet prompts, quote expiry, receipt verification, replay handling, failure recovery, cleanup, privacy, and browser UX end to end
 - record one bounded owner-controlled mainnet canary and verify allowance cleanup plus sanitized closeout evidence
 - obtain an explicit release decision before enabling the backend execution flag and frontend feature flag
+
+Operational procedure: [Protected Swap Provider Qualification](protected-swap-qualification-runbook.md).
 
 Release gate:
 

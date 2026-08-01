@@ -157,6 +157,8 @@ signing, and private-key custody remain outside the product boundary.
 
 See the [Transaction Expansion Roadmap](docs/transaction-expansion-roadmap.md)
 for scope, release gates, and the remaining work before T2-T4 can be released.
+Use the [Protected Swap Qualification Runbook](docs/protected-swap-qualification-runbook.md)
+for the exact provider, fail-closed, canary, rollback, and release procedure.
 
 Detailed engineering evidence is tracked in:
 
@@ -164,6 +166,7 @@ Detailed engineering evidence is tracked in:
 - [Changelog](CHANGELOG.md)
 - [`docs/product-phase-roadmap.md`](docs/product-phase-roadmap.md)
 - [Transaction Expansion Roadmap](docs/transaction-expansion-roadmap.md)
+- [Protected Swap Qualification Runbook](docs/protected-swap-qualification-runbook.md)
 - [`docs/robinhood-chain-migration-blueprint.md`](docs/robinhood-chain-migration-blueprint.md)
 - [`docs/robinhood-mainnet-cutover-runbook.md`](docs/robinhood-mainnet-cutover-runbook.md)
 - [Product Readiness Snapshot](docs/product-readiness-snapshot.md)
