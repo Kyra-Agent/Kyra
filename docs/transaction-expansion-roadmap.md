@@ -83,11 +83,12 @@ Implemented locally:
 - backend receipt verification, replay-safe terminal closeout, failed-swap recovery, and allowance revoke-to-zero routing are implemented
 - insufficient balance, incomplete simulation, stale responses, provider drift, request drift, changed wallet scope, and terminal-state replay fail closed
 - browser responses and persisted owner records are sanitized; API keys, raw provider payloads, internal router material, secrets, and public execution state stay hidden
+- an operator-only, read-only 0x qualification harness collects sanitized target and liquidity-source candidates for both pair directions before production allowlists exist; it refuses to run while either execution flag is enabled and has no database, wallet, signing, approval, or submission path
 - the frontend lane is protected by `VITE_KYRA_PROTECTED_SWAP_ENABLED=false`, while backend execution independently requires `KYRA_PROTECTED_SWAP_EXECUTION_ENABLED=true`
 
 Remaining before T2 release:
 
-- configure a dedicated production 0x credential and exact transaction-target, allowance-target, and liquidity-source allowlists as backend secrets; the v2 endpoint contract stays hardcoded
+- run repeated operator-only qualification observations for both directions, review only sanitized candidates, then configure a dedicated production 0x credential and exact transaction-target, allowance-target, and liquidity-source allowlists as backend secrets; the v2 endpoint contract stays hardcoded
 - confirm the deployed T2 migrations and all three JWT-protected Edge Functions remain healthy and execution-disabled before provider qualification
 - qualify RLS, JWT ownership, CORS, rate limits, wallet prompts, quote expiry, receipt verification, replay handling, failure recovery, cleanup, privacy, and browser UX end to end
 - record one bounded owner-controlled mainnet canary and verify allowance cleanup plus sanitized closeout evidence

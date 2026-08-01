@@ -151,6 +151,37 @@ for (const boundary of [
     throw new Error("Protected swap provider config missing: " + boundary);
   }
 }
+const swapQualificationHarness = readFileSync(
+  "scripts/protected-swap-provider-qualification.mjs",
+  "utf8",
+);
+const swapQualificationCli = readFileSync(
+  "scripts/qualify-protected-swap-provider.mjs",
+  "utf8",
+);
+for (const boundary of [
+  "https://api.0x.org/swap/allowance-holder/quote",
+  '"0x-api-key": apiKey',
+  '"0x-version": "v2"',
+  'redirect: "error"',
+  "readBoundedQualificationBody",
+  "executionEnabled: false",
+  'allowlistReview: issues.simulationIncomplete',
+]) {
+  if (!swapQualificationHarness.includes(boundary)) {
+    throw new Error("Protected swap qualification boundary missing: " + boundary);
+  }
+}
+for (const boundary of [
+  "KYRA_PROTECTED_SWAP_EXECUTION_ENABLED",
+  "VITE_KYRA_PROTECTED_SWAP_ENABLED",
+  "qualification_requires_default_off_gates",
+  "KYRA_ZEROX_QUALIFICATION_TAKER",
+]) {
+  if (!swapQualificationCli.includes(boundary)) {
+    throw new Error("Protected swap qualification CLI gate missing: " + boundary);
+  }
+}
 for (const boundary of [
   "enable row level security",
   "revoke all on table public.swap_quote_reviews",

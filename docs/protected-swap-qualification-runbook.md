@@ -41,30 +41,49 @@ No provider secret is required for this baseline gate.
 
 1. Create a dedicated production 0x API key for Kyra. Do not reuse a personal or
    unrelated application key.
-2. Store the key only as the Supabase secret `KYRA_ZEROX_API_KEY`.
-3. Keep every allowlist secret unset until actual low-value quote evidence is
-   collected for both ETH-to-KYRA and KYRA-to-ETH.
-4. Request each quote through the authenticated backend function with execution
-   still disabled.
-5. Record only sanitized candidates:
-   - transaction target
-   - AllowanceHolder target, when ERC-20 allowance is required
-   - liquidity source names
-   - chain ID, pair direction, timestamp, and pass/fail outcome
-6. Compare candidates across repeated quotes and both directions. Verify the
-   current 0x documentation again before accepting any address.
-7. Configure exact comma-separated allowlists:
+2. Keep the provider key and every provider allowlist unset in Supabase while
+   collecting initial candidates. Do not add a temporary allowlist bypass to the
+   production Edge Function.
+3. In a secure local operator shell, load the dedicated key and a qualification
+   taker address. The taker is sent to 0x to construct quotes but is never printed
+   in the report:
+
+   ```powershell
+   $env:KYRA_ZEROX_API_KEY="<dedicated-key>"
+   $env:KYRA_ZEROX_QUALIFICATION_TAKER="<operator-wallet>"
+   $env:KYRA_PROTECTED_SWAP_EXECUTION_ENABLED="false"
+   $env:VITE_KYRA_PROTECTED_SWAP_ENABLED="false"
+   npm run qualify:protected-swap-provider
+   ```
+
+4. The operator tool requests read-only quotes for both ETH-to-KYRA and
+   KYRA-to-ETH. It does not write to the database, open a wallet, request a
+   signature, approve tokens, or submit a transaction.
+5. Record only the sanitized report outside the repository. It contains chain,
+   direction, timestamp, pass/fail outcome, candidate transaction target,
+   candidate AllowanceHolder target, liquidity-source names, and generic issue
+   codes. It never contains the API key, taker, raw calldata, balances, provider
+   payloads, or raw provider errors.
+6. Repeat the observation at separate times. Accept candidates only when both
+   directions return `allowlistReview: "candidate"`, the report is `complete`,
+   and the addresses and sources remain consistent with current official 0x
+   documentation.
+7. Store the dedicated key only as the Supabase Edge Function secret
+   `KYRA_ZEROX_API_KEY`, then configure the exact comma-separated candidates:
    - `KYRA_ZEROX_SWAP_ALLOWED_TARGETS`
    - `KYRA_ZEROX_ALLOWANCE_ALLOWED_TARGETS`
    - `KYRA_ZEROX_ALLOWED_SOURCES`
 8. Run `npm run check:protected-swap-provider-config -- --require-provider`
    in a secure shell with the production values loaded.
-9. Never approve the 0x Settler as an ERC-20 spender. Allowance must target the
-   provider-returned AllowanceHolder and remain exact, never unlimited.
+9. Request authenticated backend quotes with execution still disabled and verify
+   that the accepted envelopes match the locally qualified candidates.
+10. Never approve the 0x Settler as an ERC-20 spender. Allowance must target the
+    provider-returned AllowanceHolder and remain exact, never unlimited.
 
-Do not publish the API key, complete quote payload, raw calldata, wallet address,
-or internal record identifiers.
-
+The qualification command refuses to run when either protected-swap execution
+flag is `true`. Do not publish or commit its operator evidence, the API key,
+complete quote payloads, raw calldata, wallet addresses, or internal record
+identifiers.
 ## Gate 3 - Fail-Closed Matrix
 
 Verify all of these cases are rejected before any wallet prompt:
