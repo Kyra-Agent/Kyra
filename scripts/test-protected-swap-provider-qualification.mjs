@@ -15,6 +15,8 @@ import {
 const taker = "0x2cfB1A2C7F70C2011C837b89d74a25b7bbfd0d2e";
 const transactionTarget = "0x111111125421cA6dc452d289314280a0f8842A65";
 const allowanceTarget = "0x0000000000001fF3684f28c67538d4D072C22734";
+const allowanceHolderNativeTokenAddress =
+  "0x0000000000000000000000000000000000000000";
 const secret = "qualification-secret-that-must-never-be-printed";
 const requests = createQualificationRequests({ taker });
 const nativeRequest = requests[0];
@@ -82,7 +84,7 @@ function nativePayload(overrides = {}) {
       allowance: null,
       balance: null,
       simulationIncomplete: false,
-      invalidSources: [],
+      invalidSourcesPassed: [],
     },
     route: { fills: [{ source: "Uniswap_V3" }] },
     transaction: {
@@ -93,6 +95,29 @@ function nativePayload(overrides = {}) {
     },
     ...overrides,
   };
+}
+
+function wrappedNativePayload(overrides = {}) {
+  return nativePayload({
+    allowanceTarget,
+    transaction: {
+      from: taker,
+      to: allowanceTarget,
+      data: encodeFunctionData({
+        abi: allowanceHolderAbi,
+        functionName: "exec",
+        args: [
+          transactionTarget,
+          allowanceHolderNativeTokenAddress,
+          BigInt(nativeRequest.sellAmount),
+          transactionTarget,
+          settlerData(nativeRequest),
+        ],
+      }),
+      value: nativeRequest.sellAmount,
+    },
+    ...overrides,
+  });
 }
 
 function erc20Payload(overrides = {}) {
@@ -109,7 +134,7 @@ function erc20Payload(overrides = {}) {
       allowance: { spender: allowanceTarget },
       balance: { actual: "0", expected: erc20Request.sellAmount },
       simulationIncomplete: false,
-      invalidSources: [],
+      invalidSourcesPassed: [],
     },
     route: {
       fills: [{ source: "Uniswap_V3" }, { source: "Uniswap_V3" }],
@@ -151,6 +176,14 @@ function erc20Payload(overrides = {}) {
   assert.equal(native.transactionTarget, transactionTarget);
   assert.equal(native.allowanceTarget, null);
   assert.deepEqual(native.liquiditySources, ["Uniswap_V3"]);
+
+  const wrappedNative = reviewQualificationQuote(
+    wrappedNativePayload(),
+    nativeRequest,
+  );
+  assert.equal(wrappedNative.transactionTarget, transactionTarget);
+  assert.equal(wrappedNative.allowanceTarget, allowanceTarget);
+  assert.deepEqual(wrappedNative.issueCodes, []);
 
   const erc20 = reviewQualificationQuote(erc20Payload(), erc20Request);
   assert.equal(erc20.transactionTarget, transactionTarget);
@@ -212,7 +245,61 @@ function erc20Payload(overrides = {}) {
 for (const value of [
   nativePayload({ transaction: { ...nativePayload().transaction, from: allowanceTarget } }),
   nativePayload({ allowanceTarget }),
+  wrappedNativePayload({
+    issues: {
+      allowance: { spender: allowanceTarget },
+      balance: null,
+      simulationIncomplete: false,
+      invalidSourcesPassed: [],
+    },
+  }),
+  wrappedNativePayload({
+    transaction: {
+      ...wrappedNativePayload().transaction,
+      to: transactionTarget,
+    },
+  }),
+  wrappedNativePayload({
+    transaction: {
+      ...wrappedNativePayload().transaction,
+      data: encodeFunctionData({
+        abi: allowanceHolderAbi,
+        functionName: "exec",
+        args: [
+          transactionTarget,
+          allowanceHolderNativeTokenAddress,
+          BigInt(nativeRequest.sellAmount) - 1n,
+          transactionTarget,
+          settlerData(nativeRequest),
+        ],
+      }),
+    },
+  }),
+  wrappedNativePayload({
+    transaction: {
+      ...wrappedNativePayload().transaction,
+      data: encodeFunctionData({
+        abi: allowanceHolderAbi,
+        functionName: "exec",
+        args: [
+          transactionTarget,
+          qualificationNativeTokenAddress,
+          BigInt(nativeRequest.sellAmount),
+          transactionTarget,
+          settlerData(nativeRequest),
+        ],
+      }),
+    },
+  }),
   nativePayload({ route: { fills: [{ source: "invalid source" }] } }),
+  nativePayload({
+    issues: {
+      allowance: null,
+      balance: null,
+      simulationIncomplete: false,
+      invalidSources: [],
+    },
+  }),
 ]) {
   assert.throws(() => reviewQualificationQuote(value, nativeRequest));
 }
@@ -224,7 +311,7 @@ assert.throws(() =>
         allowance: { spender: transactionTarget },
         balance: null,
         simulationIncomplete: false,
-        invalidSources: [],
+        invalidSourcesPassed: [],
       },
     }),
     erc20Request,
@@ -238,7 +325,7 @@ assert.throws(() =>
         allowance: null,
         balance: null,
         simulationIncomplete: true,
-        invalidSources: [],
+        invalidSourcesPassed: [],
       },
     }),
     nativeRequest,
@@ -259,7 +346,7 @@ assert.throws(() =>
               allowance: null,
               balance: null,
               simulationIncomplete: true,
-              invalidSources: [],
+              invalidSourcesPassed: [],
             },
           })
           : erc20Payload()),

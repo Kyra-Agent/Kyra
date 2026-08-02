@@ -26,6 +26,8 @@ import {
 const taker = "0x2cfB1A2C7F70C2011C837b89d74a25b7bbfd0d2e";
 const transactionTarget = "0x111111125421cA6dc452d289314280a0f8842A65";
 const allowanceTarget = "0x0000000000001fF3684f28c67538d4D072C22734";
+const allowanceHolderNativeTokenAddress =
+  "0x0000000000000000000000000000000000000000";
 const allowanceHolderAbi = [{
   type: "function",
   name: "exec",
@@ -108,7 +110,7 @@ function payload(overrides: Record<string, unknown> = {}) {
       allowance: null,
       balance: null,
       simulationIncomplete: false,
-      invalidSources: [],
+      invalidSourcesPassed: [],
     },
     route: { fills: [{ source: "Uniswap_V3" }] },
     transaction: {
@@ -119,6 +121,30 @@ function payload(overrides: Record<string, unknown> = {}) {
     },
     ...overrides,
   };
+}
+
+function wrappedNativePayload(overrides: Record<string, unknown> = {}) {
+  const quoteRequest = request();
+  return payload({
+    allowanceTarget,
+    transaction: {
+      from: taker,
+      to: allowanceTarget,
+      data: encodeFunctionData({
+        abi: allowanceHolderAbi,
+        functionName: "exec",
+        args: [
+          transactionTarget,
+          allowanceHolderNativeTokenAddress,
+          BigInt(quoteRequest.sellAmount),
+          transactionTarget,
+          settlerData(quoteRequest),
+        ],
+      }),
+      value: quoteRequest.sellAmount,
+    },
+    ...overrides,
+  });
 }
 
 const config = {
@@ -211,6 +237,77 @@ Deno.test("accepts a fully allowlisted native quote", () => {
   assertEquals(quote.expiresAt, "2026-07-31T00:01:15.000Z");
 });
 
+Deno.test("accepts an allowlisted native quote wrapped by AllowanceHolder", () => {
+  const quote = reviewZeroExQuote(
+    wrappedNativePayload(),
+    request(),
+    config,
+    new Date("2026-07-31T00:00:00Z"),
+  );
+  assertEquals(quote.status, "quote_ready");
+  assertEquals(quote.allowanceTarget, allowanceTarget);
+  assertEquals(quote.transactionTo, allowanceTarget);
+});
+
+Deno.test("rejects unsafe native AllowanceHolder envelopes", () => {
+  const quoteRequest = request();
+  const wrapped = wrappedNativePayload();
+  const transaction = wrapped.transaction as Record<string, unknown>;
+  const invalidPayloads = [
+    wrappedNativePayload({
+      issues: {
+        allowance: { spender: allowanceTarget },
+        balance: null,
+        simulationIncomplete: false,
+        invalidSourcesPassed: [],
+      },
+    }),
+    wrappedNativePayload({
+      transaction: { ...transaction, to: transactionTarget },
+    }),
+    wrappedNativePayload({ allowanceTarget: transactionTarget }),
+    wrappedNativePayload({
+      transaction: {
+        ...transaction,
+        data: encodeFunctionData({
+          abi: allowanceHolderAbi,
+          functionName: "exec",
+          args: [
+            transactionTarget,
+            allowanceHolderNativeTokenAddress,
+            BigInt(quoteRequest.sellAmount) - 1n,
+            transactionTarget,
+            settlerData(quoteRequest),
+          ],
+        }),
+      },
+    }),
+    wrappedNativePayload({
+      transaction: {
+        ...transaction,
+        data: encodeFunctionData({
+          abi: allowanceHolderAbi,
+          functionName: "exec",
+          args: [
+            transactionTarget,
+            zeroExNativeTokenAddress,
+            BigInt(quoteRequest.sellAmount),
+            transactionTarget,
+            settlerData(quoteRequest),
+          ],
+        }),
+      },
+    }),
+  ];
+
+  for (const value of invalidPayloads) {
+    assertThrows(
+      () => reviewZeroExQuote(value, quoteRequest, config, new Date()),
+      HttpError,
+    );
+  }
+});
+
 Deno.test("marks a KYRA sell quote as allowance required", () => {
   const quoteRequest = request({
     sellToken: kyraTokenAddress,
@@ -226,7 +323,7 @@ Deno.test("marks a KYRA sell quote as allowance required", () => {
       allowance: { spender: allowanceTarget },
       balance: null,
       simulationIncomplete: false,
-      invalidSources: [],
+      invalidSourcesPassed: [],
     },
     transaction: {
       from: taker,
@@ -301,7 +398,7 @@ Deno.test("rejects ERC-20 calldata with a mismatched amount or inner target", ()
         allowance: { spender: allowanceTarget },
         balance: null,
         simulationIncomplete: false,
-        invalidSources: [],
+        invalidSourcesPassed: [],
       },
       transaction: {
         from: taker,
@@ -342,7 +439,7 @@ Deno.test("fails closed on provider issues and untrusted transaction fields", ()
     payload({
       issues: {
         allowance: null,
-        balance: { actual: "0" },
+        balance: null,
         simulationIncomplete: false,
         invalidSources: [],
       },
@@ -350,9 +447,17 @@ Deno.test("fails closed on provider issues and untrusted transaction fields", ()
     payload({
       issues: {
         allowance: null,
+        balance: { actual: "0" },
+        simulationIncomplete: false,
+        invalidSourcesPassed: [],
+      },
+    }),
+    payload({
+      issues: {
+        allowance: null,
         balance: null,
         simulationIncomplete: true,
-        invalidSources: [],
+        invalidSourcesPassed: [],
       },
     }),
     payload({ route: { fills: [{ source: "Untrusted" }] } }),

@@ -7,6 +7,8 @@ export const qualificationNativeTokenAddress =
   "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 export const qualificationKyraTokenAddress =
   "0xa2D99dB0593fFd57AE9b92103515bbA061fa5EC1";
+const allowanceHolderNativeTokenAddress =
+  "0x0000000000000000000000000000000000000000";
 
 const maxProviderBodyBytes = 64 * 1024;
 const maxTransactionDataLength = 32_770;
@@ -233,14 +235,26 @@ export function reviewQualificationQuote(value, request) {
     if (transaction.valueWei !== request.sellAmount) {
       throw reject("native_value_mismatch");
     }
-    if (allowanceTarget !== null || issues.allowance !== null) {
+    if (issues.allowance !== null) {
       throw reject("unexpected_native_allowance");
     }
-    reviewSettlerExecute(
-      transaction.data,
-      request,
-      minimumBuyAmount,
-    );
+    if (allowanceTarget === null) {
+      reviewSettlerExecute(
+        transaction.data,
+        request,
+        minimumBuyAmount,
+      );
+    } else {
+      if (transaction.to.toLowerCase() !== allowanceTarget.toLowerCase()) {
+        throw reject("allowance_holder_target_mismatch");
+      }
+      transactionTarget = reviewAllowanceHolderEnvelope(
+        transaction.data,
+        request,
+        allowanceTarget,
+        minimumBuyAmount,
+      );
+    }
   } else {
     if (transaction.valueWei !== "0") throw reject("erc20_value_mismatch");
     if (
@@ -267,12 +281,12 @@ export function reviewQualificationQuote(value, request) {
   if (issues.allowance !== null) issueCodes.push("allowance");
   if (issues.balance !== null) issueCodes.push("balance");
   if (issues.simulationIncomplete) issueCodes.push("simulation_incomplete");
-  if (issues.invalidSources.length > 0) issueCodes.push("invalid_sources");
+  if (issues.invalidSourcesPassed.length > 0) issueCodes.push("invalid_sources");
 
   return {
     direction: request.direction,
     outcome: "observed",
-    allowlistReview: issues.simulationIncomplete || issues.invalidSources.length > 0
+    allowlistReview: issues.simulationIncomplete || issues.invalidSourcesPassed.length > 0
       ? "blocked"
       : "candidate",
     transactionTarget,
@@ -305,10 +319,13 @@ function reviewAllowanceHolderEnvelope(
   ) {
     throw reject("settler_target_mismatch");
   }
-  if (
-    token.toLowerCase() !== request.sellToken.toLowerCase() ||
-    amount !== BigInt(request.sellAmount)
-  ) {
+  const expectedEnvelopeToken = request.sellToken === qualificationNativeTokenAddress
+    ? allowanceHolderNativeTokenAddress
+    : request.sellToken;
+  if (token.toLowerCase() !== expectedEnvelopeToken.toLowerCase()) {
+    throw reject("allowance_holder_token_mismatch");
+  }
+  if (amount !== BigInt(request.sellAmount)) {
     throw reject("allowance_holder_amount_mismatch");
   }
   reviewSettlerExecute(settlerData, request, minimumBuyAmount);
@@ -354,8 +371,8 @@ function readIssues(value) {
   if (
     (value.balance !== null && !isRecord(value.balance)) ||
     typeof value.simulationIncomplete !== "boolean" ||
-    !Array.isArray(value.invalidSources) ||
-    value.invalidSources.some((entry) => typeof entry !== "string")
+    !Array.isArray(value.invalidSourcesPassed) ||
+    value.invalidSourcesPassed.some((entry) => typeof entry !== "string")
   ) {
     throw reject("invalid_issues");
   }
@@ -363,7 +380,7 @@ function readIssues(value) {
     allowance,
     balance: value.balance,
     simulationIncomplete: value.simulationIncomplete,
-    invalidSources: value.invalidSources,
+    invalidSourcesPassed: value.invalidSourcesPassed,
   };
 }
 

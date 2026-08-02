@@ -18,6 +18,8 @@ const maxSettlerActions = 64;
 const maxSettlerActionDataLength = 16_386;
 const maxConfiguredAddresses = 16;
 const maxConfiguredSources = 32;
+const allowanceHolderNativeTokenAddress =
+  "0x0000000000000000000000000000000000000000";
 const allowanceHolderAbi = [{
   type: "function",
   name: "exec",
@@ -234,7 +236,7 @@ export function reviewZeroExQuote(
   if (
     issues.balance !== null ||
     issues.simulationIncomplete ||
-    issues.invalidSources.length > 0
+    issues.invalidSourcesPassed.length > 0
   ) {
     throw invalidProviderQuote("provider_issues");
   }
@@ -251,9 +253,6 @@ export function reviewZeroExQuote(
   }
 
   const transaction = readTransaction(value.transaction, request.taker);
-  if (!config.allowedTransactionTargets.has(transaction.to.toLowerCase())) {
-    throw invalidProviderQuote("transaction_target_not_allowed");
-  }
   if (
     request.sellToken === zeroExNativeTokenAddress &&
     transaction.valueWei !== request.sellAmount
@@ -269,8 +268,18 @@ export function reviewZeroExQuote(
 
   const allowanceTarget = readNullableAddress(value.allowanceTarget);
   if (request.sellToken === zeroExNativeTokenAddress) {
-    if (allowanceTarget !== null || issues.allowance !== null) {
+    if (issues.allowance !== null) {
       throw invalidProviderQuote("unexpected_native_allowance");
+    }
+    if (allowanceTarget === null) {
+      if (!config.allowedTransactionTargets.has(transaction.to.toLowerCase())) {
+        throw invalidProviderQuote("transaction_target_not_allowed");
+      }
+    } else if (
+      transaction.to.toLowerCase() !== allowanceTarget.toLowerCase() ||
+      !config.allowedAllowanceTargets.has(allowanceTarget.toLowerCase())
+    ) {
+      throw invalidProviderQuote("allowance_target_not_allowed");
     }
   } else {
     if (
@@ -343,7 +352,10 @@ function reviewTransactionEnvelope(
     "allowedTransactionTargets" | "allowedAllowanceTargets"
   >,
 ) {
-  if (request.sellToken === zeroExNativeTokenAddress) {
+  if (
+    request.sellToken === zeroExNativeTokenAddress &&
+    allowanceTarget === null
+  ) {
     reviewSettlerExecute(
       transaction.data,
       request,
@@ -382,10 +394,13 @@ function reviewTransactionEnvelope(
   ) {
     throw invalidProviderQuote("settler_target_mismatch");
   }
-  if (
-    token.toLowerCase() !== request.sellToken.toLowerCase() ||
-    amount !== BigInt(request.sellAmount)
-  ) {
+  const expectedEnvelopeToken = request.sellToken === zeroExNativeTokenAddress
+    ? allowanceHolderNativeTokenAddress
+    : request.sellToken;
+  if (token.toLowerCase() !== expectedEnvelopeToken.toLowerCase()) {
+    throw invalidProviderQuote("allowance_holder_token_mismatch");
+  }
+  if (amount !== BigInt(request.sellAmount)) {
     throw invalidProviderQuote("allowance_holder_amount_mismatch");
   }
 
@@ -476,8 +491,8 @@ function readIssues(value: unknown) {
   if (
     (value.balance !== null && !isRecord(value.balance)) ||
     typeof value.simulationIncomplete !== "boolean" ||
-    !Array.isArray(value.invalidSources) ||
-    value.invalidSources.some((entry) => typeof entry !== "string")
+    !Array.isArray(value.invalidSourcesPassed) ||
+    value.invalidSourcesPassed.some((entry) => typeof entry !== "string")
   ) {
     throw invalidProviderQuote("invalid_issues");
   }
@@ -485,7 +500,7 @@ function readIssues(value: unknown) {
     allowance,
     balance: value.balance,
     simulationIncomplete: value.simulationIncomplete,
-    invalidSources: value.invalidSources as string[],
+    invalidSourcesPassed: value.invalidSourcesPassed as string[],
   };
 }
 
