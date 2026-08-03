@@ -151,7 +151,7 @@ native ETH or official KYRA transfers from the private dashboard, subject to
 fixed per-action and daily limits, deterministic policy checks, and explicit
 confirmation in the connected wallet. Later phases add allowlisted swaps with
 exact token approvals, security and operations hardening, then an audited
-mainnet canary and staged public release. The complete T2 protected-swap foundation is implemented and verified locally, including exact allowance preparation, backend calldata verification, explicit wallet review, receipt closeout, and allowance cleanup. Its schema and JWT-protected backend functions were deployed on 2026-08-02. A read-only operator qualification tool is available to collect sanitized 0x allowlist candidates before provider configuration, but T2 remains default-off and unreleased pending qualification; T3-T4 remain planned.
+mainnet canary and staged public release. The complete T2 protected-swap foundation is implemented and verified locally, including exact allowance preparation, backend calldata verification, explicit wallet review, receipt closeout, and allowance cleanup. Its schema and JWT-protected backend functions were deployed on 2026-08-02. Repeated read-only provider observations, exact backend allowlists, the deployed quote service, and the default-off verification suite passed on 2026-08-03. T2 remains default-off and unreleased until a real signed-in private workspace records an accepted owner-scoped backend quote and the remaining fail-closed, canary, and release gates pass; T3-T4 remain planned.
 Telegram, public profiles, autonomous execution, arbitrary calldata, hidden
 signing, and private-key custody remain outside the product boundary.
 

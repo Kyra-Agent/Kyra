@@ -3,7 +3,7 @@
 Status: T1 is production-active on Robinhood Chain as a protected,
 private-dashboard transfer lane. Its database migrations, JWT-protected Edge
 Functions, production build, and bounded non-transactional release smoke passed
-on 2026-07-31. The complete T2 protected-swap foundation is implemented and verified locally, including exact allowance preparation, calldata verification, explicit wallet review, receipt closeout, and allowance cleanup. Its schema and JWT-protected functions were deployed default-off on 2026-08-02; it remains unreleased pending provider configuration and qualification, while T3-T4 remain planned.
+on 2026-07-31. The complete T2 protected-swap foundation is implemented and verified locally, including exact allowance preparation, calldata verification, explicit wallet review, receipt closeout, and allowance cleanup. Its schema and JWT-protected functions were deployed default-off on 2026-08-02. Repeated provider observations and exact backend allowlist configuration passed on 2026-08-03; T2 remains unreleased pending authenticated owner-scoped quote evidence and the remaining qualification, canary, and release gates, while T3-T4 remain planned.
 
 ## Starting Point
 
@@ -68,7 +68,7 @@ Release evidence:
 
 ## T2 - Swap Lane
 
-Status: the complete protected-swap foundation was implemented and verified locally on 2026-08-01. Its schema and three JWT-protected Edge Functions were deployed default-off on 2026-08-02. Provider credentials are not configured, the frontend gate remains off, and production swap prompts, approvals, and submissions remain disabled.
+Status: the complete protected-swap foundation was implemented and verified locally on 2026-08-01. Its schema and three JWT-protected Edge Functions were deployed default-off on 2026-08-02. Repeated read-only 0x observations passed and the dedicated backend credential plus exact transaction-target, allowance-target, and liquidity-source allowlists were configured on 2026-08-03. The frontend and execution gates remain off, and production swap prompts, approvals, and submissions remain disabled.
 
 Original estimate: 2-3 working days.
 
@@ -88,8 +88,7 @@ Implemented locally:
 
 Remaining before T2 release:
 
-- run repeated operator-only qualification observations for both directions, review only sanitized candidates, then configure a dedicated production 0x credential and exact transaction-target, allowance-target, and liquidity-source allowlists as backend secrets; the v2 endpoint contract stays hardcoded
-- confirm the deployed T2 migrations and all three JWT-protected Edge Functions remain healthy and execution-disabled before provider qualification
+- record an accepted authenticated backend quote from a real signed-in private workspace and verify that owner, workspace, selected agent, connected wallet, chain, tokens, request, and expiry remain bound to the qualified provider envelope
 - qualify RLS, JWT ownership, CORS, rate limits, wallet prompts, quote expiry, receipt verification, replay handling, failure recovery, cleanup, privacy, and browser UX end to end
 - record one bounded owner-controlled mainnet canary and verify allowance cleanup plus sanitized closeout evidence
 - obtain an explicit release decision before enabling the backend execution flag and frontend feature flag

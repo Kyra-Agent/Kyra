@@ -24,6 +24,34 @@ Official references:
 - [0x contract guidance](https://docs.0x.org/docs/core-concepts/contracts)
 - [Robinhood Chain connection parameters](https://docs.robinhood.com/chain/connecting/)
 
+## Current Checkpoint - 2026-08-03
+
+Completed with both release flags off:
+
+- three separate read-only provider observations completed for both pair
+  directions with consistent sanitized target and liquidity-source candidates
+- the dedicated backend provider credential and exact transaction-target,
+  allowance-target, and liquidity-source allowlists are installed as Supabase
+  Edge Function secrets
+- `swap-quote-prepare` version 3 is active with JWT verification; the execution
+  preparation and result closeout functions remain active and JWT-protected
+- the required provider configuration check passes with execution disabled
+- linked migrations are synchronized; unauthenticated requests fail with `401`,
+  foreign origins fail with `403`, and the production CORS preflight passes
+- the protected-swap suite passes `41/41`, with the qualification harness and
+  TypeScript checks also passing
+
+Still required before Gate 2 can close:
+
+- use a real signed-in private workspace, selected agent, and connected wallet to
+  request one authenticated backend quote with execution still disabled
+- verify that the accepted response envelope matches the qualified allowlists and
+  remains bound to the authenticated owner scope
+
+No smoke account, password, refresh token, or hidden authentication credential was
+created or stored for this checkpoint. Wallet prompts, allowances, swaps, and
+submissions remain unavailable.
+
 ## Gate 1 - Default-Off Baseline
 
 1. Confirm `VITE_KYRA_PROTECTED_SWAP_ENABLED=false`.
