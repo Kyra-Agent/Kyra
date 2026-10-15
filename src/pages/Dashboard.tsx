@@ -992,7 +992,11 @@ export function Dashboard({
     openDashboardSection("approvals");
     window.setTimeout(() => {
       document
-        .getElementById("transaction-review")
+        .getElementById(
+          appConfig.featureFlags.protectedSwapLane
+            ? "protected-swap-lane"
+            : "transaction-review",
+        )
         ?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 120);
   }
@@ -3905,15 +3909,31 @@ export function Dashboard({
                   type="button"
                 >
                   <ShieldCheck size={16} />
-                  {runtimeBoundWalletConnected
-                    ? "Continue to transaction review"
-                    : "View transaction requirements"}
+                  {appConfig.featureFlags.protectedSwapLane
+                    ? runtimeBoundWalletConnected
+                      ? "Continue to swap quote"
+                      : "View swap requirements"
+                    : runtimeBoundWalletConnected
+                      ? "Continue to transaction review"
+                      : "View transaction requirements"}
                 </button>
                 <small>
-                  Private to your account. Wallet confirmation is always required before submission.
+                  {appConfig.featureFlags.protectedSwapLane
+                    ? "Private read-only quotes. Nothing is signed or submitted from this step."
+                    : "Private to your account. Wallet confirmation is always required before submission."}
                 </small>
               </div>
             </div>
+            {appConfig.featureFlags.protectedSwapLane ? (
+              <ProtectedSwapLanePanel
+                session={authSession}
+                workspaceId={dashboardData?.workspace.id ?? null}
+                agentId={agentRecord?.id ?? null}
+                agentName={agentRecord?.displayName ?? null}
+                agentChainKey={agentRecord?.chainKey ?? null}
+                walletStatus={ownerWalletConnectionStatus}
+              />
+            ) : null}
             <div className="wallet-policy-list">
               <article>
                 <span>Provider stack</span>
@@ -5067,16 +5087,6 @@ export function Dashboard({
               agentChainKey={agentRecord?.chainKey ?? null}
               walletStatus={ownerWalletConnectionStatus}
             />
-            {appConfig.featureFlags.protectedSwapLane ? (
-              <ProtectedSwapLanePanel
-                session={authSession}
-                workspaceId={dashboardData?.workspace.id ?? null}
-                agentId={agentRecord?.id ?? null}
-                agentName={agentRecord?.displayName ?? null}
-                agentChainKey={agentRecord?.chainKey ?? null}
-                walletStatus={ownerWalletConnectionStatus}
-              />
-            ) : null}
             <div className="phase-8-low-value-panel">
               <div className="result-monitoring-header">
                 <span>Low-value readiness</span>
@@ -5408,7 +5418,7 @@ export function Dashboard({
               <span>private account activity</span>
             </div>
             <div className="dashboard-log-box">
-              {activityLines.map((log) => <p key={log}>{log}</p>)}
+              {activityLines.map((log, index) => <p key={`${index}:${log}`}>{log}</p>)}
             </div>
           </section>
 

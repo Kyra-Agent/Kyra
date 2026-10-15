@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Github, Menu, Rocket, ShieldCheck, Sparkles, UserRound, X } from "lucide-react";
+import { Github, Menu, Rocket, UserRound, X } from "lucide-react";
 import { BrandMark } from "./BrandMark";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -84,25 +84,13 @@ export function Header({
           {accountSignedIn ? "Account" : "Sign in"}
         </button>
         <button
-          className="button button-primary button-small"
+          className="button button-primary button-small header-deploy"
           type="button"
           onClick={() => onOpenSection("deploy")}
         >
           <Rocket size={16} />
           Deploy Agent
         </button>
-        <button
-          className="button button-ghost button-small header-safety hide-on-mobile"
-          type="button"
-          onClick={() => onOpenSection("security")}
-        >
-          <ShieldCheck size={16} />
-          Safety
-        </button>
-        <span className="demo-badge header-product-badge">
-          <Sparkles size={14} />
-          Product Ready
-        </span>
       </div>
 
       <nav

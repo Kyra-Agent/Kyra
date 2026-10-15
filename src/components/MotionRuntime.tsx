@@ -4,25 +4,56 @@ interface MotionRuntimeProps {
   routeKey: string;
 }
 
+// Reveal small, meaningful units instead of whole sections. Large blocks are
+// shown immediately so long panels never leave an empty viewport while
+// scrolling.
 const revealSelector = [
-  ".hero-copy > *",
-  ".hero-shell",
-  "main > .section",
-  "main > section:not(.hero-section)",
+  ".section-heading > *",
+  ".security-copy > *",
+  ".dashboard-header > *",
+  ".template-card",
+  ".action-card",
+  ".module-row",
+  ".security-grid > article",
+  ".guarantee-marquee",
+  ".faq-item",
+  ".dashboard-grid > *",
+  ".deploy-howto > article",
+  ".wizard-panel",
+  ".site-footer",
   ".dashboard-main > .dashboard-topbar",
-  ".dashboard-main > section",
-  ".dashboard-main > .dashboard-content-grid",
+  ".dashboard-kpi-grid > article",
   ".dashboard-content-grid > section",
   ".dashboard-auth-grid > *",
   ".public-agent-page > section",
-  ".public-agent-page > div",
   ".public-agent-grid > *",
-  ".site-footer",
 ].join(",");
+
+// Surfaces that receive the pointer-tracking spotlight.
+const spotlightSelector = [
+  ".template-card",
+  ".action-card",
+  ".security-grid article",
+  ".agent-card",
+  ".approval-card",
+  ".logs-card",
+  ".deploy-howto article",
+  ".dashboard-kpi-grid article",
+  ".public-panel",
+  ".hero-shell",
+  ".official-token-card",
+].join(",");
+
+const maxStaggerSteps = 6;
+
+function prefersReducedMotion() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 export function MotionRuntime({ routeKey }: MotionRuntimeProps) {
   const progressRef = useRef<HTMLSpanElement>(null);
 
+  // Route entrance.
   useEffect(() => {
     let frame = window.requestAnimationFrame(() => {
       const routeRoot = document.querySelector(
@@ -44,57 +75,126 @@ export function MotionRuntime({ routeKey }: MotionRuntimeProps) {
     };
   }, [routeKey]);
 
+  // Scroll progress and condensed header state.
   useEffect(() => {
-    const progressElement = progressRef.current;
-
-    if (!progressElement) {
-      return;
-    }
-
+    const root = document.documentElement;
     let frame = 0;
 
-    function updateProgress() {
+    function update() {
       frame = 0;
-      const scrollRange =
-        document.documentElement.scrollHeight - window.innerHeight;
+      const scrollRange = root.scrollHeight - window.innerHeight;
       const value = scrollRange > 0
         ? Math.min(1, Math.max(0, window.scrollY / scrollRange))
         : 0;
 
-      progressRef.current?.style.setProperty(
-        "transform",
-        `scaleX(${value})`,
-      );
+      progressRef.current?.style.setProperty("transform", `scaleX(${value})`);
+      root.toggleAttribute("data-scrolled", window.scrollY > 12);
     }
 
-    function queueProgressUpdate() {
+    function queueUpdate() {
       if (!frame) {
-        frame = window.requestAnimationFrame(updateProgress);
+        frame = window.requestAnimationFrame(update);
       }
     }
 
-    updateProgress();
-    window.addEventListener("scroll", queueProgressUpdate, { passive: true });
-    window.addEventListener("resize", queueProgressUpdate, { passive: true });
+    update();
+    window.addEventListener("scroll", queueUpdate, { passive: true });
+    window.addEventListener("resize", queueUpdate, { passive: true });
 
     return () => {
-      window.removeEventListener("scroll", queueProgressUpdate);
-      window.removeEventListener("resize", queueProgressUpdate);
+      window.removeEventListener("scroll", queueUpdate);
+      window.removeEventListener("resize", queueUpdate);
       window.cancelAnimationFrame(frame);
     };
   }, [routeKey]);
 
+  // Pointer glow and card spotlight. Pointer-only so touch scrolling never
+  // pays for it.
   useEffect(() => {
-    const reducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
+    if (
+      prefersReducedMotion() ||
+      !window.matchMedia("(hover: hover) and (pointer: fine)").matches
+    ) {
+      return;
+    }
 
-    if (reducedMotion || !("IntersectionObserver" in window)) {
+    const root = document.documentElement;
+    const glow = document.querySelector<HTMLElement>(".pointer-glow-layer");
+    let frame = 0;
+    let pointerX = 0;
+    let pointerY = 0;
+    let activeSurface: HTMLElement | null = null;
+    let pendingTarget: EventTarget | null = null;
+
+    function apply() {
+      frame = 0;
+      // Move the glow directly; updating inherited custom properties on the
+      // root would restyle the whole document on every pointer frame.
+      glow?.style.setProperty(
+        "transform",
+        `translate3d(${pointerX}px, ${pointerY}px, 0)`,
+      );
+
+      const surface = pendingTarget instanceof Element
+        ? pendingTarget.closest<HTMLElement>(spotlightSelector)
+        : null;
+
+      if (activeSurface && activeSurface !== surface) {
+        activeSurface.removeAttribute("data-spotlight");
+      }
+
+      activeSurface = surface;
+
+      if (surface) {
+        const rect = surface.getBoundingClientRect();
+        surface.style.setProperty("--spot-x", `${pointerX - rect.left}px`);
+        surface.style.setProperty("--spot-y", `${pointerY - rect.top}px`);
+        surface.setAttribute("data-spotlight", "");
+      }
+    }
+
+    function handlePointerMove(event: PointerEvent) {
+      if (event.pointerType !== "mouse") {
+        return;
+      }
+
+      pointerX = event.clientX;
+      pointerY = event.clientY;
+      pendingTarget = event.target;
+
+      if (!frame) {
+        frame = window.requestAnimationFrame(apply);
+      }
+    }
+
+    function handlePointerLeave() {
+      activeSurface?.removeAttribute("data-spotlight");
+      activeSurface = null;
+    }
+
+    root.setAttribute("data-pointer", "fine");
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    document.addEventListener("pointerleave", handlePointerLeave);
+
+    return () => {
+      root.removeAttribute("data-pointer");
+      window.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("pointerleave", handlePointerLeave);
+      window.cancelAnimationFrame(frame);
+      activeSurface?.removeAttribute("data-spotlight");
+    };
+  }, []);
+
+  // Staggered reveal for content units.
+  useEffect(() => {
+    if (prefersReducedMotion() || !("IntersectionObserver" in window)) {
       return;
     }
 
     const registered = new WeakSet<Element>();
-    let revealOrder = 0;
+    const batchOrder = new WeakMap<Element, number>();
+    let pendingBatch = 0;
+    let batchFrame = 0;
 
     const revealObserver = new IntersectionObserver(
       (entries) => {
@@ -103,13 +203,25 @@ export function MotionRuntime({ routeKey }: MotionRuntimeProps) {
             continue;
           }
 
-          entry.target.classList.add("is-motion-visible");
-          revealObserver.unobserve(entry.target);
+          const element = entry.target as HTMLElement;
+          const order = Math.min(pendingBatch, maxStaggerSteps - 1);
+          pendingBatch += 1;
+          batchOrder.set(element, order);
+          element.style.setProperty("--motion-order", String(order));
+          element.classList.add("is-motion-visible");
+          revealObserver.unobserve(element);
+        }
+
+        if (!batchFrame) {
+          batchFrame = window.requestAnimationFrame(() => {
+            batchFrame = 0;
+            pendingBatch = 0;
+          });
         }
       },
       {
-        rootMargin: "0px 0px -8% 0px",
-        threshold: 0.08,
+        rootMargin: "0px 0px -4% 0px",
+        threshold: 0,
       },
     );
 
@@ -119,12 +231,14 @@ export function MotionRuntime({ routeKey }: MotionRuntimeProps) {
       }
 
       registered.add(element);
+      const rect = element.getBoundingClientRect();
+
+      // Tall blocks and anything already above the fold render immediately.
+      if (rect.height > window.innerHeight * 0.85 || rect.bottom < 0) {
+        return;
+      }
+
       element.classList.add("motion-reveal");
-      (element as HTMLElement).style.setProperty(
-        "--motion-order",
-        String(revealOrder % 6),
-      );
-      revealOrder += 1;
       revealObserver.observe(element);
     }
 
@@ -156,6 +270,12 @@ export function MotionRuntime({ routeKey }: MotionRuntimeProps) {
     return () => {
       mutationObserver.disconnect();
       revealObserver.disconnect();
+      window.cancelAnimationFrame(batchFrame);
+      document.querySelectorAll(".motion-reveal").forEach((element) => {
+        if (!batchOrder.has(element)) {
+          element.classList.add("is-motion-visible");
+        }
+      });
     };
   }, [routeKey]);
 

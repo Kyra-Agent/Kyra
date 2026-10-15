@@ -1291,7 +1291,7 @@ export function DeployPanel({
 
           <div className="deploy-command-stack">
             {terminalLines.slice(0, activeLogCount).map((line, index) => (
-              <p key={line} className={index < activeLogCount - 1 ? "complete" : "active"}>
+              <p key={`${index}:${line}`} className={index < activeLogCount - 1 ? "complete" : "active"}>
                 <span>&gt;</span>
                 {line}
               </p>

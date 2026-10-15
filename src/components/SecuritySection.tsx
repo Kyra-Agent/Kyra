@@ -46,8 +46,13 @@ export function SecuritySection() {
         </article>
       </div>
 
-      <div className="guarantee-strip">
-        {guarantees.map((item) => <span key={item}>{item}</span>)}
+      <div className="guarantee-marquee">
+        <ul className="guarantee-strip" aria-label="Kyra security guarantees">
+          {guarantees.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+        <ul className="guarantee-strip" aria-hidden="true">
+          {guarantees.map((item) => <li key={item}>{item}</li>)}
+        </ul>
       </div>
     </section>
   );

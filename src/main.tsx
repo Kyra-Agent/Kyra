@@ -3,9 +3,12 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { WalletProviderBoundary } from "./providers/WalletProviderBoundary";
 import { consumeAuthCallbackSession } from "./services/supabaseAuthService";
+import "@fontsource-variable/geist";
+import "@fontsource-variable/geist-mono";
 import "./styles.css";
 import "./motion.css";
 import "./route-loading.css";
+import "./luxe.css";
 
 void consumeAuthCallbackSession();
 

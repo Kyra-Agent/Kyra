@@ -77,9 +77,9 @@ export function HeroConsole({
           {asciiKyra}
         </pre>
 
-        <div className="console-lines" aria-live="polite">
-          {lines.slice(0, visibleCount).map((line) => (
-            <p key={line}>
+        <div className="console-lines" role="log" aria-live="off">
+          {lines.slice(0, visibleCount).map((line, index) => (
+            <p key={`${index}:${line}`}>
               <span className="prompt-mark">&gt;</span>
               {line}
             </p>

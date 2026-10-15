@@ -378,7 +378,9 @@ export function OwnerWalletConnectionPanel({
           <strong>
             {agentChainMatchesRuntime
               ? currentProductChain.name
-              : "Agent chain mismatch"}
+              : agentChainKey
+              ? "Agent chain mismatch"
+              : `${currentProductChain.name} pending`}
           </strong>
         </span>
         <span>

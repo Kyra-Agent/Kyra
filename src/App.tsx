@@ -8,6 +8,7 @@ import {
   type ErrorInfo,
   type ReactNode,
 } from "react";
+import { flushSync } from "react-dom";
 import {
   ArrowRight,
   CheckCircle2,
@@ -17,6 +18,7 @@ import {
   Terminal,
 } from "lucide-react";
 import { AnimatedBackground } from "./components/AnimatedBackground";
+import { AnimatedHeadline } from "./components/AnimatedHeadline";
 import { ActionConsole } from "./components/ActionConsole";
 import { CoreModules } from "./components/CoreModules";
 import { DashboardPreview } from "./components/DashboardPreview";
@@ -193,6 +195,47 @@ class RouteErrorBoundary extends Component<
   }
 }
 
+const themeStorageKey = "kyra-theme";
+
+type ViewTransitionDocument = Document & {
+  startViewTransition?: (update: () => void) => unknown;
+};
+
+function canUseViewTransition() {
+  return typeof document !== "undefined" &&
+    typeof (document as ViewTransitionDocument).startViewTransition ===
+      "function" &&
+    !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+// Cross-fades between routes where the browser supports View Transitions.
+// The update runs synchronously inside the transition so the new route is
+// captured after React commits it; unsupported browsers update immediately.
+function runRouteTransition(update: (animated: boolean) => void) {
+  if (!canUseViewTransition()) {
+    update(false);
+    return;
+  }
+
+  try {
+    (document as ViewTransitionDocument).startViewTransition?.(() => {
+      flushSync(() => update(true));
+    });
+  } catch {
+    update(false);
+  }
+}
+
+function readStoredTheme(): "dark" | "light" {
+  try {
+    return window.localStorage.getItem(themeStorageKey) === "light"
+      ? "light"
+      : "dark";
+  } catch {
+    return "dark";
+  }
+}
+
 function getInitialTemplateId() {
   if (typeof window === "undefined") {
     return "operator";
@@ -217,9 +260,7 @@ function App() {
       return "dark";
     }
 
-    return window.localStorage.getItem("kyra-theme") === "light"
-      ? "light"
-      : "dark";
+    return readStoredTheme();
   });
   const [selectedId, setSelectedId] = useState(getInitialTemplateId);
   const [agentSlug, setAgentSlug] = useState(getInitialAgentSlug);
@@ -337,7 +378,11 @@ function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    window.localStorage.setItem("kyra-theme", theme);
+    try {
+      window.localStorage.setItem(themeStorageKey, theme);
+    } catch {
+      // Theme persistence is a convenience; blocked storage keeps the session theme.
+    }
   }, [theme]);
 
   useEffect(() => {
@@ -553,6 +598,14 @@ function App() {
     nextRoute: "home" | "dashboard" | "agent",
     target?: { templateId?: string; publicPath?: string },
   ) {
+    runRouteTransition((animated) => applyNavigation(nextRoute, target, animated));
+  }
+
+  function applyNavigation(
+    nextRoute: "home" | "dashboard" | "agent",
+    target: { templateId?: string; publicPath?: string } | undefined,
+    animated: boolean,
+  ) {
     const targetSlug = target?.publicPath?.replace(/^\/agents\//, "");
     const nextTemplateId = target?.templateId ?? selectedTemplate.id;
 
@@ -576,14 +629,16 @@ function App() {
       ? `/agents/${targetSlug}`
       : "/";
     pushAppPath(path);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: animated ? "instant" : "smooth" });
   }
 
   function openAccountSession() {
-    setHomeSectionId(null);
-    setRoute("dashboard");
-    pushAppPath("/dashboard/auth");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    runRouteTransition((animated) => {
+      setHomeSectionId(null);
+      setRoute("dashboard");
+      pushAppPath("/dashboard/auth");
+      window.scrollTo({ top: 0, behavior: animated ? "instant" : "smooth" });
+    });
   }
 
   function openHomeSection(
@@ -594,12 +649,21 @@ function App() {
       return;
     }
 
-    setDeployInitialStepId(
-      sectionId === "deploy" ? options?.deployStepId ?? "account" : "account",
-    );
-    setRoute("home");
-    setHomeSectionId(sectionId);
-    pushAppPath(`/${sectionId}`);
+    const applySection = () => {
+      setDeployInitialStepId(
+        sectionId === "deploy" ? options?.deployStepId ?? "account" : "account",
+      );
+      setRoute("home");
+      setHomeSectionId(sectionId);
+      pushAppPath(`/${sectionId}`);
+    };
+
+    if (route === "home") {
+      applySection();
+      return;
+    }
+
+    runRouteTransition(applySection);
   }
 
   function selectScenario(scenarioId: string) {
@@ -759,9 +823,10 @@ function App() {
                     <Sparkles size={15} />
                     {currentProductChain.name} agent control plane
                   </span>
-                  <h1>
-                    Deploy agents on {currentProductChain.name}.
-                  </h1>
+                  <AnimatedHeadline
+                    lead="Deploy agents on"
+                    accent={`${currentProductChain.name}.`}
+                  />
                   <p className="hero-subtitle">
                     Launch AI workspaces with live Telegram chat, private account records, {currentWalletDisplayName} connection, and explicit approval for every onchain action.
                   </p>

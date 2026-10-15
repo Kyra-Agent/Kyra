@@ -93,7 +93,7 @@ export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
             <span>activity replay</span>
           </div>
           <div className="log-stream">
-            {dashboardLogs.map((log) => <p key={log}>{log}</p>)}
+            {dashboardLogs.map((log, index) => <p key={`${index}:${log}`}>{log}</p>)}
           </div>
         </div>
       </div>

@@ -81,25 +81,29 @@ body {
 }
 
 .motion-route-enter {
-  animation: motionRouteEnter var(--motion-slow) var(--motion-ease) both;
+  /* "backwards" leaves no transform behind once the entrance ends, so fixed
+     dialogs inside the route keep the viewport as their containing block. */
+  animation: motionRouteEnter var(--motion-slow) var(--motion-ease) backwards;
 }
 
+/* Reveal uses the independent translate property so hover transforms still
+   compose, and nothing is left behind once an element is visible. */
 .motion-reveal {
   opacity: 0;
-  filter: blur(5px);
-  transform: translate3d(0, 18px, 0);
+  translate: 0 16px;
   transition:
-    opacity var(--motion-slow) var(--motion-ease),
-    filter var(--motion-slow) var(--motion-ease),
-    transform var(--motion-slow) var(--motion-ease);
-  transition-delay: calc(var(--motion-order, 0) * 46ms);
-  will-change: opacity, filter, transform;
+    opacity 640ms var(--motion-ease),
+    translate 760ms var(--motion-ease);
+  transition-delay: calc(var(--motion-order, 0) * 70ms);
+}
+
+.motion-reveal:not(.is-motion-visible) {
+  will-change: opacity, translate;
 }
 
 .motion-reveal.is-motion-visible {
   opacity: 1;
-  filter: none;
-  transform: translate3d(0, 0, 0);
+  translate: none;
 }
 
 .button,
@@ -183,7 +187,7 @@ body {
 .hero-proof-strip span,
 .trust-row span,
 .chip,
-.guarantee-strip span,
+.guarantee-strip li,
 .console-status-grid span,
 .connection-grid span,
 .metric-grid span {
@@ -288,14 +292,6 @@ textarea:focus-visible {
   animation-duration: 24s;
 }
 
-.signal-layer span {
-  animation-duration: 12s;
-}
-
-.data-stream-layer span {
-  animation-duration: 18s;
-}
-
 .node-layer span {
   animation-duration: 5.6s;
 }
@@ -377,7 +373,7 @@ textarea:focus-visible {
   .hero-proof-strip span:hover,
   .trust-row span:hover,
   .chip:hover,
-  .guarantee-strip span:hover {
+  .guarantee-strip li:hover {
     transform: translateY(-2px);
     border-color: rgba(138, 230, 177, 0.36);
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
@@ -419,9 +415,8 @@ textarea:focus-visible {
   }
 
   .motion-reveal {
-    filter: none;
-    transform: translate3d(0, 12px, 0);
-    transition-delay: calc(var(--motion-order, 0) * 24ms);
+    translate: 0 12px;
+    transition-delay: calc(var(--motion-order, 0) * 40ms);
   }
 
   .site-header {
@@ -440,6 +435,7 @@ textarea:focus-visible {
     opacity: 1 !important;
     filter: none !important;
     transform: none !important;
+    translate: none !important;
   }
 
   .button-primary::after,
