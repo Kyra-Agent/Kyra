@@ -349,4 +349,54 @@ for (const boundary of [
   }
 }
 
+// The official KYRA contract stays unpublished until the Robinhood Chain
+// relaunch. Test fixtures may configure a synthetic address, but no product
+// module may import the fixture or call the test-only override.
+const retiredKyraContract = ["0xa2d99db0593ffd57ae9b", "92103515bba061fa5ec1"]
+  .join("");
+const testOnlyTokenHooks = [
+  "configureOfficialKyraTokenAddressForTests",
+  "official-token-test-fixture",
+];
+const tokenHookDefinitions = new Set([
+  "src/config/transferTransactionPolicy.ts",
+  "supabase/functions/_shared/transfer-transaction-policy.ts",
+  "supabase/functions/_shared/official-token-test-fixture.ts",
+]);
+const productSources = spawnSync(
+  "git",
+  ["ls-files", "--cached", "--others", "--exclude-standard", "src", "supabase/functions"],
+  { encoding: "utf8", windowsHide: true },
+);
+if (productSources.status !== 0) {
+  throw new Error("Unable to list product sources for the official token check.");
+}
+for (const path of productSources.stdout.split(/\r?\n/u).filter(Boolean)) {
+  if (!/\.(?:ts|tsx)$/u.test(path) || !existsSync(path)) continue;
+  const source = readFileSync(path, "utf8");
+  if (source.toLowerCase().includes(retiredKyraContract)) {
+    throw new Error("Retired KYRA contract address found in " + path);
+  }
+  if (path.endsWith("_test.ts") || tokenHookDefinitions.has(path)) continue;
+  for (const hook of testOnlyTokenHooks) {
+    if (source.includes(hook)) {
+      throw new Error("Test-only official token hook used by product code: " + path);
+    }
+  }
+}
+for (
+  const path of [
+    "src/config/transferTransactionPolicy.ts",
+    "supabase/functions/_shared/transfer-transaction-policy.ts",
+  ]
+) {
+  if (
+    !readFileSync(path, "utf8").includes(
+      "export const publishedOfficialKyraTokenAddress = null as EvmAddress | null;",
+    )
+  ) {
+    throw new Error("Official KYRA contract must remain unpublished in " + path);
+  }
+}
+
 console.log("Current Robinhood and Telegram Edge Functions passed.");

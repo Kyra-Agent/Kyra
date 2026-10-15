@@ -2,6 +2,7 @@ import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   createReviewedSwapQuoteRequest,
   getSwapTokenSymbolForAddress,
+  isProtectedSwapPairAvailable,
   kyraSwapMaxAtomic,
   swapQuoteMaximumSlippageBps,
   swapQuoteMinimumSlippageBps,
@@ -9,10 +10,14 @@ import {
   zeroExNativeTokenAddress,
 } from "../src/config/swapQuotePolicy.ts";
 import {
-  kyraTokenAddress,
+  configureOfficialKyraTokenAddressForTests,
   nativeTransferMaxAtomic,
 } from "../src/config/transferTransactionPolicy.ts";
 import { robinhoodChain } from "../src/config/productChains.ts";
+
+// Synthetic checksummed fixture; never a published contract.
+const kyraTokenAddress = "0x11bceD4Ed1b20eAE8aA4Ff840a5dCEB078C9cb53" as const;
+configureOfficialKyraTokenAddressForTests(kyraTokenAddress);
 
 const common = {
   workspaceId: "2094f3e1-3657-4754-98b9-470e8d72e14a",
@@ -118,4 +123,27 @@ Deno.test("maps only the two approved token addresses", () => {
     null,
   );
   assertEquals(getSwapTokenSymbolForAddress(null), null);
+});
+
+Deno.test("fails closed while the official KYRA contract is unpublished", () => {
+  configureOfficialKyraTokenAddressForTests(null);
+  try {
+    assertEquals(isProtectedSwapPairAvailable(), false);
+    assertEquals(getSwapTokenSymbolForAddress(kyraTokenAddress), null);
+    for (
+      const direction of [
+        { sellTokenSymbol: "ETH", buyTokenSymbol: "KYRA" },
+        { sellTokenSymbol: "KYRA", buyTokenSymbol: "ETH" },
+      ] as const
+    ) {
+      const result = createReviewedSwapQuoteRequest({
+        ...common,
+        ...direction,
+        sellAmount: "0.001",
+      });
+      assertEquals(result.ok, false);
+    }
+  } finally {
+    configureOfficialKyraTokenAddressForTests(kyraTokenAddress);
+  }
 });

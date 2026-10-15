@@ -8,7 +8,7 @@ import {
   type SwapExecutionTransaction,
 } from "../_shared/swap-execution-policy.ts";
 import {
-  kyraTokenAddress,
+  getOfficialKyraTokenAddress,
   robinhoodMainnetChainId,
   robinhoodMainnetChainKey,
 } from "../_shared/transfer-transaction-policy.ts";
@@ -220,8 +220,11 @@ function transactionForStep(
     };
   }
 
+  const officialTokenAddress = getOfficialKyraTokenAddress();
   if (
-    quote.sell_token_address.toLowerCase() !== kyraTokenAddress.toLowerCase() ||
+    officialTokenAddress === null ||
+    quote.sell_token_address.toLowerCase() !==
+      officialTokenAddress.toLowerCase() ||
     !quote.allowance_target
   ) {
     throw new HttpError(

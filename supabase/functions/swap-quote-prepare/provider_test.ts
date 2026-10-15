@@ -3,9 +3,9 @@ import {
   assertRejects,
   assertThrows,
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { encodeFunctionData } from "npm:viem@2.52.2";
+import { encodeFunctionData } from "npm:viem@2.57.7";
+import { testKyraTokenAddress as kyraTokenAddress } from "../_shared/official-token-test-fixture.ts";
 import {
-  kyraTokenAddress,
   robinhoodMainnetChainId,
   robinhoodMainnetChainKey,
 } from "../_shared/transfer-transaction-policy.ts";
@@ -188,7 +188,10 @@ Deno.test("sends the exact 0x Swap API v2 quote contract", async () => {
     `${url.origin}${url.pathname}`,
     "https://api.0x.org/swap/allowance-holder/quote",
   );
-  assertEquals(url.searchParams.get("chainId"), String(robinhoodMainnetChainId));
+  assertEquals(
+    url.searchParams.get("chainId"),
+    String(robinhoodMainnetChainId),
+  );
   assertEquals(url.searchParams.get("sellToken"), zeroExNativeTokenAddress);
   assertEquals(url.searchParams.get("buyToken"), kyraTokenAddress);
   assertEquals(url.searchParams.get("sellAmount"), "1000000000000000");

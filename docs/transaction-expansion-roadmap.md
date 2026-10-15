@@ -46,7 +46,8 @@ Original estimate: 2-3 working days.
 Scope:
 
 - native Robinhood Chain ETH transfers
-- the official KYRA ERC-20 only: `0xa2D99dB0593fFd57AE9b92103515bbA061fa5EC1`
+- the official KYRA ERC-20 only; its contract is unpublished until the
+  Robinhood Chain relaunch, so KYRA transfers fail closed until it is announced
 - checksummed recipient validation and explicit recipient confirmation
 - token contract, decimals, amount, balance, gas, and chain validation
 - per-action limits: `0.005 ETH` or `10,000 KYRA`

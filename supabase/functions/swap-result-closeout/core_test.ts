@@ -11,8 +11,8 @@ import {
   reconcileSwapExecutionResultStatus,
   type StoredSwapExecutionIntent,
 } from "./core.ts";
+import { testKyraTokenAddress as kyraTokenAddress } from "../_shared/official-token-test-fixture.ts";
 import {
-  kyraTokenAddress,
   robinhoodMainnetChainId,
   robinhoodMainnetChainKey,
 } from "../_shared/transfer-transaction-policy.ts";

@@ -2,8 +2,8 @@ import {
   assertEquals,
   assertThrows,
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { testKyraTokenAddress as kyraTokenAddress } from "../_shared/official-token-test-fixture.ts";
 import {
-  kyraTokenAddress,
   robinhoodMainnetChainId,
   robinhoodMainnetChainKey,
 } from "../_shared/transfer-transaction-policy.ts";

@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { kyraTokenAddress } from "../_shared/transfer-transaction-policy.ts";
 import {
   assertExistingSwapResultScope,
   assertStoredSwapExecutionIntent,
@@ -18,8 +17,10 @@ const allowedOrigins = new Set([
   "https://kyraagent.xyz",
   "https://www.kyraagent.xyz",
   "http://localhost:4173",
+  "http://localhost:4176",
   "http://localhost:5173",
   "http://127.0.0.1:4173",
+  "http://127.0.0.1:4176",
   "http://127.0.0.1:5173",
 ]);
 const maxBodyBytes = 4096;
@@ -276,7 +277,7 @@ Deno.serve(async (request) => {
 
     const { data: quote, error: quoteError } = await serviceClient
       .from("swap_quote_reviews")
-      .select("id,sell_token_address,allowance_target")
+      .select("id,sell_token_symbol,allowance_target")
       .eq("id", intent.quote_review_id)
       .eq("workspace_id", body.workspaceId)
       .eq("agent_id", body.agentId)
@@ -290,9 +291,7 @@ Deno.serve(async (request) => {
       );
     }
     const erc20AllowanceLineage = intent.step === "swap" &&
-      typeof quote.sell_token_address === "string" &&
-      quote.sell_token_address.toLowerCase() ===
-        kyraTokenAddress.toLowerCase() &&
+      quote.sell_token_symbol === "KYRA" &&
       typeof quote.allowance_target === "string";
 
     const submissionKey = await sha256Hex(

@@ -1,6 +1,6 @@
 import { decodeFunctionData, erc20Abi, getAddress } from "viem";
 import { appConfig } from "../config/appConfig";
-import { kyraTokenAddress } from "../config/transferTransactionPolicy";
+import { getOfficialKyraTokenAddress } from "../config/transferTransactionPolicy";
 import { robinhoodChain } from "../config/productChains";
 import type { KyraAuthSession } from "./supabaseAuthService";
 import { getSupabaseApiKey } from "./supabaseRestClient";
@@ -244,9 +244,11 @@ function isPreparedResponse(
   const token = readChecksummedAddress(value.allowance.token);
   const spender = readChecksummedAddress(value.allowance.spender);
   const amount = value.allowance.amountAtomic;
+  const officialTokenAddress = getOfficialKyraTokenAddress()?.toLowerCase();
   if (
-    token?.toLowerCase() !== kyraTokenAddress.toLowerCase() ||
-    to.toLowerCase() !== kyraTokenAddress.toLowerCase() || !spender ||
+    !officialTokenAddress ||
+    token?.toLowerCase() !== officialTokenAddress ||
+    to.toLowerCase() !== officialTokenAddress || !spender ||
     typeof amount !== "string" || !/^(?:0|[1-9][0-9]*)$/u.test(amount) ||
     (input.step === "allowance_set" ? BigInt(amount) <= 0n : amount !== "0")
   ) return false;

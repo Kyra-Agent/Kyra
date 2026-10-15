@@ -5,8 +5,6 @@ export const zeroExQualificationEndpoint =
 export const robinhoodQualificationChainId = 4663;
 export const qualificationNativeTokenAddress =
   "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
-export const qualificationKyraTokenAddress =
-  "0xa2D99dB0593fFd57AE9b92103515bbA061fa5EC1";
 const allowanceHolderNativeTokenAddress =
   "0x0000000000000000000000000000000000000000";
 
@@ -64,12 +62,19 @@ export class QualificationError extends Error {
 
 export function createQualificationRequests({
   taker,
+  kyraTokenAddress,
   ethSellAmountAtomic = "100000000000000",
   kyraSellAmountAtomic = "1000000000000000000",
   slippageBps = 50,
 }) {
   const normalizedTaker = readAddress(taker);
   if (!normalizedTaker) throw reject("invalid_qualification_taker");
+  // The official KYRA contract is unpublished until the Robinhood Chain
+  // relaunch, so the operator must supply the announced address explicitly.
+  const normalizedKyraToken = readAddress(kyraTokenAddress);
+  if (!normalizedKyraToken || normalizedKyraToken !== kyraTokenAddress) {
+    throw reject("kyra_token_address_required");
+  }
   if (!positiveAtomicAmountPattern.test(ethSellAmountAtomic)) {
     throw reject("invalid_eth_qualification_amount");
   }
@@ -85,14 +90,14 @@ export function createQualificationRequests({
       direction: "ETH_TO_KYRA",
       taker: normalizedTaker,
       sellToken: qualificationNativeTokenAddress,
-      buyToken: qualificationKyraTokenAddress,
+      buyToken: normalizedKyraToken,
       sellAmount: ethSellAmountAtomic,
       slippageBps,
     },
     {
       direction: "KYRA_TO_ETH",
       taker: normalizedTaker,
-      sellToken: qualificationKyraTokenAddress,
+      sellToken: normalizedKyraToken,
       buyToken: qualificationNativeTokenAddress,
       sellAmount: kyraSellAmountAtomic,
       slippageBps,

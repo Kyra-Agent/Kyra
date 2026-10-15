@@ -1,6 +1,6 @@
-import { getAddress, isAddress } from "npm:viem@2.52.2";
+import { getAddress, isAddress } from "npm:viem@2.57.7";
 import {
-  kyraTokenAddress,
+  getOfficialKyraTokenAddress,
   kyraTokenDecimals,
   kyraTokenSymbol,
   nativeTransferMaxAtomic,
@@ -16,9 +16,7 @@ export const swapQuoteMinimumSlippageBps = 10;
 export const swapQuoteMaximumSlippageBps = 300;
 
 export type SwapTokenSymbol = "ETH" | typeof kyraTokenSymbol;
-export type SwapTokenAddress =
-  | typeof zeroExNativeTokenAddress
-  | typeof kyraTokenAddress;
+export type SwapTokenAddress = `0x${string}`;
 
 export interface SwapToken {
   address: SwapTokenAddress;
@@ -27,20 +25,14 @@ export interface SwapToken {
   maxSellAmountAtomic: bigint;
 }
 
-export const swapTokenAllowlist = {
-  [zeroExNativeTokenAddress]: {
-    address: zeroExNativeTokenAddress,
-    symbol: "ETH",
-    decimals: 18,
-    maxSellAmountAtomic: nativeTransferMaxAtomic,
-  },
-  [kyraTokenAddress]: {
-    address: kyraTokenAddress,
-    symbol: kyraTokenSymbol,
-    decimals: kyraTokenDecimals,
-    maxSellAmountAtomic: 10_000n * 10n ** 18n,
-  },
-} as const satisfies Record<SwapTokenAddress, SwapToken>;
+export const kyraSwapMaxSellAmountAtomic = 10_000n * 10n ** 18n;
+
+const nativeSwapToken: SwapToken = Object.freeze({
+  address: zeroExNativeTokenAddress,
+  symbol: "ETH",
+  decimals: 18,
+  maxSellAmountAtomic: nativeTransferMaxAtomic,
+});
 
 export interface SwapQuoteRequest {
   workspaceId: string;
@@ -58,6 +50,7 @@ export interface SwapQuoteRequest {
 
 export type SwapQuotePolicyError =
   | "invalid_scope"
+  | "official_token_unavailable"
   | "invalid_taker"
   | "unsupported_chain"
   | "unsupported_token"
@@ -107,6 +100,9 @@ export function createSwapQuoteRequest(input: {
   if (input.policyVersion !== swapQuotePolicyVersion) {
     return { ok: false, error: "invalid_policy_version" };
   }
+  if (getOfficialKyraTokenAddress() === null) {
+    return { ok: false, error: "official_token_unavailable" };
+  }
 
   const taker = readChecksummedAddress(input.taker);
   if (!taker) return { ok: false, error: "invalid_taker" };
@@ -154,15 +150,21 @@ export function createSwapQuoteRequest(input: {
 }
 
 export function getSwapToken(address: SwapTokenAddress): SwapToken {
-  return swapTokenAllowlist[address];
+  const token = readSwapToken(address);
+  if (!token) throw new Error("Unsupported protected swap token.");
+  return token;
 }
 
 export function readSwapToken(value: unknown): SwapToken | null {
-  if (value === zeroExNativeTokenAddress) {
-    return swapTokenAllowlist[zeroExNativeTokenAddress];
-  }
-  if (value === kyraTokenAddress) {
-    return swapTokenAllowlist[kyraTokenAddress];
+  if (value === zeroExNativeTokenAddress) return nativeSwapToken;
+  const officialTokenAddress = getOfficialKyraTokenAddress();
+  if (officialTokenAddress !== null && value === officialTokenAddress) {
+    return {
+      address: officialTokenAddress,
+      symbol: kyraTokenSymbol,
+      decimals: kyraTokenDecimals,
+      maxSellAmountAtomic: kyraSwapMaxSellAmountAtomic,
+    };
   }
   return null;
 }

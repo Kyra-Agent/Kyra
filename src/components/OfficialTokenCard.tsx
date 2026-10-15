@@ -1,20 +1,83 @@
-import { useState } from "react";
-import { BadgeCheck, Check, Copy, ExternalLink } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  BadgeCheck,
+  Check,
+  Copy,
+  ExternalLink,
+  ShieldAlert,
+} from "lucide-react";
 import { officialKyraToken } from "../config/officialToken";
 
 type CopyState = "idle" | "copied" | "error";
 
 export function OfficialTokenCard() {
   const [copyState, setCopyState] = useState<CopyState>("idle");
+  const resetTimerRef = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (resetTimerRef.current !== null) {
+      window.clearTimeout(resetTimerRef.current);
+    }
+  }, []);
+
+  if (!officialKyraToken.published || !officialKyraToken.contractAddress) {
+    return (
+      <div
+        className="official-token-card is-pending"
+        role="note"
+        aria-label="Official Kyra token status"
+      >
+        <div className="official-token-mark" aria-hidden="true">
+          <ShieldAlert size={20} strokeWidth={1.8} />
+        </div>
+
+        <div className="official-token-copy">
+          <div className="official-token-heading">
+            <strong>Official {officialKyraToken.symbol} contract</strong>
+            <span>{officialKyraToken.chain.name}</span>
+          </div>
+          <p>
+            Not published yet. Trust only the address announced on Kyra's
+            official channels.
+          </p>
+        </div>
+
+        <div className="official-token-actions">
+          <a
+            className="official-token-action"
+            href={officialKyraToken.announcementUrl}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Follow official Kyra announcements on X"
+          >
+            <ExternalLink size={16} />
+            <span>Updates</span>
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  const contractAddress = officialKyraToken.contractAddress;
+
+  function scheduleReset(delayMs: number) {
+    if (resetTimerRef.current !== null) {
+      window.clearTimeout(resetTimerRef.current);
+    }
+    resetTimerRef.current = window.setTimeout(() => {
+      resetTimerRef.current = null;
+      setCopyState("idle");
+    }, delayMs);
+  }
 
   async function copyContractAddress() {
     try {
-      await navigator.clipboard.writeText(officialKyraToken.contractAddress);
+      await navigator.clipboard.writeText(contractAddress);
       setCopyState("copied");
-      window.setTimeout(() => setCopyState("idle"), 1600);
+      scheduleReset(1600);
     } catch {
       setCopyState("error");
-      window.setTimeout(() => setCopyState("idle"), 2200);
+      scheduleReset(2200);
     }
   }
 
@@ -32,12 +95,10 @@ export function OfficialTokenCard() {
 
       <div className="official-token-copy">
         <div className="official-token-heading">
-          <strong>Official Kyra token</strong>
+          <strong>Official {officialKyraToken.symbol} token</strong>
           <span>{officialKyraToken.chain.name}</span>
         </div>
-        <code title={officialKyraToken.contractAddress}>
-          {officialKyraToken.contractAddress}
-        </code>
+        <code title={contractAddress}>{contractAddress}</code>
       </div>
 
       <div className="official-token-actions">
@@ -51,17 +112,19 @@ export function OfficialTokenCard() {
           {copyState === "copied" ? <Check size={16} /> : <Copy size={16} />}
           <span>{copyState === "copied" ? "Copied" : "Copy"}</span>
         </button>
-        <a
-          className="official-token-action"
-          href={officialKyraToken.explorerUrl}
-          target="_blank"
-          rel="noreferrer"
-          title="View official token contract on Blockscout"
-          aria-label="View official token contract on Blockscout"
-        >
-          <ExternalLink size={16} />
-          <span>Explorer</span>
-        </a>
+        {officialKyraToken.explorerUrl ? (
+          <a
+            className="official-token-action"
+            href={officialKyraToken.explorerUrl}
+            target="_blank"
+            rel="noreferrer"
+            title="View official token contract on Blockscout"
+            aria-label="View official token contract on Blockscout"
+          >
+            <ExternalLink size={16} />
+            <span>Explorer</span>
+          </a>
+        ) : null}
       </div>
     </div>
   );

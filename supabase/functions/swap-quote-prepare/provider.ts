@@ -1,4 +1,4 @@
-import { decodeFunctionData, getAddress, isAddress } from "npm:viem@2.52.2";
+import { decodeFunctionData, getAddress, isAddress } from "npm:viem@2.57.7";
 import {
   getSwapToken,
   swapQuoteLifetimeMs,
@@ -7,7 +7,6 @@ import {
   zeroExNativeTokenAddress,
 } from "../_shared/swap-quote-policy.ts";
 import { HttpError } from "./core.ts";
-import { kyraTokenAddress } from "../_shared/transfer-transaction-policy.ts";
 
 const zeroExSwapApiUrl = "https://api.0x.org/swap/allowance-holder/quote";
 const maxProviderBodyBytes = 64 * 1024;
@@ -260,7 +259,7 @@ export function reviewZeroExQuote(
     throw invalidProviderQuote("native_value_mismatch");
   }
   if (
-    request.sellToken === kyraTokenAddress &&
+    request.sellToken !== zeroExNativeTokenAddress &&
     transaction.valueWei !== "0"
   ) {
     throw invalidProviderQuote("erc20_value_mismatch");

@@ -77,7 +77,9 @@ transaction, Telegram, or public-profile permissions.
 
 The native ETH and official KYRA transfer lane was activated in production on
 2026-07-31. The fixed allowlist contains only native Robinhood Chain ETH and
-KYRA contract `0xa2D99dB0593fFd57AE9b92103515bbA061fa5EC1`.
+the official KYRA contract. The previous KYRA contract has been retired from the product;
+the official contract is unpublished until the Robinhood Chain relaunch, and
+every KYRA path fails closed until it is announced.
 Per-action limits are `0.005 ETH` and `10,000 KYRA`; per-workspace UTC-day
 limits are `0.02 ETH` and `50,000 KYRA`. Self-transfers, arbitrary ERC-20
 contracts, token approvals, swaps, arbitrary calldata, Telegram submission, and

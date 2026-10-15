@@ -11,7 +11,7 @@ import { formatUnits } from "viem";
 import { useConnection, useSendTransaction } from "wagmi";
 import {
   createReviewedTransfer,
-  kyraTokenAddress,
+  getOfficialKyraTokenAddress,
   kyraTransferDailyMaxAtomic,
   kyraTransferMaxAtomic,
   nativeTransferDailyMaxAtomic,
@@ -102,6 +102,8 @@ export function TransferLanePanel({
     walletStatus.address ?? "",
     walletStatus.chainId ?? "",
   ].join(":");
+  const officialKyraTokenAddress = getOfficialKyraTokenAddress();
+  const kyraTransfersAvailable = officialKyraTokenAddress !== null;
   const actionLimitLabel = assetKind === "native"
     ? `${formatUnits(nativeTransferMaxAtomic, 18)} ETH`
     : `${formatUnits(kyraTransferMaxAtomic, 18)} KYRA`;
@@ -343,8 +345,9 @@ export function TransferLanePanel({
           </span>
           <h3>Send on Robinhood Chain</h3>
           <p>
-            Transfer native ETH or the official KYRA token from your connected
-            wallet. Every detail is reviewed, locked, and confirmed by you.
+            {kyraTransfersAvailable
+              ? "Transfer native ETH or the official KYRA token from your connected wallet. Every detail is reviewed, locked, and confirmed by you."
+              : "Transfer native ETH from your connected wallet. Every detail is reviewed, locked, and confirmed by you."}
           </p>
         </div>
         <span className="transfer-lane-state">
@@ -375,10 +378,16 @@ export function TransferLanePanel({
             setAssetKind("erc20");
             resetReview();
           }}
-          disabled={laneState === "preparing" || laneState === "submitting"}
+          disabled={!kyraTransfersAvailable ||
+            laneState === "preparing" || laneState === "submitting"}
+          title={kyraTransfersAvailable
+            ? undefined
+            : "KYRA transfers open after the official contract is published."}
         >
           <span>KYRA</span>
-          <small>Official token only</small>
+          <small>
+            {kyraTransfersAvailable ? "Official token only" : "Contract not published"}
+          </small>
         </button>
       </div>
 
@@ -423,10 +432,10 @@ export function TransferLanePanel({
         <span>Network <strong>{currentProductChain.name}</strong></span>
       </div>
 
-      {assetKind === "erc20" ? (
+      {assetKind === "erc20" && officialKyraTokenAddress ? (
         <div className="transfer-token-contract">
           <span>Official KYRA contract</span>
-          <code>{kyraTokenAddress}</code>
+          <code>{officialKyraTokenAddress}</code>
         </div>
       ) : null}
 

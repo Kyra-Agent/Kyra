@@ -3,7 +3,6 @@ import { encodeFunctionData } from "viem";
 import {
   buildZeroExQualificationUrl,
   createQualificationRequests,
-  qualificationKyraTokenAddress,
   qualificationNativeTokenAddress,
   qualifyZeroExProvider,
   readBoundedQualificationBody,
@@ -18,7 +17,19 @@ const allowanceTarget = "0x0000000000001fF3684f28c67538d4D072C22734";
 const allowanceHolderNativeTokenAddress =
   "0x0000000000000000000000000000000000000000";
 const secret = "qualification-secret-that-must-never-be-printed";
-const requests = createQualificationRequests({ taker });
+// Synthetic checksummed fixture; never a published contract.
+const qualificationKyraTokenAddress =
+  "0x11bceD4Ed1b20eAE8aA4Ff840a5dCEB078C9cb53";
+for (const kyraTokenAddress of [undefined, "", qualificationKyraTokenAddress.toLowerCase()]) {
+  assert.throws(
+    () => createQualificationRequests({ taker, kyraTokenAddress }),
+    { code: "kyra_token_address_required" },
+  );
+}
+const requests = createQualificationRequests({
+  taker,
+  kyraTokenAddress: qualificationKyraTokenAddress,
+});
 const nativeRequest = requests[0];
 const erc20Request = requests[1];
 

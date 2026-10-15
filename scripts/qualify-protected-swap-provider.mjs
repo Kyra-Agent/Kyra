@@ -34,6 +34,8 @@ async function main() {
   const taker = process.env.KYRA_ZEROX_QUALIFICATION_TAKER?.trim() ?? "";
   const requests = createQualificationRequests({
     taker,
+    kyraTokenAddress:
+      process.env.KYRA_ZEROX_QUALIFICATION_KYRA_TOKEN_ADDRESS?.trim() ?? "",
     ethSellAmountAtomic: readPositiveAtomicAmount(
       "KYRA_ZEROX_QUALIFICATION_ETH_AMOUNT_ATOMIC",
       "100000000000000",

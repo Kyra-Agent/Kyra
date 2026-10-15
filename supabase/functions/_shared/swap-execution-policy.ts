@@ -3,9 +3,9 @@ import {
   erc20Abi,
   getAddress,
   isAddress,
-} from "npm:viem@2.52.2";
+} from "npm:viem@2.57.7";
 import {
-  kyraTokenAddress,
+  getOfficialKyraTokenAddress,
   robinhoodMainnetChainId,
   robinhoodMainnetChainKey,
 } from "./transfer-transaction-policy.ts";
@@ -39,8 +39,10 @@ export function createExactAllowanceTransaction(input: {
   const tokenAddress = readAddress(input.tokenAddress);
   const spenderAddress = readAddress(input.spenderAddress);
   const amount = readAtomicAmount(input.amountAtomic);
+  const officialTokenAddress = getOfficialKyraTokenAddress();
   if (
-    tokenAddress?.toLowerCase() !== kyraTokenAddress.toLowerCase() ||
+    officialTokenAddress === null ||
+    tokenAddress?.toLowerCase() !== officialTokenAddress.toLowerCase() ||
     !spenderAddress ||
     amount === null
   ) {

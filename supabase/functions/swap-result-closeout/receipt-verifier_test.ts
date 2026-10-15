@@ -2,10 +2,10 @@ import {
   encodeAbiParameters,
   encodeEventTopics,
   erc20Abi,
-} from "npm:viem@2.52.2";
+} from "npm:viem@2.57.7";
 import { HttpError, type StoredSwapExecutionIntent } from "./core.ts";
+import { testKyraTokenAddress as kyraTokenAddress } from "../_shared/official-token-test-fixture.ts";
 import {
-  kyraTokenAddress,
   robinhoodMainnetChainId,
   robinhoodMainnetChainKey,
 } from "../_shared/transfer-transaction-policy.ts";

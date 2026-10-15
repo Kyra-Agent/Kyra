@@ -13,6 +13,7 @@ import { useConnection, useSendTransaction } from "wagmi";
 import { currentProductChain, type ProductChainKey } from "../config/productChains";
 import {
   createReviewedSwapQuoteRequest,
+  isProtectedSwapPairAvailable,
   type ReviewedSwapQuoteRequest,
   type SwapTokenSymbol,
 } from "../config/swapQuotePolicy";
@@ -59,6 +60,8 @@ interface QuoteContext {
 
 const initialMessage =
   "Choose ETH or KYRA and request a private, time-limited quote. Nothing opens in your wallet until you approve the next step.";
+const unpublishedTokenMessage =
+  "Protected swaps open after the official KYRA contract is published on Robinhood Chain.";
 const slippageOptions = [50, 100, 200] as const;
 
 export function ProtectedSwapLanePanel({
@@ -75,7 +78,9 @@ export function ProtectedSwapLanePanel({
   const [amount, setAmount] = useState("");
   const [slippageBps, setSlippageBps] = useState<number>(50);
   const [laneState, setLaneState] = useState<SwapLaneState>("draft");
-  const [message, setMessage] = useState(initialMessage);
+  const [message, setMessage] = useState(
+    isProtectedSwapPairAvailable() ? initialMessage : unpublishedTokenMessage,
+  );
   const [quoteContext, setQuoteContext] = useState<QuoteContext | null>(null);
   const [prepared, setPrepared] = useState<PreparedSwapExecution | null>(null);
   const [txHash, setTxHash] = useState<`0x${string}` | null>(null);
@@ -90,7 +95,10 @@ export function ProtectedSwapLanePanel({
       walletStatus.chainId === productChainId &&
       agentChainKey === currentProductChain.key,
   );
-  const scopeReady = Boolean(session && workspaceId && agentId && walletBound);
+  const pairAvailable = isProtectedSwapPairAvailable();
+  const scopeReady = Boolean(
+    pairAvailable && session && workspaceId && agentId && walletBound,
+  );
   const stateScopeKey = [
     session?.user.id ?? "",
     workspaceId ?? "",
@@ -125,7 +133,9 @@ export function ProtectedSwapLanePanel({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stateScopeKey]);
 
-  function resetFlow(nextMessage = initialMessage) {
+  function resetFlow(
+    nextMessage = pairAvailable ? initialMessage : unpublishedTokenMessage,
+  ) {
     setLaneState("draft");
     setMessage(nextMessage);
     setQuoteContext(null);
@@ -140,7 +150,9 @@ export function ProtectedSwapLanePanel({
 
   async function handleQuote() {
     if (!session || !workspaceId || !agentId || !walletStatus.address || !scopeReady) {
-      resetFlow("Sign in, select a Robinhood Chain agent, and connect its wallet first.");
+      resetFlow(pairAvailable
+        ? "Sign in, select a Robinhood Chain agent, and connect its wallet first."
+        : unpublishedTokenMessage);
       return;
     }
     let requestId: string;
@@ -320,7 +332,11 @@ export function ProtectedSwapLanePanel({
     : null;
 
   return (
-    <section className={`transfer-lane-panel protected-swap-panel state-${laneState}`}>
+    <section
+      className={`transfer-lane-panel protected-swap-panel state-${laneState}`}
+      id="protected-swap-lane"
+      tabIndex={-1}
+    >
       <div className="transfer-lane-heading">
         <div>
           <span className="transfer-lane-kicker">
@@ -481,7 +497,9 @@ export function ProtectedSwapLanePanel({
         Private dashboard only. Exact allowance only, fresh quote after approval,
         mandatory revoke, and no Telegram or public execution.
       </small>
-      {!scopeReady ? (
+      {!pairAvailable ? (
+        <small className="transfer-lane-requirement">The official KYRA contract has not been published yet.</small>
+      ) : !scopeReady ? (
         <small className="transfer-lane-requirement">Sign in, select a deployed agent, and connect its Robinhood Chain wallet.</small>
       ) : (
         <small className="transfer-lane-agent">Bound to {agentName || "selected agent"} and {maskAddress(walletStatus.address!)}.</small>

@@ -1,4 +1,4 @@
-import { decodeEventLog, erc20Abi } from "npm:viem@2.52.2";
+import { decodeEventLog, erc20Abi } from "npm:viem@2.57.7";
 import {
   deriveVerifiedResult,
   HttpError,

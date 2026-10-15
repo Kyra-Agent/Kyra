@@ -7,7 +7,10 @@ wallet prompts or transaction submission.
 
 - Network: Robinhood Chain mainnet, chain ID `4663`.
 - Pair: native ETH and official KYRA only.
-- KYRA token: `0xa2D99dB0593fFd57AE9b92103515bbA061fa5EC1`.
+- KYRA token: unpublished until the Robinhood Chain relaunch. The swap pair
+  stays closed until the official contract is announced, configured in
+  `publishedOfficialKyraTokenAddress`, and covered by a matching database
+  policy migration.
 - Provider API: 0x Swap API v2 AllowanceHolder quote endpoint.
 - Provider access: backend-only through the authenticated Supabase Edge Function.
 - Scope: signed-in user, workspace, selected agent, connected wallet, chain,
@@ -79,6 +82,7 @@ No provider secret is required for this baseline gate.
    ```powershell
    $env:KYRA_ZEROX_API_KEY="<dedicated-key>"
    $env:KYRA_ZEROX_QUALIFICATION_TAKER="<operator-wallet>"
+   $env:KYRA_ZEROX_QUALIFICATION_KYRA_TOKEN_ADDRESS="<announced-checksummed-kyra-contract>"
    $env:KYRA_PROTECTED_SWAP_EXECUTION_ENABLED="false"
    $env:VITE_KYRA_PROTECTED_SWAP_ENABLED="false"
    npm run qualify:protected-swap-provider

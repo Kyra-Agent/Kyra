@@ -43,6 +43,35 @@ try {
   assertEquals(native.transaction.tokenAddress, null);
   assertEquals(native.transaction.policyVersion, 3);
 
+  assertEquals(
+    policy.publishedOfficialKyraTokenAddress,
+    null,
+    "The official KYRA contract must stay unpublished until the relaunch.",
+  );
+  const unpublished = policy.createReviewedTransfer({
+    sender,
+    recipient,
+    assetKind: "erc20",
+    amount: "1",
+  });
+  assert(
+    !unpublished.ok,
+    "KYRA transfers must fail closed while the official contract is unpublished.",
+  );
+
+  // Synthetic checksummed fixture; never a published contract.
+  const testKyraTokenAddress = "0x11bceD4Ed1b20eAE8aA4Ff840a5dCEB078C9cb53";
+  let rejectedLowercaseFixture = false;
+  try {
+    policy.configureOfficialKyraTokenAddressForTests(
+      testKyraTokenAddress.toLowerCase(),
+    );
+  } catch {
+    rejectedLowercaseFixture = true;
+  }
+  assert(rejectedLowercaseFixture, "Token fixtures must be checksummed.");
+  policy.configureOfficialKyraTokenAddressForTests(testKyraTokenAddress);
+
   const kyra = policy.createReviewedTransfer({
     sender,
     recipient,
@@ -50,7 +79,7 @@ try {
     amount: "10000",
   });
   assert(kyra.ok, "KYRA transfer at the action cap must pass.");
-  assertEquals(kyra.transaction.tokenAddress, policy.kyraTokenAddress);
+  assertEquals(kyra.transaction.tokenAddress, testKyraTokenAddress);
   assertEquals(kyra.transaction.valueWei, "0");
   assertEquals(
     kyra.transaction.data,
@@ -75,9 +104,9 @@ try {
   }
 
   assertEquals(
-    policy.kyraTokenAddress.toLowerCase(),
-    "0xa2d99db0593ffd57ae9b92103515bba061fa5ec1",
-    "The transfer lane must remain fixed to the official KYRA contract.",
+    policy.getOfficialKyraTokenAddress(),
+    testKyraTokenAddress,
+    "The transfer lane must remain fixed to the configured KYRA contract.",
   );
 } finally {
   rmSync(outDir, { recursive: true, force: true });

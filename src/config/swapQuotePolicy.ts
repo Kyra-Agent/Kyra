@@ -1,6 +1,7 @@
 import { getAddress, parseUnits } from "viem";
 import {
-  kyraTokenAddress,
+  type EvmAddress,
+  getOfficialKyraTokenAddress,
   kyraTokenDecimals,
   kyraTokenSymbol,
   nativeTransferMaxAtomic,
@@ -15,9 +16,7 @@ export const swapQuoteMaximumSlippageBps = 300;
 export const kyraSwapMaxAtomic = 10_000n * 10n ** 18n;
 
 export type SwapTokenSymbol = "ETH" | typeof kyraTokenSymbol;
-export type SwapTokenAddress =
-  | typeof zeroExNativeTokenAddress
-  | typeof kyraTokenAddress;
+export type SwapTokenAddress = EvmAddress;
 
 export interface ReviewedSwapQuoteRequest {
   workspaceId: string;
@@ -37,18 +36,31 @@ export type ReviewedSwapQuoteRequestResult =
   | { ok: true; request: ReviewedSwapQuoteRequest }
   | { ok: false; message: string };
 
-const tokens = {
-  ETH: {
-    address: zeroExNativeTokenAddress,
-    decimals: 18,
-    maxSellAmountAtomic: nativeTransferMaxAtomic,
-  },
-  KYRA: {
-    address: kyraTokenAddress,
+interface SwapTokenPolicy {
+  address: SwapTokenAddress;
+  decimals: 18;
+  maxSellAmountAtomic: bigint;
+}
+
+function getSwapTokenPolicy(symbol: SwapTokenSymbol): SwapTokenPolicy | null {
+  if (symbol === "ETH") {
+    return {
+      address: zeroExNativeTokenAddress,
+      decimals: 18,
+      maxSellAmountAtomic: nativeTransferMaxAtomic,
+    };
+  }
+  const officialTokenAddress = getOfficialKyraTokenAddress();
+  return officialTokenAddress === null ? null : {
+    address: officialTokenAddress,
     decimals: kyraTokenDecimals,
     maxSellAmountAtomic: kyraSwapMaxAtomic,
-  },
-} as const;
+  };
+}
+
+export function isProtectedSwapPairAvailable() {
+  return getOfficialKyraTokenAddress() !== null;
+}
 
 export function getSwapTokenSymbolForAddress(
   address: unknown,
@@ -56,7 +68,11 @@ export function getSwapTokenSymbolForAddress(
   if (typeof address !== "string") return null;
   const normalized = address.toLowerCase();
   if (normalized === zeroExNativeTokenAddress) return "ETH";
-  if (normalized === kyraTokenAddress.toLowerCase()) return "KYRA";
+  const officialTokenAddress = getOfficialKyraTokenAddress();
+  if (
+    officialTokenAddress !== null &&
+    normalized === officialTokenAddress.toLowerCase()
+  ) return "KYRA";
   return null;
 }
 
@@ -81,8 +97,14 @@ export function createReviewedSwapQuoteRequest(input: {
     return { ok: false, message: "Connect a valid Robinhood Chain wallet." };
   }
 
-  const sellToken = tokens[input.sellTokenSymbol];
-  const buyToken = tokens[input.buyTokenSymbol];
+  const sellToken = getSwapTokenPolicy(input.sellTokenSymbol);
+  const buyToken = getSwapTokenPolicy(input.buyTokenSymbol);
+  if (!sellToken || !buyToken) {
+    return {
+      ok: false,
+      message: "Swaps open after the official KYRA contract is published.",
+    };
+  }
   let sellAmountAtomic: bigint;
   try {
     sellAmountAtomic = parseUnits(input.sellAmount.trim(), sellToken.decimals);

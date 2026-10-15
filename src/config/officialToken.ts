@@ -1,8 +1,19 @@
 import { robinhoodChain } from "./productChains";
+import {
+  getOfficialKyraTokenAddress,
+  kyraTokenSymbol,
+} from "./transferTransactionPolicy";
+
+const contractAddress = getOfficialKyraTokenAddress();
 
 export const officialKyraToken = Object.freeze({
   name: "Kyra",
-  contractAddress: "0xa2d99db0593ffd57ae9b92103515bba061fa5ec1",
+  symbol: kyraTokenSymbol,
   chain: robinhoodChain,
-  explorerUrl: `${robinhoodChain.explorerUrl}/token/0xa2d99db0593ffd57ae9b92103515bba061fa5ec1`,
+  contractAddress,
+  published: contractAddress !== null,
+  explorerUrl: contractAddress
+    ? `${robinhoodChain.explorerUrl}/token/${contractAddress}`
+    : null,
+  announcementUrl: "https://x.com/Kyra_Agent",
 });

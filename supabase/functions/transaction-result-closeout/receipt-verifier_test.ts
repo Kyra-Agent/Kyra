@@ -2,15 +2,15 @@ import {
   encodeAbiParameters,
   encodeEventTopics,
   erc20Abi,
-} from "npm:viem@2.52.2";
+} from "npm:viem@2.57.7";
 import { HttpError, type StoredTransactionIntent } from "./core.ts";
 import {
   ownerTransactionPolicyVersion,
   ownerTransactionValueWei,
 } from "../_shared/owner-transaction-policy.ts";
+import { testKyraTokenAddress as kyraTokenAddress } from "../_shared/official-token-test-fixture.ts";
 import {
   encodeKyraTransferData,
-  kyraTokenAddress,
   transferTransactionPolicyVersion,
 } from "../_shared/transfer-transaction-policy.ts";
 import {

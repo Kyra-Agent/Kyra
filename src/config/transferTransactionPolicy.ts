@@ -7,8 +7,35 @@ import {
 } from "viem";
 
 export const transferTransactionPolicyVersion = 3 as const;
-export const kyraTokenAddress =
-  "0xa2D99dB0593fFd57AE9b92103515bbA061fa5EC1" as const;
+export type EvmAddress = `0x${string}`;
+
+// The official KYRA contract is intentionally unpublished until the Robinhood
+// Chain relaunch announces it. While this is null, every KYRA transfer and
+// swap path fails closed; native ETH transfers are unaffected.
+export const publishedOfficialKyraTokenAddress = null as EvmAddress | null;
+
+let officialKyraTokenAddress = publishedOfficialKyraTokenAddress;
+
+export function getOfficialKyraTokenAddress(): EvmAddress | null {
+  return officialKyraTokenAddress;
+}
+
+// Test-only fixture hook. Product code must never call it; the product checks
+// enforce that boundary.
+export function configureOfficialKyraTokenAddressForTests(
+  address: string | null,
+) {
+  if (address === null) {
+    officialKyraTokenAddress = null;
+    return;
+  }
+  const checksummed = normalizeChecksummedAddress(address);
+  if (!checksummed || checksummed !== address) {
+    throw new Error("Official KYRA test address must be checksummed.");
+  }
+  officialKyraTokenAddress = checksummed;
+}
+
 export const kyraTokenSymbol = "KYRA" as const;
 export const kyraTokenDecimals = 18 as const;
 export const nativeTransferMaxAtomic = 5_000_000_000_000_000n;
@@ -93,6 +120,13 @@ export function createReviewedTransfer(input: {
     };
   }
 
+  const officialTokenAddress = getOfficialKyraTokenAddress();
+  if (officialTokenAddress === null) {
+    return {
+      ok: false,
+      message: "KYRA transfers open after the official contract is published.",
+    };
+  }
   if (amountAtomic > kyraTransferMaxAtomic) {
     return {
       ok: false,
@@ -110,7 +144,7 @@ export function createReviewedTransfer(input: {
       sender,
       recipient,
       assetKind: "erc20",
-      tokenAddress: kyraTokenAddress,
+      tokenAddress: officialTokenAddress,
       tokenSymbol: kyraTokenSymbol,
       tokenDecimals: kyraTokenDecimals,
       amountAtomic: amountAtomic.toString(),

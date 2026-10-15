@@ -17,8 +17,10 @@ const allowedOrigins = new Set([
   "https://kyraagent.xyz",
   "https://www.kyraagent.xyz",
   "http://localhost:4173",
+  "http://localhost:4176",
   "http://localhost:5173",
   "http://127.0.0.1:4173",
+  "http://127.0.0.1:4176",
   "http://127.0.0.1:5173",
 ]);
 const maxBodyBytes = 4096;

@@ -3,14 +3,42 @@ import {
   erc20Abi,
   getAddress,
   isAddress,
-} from "npm:viem@2.52.2";
+} from "npm:viem@2.57.7";
 
 export const transferTransactionPolicyVersion = 3 as const;
 export const robinhoodMainnetChainKey = "robinhood_mainnet" as const;
 export const robinhoodMainnetChainId = 4663 as const;
 
-export const kyraTokenAddress =
-  "0xa2D99dB0593fFd57AE9b92103515bbA061fa5EC1" as const;
+export type EvmAddress = `0x${string}`;
+
+// The official KYRA contract is intentionally unpublished until the Robinhood
+// Chain relaunch announces it. While this is null, every KYRA transfer,
+// allowance, and swap path fails closed; native ETH transfers are unaffected.
+// Publishing a contract also requires the matching database policy migration.
+export const publishedOfficialKyraTokenAddress = null as EvmAddress | null;
+
+let officialKyraTokenAddress = publishedOfficialKyraTokenAddress;
+
+export function getOfficialKyraTokenAddress(): EvmAddress | null {
+  return officialKyraTokenAddress;
+}
+
+// Test-only fixture hook. Production modules must never call it; the
+// functions check script enforces that boundary.
+export function configureOfficialKyraTokenAddressForTests(
+  address: string | null,
+) {
+  if (address === null) {
+    officialKyraTokenAddress = null;
+    return;
+  }
+  const checksummed = readChecksummedAddress(address);
+  if (!checksummed) {
+    throw new Error("Official KYRA test address must be checksummed.");
+  }
+  officialKyraTokenAddress = checksummed;
+}
+
 export const kyraTokenSymbol = "KYRA" as const;
 export const kyraTokenDecimals = 18 as const;
 
@@ -109,8 +137,10 @@ export function createTransferTransactionShape(input: {
     };
   }
 
+  const officialTokenAddress = getOfficialKyraTokenAddress();
   if (
-    input.tokenAddress !== kyraTokenAddress ||
+    officialTokenAddress === null ||
+    input.tokenAddress !== officialTokenAddress ||
     input.tokenSymbol !== kyraTokenSymbol ||
     input.tokenDecimals !== kyraTokenDecimals
   ) {
@@ -131,7 +161,7 @@ export function createTransferTransactionShape(input: {
       sender,
       recipient,
       assetKind: "erc20",
-      tokenAddress: kyraTokenAddress,
+      tokenAddress: officialTokenAddress,
       tokenSymbol: kyraTokenSymbol,
       tokenDecimals: kyraTokenDecimals,
       amountAtomic: amount.toString(),
