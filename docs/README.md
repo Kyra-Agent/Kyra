@@ -20,6 +20,7 @@ This directory records the production architecture, safety boundaries, migration
 | --- | --- |
 | [Migration Blueprint](robinhood-chain-migration-blueprint.md) | Completed cutover from the retired chain implementation |
 | [Mainnet Runbook](robinhood-mainnet-cutover-runbook.md) | Production configuration, verification, evidence, and rollback procedure |
+| [Relaunch Runbook](robinhood-relaunch-runbook.md) | Reprovisioning a fresh Supabase project and Netlify site, plus publishing the next official KYRA contract |
 
 ## Telegram
 
@@ -38,6 +39,7 @@ Each deployed Edge Function has a colocated README under `supabase/functions/<fu
 - Telegram is live for read-only commands and multilingual planning; it never signs or submits.
 - Wallet authority remains with the connected user wallet.
 - Transaction access is private, selected-agent bound, explicitly approved, and verified per action.
+- The previous official KYRA contract is retired. KYRA transfer, allowance, and swap paths fail closed until the relaunched contract is published; native ETH transfers are unaffected.
 - T1 is live for bounded ETH and KYRA transfers to a different recipient: at most `0.005 ETH` or `10,000 KYRA` per action, and `0.02 ETH` or `50,000 KYRA` per UTC day. Self-transfers remain blocked.
 - T2 backend foundations were deployed default-off on 2026-08-02: quote preparation, exact allowance preparation, backend calldata verification, explicit wallet review, receipt closeout, allowance cleanup, and failed-swap recovery are implemented. Repeated read-only 0x observations passed and the dedicated backend credential plus exact target and source allowlists were configured on 2026-08-03. The quote service remains execution-disabled; one authenticated owner-scoped backend quote and the remaining fail-closed, canary, and release gates are still required. No T2 wallet prompt or swap submission is released.
 - Secret values, raw logs, internal identifiers, full wallet addresses, and provider payloads never belong in public documentation.

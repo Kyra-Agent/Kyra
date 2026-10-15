@@ -16,3 +16,4 @@ qa-screenshots/
 .vercel/
 .netlify/
 supabase/.temp/
+supabase/.branches/

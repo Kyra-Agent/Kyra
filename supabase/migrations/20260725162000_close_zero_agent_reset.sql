@@ -22,11 +22,12 @@ begin
     raise exception 'zero_agent_reset_closeout_failed' using errcode = '55000';
   end if;
 
-  if not exists (select 1 from public.workspaces) then
-    raise exception 'workspace_preservation_failed' using errcode = '55000';
-  end if;
-
-  if not exists (select 1 from public.agent_templates) then
+  -- Preservation checks protect databases that existed before the reset. A
+  -- freshly bootstrapped project has no workspaces to preserve, and its
+  -- template catalog is seeded by a later migration.
+  if exists (select 1 from public.workspaces)
+    and not exists (select 1 from public.agent_templates)
+  then
     raise exception 'template_preservation_failed' using errcode = '55000';
   end if;
 

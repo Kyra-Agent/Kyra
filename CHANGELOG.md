@@ -4,6 +4,31 @@ All notable public releases of Kyra Agent are documented here.
 
 ## [Unreleased]
 
+### Robinhood Chain Relaunch
+
+- Retired the previous official KYRA contract from the product, documentation,
+  and tooling. KYRA transfer, allowance, and swap paths now fail closed until
+  the relaunched contract is published; native ETH transfers are unaffected.
+- Fixed fresh-database bootstrap: the zero-agent reset closeout no longer
+  requires pre-existing workspaces, and a new migration seeds the six-template
+  agent catalog so `supabase db push` produces a deployable project.
+- Fixed anonymous public agent profiles by scoping owner read policies to
+  authenticated accounts.
+- Added the relaunch runbook and a complete Edge Function environment example.
+- Resolved high-severity dependency advisories and aligned the Edge Function
+  `viem` pin with the frontend.
+
+### Interface
+
+- Introduced the Kyra Luxe visual layer: self-hosted Geist typography, aurora
+  background, floating glass header, animated hero headline, console border
+  beam, pointer spotlight surfaces, security marquee, and refined dashboard,
+  profile, modal, and footer surfaces.
+- Added cross-route View Transitions and faster, finer-grained scroll reveals
+  with full `prefers-reduced-motion` fallbacks.
+- Fixed the sticky header, fixed dialogs inside animated routes, the hero
+  console overlap, duplicate log keys, and several mobile layout issues.
+
 ### Telegram And LLM
 
 - Bound every natural-language reply to the persisted agent template, role,

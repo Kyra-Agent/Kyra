@@ -137,6 +137,12 @@ Kyra is an independent product and does not imply affiliation with, sponsorship 
 
 ## Product Status
 
+> **Relaunch in progress (2026-10-16).** The hosted backend is being
+> reprovisioned on a fresh Supabase project and the previous KYRA contract has
+> been retired. Native ETH transfers keep their protected lane; every KYRA
+> transfer and swap path stays locked until the new official contract is
+> published. See the [Robinhood Chain Relaunch Runbook](docs/robinhood-relaunch-runbook.md).
+
 Kyra's product foundation, backend persistence, privacy boundaries, agent deployment, Telegram and LLM layer, wallet policy, Robinhood Chain execution workflow, and mainnet release lane are implemented and verified. The production transaction lane supports owner-approved native ETH and official KYRA transfers on Robinhood Chain mainnet. Per-action caps are `0.005 ETH` or `10,000 KYRA`; per-workspace UTC-day caps are `0.02 ETH` or `50,000 KYRA`. Every transfer uses immutable backend intent, exact receipt verification, and private backend closeout.
 
 Transaction access remains deliberately narrower than the rest of the product. It is available only from an authenticated private workspace with selected-agent binding, a matching Robinhood Chain wallet, explicit user approval, deterministic policy and NYX-05 review, a short-lived one-time window, exact receipt verification, emergency disable, and privacy-safe evidence. Telegram and public profiles cannot sign or submit. Swaps, token approvals, unsupported assets, self-transfers, amounts above policy caps, and arbitrary calldata remain blocked.
@@ -162,6 +168,7 @@ for the exact provider, fail-closed, canary, rollback, and release procedure.
 
 Detailed engineering evidence is tracked in:
 
+- [Robinhood Chain Relaunch Runbook](docs/robinhood-relaunch-runbook.md)
 - [v1.0.0 Release Notes](docs/release-v1.0.0.md)
 - [Changelog](CHANGELOG.md)
 - [`docs/product-phase-roadmap.md`](docs/product-phase-roadmap.md)
