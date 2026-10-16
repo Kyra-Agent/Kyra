@@ -3,8 +3,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 type KyraSupabaseClient = ReturnType<typeof createClient<any>>;
 type TemplateStatus = "mvp" | "advanced" | "coming-soon";
 type AgentStatus = "online" | "draft";
-type ApprovalRisk = "normal" | "review" | "read-only";
-type ApprovalStatus = "waiting_wallet" | "read_only_ready" | "review_required";
 
 type ChainKey = "robinhood_mainnet" | "robinhood_testnet";
 
@@ -57,15 +55,6 @@ interface WalletPolicyRow {
   id: string;
 }
 
-interface DemoScenario {
-  id: string;
-  title: string;
-  command: string;
-  route: string;
-  risk: ApprovalRisk;
-  approvalRequired: boolean;
-}
-
 class HttpError extends Error {
   readonly statusCode: number;
   readonly code: string;
@@ -103,41 +92,6 @@ const chainTargets: Record<ChainKey, ChainTarget> = {
     id: 46630,
     name: "Robinhood Chain Testnet",
     walletLabel: "Robinhood Chain Testnet wallet",
-  },
-};
-
-const scenarios: Record<string, DemoScenario> = {
-  operator: {
-    id: "swap",
-    title: "Swap review draft",
-    command: "review 10 USDC to ETH swap",
-    route: "USDC -> WETH review route on Robinhood Chain",
-    risk: "review",
-    approvalRequired: true,
-  },
-  scout: {
-    id: "scan",
-    title: "Scout action review",
-    command: "scan new Robinhood Chain launches",
-    route: "Launch monitor + token risk brief",
-    risk: "review",
-    approvalRequired: false,
-  },
-  steward: {
-    id: "verify",
-    title: "Holder verification",
-    command: "verify holder access",
-    route: "Wallet ownership + holder status proof",
-    risk: "read-only",
-    approvalRequired: false,
-  },
-  strategist: {
-    id: "strategy",
-    title: "Strategy brief",
-    command: "draft market-aware campaign plan",
-    route: "Market brief + narrative map + campaign plan",
-    risk: "review",
-    approvalRequired: false,
   },
 };
 
@@ -304,30 +258,6 @@ function createPublicSlug(templateId: string, userId: string) {
 
 function createTelegramHandle(templateId: string, publicSlug: string) {
   return `@kyra_${templateId}_${publicSlug.slice(-5)}`;
-}
-
-function getScenario(
-  templateId: string,
-  template: AgentTemplateRow,
-): DemoScenario {
-  return (
-    scenarios[templateId] ?? {
-      id: "custom",
-      title: `${template.name} action review`,
-      command: template.terminal_seed || "prepare action review",
-      route: "Kyra protected action route",
-      risk: "review",
-      approvalRequired: true,
-    }
-  );
-}
-
-function getApprovalStatus(scenario: DemoScenario): ApprovalStatus {
-  if (scenario.approvalRequired) {
-    return "waiting_wallet";
-  }
-
-  return scenario.risk === "read-only" ? "read_only_ready" : "review_required";
 }
 
 function sanitizeActivityLogMessage(message: string) {
@@ -552,10 +482,7 @@ async function insertRelatedRecords(
   agent: AgentInstanceRow,
   template: AgentTemplateRow,
   policy: WalletPolicyRow,
-  chain: ChainTarget,
 ) {
-  const scenario = getScenario(template.id, template);
-
   const { error: updateError } = await serviceClient
     .from("agent_instances")
     .update({ approval_policy_id: policy.id })
@@ -563,35 +490,6 @@ async function insertRelatedRecords(
 
   if (updateError) {
     throw updateError;
-  }
-
-  const { error: approvalError } = await serviceClient.from("approval_requests")
-    .insert({
-      workspace_id: workspace.id,
-      agent_id: agent.id,
-      scenario_id: scenario.id,
-      title: scenario.title,
-      command: template.terminal_seed || scenario.command,
-      route: scenario.route,
-      risk: scenario.risk,
-      status: getApprovalStatus(scenario),
-      fee_payer: "connected_wallet",
-      chain_key: chain.key,
-      chain_id: chain.id,
-      requires_wallet: scenario.approvalRequired,
-      prepared_tx: {
-        demo: true,
-        chain_key: chain.key,
-        chain_id: chain.id,
-        template_id: template.id,
-        review_draft: true,
-        onchain_execution: "disabled",
-        source: "deploy-agent-edge-function",
-      },
-    });
-
-  if (approvalError) {
-    throw approvalError;
   }
 
   const { error: telegramError } = await serviceClient.from("telegram_sessions")
@@ -621,14 +519,7 @@ async function insertRelatedRecords(
         agent_id: agent.id,
         source: "telegram_sessions",
         level: "notice",
-        message: "Telegram interface stored as simulated session",
-      },
-      {
-        workspace_id: workspace.id,
-        agent_id: agent.id,
-        source: "approval_requests",
-        level: "notice",
-        message: "review draft persisted with wallet execution disabled",
+        message: "Telegram interface reserved; connect a bot to activate it",
       },
     ].map((log) => ({
       ...log,
@@ -755,7 +646,6 @@ Deno.serve(async (request) => {
         agent,
         template,
         policy,
-        chain,
       );
 
       try {

@@ -354,3 +354,83 @@ Deno.test("owner-link dispatch sanitizes unexpected parser consume and result fa
     );
   }
 });
+
+Deno.test("owner-link dispatch answers a bare /start like /help", async () => {
+  let parsedText = "";
+  let consumeCalled = false;
+  const result = await dispatchVerifiedTelegramWebhookUpdate(
+    {
+      update: createUpdate("/start"),
+      telegramSessionId,
+      ownerLinkConsumeEnabled: true,
+    },
+    createDispatchDependencies({
+      parseReadOnlyUpdate: (update) => {
+        parsedText = String(
+          (update as { message: { text: string } }).message.text,
+        );
+        return { ...parsedReadOnly, command: "help" };
+      },
+      consumeOwnerLinkChallenge: async () => {
+        consumeCalled = true;
+        throw new Error("A bare /start must not consume a challenge.");
+      },
+    }),
+  );
+
+  assertEquals(result.route, "read_only");
+  assertEquals(parsedText, "/help");
+  assert(!consumeCalled, "A bare /start must not consume a challenge.");
+});
+
+Deno.test("owner-link dispatch notifies linked and rejected outcomes only", async () => {
+  const outcomes: TelegramOwnerLinkConsumeResult[] = [
+    { linked: true, status: "linked" },
+    { linked: false, status: "not_linked" },
+    { linked: false, status: "duplicate" },
+  ];
+  const notices: string[] = [];
+
+  for (const consumeResult of outcomes) {
+    await dispatchVerifiedTelegramWebhookUpdate(
+      {
+        update: createUpdate(`/start ${challenge}`),
+        telegramSessionId,
+        ownerLinkConsumeEnabled: true,
+      },
+      createDispatchDependencies({
+        consumeOwnerLinkChallenge: async () => consumeResult,
+        notifyOwnerLinkOutcome: async (notice) => {
+          notices.push(
+            `${notice.outcome}:${notice.telegramChatId}:${notice.telegramUpdateId}`,
+          );
+        },
+      }),
+    );
+  }
+
+  assertEquals(
+    notices.join(","),
+    `linked:${telegramUserId}:${telegramUpdateId},not_linked:${telegramUserId}:${telegramUpdateId}`,
+  );
+});
+
+Deno.test("owner-link dispatch keeps the generic acknowledgement when the notice fails", async () => {
+  const result = await dispatchVerifiedTelegramWebhookUpdate(
+    {
+      update: createUpdate(`/start ${challenge}`),
+      telegramSessionId,
+      ownerLinkConsumeEnabled: true,
+    },
+    createDispatchDependencies({
+      notifyOwnerLinkOutcome: async () => {
+        throw new Error("Telegram send failed");
+      },
+    }),
+  );
+
+  assert(
+    result.route === "owner_link" && result.status === "received",
+    "A failed courtesy reply must not change the acknowledgement.",
+  );
+});

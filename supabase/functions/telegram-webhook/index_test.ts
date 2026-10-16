@@ -522,6 +522,8 @@ Deno.test("telegram-webhook owner-link consume gate requires lookup before body 
 Deno.test("telegram-webhook owner-link consume runs after lookup and bypasses normal pipeline", async () => {
   const challenge = "ab".repeat(32);
   const consumed: Array<Record<string, unknown>> = [];
+  const delivered: Array<Record<string, unknown>> = [];
+  const marked: Array<Record<string, unknown>> = [];
   let normalPipelineCalled = false;
   const request = createJsonWebhookRequest(
     createOwnerLinkWebhookUpdate(`/start ${challenge}`),
@@ -553,14 +555,28 @@ Deno.test("telegram-webhook owner-link consume runs after lookup and bypasses no
       normalPipelineCalled = true;
       throw new Error("Owner-link route must bypass normal claim.");
     },
-    deliverTelegramReadOnlyResponse: async () => {
-      normalPipelineCalled = true;
-      throw new Error("Owner-link route must bypass delivery.");
+    deliverTelegramReadOnlyResponse: async (input) => {
+      delivered.push(input as unknown as Record<string, unknown>);
+      return { delivered: true };
+    },
+    markTelegramUpdateDelivered: async (input) => {
+      marked.push(input as unknown as Record<string, unknown>);
+      return { marked: true, status: "delivered" };
     },
   });
   const body = await readJson(response);
   const serialized = JSON.stringify(body);
 
+  assertEquals(delivered.length, 1, "Linked owner must get one confirmation.");
+  assertEquals(delivered[0]?.telegramChatId, "123456");
+  assert(
+    String((delivered[0]?.response as { text?: string })?.text).includes(
+      "linked as your agent's owner chat",
+    ),
+    "Confirmation must tell the owner the chat is linked.",
+  );
+  assertEquals(marked.length, 1);
+  assertEquals(marked[0]?.telegramUpdateId, "9001");
   assertEquals(response.status, 200);
   assertEquals(body.ok, true);
   assertEquals(body.status, "received");

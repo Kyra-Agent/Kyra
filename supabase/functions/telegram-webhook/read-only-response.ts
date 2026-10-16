@@ -13,6 +13,26 @@ const helpText = [
   "Boundary: wallet and onchain execution are disabled.",
 ].join("\n");
 
+const ownerLinkedText = [
+  "Kyra: this chat is now linked as your agent's owner chat.",
+  "Try /help or /status, or just ask in plain language.",
+  "Wallet and onchain actions still need your approval in the Kyra dashboard.",
+].join("\n");
+
+const ownerLinkRejectedText = [
+  "Kyra could not use this activation link. It may have expired or already been used.",
+  "Create a new link from your Kyra dashboard and open it again.",
+].join("\n");
+
+export function buildTelegramOwnerLinkReply(
+  outcome: "linked" | "not_linked",
+): TelegramReadOnlyCommandResponse {
+  return {
+    command: "help",
+    text: outcome === "linked" ? ownerLinkedText : ownerLinkRejectedText,
+  };
+}
+
 const statusText = [
   "Kyra Telegram session: active",
   "Command access: read-only",

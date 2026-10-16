@@ -2362,8 +2362,139 @@ Deno.test("telegram-connect session persistence adapter rejects missing eligible
   );
 
   assert(error instanceof Error, "Missing session must reject.");
-  assertEquals(calls.length, 1);
+  assertEquals(calls.length, 2);
   assertEquals(calls[0].operation, "lookup");
+  assertEquals(calls[1].operation, "lookup");
+  assert(
+    calls[1].filters.some((filter) =>
+      filter.column === "webhook_status" && filter.value === "paused"
+    ),
+    "Second lookup must look for a disconnected (paused) session.",
+  );
+  assert(
+    calls.every((call) => call.operation !== "update"),
+    "Nothing may be updated without an eligible session.",
+  );
+});
+
+function makeReconnectClient(options: {
+  pausedSessions: Array<Record<string, unknown>>;
+  tokenSecrets: Array<Record<string, unknown>>;
+}) {
+  const log: string[] = [];
+  const updates: Array<Record<string, unknown>> = [];
+  const client = {
+    from(table: string) {
+      const filters: Array<[string, unknown]> = [];
+      let operation = "lookup";
+      const builder = {
+        select() {
+          return builder;
+        },
+        update(payload: Record<string, unknown>) {
+          operation = "update";
+          updates.push(payload);
+          return builder;
+        },
+        delete() {
+          return {
+            eq(column: string, value: unknown) {
+              log.push(`delete:${table}:${column}=${String(value)}`);
+              return Promise.resolve({ error: null });
+            },
+          };
+        },
+        eq(column: string, value: unknown) {
+          filters.push([column, value]);
+          return builder;
+        },
+        is(column: string, value: unknown) {
+          filters.push([column, value]);
+          return builder;
+        },
+        async limit() {
+          const status = filters.find(([column]) => column === "webhook_status")
+            ?.[1];
+          log.push(`lookup:${table}:${String(status ?? "")}`);
+
+          if (table === "telegram_bot_token_secrets") {
+            return { data: options.tokenSecrets, error: null };
+          }
+
+          return {
+            data: status === "paused" ? options.pausedSessions : [],
+            error: null,
+          };
+        },
+        async maybeSingle() {
+          log.push(
+            `${operation}:${table}:${
+              filters.map(([column, value]) => `${column}=${String(value)}`)
+                .join("&")
+            }`,
+          );
+          return { data: { id: testSessionId }, error: null };
+        },
+      };
+
+      return builder;
+    },
+  } as unknown as Parameters<typeof persistTelegramSessionRecord>[0];
+
+  return { client, log, updates };
+}
+
+Deno.test("telegram-connect reconnects a disconnected session after its token was revoked", async () => {
+  const { client, log, updates } = makeReconnectClient({
+    pausedSessions: [{ id: testSessionId, token_secret_ref: "old-secret-ref-0001" }],
+    tokenSecrets: [{ revoked_at: "2026-10-17T00:00:00Z" }],
+  });
+
+  const result = await persistTelegramSessionRecord(client, {
+    agentId: testAgentId,
+    botHandle: "@kyra_new_bot",
+    tokenSecretRef: testTokenSecretRef,
+  });
+
+  assertEquals(result.telegramSessionId, testSessionId);
+  assert(
+    log.includes(
+      `delete:telegram_processed_updates:telegram_session_id=${testSessionId}`,
+    ),
+    "Reconnect must clear the previous bot's processed updates.",
+  );
+  assertEquals(updates[0]?.webhook_status, "queued");
+  assertEquals(updates[0]?.bot_handle, "@kyra_new_bot");
+  assert(
+    log.some((entry) =>
+      entry.startsWith("update:telegram_sessions:") &&
+      entry.includes("webhook_status=paused") &&
+      entry.includes("token_secret_ref=old-secret-ref-0001")
+    ),
+    "Reconnect must only update the exact paused session it inspected.",
+  );
+});
+
+Deno.test("telegram-connect refuses to reconnect while the previous token is active", async () => {
+  const { client, log, updates } = makeReconnectClient({
+    pausedSessions: [{ id: testSessionId, token_secret_ref: "old-secret-ref-0001" }],
+    tokenSecrets: [{ revoked_at: null }],
+  });
+
+  const error = await captureError(() =>
+    persistTelegramSessionRecord(client, {
+      agentId: testAgentId,
+      botHandle: "@kyra_new_bot",
+      tokenSecretRef: testTokenSecretRef,
+    })
+  );
+
+  assert(error instanceof Error, "An active previous token must block reconnect.");
+  assertEquals(updates.length, 0);
+  assert(
+    !log.some((entry) => entry.startsWith("delete:")),
+    "Nothing may be cleared when reconnect is refused.",
+  );
 });
 
 Deno.test("telegram-connect session persistence adapter rejects ambiguous eligible rows", async () => {

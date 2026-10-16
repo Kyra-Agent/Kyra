@@ -42,10 +42,20 @@ export interface TelegramWebhookDispatchDependencies {
     update: unknown,
     options: { expectedBotUsername?: string | null },
   ) => TelegramWebhookParsedCommand;
+  // Called after a consume reaches a terminal outcome so the owner gets a
+  // chat reply. Never changes the generic webhook acknowledgement.
+  notifyOwnerLinkOutcome?: (input: TelegramOwnerLinkOutcomeNotice) => Promise<void>;
+}
+
+export interface TelegramOwnerLinkOutcomeNotice {
+  outcome: "linked" | "not_linked";
+  telegramUpdateId: string;
+  telegramChatId: string;
 }
 
 const ownerLinkCommandCandidatePattern =
   /^\/(?:start|link)(?:@[A-Za-z0-9_]{5,32})?(?:\s|$)/;
+const plainStartCommandPattern = /^\/start(@[A-Za-z0-9_]{5,32})?$/;
 
 export async function dispatchVerifiedTelegramWebhookUpdate(
   input: {
@@ -76,6 +86,23 @@ export async function dispatchVerifiedTelegramWebhookUpdate(
     };
   }
 
+  // A bare /start (Telegram's Start button without an activation code) is a
+  // greeting, not an owner-link attempt: answer it like /help. Chat
+  // authorization still decides whether anyone receives the reply.
+  const plainStartUpdate = rewritePlainStartAsHelp(input.update);
+
+  if (plainStartUpdate) {
+    const parseReadOnlyUpdate = dependencies.parseReadOnlyUpdate ??
+      parseTelegramWebhookUpdate;
+
+    return {
+      route: "read_only",
+      parsedUpdate: parseReadOnlyUpdate(plainStartUpdate, {
+        expectedBotUsername: input.expectedBotUsername,
+      }),
+    };
+  }
+
   const parseOwnerLinkUpdate = dependencies.parseOwnerLinkUpdate ??
     parseAndHashTelegramOwnerLinkUpdate;
   const consumeOwnerLinkChallenge = dependencies.consumeOwnerLinkChallenge;
@@ -95,7 +122,20 @@ export async function dispatchVerifiedTelegramWebhookUpdate(
       telegramChatId: ownerLink.telegramChatId,
       challengeHash: ownerLink.challengeHash,
     });
-    assertTelegramOwnerLinkTerminalResult(result);
+    const terminal = assertTelegramOwnerLinkTerminalResult(result);
+
+    if (dependencies.notifyOwnerLinkOutcome && terminal.status !== "duplicate") {
+      try {
+        await dependencies.notifyOwnerLinkOutcome({
+          outcome: terminal.linked ? "linked" : "not_linked",
+          telegramUpdateId: ownerLink.telegramUpdateId,
+          telegramChatId: ownerLink.telegramChatId,
+        });
+      } catch {
+        // The link state is already final; a failed courtesy reply must not
+        // turn into a webhook error that Telegram would retry.
+      }
+    }
 
     return createTelegramOwnerLinkAcknowledgement();
   } catch (error) {
@@ -108,6 +148,26 @@ export async function dispatchVerifiedTelegramWebhookUpdate(
 
     throw sanitizeTelegramOwnerLinkDispatchError();
   }
+}
+
+function rewritePlainStartAsHelp(update: unknown) {
+  if (!isPlainRecord(update) || !isPlainRecord(update.message)) {
+    return null;
+  }
+
+  const text = update.message.text;
+  const match = typeof text === "string"
+    ? plainStartCommandPattern.exec(text)
+    : null;
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    ...update,
+    message: { ...update.message, text: `/help${match[1] ?? ""}` },
+  };
 }
 
 export function isTelegramOwnerLinkCommandCandidate(value: unknown) {

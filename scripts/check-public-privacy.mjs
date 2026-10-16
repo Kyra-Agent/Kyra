@@ -290,9 +290,8 @@ assert(
   "Deploy activity log messages must be sanitized before insert.",
 );
 assert(
-  /operator:\s*\{[\s\S]*?id:\s*"swap"[\s\S]*?approvalRequired:\s*true/u
-    .test(deployAgentFunction),
-  "Operator swap deploy scenario must remain approval-required.",
+  !deployAgentFunction.includes('from("approval_requests")'),
+  "Deploy must not fabricate approval requests; approvals come only from user requests.",
 );
 
 const authService = read("src/services/supabaseAuthService.ts");

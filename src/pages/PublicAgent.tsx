@@ -289,7 +289,7 @@ export function PublicAgent({
             <div className="identity-core">
               <span>KYRA</span>
               <strong>{visibleTemplate.name}</strong>
-              <small>{visibleAgentRecord.handle}</small>
+              <small>{visibleAgentRecord.displayName}</small>
             </div>
             <span className="identity-ring" />
           </div>
@@ -298,7 +298,9 @@ export function PublicAgent({
               <img src="/brand/kyra.jpg" alt="" aria-hidden="true" />
             </span>
             <div>
-              <strong>{visibleAgentRecord.handle}</strong>
+              {/* The stored handle is an internal placeholder, not a Telegram
+                  username; publishing it would invite impersonation. */}
+              <strong>{visibleAgentRecord.displayName}</strong>
               <small>{visibleTemplate.role}</small>
             </div>
           </div>
@@ -342,7 +344,7 @@ export function PublicAgent({
         <article className="public-panel public-summary">
           <div className="panel-title">
             <span>Agent summary</span>
-            <span>{visibleTemplate.status}</span>
+            <span>{visibleTemplate.name} template</span>
           </div>
           <p>{visibleTemplate.summary}</p>
           <div className="dashboard-action-chips">

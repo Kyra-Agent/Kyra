@@ -71,6 +71,7 @@ import {
 import { planTelegramClaimedReadOnlyResponse } from "./claim-aware-response.ts";
 import { reviewTelegramExecutionGate } from "./execution-gate.ts";
 import {
+  buildTelegramOwnerLinkReply,
   classifyTelegramReadOnlyChatIntent,
   type TelegramReadOnlyCommandResponse,
 } from "./read-only-response.ts";
@@ -747,6 +748,7 @@ export async function handleTelegramWebhookRequest(
       }
 
       const update = await readTelegramWebhookUpdateBody(request);
+      const ownerLinkSessionId = lookupSession.sessionId;
 
       const dispatchResult = await dispatchVerifiedTelegramWebhookUpdate(
         {
@@ -758,6 +760,20 @@ export async function handleTelegramWebhookRequest(
         {
           consumeOwnerLinkChallenge:
             dependencies.consumeTelegramOwnerLinkChallenge,
+          notifyOwnerLinkOutcome: deliveryRuntimeConfig.enabled &&
+              dependencies.deliverTelegramReadOnlyResponse
+            ? async (notice) => {
+              await dependencies.deliverTelegramReadOnlyResponse?.({
+                telegramSessionId: ownerLinkSessionId,
+                telegramChatId: notice.telegramChatId,
+                response: buildTelegramOwnerLinkReply(notice.outcome),
+              });
+              await dependencies.markTelegramUpdateDelivered?.({
+                telegramSessionId: ownerLinkSessionId,
+                telegramUpdateId: notice.telegramUpdateId,
+              });
+            }
+            : undefined,
         },
       );
 

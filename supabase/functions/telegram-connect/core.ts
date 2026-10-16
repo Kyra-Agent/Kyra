@@ -95,6 +95,15 @@ export interface TelegramSessionPersistenceRow {
   id: string;
 }
 
+interface TelegramPausedSessionRow {
+  id: string;
+  token_secret_ref: string | null;
+}
+
+interface TelegramTokenSecretRevocationRow {
+  revoked_at: string | null;
+}
+
 export interface TelegramSessionPersistenceResult<T> {
   data: T | null;
   error: unknown;
@@ -102,6 +111,12 @@ export interface TelegramSessionPersistenceResult<T> {
 
 export interface TelegramSessionPersistenceBuilder {
   select: (columns: string) => TelegramSessionPersistenceBuilder;
+  delete: () => {
+    eq: (
+      column: string,
+      value: unknown,
+    ) => PromiseLike<{ error: unknown }>;
+  };
   update: (
     values: Record<string, unknown>,
   ) => TelegramSessionPersistenceBuilder;
@@ -593,33 +608,114 @@ export async function lookupAgentOwnershipRecord(
   };
 }
 
-export async function persistTelegramSessionRecord(
+interface ReconnectableTelegramSession {
+  id: string;
+  previousStatus: "mocked" | "paused";
+  previousTokenSecretRef: string | null;
+}
+
+// A deployed agent starts with one placeholder ("mocked") session. After a
+// disconnect the session is "paused" and its bot token is revoked; that
+// session can take a new bot so owners never have to redeploy the agent.
+async function findReconnectableTelegramSession(
   serviceClient: TelegramSessionPersistenceClient,
-  input: PersistTelegramSessionInput,
-) {
-  const { data: sessions, error: lookupError } = await serviceClient
+  agentId: string,
+): Promise<ReconnectableTelegramSession> {
+  const { data: mocked, error: mockedError } = await serviceClient
     .from("telegram_sessions")
     .select("id")
-    .eq("agent_id", input.agentId)
+    .eq("agent_id", agentId)
     .eq("webhook_status", "mocked")
     .is("token_secret_ref", null)
     .limit<TelegramSessionPersistenceRow>(2);
 
-  if (lookupError) {
-    throw lookupError;
+  if (mockedError) {
+    throw mockedError;
   }
 
-  if (!Array.isArray(sessions) || sessions.length !== 1) {
+  if (Array.isArray(mocked) && mocked.length === 1) {
+    return {
+      id: assertTelegramSessionId(mocked[0]?.id),
+      previousStatus: "mocked",
+      previousTokenSecretRef: null,
+    };
+  }
+
+  if (Array.isArray(mocked) && mocked.length > 1) {
     throw new Error("Expected one mock Telegram session.");
   }
 
-  const sessionId = sessions[0]?.id;
+  const { data: paused, error: pausedError } = await serviceClient
+    .from("telegram_sessions")
+    .select("id,token_secret_ref")
+    .eq("agent_id", agentId)
+    .eq("webhook_status", "paused")
+    .limit<TelegramPausedSessionRow>(2);
 
-  if (typeof sessionId !== "string" || !sessionId) {
-    throw new Error("Telegram session id was not found.");
+  if (pausedError) {
+    throw pausedError;
   }
 
-  const { data: updated, error: updateError } = await serviceClient
+  if (!Array.isArray(paused) || paused.length !== 1) {
+    throw new Error("Expected one reconnectable Telegram session.");
+  }
+
+  const pausedSession = paused[0];
+  const previousTokenSecretRef =
+    typeof pausedSession?.token_secret_ref === "string" &&
+      pausedSession.token_secret_ref
+      ? pausedSession.token_secret_ref
+      : null;
+
+  if (previousTokenSecretRef) {
+    const { data: secrets, error: secretError } = await serviceClient
+      .from("telegram_bot_token_secrets")
+      .select("revoked_at")
+      .eq("token_secret_ref", previousTokenSecretRef)
+      .limit<TelegramTokenSecretRevocationRow>(1);
+
+    if (secretError) {
+      throw secretError;
+    }
+
+    if (
+      Array.isArray(secrets) && secrets.length > 0 && !secrets[0]?.revoked_at
+    ) {
+      throw new Error("Previous Telegram bot token is still active.");
+    }
+  }
+
+  return {
+    id: assertTelegramSessionId(pausedSession?.id),
+    previousStatus: "paused",
+    previousTokenSecretRef,
+  };
+}
+
+export async function persistTelegramSessionRecord(
+  serviceClient: TelegramSessionPersistenceClient,
+  input: PersistTelegramSessionInput,
+) {
+  const session = await findReconnectableTelegramSession(
+    serviceClient,
+    input.agentId,
+  );
+  const sessionId = session.id;
+
+  if (session.previousStatus === "paused") {
+    // Update ids are per bot; drop the old bot's history so a new bot's
+    // updates are never mistaken for duplicates.
+    const { error: clearError } = await serviceClient
+      .from("telegram_processed_updates")
+      .delete()
+      .eq("telegram_session_id", sessionId);
+
+    if (clearError) {
+      throw clearError;
+    }
+  }
+
+  const updateQuery = serviceClient
     .from("telegram_sessions")
     .update({
       bot_handle: input.botHandle,
@@ -628,8 +724,12 @@ export async function persistTelegramSessionRecord(
     })
     .eq("id", sessionId)
     .eq("agent_id", input.agentId)
-    .eq("webhook_status", "mocked")
-    .is("token_secret_ref", null)
+    .eq("webhook_status", session.previousStatus);
+  const { data: updated, error: updateError } = await (
+    session.previousTokenSecretRef
+      ? updateQuery.eq("token_secret_ref", session.previousTokenSecretRef)
+      : updateQuery.is("token_secret_ref", null)
+  )
     .select("id")
     .maybeSingle<TelegramSessionPersistenceRow>();
 

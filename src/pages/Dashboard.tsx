@@ -79,6 +79,7 @@ import {
 } from "../services/telegramDashboardStatusService";
 import { revokeTelegramAgentConnection } from "../services/telegramDisconnectService";
 import { issueTelegramOwnerLink } from "../services/telegramLinkService";
+import { connectTelegramBot } from "../services/telegramConnectService";
 import {
   prepareChainActionStatusCheck,
   type ChainActionDashboardStatus,
@@ -667,6 +668,23 @@ function getTelegramSessionLabel(
   return "session pending";
 }
 
+// Deploy stores an internal placeholder handle on the session until a real
+// bot is connected, so only show a handle once Telegram has accepted a bot.
+function getConnectedTelegramBotHandle(
+  session: TelegramSessionDisplayStatus | null | undefined,
+) {
+  if (
+    !session?.botHandle ||
+    (session.webhookStatus !== "active" &&
+      session.webhookStatus !== "queued" &&
+      session.webhookStatus !== "paused")
+  ) {
+    return null;
+  }
+
+  return session.botHandle;
+}
+
 function getTelegramSessionHeadline(
   session: TelegramSessionDisplayStatus | null,
 ) {
@@ -904,6 +922,13 @@ export function Dashboard({
     "Link your private Telegram chat before commands are enabled.",
   );
   const [telegramOwnerLink, setTelegramOwnerLink] = useState<string | null>(null);
+  const [telegramConnectToken, setTelegramConnectToken] = useState("");
+  const [telegramConnectStatus, setTelegramConnectStatus] = useState<
+    "idle" | "running" | "success" | "error"
+  >("idle");
+  const [telegramConnectMessage, setTelegramConnectMessage] = useState(
+    "Paste a BotFather token to connect a bot to this agent.",
+  );
   const [chainStatusState, setChainStatusState] = useState<
     "idle" | "checking" | "ready" | "blocked" | "error"
   >("idle");
@@ -1257,6 +1282,11 @@ export function Dashboard({
     setTelegramOwnerLink(null);
     setTelegramOwnerLinkMessage(
       "Link your private Telegram chat before commands are enabled.",
+    );
+    setTelegramConnectToken("");
+    setTelegramConnectStatus("idle");
+    setTelegramConnectMessage(
+      "Paste a BotFather token to connect a bot to this agent.",
     );
   }, [authSession?.user.id, selectedDashboardAgentId]);
 
@@ -2968,6 +2998,57 @@ export function Dashboard({
     setTelegramDisconnectConfirmId(agentRecord.id);
   }
 
+  async function handleConnectTelegramBot() {
+    const botToken = telegramConnectToken.trim();
+
+    if (
+      !authSession ||
+      !agentRecord ||
+      !botToken ||
+      telegramConnectStatus === "running"
+    ) {
+      return;
+    }
+
+    // The token never stays in UI state after submit.
+    setTelegramConnectToken("");
+    setTelegramConnectStatus("running");
+    setTelegramConnectMessage("Validating the bot with Telegram...");
+
+    const freshAuth = await ensureFreshAuthSession(authSession);
+    syncFreshAuthSession(authSession, freshAuth);
+
+    if (!freshAuth.session) {
+      setTelegramConnectStatus("error");
+      setTelegramConnectMessage(freshAuth.message);
+      return;
+    }
+
+    const result = await connectTelegramBot({
+      session: freshAuth.session,
+      agentId: agentRecord.id,
+      botToken,
+    });
+
+    setTelegramConnectStatus(result.ok ? "success" : "error");
+    setTelegramConnectMessage(
+      result.ok
+        ? `${result.botHandle ?? "Your bot"} is connected. Link your private chat next.`
+        : result.message,
+    );
+    recordBackendEvent({
+      kind: "deploy",
+      status: result.ok ? "success" : "error",
+      message: result.ok ? "Telegram bot connected from the dashboard." : result.message,
+      source: "telegram-connect",
+      code: result.status,
+    });
+
+    if (result.ok) {
+      setDashboardReloadKey((key) => key + 1);
+    }
+  }
+
   async function handleCreateTelegramOwnerLink() {
     if (
       !authSession ||
@@ -3406,7 +3487,10 @@ export function Dashboard({
                           <small>{template.name}</small>
                         </span>
                         <span>
-                          <small>{agent.handle}</small>
+                          <small>
+                            {getConnectedTelegramBotHandle(telegramStatus) ??
+                              "No bot connected"}
+                          </small>
                           <em>
                             {getTelegramSessionLabel(
                               telegramStatus,
@@ -3446,14 +3530,17 @@ export function Dashboard({
             <span>Template</span>
             <strong>{agentRecord ? activeTemplate.name : "None yet"}</strong>
             <small>
-              {agentRecord ? activeTemplate.status : "deploy required"}
+              {agentRecord ? activeTemplate.role : "deploy required"}
             </small>
           </article>
           <article>
             <span>Platform</span>
             <strong>{agentRecord ? "Telegram" : "Not connected"}</strong>
             <small>
-              {agentRecord ? agentRecord.handle : "deploy creates handle"}
+              {agentRecord
+                ? getConnectedTelegramBotHandle(selectedTelegramStatus) ??
+                  "no bot connected"
+                : "deploy required"}
             </small>
           </article>
           <article>
@@ -3520,7 +3607,8 @@ export function Dashboard({
               </span>
               <div>
                 <small>
-                  {selectedTelegramStatus?.botHandle ?? "Telegram status"}
+                  {getConnectedTelegramBotHandle(selectedTelegramStatus) ??
+                    "Telegram status"}
                 </small>
                 <strong>
                   {getTelegramSessionHeadline(selectedTelegramStatus)}
@@ -3571,6 +3659,57 @@ export function Dashboard({
                       )
                       : null}
                   </div>
+                  {!selectedTelegramActive &&
+                      selectedTelegramStatus?.webhookStatus !== "queued" &&
+                      appConfig.featureFlags.telegramConnectTokenInput
+                    ? (
+                      <form
+                        className="telegram-dashboard-connect"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          void handleConnectTelegramBot();
+                        }}
+                      >
+                        <label htmlFor="dashboard-telegram-token">
+                          <span>Connect a Telegram bot</span>
+                          <small>
+                            In Telegram, message @BotFather, send /newbot, then paste
+                            the token it gives you.
+                          </small>
+                        </label>
+                        <div className="telegram-dashboard-connect-row">
+                          <input
+                            id="dashboard-telegram-token"
+                            type="password"
+                            autoComplete="off"
+                            spellCheck={false}
+                            placeholder="123456789:AA..."
+                            value={telegramConnectToken}
+                            disabled={telegramConnectStatus === "running"}
+                            onChange={(event) =>
+                              setTelegramConnectToken(event.target.value)}
+                          />
+                          <button
+                            className="button button-primary"
+                            disabled={telegramConnectStatus === "running" ||
+                              !telegramConnectToken.trim()}
+                            type="submit"
+                          >
+                            <Bot size={16} />
+                            {telegramConnectStatus === "running"
+                              ? "Connecting..."
+                              : "Connect bot"}
+                          </button>
+                        </div>
+                        <small
+                          className={`telegram-dashboard-connect-${telegramConnectStatus}`}
+                          role={telegramConnectStatus === "error" ? "alert" : "status"}
+                        >
+                          {telegramConnectMessage}
+                        </small>
+                      </form>
+                    )
+                    : null}
                   {!selectedTelegramOwnerChatLinked && selectedTelegramActive ? (
                     <div className="telegram-owner-link-actions">
                       {telegramOwnerLinkStatus === "ready" && telegramOwnerLink ? (
@@ -5526,7 +5665,18 @@ export function Dashboard({
                 </span>
                 <span>
                   Bot handle
-                  <strong>{telegramDisconnectAgent.handle}</strong>
+                  <strong>
+                    {getConnectedTelegramBotHandle(
+                      selectTelegramDashboardStatusForAgent(
+                        telegramDashboardStatuses,
+                        telegramDisconnectAgent.id,
+                      ) ??
+                        selectTelegramSessionForAgent(
+                          dashboardData?.telegramSessions,
+                          telegramDisconnectAgent.id,
+                        ),
+                    ) ?? "Connected bot"}
+                  </strong>
                 </span>
                 <span>
                   Other agents
@@ -5609,8 +5759,8 @@ export function Dashboard({
                   <strong>{agentPendingRemoval.displayName}</strong>
                 </span>
                 <span>
-                  Public handle
-                  <strong>{agentPendingRemoval.handle}</strong>
+                  Public route
+                  <strong>{agentPendingRemoval.publicPath}</strong>
                 </span>
                 <span>
                   Other agents

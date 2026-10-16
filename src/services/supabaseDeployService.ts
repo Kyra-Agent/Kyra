@@ -4,7 +4,6 @@ import {
   currentWalletDisplayName,
 } from "../config/productChains";
 import { demoAgentLimits } from "../config/demoLimits";
-import { demoScenarios } from "../data/demoScenarios";
 import type { AgentTemplate } from "../types/agent";
 import type { KyraTableName } from "../types/database";
 import {
@@ -271,11 +270,6 @@ function createTelegramHandle(templateId: string, publicSlug: string) {
   return `@kyra_${templateId}_${publicSlug.slice(-5)}`;
 }
 
-function getScenarioForTemplate(templateId: string) {
-  return demoScenarios.find((scenario) => scenario.templateId === templateId) ??
-    demoScenarios[0];
-}
-
 function createActivityLogs(
   workspaceId: string,
   agentId: string,
@@ -294,14 +288,7 @@ function createActivityLogs(
       agent_id: agentId,
       source: "telegram_sessions",
       level: "notice",
-      message: "Telegram interface stored as simulated session",
-    },
-    {
-      workspace_id: workspaceId,
-      agent_id: agentId,
-      source: "approval_requests",
-      level: "notice",
-      message: "review draft persisted with wallet execution disabled",
+      message: "Telegram interface reserved; connect a bot to activate it",
     },
   ];
 }
@@ -346,43 +333,6 @@ async function createWalletPolicy(
     approval_required: true,
     allowed_actions: selectedActions,
     status: "simulated",
-  });
-}
-
-async function createApprovalRequest(
-  session: KyraAuthSession,
-  workspaceId: string,
-  agentId: string,
-  template: AgentTemplate,
-) {
-  const scenario = getScenarioForTemplate(template.id);
-  const risk = scenario?.risk ?? "review";
-
-  return insertRow(session, "approval_requests", {
-    workspace_id: workspaceId,
-    agent_id: agentId,
-    scenario_id: scenario?.id ?? null,
-    title: `${template.name} action review`,
-    command:
-      template.terminalSeed || scenario?.command || "prepare action review",
-    route: scenario?.route ?? "Action route prepared by Kyra",
-    risk,
-    status: scenario?.approvalRequired
-      ? "waiting_wallet"
-      : risk === "read-only"
-      ? "read_only_ready"
-      : "review_required",
-    fee_payer: "connected_wallet",
-    chain_key: currentProductChain.key,
-    chain_id: currentProductChain.id,
-    requires_wallet: scenario?.approvalRequired ?? true,
-    prepared_tx: {
-      demo: true,
-      chain_key: currentProductChain.key,
-      chain_id: currentProductChain.id,
-      template_id: template.id,
-      onchain_execution: "disabled",
-    },
   });
 }
 
@@ -598,7 +548,6 @@ async function saveViaSupabaseRestFallback({
   await patchRow(session, "agent_instances", agent.id, {
     approval_policy_id: policy.id,
   });
-  await createApprovalRequest(session, workspace.id, agent.id, template);
   await createTelegramSession(session, agent.id, agent.handle);
   await insertRows(
     session,
