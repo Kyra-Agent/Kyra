@@ -9,7 +9,7 @@ export interface TelegramReadOnlyCommandResponse {
 const helpText = [
   "Kyra Telegram",
   "Commands: /help /status /agent /actions /modules /policy",
-  "Plain text: campaign plan for Agent 666; launch copy; narrative map; community pulse; risk review.",
+  "Plain text: ask in your own words for a market brief, research summary, risk review, or plan.",
   "Boundary: wallet and onchain execution are disabled.",
 ].join("\n");
 

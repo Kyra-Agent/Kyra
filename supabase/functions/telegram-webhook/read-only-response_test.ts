@@ -85,6 +85,10 @@ Deno.test("telegram read-only help response is static and limited", () => {
     response.text.includes("Plain text:"),
     "Help response must show natural chat examples.",
   );
+  assert(
+    !/agent\s+\d+/i.test(response.text),
+    "Help response is shared by every bot and must not name a sample agent.",
+  );
   assertEquals(Object.keys(response).sort().join(","), "command,text");
   assert(!serialized.includes("private"), "Help response must remain static.");
   assertSafeStaticResponse(response.text);
