@@ -1,6 +1,7 @@
 import { CheckCircle2, Clock3, LockKeyhole, Sparkles } from "lucide-react";
 import type { AgentTemplate } from "../types/agent";
 import type { SupabaseConnectionStatus } from "../services/supabaseKyraRepository";
+import { RevealHeading } from "./RevealHeading";
 
 interface TemplatePickerProps {
   templates: AgentTemplate[];
@@ -53,7 +54,7 @@ export function TemplatePicker({
     <section className="section" id="templates">
       <div className="section-heading">
         <p className="eyebrow">Agent Templates</p>
-        <h2>Start from a role users already understand.</h2>
+        <RevealHeading text="Start from a role users already understand." />
         <p>
           Templates keep the product simple. Kyra modules handle orchestration, research, data, and security underneath.
         </p>

@@ -20,6 +20,12 @@ All notable public releases of Kyra Agent are documented here.
 
 ### Interface
 
+- Added Motion v2: a scroll-driven "How Kyra works" story with a sticky
+  preview, an animated stats strip, a live module orbit linked to the Kyra
+  Core roster, word-by-word section headings, pointer tilt on cards, magnetic
+  primary CTAs, scroll-linked aurora drift, and a focus pulse when moving
+  between dashboard sections. Every effect falls back to a static layout under
+  reduced motion.
 - Introduced the Kyra Luxe visual layer: self-hosted Geist typography, aurora
   background, floating glass header, animated hero headline, console border
   beam, pointer spotlight surfaces, security marquee, and refined dashboard,

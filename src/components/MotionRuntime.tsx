@@ -9,6 +9,9 @@ interface MotionRuntimeProps {
 // scrolling.
 const revealSelector = [
   ".section-heading > *",
+  ".stat-card",
+  ".story-step",
+  ".module-orbit",
   ".security-copy > *",
   ".dashboard-header > *",
   ".template-card",
@@ -44,6 +47,17 @@ const spotlightSelector = [
   ".official-token-card",
 ].join(",");
 
+// Cards that lean toward the pointer. Kept to roomy grid cards so dense
+// panels and forms never move under the cursor.
+const tiltSelector = [
+  ".template-card",
+  ".action-card",
+  ".security-grid article",
+  ".story-stage-frame",
+].join(",");
+
+const maxTiltDegrees = 5;
+const maxMagnetOffset = 6;
 const maxStaggerSteps = 6;
 
 function prefersReducedMotion() {
@@ -124,7 +138,22 @@ export function MotionRuntime({ routeKey }: MotionRuntimeProps) {
     let pointerX = 0;
     let pointerY = 0;
     let activeSurface: HTMLElement | null = null;
+    let activeTilt: HTMLElement | null = null;
+    let activeMagnet: HTMLElement | null = null;
     let pendingTarget: EventTarget | null = null;
+
+    function releaseTilt() {
+      activeTilt?.removeAttribute("data-tilt");
+      activeTilt?.style.removeProperty("--tilt-x");
+      activeTilt?.style.removeProperty("--tilt-y");
+      activeTilt = null;
+    }
+
+    function releaseMagnet() {
+      activeMagnet?.style.removeProperty("--magnet-x");
+      activeMagnet?.style.removeProperty("--magnet-y");
+      activeMagnet = null;
+    }
 
     function apply() {
       frame = 0;
@@ -151,6 +180,46 @@ export function MotionRuntime({ routeKey }: MotionRuntimeProps) {
         surface.style.setProperty("--spot-y", `${pointerY - rect.top}px`);
         surface.setAttribute("data-spotlight", "");
       }
+
+      const target = pendingTarget instanceof Element ? pendingTarget : null;
+      const tilt = target?.closest<HTMLElement>(tiltSelector) ?? null;
+
+      if (activeTilt && activeTilt !== tilt) {
+        releaseTilt();
+      }
+
+      if (tilt) {
+        const rect = tilt.getBoundingClientRect();
+        const relX = (pointerX - rect.left) / Math.max(rect.width, 1);
+        const relY = (pointerY - rect.top) / Math.max(rect.height, 1);
+        tilt.style.setProperty(
+          "--tilt-x",
+          `${((0.5 - relY) * 2 * maxTiltDegrees).toFixed(2)}deg`,
+        );
+        tilt.style.setProperty(
+          "--tilt-y",
+          `${((relX - 0.5) * 2 * maxTiltDegrees).toFixed(2)}deg`,
+        );
+        tilt.setAttribute("data-tilt", "");
+        activeTilt = tilt;
+      }
+
+      const magnet = target?.closest<HTMLElement>("[data-magnetic]") ?? null;
+
+      if (activeMagnet && activeMagnet !== magnet) {
+        releaseMagnet();
+      }
+
+      if (magnet) {
+        const rect = magnet.getBoundingClientRect();
+        const offsetX = pointerX - (rect.left + rect.width / 2);
+        const offsetY = pointerY - (rect.top + rect.height / 2);
+        const clamp = (value: number) =>
+          Math.max(-maxMagnetOffset, Math.min(maxMagnetOffset, value * 0.2));
+        magnet.style.setProperty("--magnet-x", `${clamp(offsetX).toFixed(1)}px`);
+        magnet.style.setProperty("--magnet-y", `${clamp(offsetY).toFixed(1)}px`);
+        activeMagnet = magnet;
+      }
     }
 
     function handlePointerMove(event: PointerEvent) {
@@ -170,6 +239,8 @@ export function MotionRuntime({ routeKey }: MotionRuntimeProps) {
     function handlePointerLeave() {
       activeSurface?.removeAttribute("data-spotlight");
       activeSurface = null;
+      releaseTilt();
+      releaseMagnet();
     }
 
     root.setAttribute("data-pointer", "fine");
@@ -182,6 +253,8 @@ export function MotionRuntime({ routeKey }: MotionRuntimeProps) {
       document.removeEventListener("pointerleave", handlePointerLeave);
       window.cancelAnimationFrame(frame);
       activeSurface?.removeAttribute("data-spotlight");
+      releaseTilt();
+      releaseMagnet();
     };
   }, []);
 

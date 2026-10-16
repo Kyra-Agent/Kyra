@@ -27,9 +27,11 @@ import { FAQSection } from "./components/FAQSection";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { HeroConsole } from "./components/HeroConsole";
+import { HowItWorks } from "./components/HowItWorks";
 import { MotionRuntime } from "./components/MotionRuntime";
 import { OfficialTokenCard } from "./components/OfficialTokenCard";
 import { SecuritySection } from "./components/SecuritySection";
+import { StatsStrip } from "./components/StatsStrip";
 import { TemplatePicker } from "./components/TemplatePicker";
 import { WalletApprovalModal } from "./components/WalletApprovalModal";
 import { appConfig } from "./config/appConfig";
@@ -76,6 +78,7 @@ const PublicAgent = lazy(() =>
 const fallbackAgentTemplates = kyraDataService.listTemplates();
 const demoScenarios = kyraDataService.listScenarios();
 const homeSectionIds = [
+  "how-it-works",
   "templates",
   "deploy",
   "actions",
@@ -851,6 +854,7 @@ function App() {
                   <div className="hero-actions">
                     <button
                       className="button button-primary"
+                      data-magnetic=""
                       type="button"
                       onClick={() => openHomeSection("deploy")}
                     >
@@ -859,6 +863,7 @@ function App() {
                     </button>
                     <button
                       className="button button-ghost"
+                      data-magnetic=""
                       type="button"
                       onClick={() => navigate("dashboard")}
                     >
@@ -892,6 +897,8 @@ function App() {
                 />
               </section>
 
+              <StatsStrip templateCount={agentTemplates.length} />
+              <HowItWorks />
               <TemplatePicker
                 templates={agentTemplates}
                 selectedId={selectedId}

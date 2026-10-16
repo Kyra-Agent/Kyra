@@ -43,6 +43,9 @@ export function Header({
       </button>
 
       <nav className="site-nav" aria-label="Primary navigation">
+        <button type="button" onClick={() => onOpenSection("how-it-works")}>
+          How it works
+        </button>
         <button type="button" onClick={() => onOpenSection("templates")}>
           Templates
         </button>
@@ -85,6 +88,7 @@ export function Header({
         </button>
         <button
           className="button button-primary button-small header-deploy"
+          data-magnetic=""
           type="button"
           onClick={() => onOpenSection("deploy")}
         >
@@ -98,6 +102,9 @@ export function Header({
         id="compact-site-nav"
         aria-label="Compact navigation"
       >
+        <button type="button" onClick={() => handleNavigation(() => onOpenSection("how-it-works"))}>
+          How it works
+        </button>
         <button type="button" onClick={() => handleNavigation(() => onOpenSection("templates"))}>
           Templates
         </button>

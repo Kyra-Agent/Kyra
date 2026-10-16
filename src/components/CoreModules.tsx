@@ -1,5 +1,8 @@
+import { useState } from "react";
 import { Cpu, Radar, ShieldCheck } from "lucide-react";
 import { coreModules } from "../data/modules";
+import { ModuleOrbit } from "./ModuleOrbit";
+import { RevealHeading } from "./RevealHeading";
 
 const statusIcon = {
   online: Cpu,
@@ -8,33 +11,44 @@ const statusIcon = {
 };
 
 export function CoreModules() {
+  const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
+
   return (
     <section className="section modules-section">
       <div className="section-heading">
         <p className="eyebrow">Kyra Core</p>
-        <h2>Internal modules power every template.</h2>
+        <RevealHeading text="Internal modules power every template." />
         <p>
           Users choose simple agent templates. Kyra keeps its identity through a focused
           roster of research, data, execution, and security modules.
         </p>
       </div>
 
-      <div className="module-board">
-        {coreModules.map((module) => {
-          const Icon = statusIcon[module.status];
+      <div className="module-layout">
+        <ModuleOrbit activeId={activeModuleId} onActivate={setActiveModuleId} />
 
-          return (
-            <article className="module-row" key={module.id}>
-              <span className="module-code">{module.name}</span>
-              <span className="module-title">{module.title}</span>
-              <p>{module.summary}</p>
-              <span className={`module-status module-${module.status}`}>
-                <Icon size={14} />
-                {module.status}
-              </span>
-            </article>
-          );
-        })}
+        <div className="module-board">
+          {coreModules.map((module) => {
+            const Icon = statusIcon[module.status];
+
+            return (
+              <article
+                className={`module-row${activeModuleId === module.id ? " is-linked" : ""}`}
+                key={module.id}
+                onPointerEnter={() => setActiveModuleId(module.id)}
+                onPointerLeave={() => setActiveModuleId(null)}
+              >
+                <span className="module-code">{module.name}</span>
+                <span className="module-title">{module.title}</span>
+                <p>{module.summary}</p>
+                <span className={`module-status module-${module.status}`}>
+                  <Icon size={14} />
+                  {module.status}
+                </span>
+              </article>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

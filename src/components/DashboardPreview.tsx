@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import type { AgentTemplate } from "../types/agent";
 import { kyraDataService } from "../services/kyraDataService";
+import { RevealHeading } from "./RevealHeading";
 
 interface DashboardPreviewProps {
   selectedTemplate: AgentTemplate;
@@ -21,7 +22,7 @@ export function DashboardPreview({ selectedTemplate }: DashboardPreviewProps) {
       <div className="dashboard-header">
         <div>
           <p className="eyebrow">Agent Workspace</p>
-          <h2>One agent workspace across Telegram, dashboard, and approvals.</h2>
+          <RevealHeading text="One agent workspace across Telegram, dashboard, and approvals." />
         </div>
         <span className="demo-badge">
           <CircleDot size={14} />

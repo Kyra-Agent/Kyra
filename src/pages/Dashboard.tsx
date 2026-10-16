@@ -974,12 +974,34 @@ export function Dashboard({
       window.removeEventListener("popstate", syncDashboardSectionFromLocation);
   }, []);
 
+  const dashboardSectionMountedRef = useRef(false);
+
   useEffect(() => {
-    window.setTimeout(() => {
-      document
-        .getElementById(activeDashboardSectionId)
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Highlight the panel the user navigated to, but not on first load.
+    const highlight = dashboardSectionMountedRef.current;
+    dashboardSectionMountedRef.current = true;
+    let focusTimer = 0;
+    let focusedSection: HTMLElement | null = null;
+
+    const scrollTimer = window.setTimeout(() => {
+      focusedSection = document.getElementById(activeDashboardSectionId);
+      focusedSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      if (highlight && focusedSection) {
+        focusedSection.classList.remove("is-section-focus");
+        void focusedSection.offsetWidth;
+        focusedSection.classList.add("is-section-focus");
+        focusTimer = window.setTimeout(() => {
+          focusedSection?.classList.remove("is-section-focus");
+        }, 1400);
+      }
     }, 40);
+
+    return () => {
+      window.clearTimeout(scrollTimer);
+      window.clearTimeout(focusTimer);
+      focusedSection?.classList.remove("is-section-focus");
+    };
   }, [activeDashboardSectionId]);
 
   function openDashboardSection(sectionId: DashboardSectionId) {

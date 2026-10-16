@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { faqs } from "../data/faqs";
+import { RevealHeading } from "./RevealHeading";
 
 export function FAQSection() {
   const [openIndex, setOpenIndex] = useState(0);
@@ -9,7 +10,7 @@ export function FAQSection() {
     <section className="section faq-section" id="faq">
       <div className="section-heading">
         <p className="eyebrow">FAQ</p>
-        <h2>Questions users should not have to guess.</h2>
+        <RevealHeading text="Questions users should not have to guess." />
         <p>Clear trust language matters when a product touches wallet approvals.</p>
       </div>
 

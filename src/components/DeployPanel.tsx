@@ -37,6 +37,7 @@ import {
   validateTelegramBotTokenForDeploy,
 } from "../services/telegramConnectService";
 import { issueTelegramOwnerLink } from "../services/telegramLinkService";
+import { RevealHeading } from "./RevealHeading";
 
 interface DeployPanelProps {
   templates: AgentTemplate[];
@@ -762,7 +763,7 @@ export function DeployPanel({
     <section className="section deploy-section" id="deploy">
       <div className="section-heading">
         <p className="eyebrow">Deploy Flow</p>
-        <h2>Deploy a public-ready agent workspace.</h2>
+        <RevealHeading text="Deploy a public-ready agent workspace." />
         <p>
           Choose a template, configure identity, connect Telegram, and publish an agent profile with private dashboard records and explicit user approval for every onchain action.
         </p>

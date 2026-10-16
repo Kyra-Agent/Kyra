@@ -1,5 +1,6 @@
 import { LockKeyhole, ShieldCheck, WalletCards } from "lucide-react";
 import { currentWalletDisplayName } from "../config/productChains";
+import { RevealHeading } from "./RevealHeading";
 
 const guarantees = [
   "No seed phrases",
@@ -15,7 +16,7 @@ export function SecuritySection() {
     <section className="section security-section" id="security">
       <div className="security-copy">
         <p className="eyebrow">Security Model</p>
-        <h2>Kyra plans. Your wallet decides.</h2>
+        <RevealHeading text="Kyra plans. Your wallet decides." />
         <p>
           Kyra is built around user control. Agents can understand commands and prepare review context, while the wallet remains the final gate for any onchain action.
         </p>

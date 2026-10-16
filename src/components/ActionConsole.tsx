@@ -8,6 +8,7 @@ import {
   Users,
 } from "lucide-react";
 import { actions } from "../data/actions";
+import { RevealHeading } from "./RevealHeading";
 
 const actionTierLabel = {
   mvp: "Ready",
@@ -32,7 +33,7 @@ export function ActionConsole() {
     <section className="section" id="actions">
       <div className="section-heading">
         <p className="eyebrow">Action Layer</p>
-        <h2>Every command becomes a controlled review.</h2>
+        <RevealHeading text="Every command becomes a controlled review." />
         <p>
           Kyra reads context, prepares bounded summaries, and routes wallet or
           onchain requests through explicit user approval.
