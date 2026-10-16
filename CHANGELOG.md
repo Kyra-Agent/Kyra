@@ -28,6 +28,9 @@ All notable public releases of Kyra Agent are documented here.
   with full `prefers-reduced-motion` fallbacks.
 - Fixed the sticky header, fixed dialogs inside animated routes, the hero
   console overlap, duplicate log keys, and several mobile layout issues.
+- Redesigned the Open Graph social card, added `llms.txt`, and resolved the
+  Lighthouse accessibility findings (accessibility, SEO, and agentic browsing
+  now score 100 on desktop and mobile).
 
 ### Telegram And LLM
 
