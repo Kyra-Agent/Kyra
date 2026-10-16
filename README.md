@@ -137,8 +137,9 @@ Kyra is an independent product and does not imply affiliation with, sponsorship 
 
 ## Product Status
 
-> **Relaunch in progress (2026-10-16).** The hosted backend is being
-> reprovisioned on a fresh Supabase project and the previous KYRA contract has
+> **Relaunch in progress (2026-10-16).** The hosted backend is back online
+> with the relaunch migrations and redeployed Edge Functions; the public site
+> returns once Netlify team hosting is restored. The previous KYRA contract has
 > been retired. Native ETH transfers keep their protected lane; every KYRA
 > transfer and swap path stays locked until the new official contract is
 > published. See the [Robinhood Chain Relaunch Runbook](docs/robinhood-relaunch-runbook.md).

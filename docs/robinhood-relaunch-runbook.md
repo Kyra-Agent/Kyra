@@ -1,12 +1,37 @@
 # Robinhood Chain Relaunch Runbook
 
-Status: prepared on 2026-10-16. Production is offline and must be
-reprovisioned before Kyra can serve users again.
+Status: backend relaunched on 2026-10-16; frontend hosting is blocked on
+Netlify team billing.
+
+## Relaunch Record - 2026-10-16
+
+- The original Supabase project was restored by its owner and is
+  `ACTIVE_HEALTHY`. Its data, Auth users, and Edge Function secrets survived,
+  so no new project was created.
+- The four relaunch migrations (template catalog seed and verification, owner
+  read policy scope and verification) were applied with `supabase db push`;
+  both verification migrations passed.
+- All fifteen Edge Functions were redeployed from `main` with their JWT
+  settings unchanged.
+- Read-only production checks passed: the six-template catalog is public,
+  anonymous public agent profiles load again, private tables reject anonymous
+  reads, unauthenticated function calls return `401`, CORS preflight returns
+  `200`, and the Telegram webhook and chain status provider reject requests
+  without their secrets.
+- Netlify still serves `404`: the `kyra-agent` site is disabled because the
+  owning **Kyra-Agent** team subscription was cancelled after a failed payment.
+  The site remains linked to `Kyra-Agent/Kyra`, so it rebuilds from `main` once
+  the team is restored. Alternatively, deploy a new site under an active team
+  and move the `kyraagent.xyz` domain to it.
+
+The sections below remain the procedure for a full reprovision, if the hosted
+project is ever lost again.
 
 ## Why A Relaunch Is Required
 
-- The previous Supabase project no longer resolves. Its database, Auth users,
-  Edge Function secrets, and Telegram webhook targets are gone.
+- The previous Supabase project stopped resolving while it was paused. Its
+  database, Auth users, Edge Function secrets, and Telegram webhook targets
+  were unreachable until the owner restored it.
 - The Netlify site still owns the `kyraagent.xyz` domain but serves `404` for
   every route, including the last published deploy. The owning Netlify team must
   be reactivated or its billing restored.
