@@ -16,6 +16,8 @@ export type TelegramConnectStatus =
   | "secret_store_unavailable"
   | "duplicate_bot_active"
   | "webhook_registration_failed"
+  | "telegram_unavailable"
+  | "rate_limited"
   | "server_error"
   | "function_unavailable"
   | "function_not_configured";
@@ -66,6 +68,8 @@ function normalizeTelegramConnectStatus(status: string | undefined): TelegramCon
     case "secret_store_unavailable":
     case "duplicate_bot_active":
     case "webhook_registration_failed":
+    case "telegram_unavailable":
+    case "rate_limited":
     case "server_error":
       return status;
     default:
@@ -102,6 +106,10 @@ function getTelegramConnectMessage(status: TelegramConnectStatus) {
       return "This Telegram bot is already connected to another active agent.";
     case "webhook_registration_failed":
       return "Telegram webhook activation failed safely. No live command access was enabled.";
+    case "telegram_unavailable":
+      return "Telegram did not respond in time. Wait a moment and try again.";
+    case "rate_limited":
+      return "Telegram is rate limiting requests for this bot. Wait a minute and try again.";
     case "server_error":
     case "function_unavailable":
     default:

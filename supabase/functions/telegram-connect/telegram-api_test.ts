@@ -281,6 +281,47 @@ Deno.test("telegram getMe helper aborts timed out requests", async () => {
   assertEquals((error as HttpError).code, "telegram_unavailable");
 });
 
+Deno.test("telegram getMe helper retries once after a transport failure", async () => {
+  let calls = 0;
+  const bot = await validateTelegramBotTokenWithGetMe(testBotToken, {
+    fetch: async () => {
+      calls += 1;
+
+      if (calls === 1) {
+        throw new TypeError("connection reset");
+      }
+
+      return jsonResponse({
+        ok: true,
+        result: {
+          id: 123456789,
+          is_bot: true,
+          first_name: "Kyra Retry",
+          username: "kyra_retry_bot",
+        },
+      });
+    },
+  });
+
+  assertEquals(calls, 2);
+  assertEquals(bot.username, "kyra_retry_bot");
+});
+
+Deno.test("telegram getMe helper does not retry Telegram verdicts", async () => {
+  let calls = 0;
+  const error = await captureError(() =>
+    validateTelegramBotTokenWithGetMe(testBotToken, {
+      fetch: async () => {
+        calls += 1;
+        return jsonResponse({ ok: false, error_code: 401 }, 401);
+      },
+    })
+  );
+
+  assertEquals(calls, 1);
+  assertEquals((error as HttpError).code, "telegram_validation_failed");
+});
+
 Deno.test("telegram setWebhook helper builds sanitized registration request", async () => {
   let capturedUrl = "";
   let capturedMethod = "";

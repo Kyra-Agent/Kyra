@@ -43,7 +43,10 @@ export interface TelegramDeleteWebhookOptions {
 }
 
 const telegramApiBaseUrl = "https://api.telegram.org";
-const defaultGetMeTimeoutMs = 5000;
+// A cold Edge Function opens its first Telegram connection slowly, so getMe
+// gets a longer budget and one retry when the request never got a response.
+const defaultGetMeTimeoutMs = 8000;
+const getMeTransportAttempts = 2;
 const defaultSetWebhookTimeoutMs = 5000;
 const defaultDeleteWebhookTimeoutMs = 5000;
 const webhookSecretTokenPattern = /^[A-Za-z0-9_-]{32,256}$/;
@@ -249,23 +252,57 @@ function mapDeleteWebhookFailure(status: number): never {
   throwWebhookCleanupFailed();
 }
 
+class TelegramTransportFailure extends Error {}
+
+async function fetchTelegramGetMe(
+  fetchTelegram: TelegramFetch,
+  getMeUrl: string,
+  timeoutMs: number,
+) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetchTelegram(getMeUrl, {
+      method: "GET",
+      signal: controller.signal,
+    });
+  } catch {
+    // Network failures and timeouts carry no Telegram verdict on the token.
+    throw new TelegramTransportFailure();
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export async function validateTelegramBotTokenWithGetMe(
   botToken: string,
   options: TelegramGetMeOptions = {},
 ): Promise<TelegramBotValidationResult> {
   const fetchTelegram = options.fetch ?? fetch;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(
-    () => controller.abort(),
-    getTimeoutMs(options.timeoutMs),
-  );
+  const timeoutMs = getTimeoutMs(options.timeoutMs);
   const getMeUrl = `${telegramApiBaseUrl}/bot${botToken}/getMe`;
 
   try {
-    const response = await fetchTelegram(getMeUrl, {
-      method: "GET",
-      signal: controller.signal,
-    });
+    let response: Response | null = null;
+
+    for (let attempt = 1; attempt <= getMeTransportAttempts; attempt += 1) {
+      try {
+        response = await fetchTelegramGetMe(fetchTelegram, getMeUrl, timeoutMs);
+        break;
+      } catch (error) {
+        if (
+          !(error instanceof TelegramTransportFailure) ||
+          attempt === getMeTransportAttempts
+        ) {
+          throw error;
+        }
+      }
+    }
+
+    if (!response) {
+      throwTelegramUnavailable();
+    }
 
     if (!response.ok) {
       mapTelegramFailure(response.status);
@@ -298,13 +335,7 @@ export async function validateTelegramBotTokenWithGetMe(
       throw error;
     }
 
-    if (error instanceof Error && error.name === "AbortError") {
-      throwTelegramUnavailable();
-    }
-
     throwTelegramUnavailable();
-  } finally {
-    clearTimeout(timeoutId);
   }
 }
 
