@@ -942,7 +942,13 @@ textarea:focus-visible {
   gap: 1rem;
 }
 
+/* Cards are buttons, which center their content vertically by default; pin
+   content to the top so cards in the same row line up. */
 .template-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
   min-height: 248px;
   padding: 1.25rem;
 }
