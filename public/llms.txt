@@ -1,0 +1,20 @@
+# Kyra Agent
+
+> Kyra Agent is a Robinhood Chain AI agent platform. Users deploy account-scoped agents from templates, operate them through Telegram, keep private dashboard records, and publish share-safe agent profiles. Wallet authority always stays with the user: every supported onchain action requires explicit confirmation in the user's own connected wallet.
+
+## Product
+
+- [Home](https://kyraagent.xyz/): templates, the action layer, the security model, and FAQ
+- [Dashboard](https://kyraagent.xyz/dashboard): private, account-scoped workspace (sign-in required)
+- Public agent profiles live at `https://kyraagent.xyz/agents/<agent-slug>`
+
+## Safety Boundary
+
+- Kyra never asks for seed phrases or private keys and never takes custody of funds.
+- Telegram and public profiles are read-only; they cannot approve, sign, or submit transactions.
+- The official KYRA token contract has not been published yet. Trust only addresses announced on Kyra's official channels.
+
+## Links
+
+- [Source code](https://github.com/Kyra-Agent/Kyra)
+- [Kyra on X](https://x.com/Kyra_Agent)

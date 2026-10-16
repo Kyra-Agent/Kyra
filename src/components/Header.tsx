@@ -37,7 +37,7 @@ export function Header({
         className="logo-link logo-button"
         type="button"
         onClick={() => handleNavigation(onOpenHome)}
-        aria-label="Kyra Agent home"
+        aria-label="KYRA-AGENT home"
       >
         <BrandMark />
       </button>

@@ -48,7 +48,7 @@ export function OfficialTokenCard() {
             href={officialKyraToken.announcementUrl}
             target="_blank"
             rel="noreferrer"
-            aria-label="Follow official Kyra announcements on X"
+            aria-label="Updates: official Kyra announcements on X"
           >
             <ExternalLink size={16} />
             <span>Updates</span>
@@ -119,7 +119,7 @@ export function OfficialTokenCard() {
             target="_blank"
             rel="noreferrer"
             title="View official token contract on Blockscout"
-            aria-label="View official token contract on Blockscout"
+            aria-label="Explorer: view the official token contract on Blockscout"
           >
             <ExternalLink size={16} />
             <span>Explorer</span>
