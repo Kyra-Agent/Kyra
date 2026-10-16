@@ -18,11 +18,34 @@ Netlify team billing.
   reads, unauthenticated function calls return `401`, CORS preflight returns
   `200`, and the Telegram webhook and chain status provider reject requests
   without their secrets.
-- Netlify still serves `404`: the `kyra-agent` site is disabled because the
-  owning **Kyra-Agent** team subscription was cancelled after a failed payment.
-  The site remains linked to `Kyra-Agent/Kyra`, so it rebuilds from `main` once
-  the team is restored. Alternatively, deploy a new site under an active team
-  and move the `kyraagent.xyz` domain to it.
+- The original `kyra-agent` Netlify site is disabled because the owning
+  **Kyra-Agent** team subscription was cancelled after a failed payment; the
+  cancelled team is read-only and still holds `kyraagent.xyz`.
+- A replacement site, `kyraagent` (`https://kyraagent.netlify.app`), was created
+  in the active Free team and deployed from `main` with its frontend
+  environment variables. Visitor login protection was disabled for that site so
+  the product is public. All routes return `200` with the production security
+  headers.
+
+### Remaining: Move `kyraagent.xyz`
+
+The API cannot detach the domain from the read-only cancelled team, so this
+needs the Netlify dashboard:
+
+1. In the cancelled **Kyra-Agent** team, open the `kyra-agent` project and
+   remove `kyraagent.xyz` under Domain management (or delete that project).
+   If the dashboard blocks changes, ask Netlify support to release the domain.
+2. In the Free team project `kyraagent`, add `kyraagent.xyz` as the primary
+   domain. If Netlify asks for ownership verification, add the TXT record it
+   shows at Hostinger.
+3. At Hostinger, point `www` to `kyraagent.netlify.app` (it currently targets
+   the old `kyra-agent.netlify.app`). The apex `A` record `75.2.60.5` stays.
+4. Wait for the Let's Encrypt certificate, then confirm
+   `https://kyraagent.xyz/` returns `200`.
+
+Until the domain moves, protected transfer and swap calls from
+`kyraagent.netlify.app` fail closed because the Edge Function CORS allowlists
+only accept `kyraagent.xyz`.
 
 The sections below remain the procedure for a full reprovision, if the hosted
 project is ever lost again.
