@@ -25,7 +25,8 @@ Netlify team billing.
   in the active Free team and deployed from `main` with its frontend
   environment variables. Visitor login protection was disabled for that site so
   the product is public. All routes return `200` with the production security
-  headers.
+  headers. The latest production deploy is `72efc55` (Motion v2 interface
+  layer, which also ships the origin-aware signup redirect).
 
 ### Remaining: Move `kyraagent.xyz`
 
@@ -36,6 +37,11 @@ account (its dashboard is restricted for non-payment and its team pages return
 TXT record `verified-for-netlify.kyraagent.xyz`, which must stay in Hostinger
 DNS until the domain moves (it is valid for seven days). Once Support releases
 the domain, continue from step 2 below and then delete that TXT record.
+
+Re-checked later on 2026-10-16: not released yet. Attaching the domain to
+`kyraagent` still fails with `custom_domain must be unique` (held by the old
+site `9f030e51-…`), and `https://kyraagent.xyz` serves the disabled site's
+Netlify `404`. The TXT record is still published.
 
 The general procedure:
 
