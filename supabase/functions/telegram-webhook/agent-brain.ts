@@ -112,6 +112,7 @@ const supportedChatIntents = new Set<TelegramReadOnlyChatIntent>([
   "agent_profile",
   "policy",
   "help",
+  "wallet_status",
   "unsafe_execution",
   "general",
 ]);
@@ -152,6 +153,11 @@ const secretMaterialPatterns = [
   /\b(?:0x)?[A-Fa-f0-9]{64}\b/,
   /\bprivate\s+key\s*[:=]\s*(?!not\b|never\b|none\b|disabled\b|unavailable\b|hidden\b)[^\s]+/i,
   /\bseed\s+phrase\s*[:=]\s*(?!not\b|never\b|none\b|disabled\b|unavailable\b|hidden\b).+/i,
+];
+const promptSecretPatterns = [
+  /(?:0x)?[A-Fa-f0-9]{64}/,
+  /sk-(?:or-v1-)?[A-Za-z0-9_-]{20,}/,
+  /\b(?:private\s+key|kunci\s+privat|seed\s+phrase|frasa\s+seed|recovery\s+phrase|frasa\s+pemulihan|mnemonic)\b.*/i,
 ];
 const incompleteTrailingLinePattern =
   /(?:^|\n)\s*(?:[-*]|\d+[.)]|[A-Z]{1,3})\s*$/;
@@ -408,8 +414,13 @@ function sanitizeForPrompt(value: string) {
     .replace(/[<>`]/g, "")
     .trim();
 
-  for (const pattern of secretLikePatterns) {
-    sanitized = sanitized.replace(pattern, "[hidden]");
+  // Redact every occurrence (the shared patterns are non-global so .test()
+  // stays stateless) and any key or seed material before it reaches a model.
+  for (const pattern of [...secretLikePatterns, ...promptSecretPatterns]) {
+    sanitized = sanitized.replace(
+      new RegExp(pattern.source, `${pattern.flags.replace("g", "")}g`),
+      "[hidden]",
+    );
   }
 
   return sanitized;
@@ -484,6 +495,7 @@ function buildCommandResponseGuide(command: TelegramWebhookParsedCommandName) {
     return [
       "Answer the user's read-only request directly in the same language and writing system.",
       "If the intent is unsafe_execution, only refuse clearly and offer a read-only risk review or checklist; do not add a market brief, campaign plan, sample analysis, or extra generated content.",
+      "If the intent is wallet_status, say plainly that you cannot see live wallet balances, holdings, or history from Telegram, point the owner to the private Kyra dashboard to connect a wallet, and offer one concrete read-only next step. Never invent balances, holdings, prices, or transactions.",
       "For market_brief, campaign_plan, narrative_map, launch_copy, community_pulse, or risk_review, produce useful content immediately with concise labels and bullets.",
       "Use available agent, action, and module context, but frame outputs as planning guidance unless the user supplies data.",
       "Keep wallet, approval, Robinhood Chain actions, and onchain execution disabled.",

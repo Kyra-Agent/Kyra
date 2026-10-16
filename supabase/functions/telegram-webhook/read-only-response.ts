@@ -13,6 +13,12 @@ const helpText = [
   "Boundary: wallet and onchain execution are disabled.",
 ].join("\n");
 
+const walletStatusText = [
+  "Kyra cannot read live wallet balances or history from Telegram.",
+  "Open your private Kyra dashboard and connect your wallet to review it.",
+  "Here I can explain your agent's review scope or help plan a review.",
+].join("\n");
+
 const ownerLinkedText = [
   "Kyra: this chat is now linked as your agent's owner chat.",
   "Try /help or /status, or just ask in plain language.",
@@ -120,11 +126,16 @@ export type TelegramReadOnlyChatIntent =
   | "agent_profile"
   | "policy"
   | "help"
+  | "wallet_status"
   | "unsafe_execution"
   | "general";
 
 const unsafeExecutionPattern =
-  /\b(send|transfer|swap|approve|approval|allowance|permit|revoke|sign|execute|bridge|mint|burn|stake|unstake|claim|withdraw|deposit|buy|sell|delegate|wrap|unwrap|borrow|lend|liquidate|repay|kirim|tukar|setujui|persetujuan|izin|cabut|tandatangani|jalankan|jembatani|bakar|klaim|tarik|setor|beli|jual|delegasikan|bungkus|pinjam|bayar)\b|\b(wallet|dompet|private key|kunci privat|seed phrase|frasa seed|robinhood chain actions|aksi robinhood chain|onchain|kontrak|contract call|panggilan kontrak|calldata|transaction|transaksi|tx)\b/i;
+  /\b(send|transfer|swap|approve|approval|allowance|permit|revoke|sign|execute|bridge|mint|burn|stake|unstake|claim|withdraw|deposit|buy|sell|delegate|wrap|unwrap|borrow|lend|liquidate|repay|kirim|tukar|setujui|persetujuan|izin|cabut|tandatangani|jalankan|jembatani|bakar|klaim|tarik|setor|beli|jual|delegasikan|bungkus|pinjam|bayar)\b|\b(private key|kunci privat|seed phrase|frasa seed|robinhood chain actions|aksi robinhood chain|contract call|panggilan kontrak|calldata)\b/i;
+// Read-only wallet questions (balance, history, portfolio). Answered honestly
+// as "not visible from Telegram", never treated as an execution request.
+const walletStatusPattern =
+  /\b(wallet|dompet|balance|saldo|portfolio|portofolio|holdings?|aset|tx|transactions?|transaksi|history|riwayat|onchain)\b/i;
 
 export function classifyTelegramReadOnlyChatIntent(
   value: unknown,
@@ -137,6 +148,10 @@ export function classifyTelegramReadOnlyChatIntent(
 
   if (unsafeExecutionPattern.test(text)) {
     return "unsafe_execution";
+  }
+
+  if (walletStatusPattern.test(text)) {
+    return "wallet_status";
   }
 
   if (
@@ -218,6 +233,10 @@ function buildTelegramReadOnlyChatFallbackText(text: unknown) {
       "Wallet signing, approvals, and onchain execution are disabled.",
       "I can turn it into a read-only risk review or checklist.",
     ].join("\n");
+  }
+
+  if (intent === "wallet_status") {
+    return walletStatusText;
   }
 
   if (intent === "help") {

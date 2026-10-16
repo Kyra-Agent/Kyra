@@ -70,6 +70,7 @@ import {
 } from "./update-parser.ts";
 import { planTelegramClaimedReadOnlyResponse } from "./claim-aware-response.ts";
 import { reviewTelegramExecutionGate } from "./execution-gate.ts";
+import { logSafeEvent } from "../_shared/safe-log.ts";
 import {
   buildTelegramOwnerLinkReply,
   classifyTelegramReadOnlyChatIntent,
@@ -990,9 +991,14 @@ export async function handleTelegramWebhookRequest(
             command: parsedUpdate.command,
             text: agentBrainReply.text,
           };
-        } catch {
+        } catch (error) {
           // Agent-brain is optional. Preserve read-only delivery if the provider
-          // times out, rejects output, or returns a malformed response.
+          // times out, rejects output, or returns a malformed response. Log the
+          // reason code only, never the message or the model output.
+          logSafeEvent(
+            "telegram_agent_brain_fallback",
+            error instanceof HttpError ? error.code : "unexpected_error",
+          );
         }
       }
 

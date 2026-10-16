@@ -157,3 +157,42 @@ Deno.test("telegram execution draft replay key is scoped and validated", () => {
   assert(error instanceof HttpError, "Unsafe replay key part must throw.");
   assertEquals((error as HttpError).code, "invalid_update");
 });
+
+Deno.test("telegram execution gate lets read-only wallet questions through", () => {
+  for (
+    const text of [
+      "cek kondisi wallet gua dong",
+      "show my tx history",
+      "berapa saldo dompet saya?",
+      "what is in my portfolio on Robinhood Chain",
+      `explain tx 0x${"ab".repeat(32)}`,
+    ]
+  ) {
+    const decision = reviewTelegramExecutionGate({
+      text,
+      command: "chat",
+      authorizationRole: "owner",
+    });
+
+    assertEquals(decision.status, "read_only_allowed", text);
+  }
+});
+
+Deno.test("telegram execution gate refuses secrets even without action words", () => {
+  for (
+    const text of [
+      `my key is ${"ab".repeat(32)}`,
+      "here is my seed phrase: alpha beta gamma",
+      "ini frasa pemulihan saya",
+      "sk-or-v1-abcdefghijklmnopqrstuvwxyz0123456789",
+    ]
+  ) {
+    const decision = reviewTelegramExecutionGate({
+      text,
+      command: "chat",
+      authorizationRole: "owner",
+    });
+
+    assertEquals(decision.status, "blocked", text);
+  }
+});

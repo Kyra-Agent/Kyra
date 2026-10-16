@@ -430,3 +430,25 @@ Deno.test("telegram template context rejects malformed input without echoing raw
   assertEquals(error.message, "Telegram template context is invalid.");
   assert(!serialized.includes(rawTemplateId), "Error must not echo raw input.");
 });
+
+Deno.test("telegram template chat fallback answers wallet questions honestly", () => {
+  const context = buildTelegramTemplateContext(seedTemplates[0]);
+  const text = buildTelegramTemplateChatFallback(
+    context,
+    "wallet_status",
+    "cek kondisi wallet gua dong",
+  );
+
+  assert(
+    text.includes("cannot read live wallet balances"),
+    "Wallet fallback must not pretend to see live balances.",
+  );
+  assert(
+    text.includes("Kyra dashboard"),
+    "Wallet fallback must point the owner to the dashboard.",
+  );
+  assert(
+    !/cannot execute that/i.test(text),
+    "A read-only wallet question must not be answered as a refused execution.",
+  );
+});

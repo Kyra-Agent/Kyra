@@ -288,6 +288,16 @@ function buildTelegramTemplateChatFallbackLines(input: {
     ];
   }
 
+  if (input.intent === "wallet_status") {
+    return [
+      `${input.name} wallet check`,
+      "Telegram cannot read live wallet balances, holdings, or history.",
+      "Open your private Kyra dashboard and connect your wallet to review them.",
+      `Here I can help with: ${scope}.`,
+      boundary,
+    ];
+  }
+
   if (input.intent === "policy") {
     return [
       `${input.name} policy`,

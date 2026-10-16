@@ -316,3 +316,22 @@ Deno.test("telegram read-only response builder rejects unsupported commands safe
     "Unsupported command error must not echo command text.",
   );
 });
+
+Deno.test("telegram chat intent separates wallet questions from execution", () => {
+  assertEquals(
+    classifyTelegramReadOnlyChatIntent("cek kondisi wallet gua dong"),
+    "wallet_status",
+  );
+  assertEquals(
+    classifyTelegramReadOnlyChatIntent("show my tx history"),
+    "wallet_status",
+  );
+  assertEquals(
+    classifyTelegramReadOnlyChatIntent("swap 10 USDC ke ETH sekarang"),
+    "unsafe_execution",
+  );
+  assertEquals(
+    classifyTelegramReadOnlyChatIntent("kirim 5 USDC ke wallet teman"),
+    "unsafe_execution",
+  );
+});

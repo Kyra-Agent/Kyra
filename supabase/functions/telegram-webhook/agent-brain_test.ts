@@ -1551,3 +1551,21 @@ Deno.test("telegram agent brain sanitizes provider failures", async () => {
   assertEquals(error.message, "Kyra agent brain is unavailable.");
   assert(!serialized.includes(rawError), "Provider error must be hidden.");
 });
+
+Deno.test("telegram agent-brain prompt never carries keys or seed material", () => {
+  const privateKey = "ab".repeat(32);
+  const request = buildTelegramAgentBrainRequest({
+    command: "chat",
+    templateId: "operator",
+    agentName: "Kyra Operator",
+    userRequest:
+      `check ${privateKey} and 0x${privateKey} then sk-or-v1-${"x".repeat(24)} ` +
+      `seed phrase: alpha beta gamma delta`,
+    chatIntent: "general",
+  });
+  const serialized = JSON.stringify(request);
+
+  assert(!serialized.includes(privateKey), "Hex key material must be redacted.");
+  assert(!serialized.includes("sk-or-v1-"), "Provider keys must be redacted.");
+  assert(!serialized.includes("alpha beta gamma"), "Seed words must be redacted.");
+});

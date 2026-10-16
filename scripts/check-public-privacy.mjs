@@ -115,12 +115,24 @@ for (const path of publicSourceFiles) {
   assertNoRawSecretPatterns(path, read(path));
 }
 
+// _shared/safe-log.ts is the single reviewed logger: it only writes
+// snake_case event and code identifiers.
+const reviewedEdgeLoggerPath = "supabase/functions/_shared/safe-log.ts";
+const reviewedEdgeLogger = read(reviewedEdgeLoggerPath);
+assert(
+  reviewedEdgeLogger.includes(
+    "const safeIdentifierPattern = /^[a-z][a-z0-9_]{0,63}$/;",
+  ) && (reviewedEdgeLogger.match(/\bconsole\.\w+\(/g) ?? []).length === 1,
+  "The reviewed Edge Function logger must only write validated identifiers.",
+);
+
 for (const path of edgeFunctionRuntimeFiles) {
   const source = read(path);
 
   assertNoRawSecretPatterns(path, source);
   assert(
-    !/\bconsole\.(?:debug|error|info|log|trace|warn)\s*\(/.test(source),
+    path.replaceAll("\\", "/") === reviewedEdgeLoggerPath ||
+      !/\bconsole\.(?:debug|error|info|log|trace|warn)\s*\(/.test(source),
     `${path} must not log from runtime Edge Function code without a reviewed sanitizer.`,
   );
 }

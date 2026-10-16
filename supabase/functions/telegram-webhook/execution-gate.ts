@@ -48,8 +48,10 @@ export interface TelegramExecutionDraftReplayScope {
 const maxExecutionGateTextLength = 1000;
 const directExecutionPattern =
   /\b(execute|submit|broadcast|send\s+now|do\s+it|confirm\s+it|sign\s+now|approve\s+now|swap\s+now|transfer\s+now|jalankan|kirim\s+sekarang|lakukan\s+sekarang|konfirmasi|tandatangani\s+sekarang|setujui\s+sekarang|tukar\s+sekarang|transfer\s+sekarang)\b/i;
+// Action verbs only. Nouns such as "wallet", "tx", or "dompet" describe
+// read-only questions (balance, history, portfolio) and must reach the agent.
 const draftCandidatePattern =
-  /\b(swap|transfer|send|approve|approval|allowance|permit|revoke|sign|bridge|mint|burn|stake|unstake|claim|withdraw|deposit|buy|sell|delegate|wrap|unwrap|borrow|lend|liquidate|repay|wallet|robinhood\s+chain\s+actions?|onchain|contract\s+call|calldata|transaction|tx|tukar|kirim|setujui|persetujuan|izin|cabut|tandatangani|jembatani|bakar|klaim|tarik|setor|beli|jual|delegasikan|bungkus|pinjam|bayar|dompet|aksi\s+robinhood\s+chain|panggilan\s+kontrak|transaksi)\b/i;
+  /\b(swap|transfer|send|approve|approval|allowance|permit|revoke|sign|bridge|mint|burn|stake|unstake|claim|withdraw|deposit|buy|sell|delegate|wrap|unwrap|borrow|lend|liquidate|repay|contract\s+call|calldata|tukar|kirim|setujui|persetujuan|izin|cabut|tandatangani|jembatani|bakar|klaim|tarik|setor|beli|jual|delegasikan|bungkus|pinjam|bayar|panggilan\s+kontrak)\b/i;
 const swapPattern = /\b(swap|buy|sell|wrap|unwrap|tukar|beli|jual|bungkus)\b/i;
 const transferPattern =
   /\b(transfer|send|withdraw|deposit|bridge|kirim|tarik|setor|jembatani)\b/i;
@@ -59,8 +61,10 @@ const contractPattern =
   /\b(contract\s+call|calldata|mint|burn|stake|unstake|delegate|borrow|lend|liquidate|repay|panggilan\s+kontrak|bakar|delegasikan|pinjam|bayar)\b/i;
 const walletPattern =
   /\b(wallet|sign|transaction|tx|onchain|robinhood\s+chain\s+actions?|dompet|tandatangani|transaksi|aksi\s+robinhood\s+chain)\b/i;
+// Bare 64-hex strings are private keys; 0x-prefixed ones are usually
+// transaction hashes and stay allowed (the prompt redacts them anyway).
 const secretLikePattern =
-  /(?:\d{5,20}:[A-Za-z0-9_-]{20,128}|sk-or-v1-[A-Za-z0-9_-]+|sb_secret_[A-Za-z0-9_-]+|private\s+key|kunci\s+privat|seed\s+phrase|frasa\s+seed|mnemonic)/i;
+  /(?:\d{5,20}:[A-Za-z0-9_-]{20,128}|sk-or-v1-[A-Za-z0-9_-]+|sk-[A-Za-z0-9_-]{20,}|sb_secret_[A-Za-z0-9_-]+|(?<![0-9A-Fa-fx])[0-9A-Fa-f]{64}(?![0-9A-Fa-f])|private\s+key|kunci\s+privat|seed\s+phrase|frasa\s+seed|recovery\s+phrase|secret\s+recovery|frasa\s+pemulihan|mnemonic)/i;
 
 export function reviewTelegramExecutionGate(
   input: TelegramExecutionGateInput,
@@ -73,15 +77,17 @@ export function reviewTelegramExecutionGate(
     return readOnlyDecision();
   }
 
-  if (!draftCandidatePattern.test(text)) {
-    return readOnlyDecision();
-  }
-
+  // Secrets are refused before anything else so they never reach the agent
+  // brain or any third-party model provider.
   if (secretLikePattern.test(text)) {
     return blockedDecision(
       "Telegram cannot process secrets, wallet keys, or token material.",
       detectDraftKind(text),
     );
+  }
+
+  if (!draftCandidatePattern.test(text)) {
+    return readOnlyDecision();
   }
 
   if (role !== "owner" && role !== "admin") {
