@@ -29,8 +29,15 @@ Netlify team billing.
 
 ### Remaining: Move `kyraagent.xyz`
 
-The API cannot detach the domain from the read-only cancelled team, so this
-needs the Netlify dashboard:
+Status on 2026-10-16: the cancelled team cannot be opened from the owning
+account (its dashboard is restricted for non-payment and its team pages return
+"Page not found"), so the release was requested from Netlify Support with the
+"Release a domain from another account" form. Ownership was verified with the
+TXT record `verified-for-netlify.kyraagent.xyz`, which must stay in Hostinger
+DNS until the domain moves (it is valid for seven days). Once Support releases
+the domain, continue from step 2 below and then delete that TXT record.
+
+The general procedure:
 
 1. In the cancelled **Kyra-Agent** team, open the `kyra-agent` project and
    remove `kyraagent.xyz` under Domain management (or delete that project).
