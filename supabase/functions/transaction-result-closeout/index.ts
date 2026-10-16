@@ -12,15 +12,9 @@ import {
   readReceiptRpcConfig,
   verifyTransactionReceipt,
 } from "./receipt-verifier.ts";
+import { allowedBrowserOrigins } from "../_shared/allowed-origins.ts";
 
-const allowedOrigins = new Set([
-  "https://kyraagent.xyz",
-  "https://www.kyraagent.xyz",
-  "http://localhost:4173",
-  "http://localhost:5173",
-  "http://127.0.0.1:4173",
-  "http://127.0.0.1:5173",
-]);
+const allowedOrigins = allowedBrowserOrigins;
 
 function corsHeaders(request: Request) {
   const origin = request.headers.get("Origin") ?? "";

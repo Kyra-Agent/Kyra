@@ -415,8 +415,20 @@ export function consumeAuthCallbackSession() {
   return authCallbackResultPromise;
 }
 
+// Confirmation links return to the origin the account was created on. Supabase
+// only honours redirect URLs on the project allow list and otherwise falls
+// back to the configured Site URL.
+function getSignupRedirectPath() {
+  if (typeof window === "undefined") {
+    return "signup";
+  }
+
+  const redirectTo = `${window.location.origin}/dashboard`;
+  return `signup?redirect_to=${encodeURIComponent(redirectTo)}`;
+}
+
 export async function signUpWithPassword(email: string, password: string) {
-  return requestAuth("signup", {
+  return requestAuth(getSignupRedirectPath(), {
     email,
     password,
     data: {

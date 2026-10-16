@@ -12,17 +12,9 @@ import {
   type ChainActionRateLimitRpcClient,
   createChainActionRateLimitChecker,
 } from "../chain-action-prepare/rate-limit.ts";
+import { allowedBrowserOrigins } from "../_shared/allowed-origins.ts";
 
-const allowedOrigins = new Set([
-  "https://kyraagent.xyz",
-  "https://www.kyraagent.xyz",
-  "http://localhost:4173",
-  "http://localhost:4176",
-  "http://localhost:5173",
-  "http://127.0.0.1:4173",
-  "http://127.0.0.1:4176",
-  "http://127.0.0.1:5173",
-]);
+const allowedOrigins = allowedBrowserOrigins;
 const maxBodyBytes = 4096;
 const quoteColumns =
   "id,workspace_id,agent_id,request_id,chain_key,chain_id,taker_address,sell_token_address,sell_token_symbol,buy_token_address,sell_amount_atomic,allowance_target,transaction_to,transaction_data,transaction_value_wei,status,policy_version,quote_issued_at,expires_at";

@@ -10,15 +10,9 @@ import {
   type ChainActionRateLimitRpcClient,
   createChainActionRateLimitChecker,
 } from "../chain-action-prepare/rate-limit.ts";
+import { allowedBrowserOrigins } from "../_shared/allowed-origins.ts";
 
-const allowedOrigins = new Set([
-  "https://kyraagent.xyz",
-  "https://www.kyraagent.xyz",
-  "http://localhost:4173",
-  "http://localhost:5173",
-  "http://127.0.0.1:4173",
-  "http://127.0.0.1:5173",
-]);
+const allowedOrigins = allowedBrowserOrigins;
 const maxBodyBytes = 4096;
 const intentLifetimeMs = 10 * 60 * 1000;
 

@@ -12,17 +12,9 @@ import {
   readReceiptRpcConfig,
   verifySwapExecutionReceipt,
 } from "./receipt-verifier.ts";
+import { allowedBrowserOrigins } from "../_shared/allowed-origins.ts";
 
-const allowedOrigins = new Set([
-  "https://kyraagent.xyz",
-  "https://www.kyraagent.xyz",
-  "http://localhost:4173",
-  "http://localhost:4176",
-  "http://localhost:5173",
-  "http://127.0.0.1:4173",
-  "http://127.0.0.1:4176",
-  "http://127.0.0.1:5173",
-]);
+const allowedOrigins = allowedBrowserOrigins;
 const maxBodyBytes = 4096;
 const intentColumns =
   "id,owner_user_id,workspace_id,agent_id,quote_review_id,request_id,step,chain_key,chain_id,sender_address,transaction_to,transaction_data,transaction_value_wei,token_address,spender_address,allowance_amount_atomic,status,policy_version,expires_at";
