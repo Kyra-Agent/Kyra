@@ -27,7 +27,8 @@ import { FAQSection } from "./components/FAQSection";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { HeroConsole } from "./components/HeroConsole";
-import { HeroScene } from "./components/HeroScene";
+import { HeroPortrait } from "./components/HeroPortrait";
+import { RevealHeading } from "./components/RevealHeading";
 import { HowItWorks } from "./components/HowItWorks";
 import { MotionRuntime } from "./components/MotionRuntime";
 import { OfficialTokenCard } from "./components/OfficialTokenCard";
@@ -824,7 +825,6 @@ function App() {
           <>
             <main>
               <section className="hero-section">
-                <HeroScene />
                 <div className="hero-copy">
                   <span className="demo-badge hero-badge">
                     <Sparkles size={15} />
@@ -892,6 +892,19 @@ function App() {
                   </div>
                 </div>
 
+                <HeroPortrait />
+              </section>
+
+              <StatsStrip templateCount={agentTemplates.length} />
+              <section className="section console-section" id="console">
+                <div className="section-heading">
+                  <p className="eyebrow">Command center</p>
+                  <RevealHeading text="Watch Kyra turn a request into a review." />
+                  <p>
+                    Pick a scenario and follow every module step. Anything that would touch
+                    funds stops at an explicit approval you control.
+                  </p>
+                </div>
                 <HeroConsole
                   selectedTemplate={selectedTemplate}
                   scenarios={demoScenarios}
@@ -900,8 +913,6 @@ function App() {
                   onRequestApproval={requestApproval}
                 />
               </section>
-
-              <StatsStrip templateCount={agentTemplates.length} />
               <HowItWorks />
               <TelegramSimulator template={selectedTemplate} />
               <TemplatePicker

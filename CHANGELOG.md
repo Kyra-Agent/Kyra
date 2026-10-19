@@ -20,12 +20,13 @@ All notable public releases of Kyra Agent are documented here.
 
 ### Interface
 
-- Added interface v4 with three.js: a glowing Kyra core with orbit rings and a
-  shader-driven particle galaxy behind a glass hero console (pointer parallax,
-  scroll camera, click energy wave), and a 3D module orbit in Kyra Core that
-  links both ways with the module roster. Scenes load lazily after first
-  paint, pause off screen, render a still frame under reduced motion, and fall
-  back to the 2D/SVG versions without WebGL, with data saving, or on GPU
+- Added interface v4 around Kyra's identity: the hero portrait is now a
+  three.js halftone dot field (pointer loupe, head turn, scan line, click
+  ripple, scatter on scroll) on a dark print plate with crop marks; Kyra Core
+  uses dot-matrix module meters linked both ways with the roster; the console
+  moved into its own Command center section. The scene loads after first
+  paint, pauses off screen, renders a still frame under reduced motion, and
+  falls back to a static print without WebGL, with Save-Data, or on GPU
   context loss. Added per-template accent colors, spinning gradient borders,
   an idle CTA sheen, and colored section fields.
 - Redesigned the social preview card around the Kyra portrait and the

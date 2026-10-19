@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Cpu, Radar, ShieldCheck } from "lucide-react";
 import { coreModules } from "../data/modules";
-import { ModuleOrbit3D } from "./ModuleOrbit3D";
+import { ModuleSignal } from "./ModuleSignal";
 import { RevealHeading } from "./RevealHeading";
 
 const statusIcon = {
@@ -25,7 +25,7 @@ export function CoreModules() {
       </div>
 
       <div className="module-layout">
-        <ModuleOrbit3D activeId={activeModuleId} onActivate={setActiveModuleId} />
+        <ModuleSignal activeId={activeModuleId} onActivate={setActiveModuleId} />
 
         <div className="module-board">
           {coreModules.map((module) => {

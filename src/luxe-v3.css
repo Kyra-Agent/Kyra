@@ -1,24 +1,12 @@
 /* Kyra interface v3 ------------------------------------------------------------
-   Hero constellation, the "Talk to Kyra" Telegram simulator, and the
+   The "Talk to Kyra" Telegram simulator and the
    interactive approval gate. Static fallbacks under reduced motion. */
 
-/* Hero constellation ------------------------------------------------------------ */
+/* Hero ------------------------------------------------------------------------- */
 
 .hero-section {
   position: relative;
   isolation: isolate;
-}
-
-.hero-constellation {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  -webkit-mask-image: radial-gradient(120% 90% at 60% 45%, #000 45%, transparent 100%);
-  mask-image: radial-gradient(120% 90% at 60% 45%, #000 45%, transparent 100%);
-  animation: constellationIn 1.6s var(--motion-ease) 200ms both;
 }
 
 /* Telegram simulator ------------------------------------------------------------ */
@@ -600,11 +588,6 @@
 
 /* Keyframes -------------------------------------------------------------------- */
 
-@keyframes constellationIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 @keyframes simBubbleIn {
   from { opacity: 0; transform: translateY(8px) scale(0.92); }
   to { opacity: 1; transform: none; }
@@ -640,7 +623,6 @@
 /* Reduced motion --------------------------------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-constellation,
   .sim-bubble,
   .sim-online-dot,
   .sim-typing span,

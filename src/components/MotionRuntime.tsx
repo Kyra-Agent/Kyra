@@ -11,7 +11,7 @@ const revealSelector = [
   ".section-heading > *",
   ".stat-card",
   ".story-step",
-  ".module-orbit",
+  ".module-signal",
   ".sim-phone",
   ".sim-trace",
   ".gate-demo",
