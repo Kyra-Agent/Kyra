@@ -20,6 +20,9 @@ All notable public releases of Kyra Agent are documented here.
 
 ### Interface
 
+- Redesigned the social preview card around the Kyra portrait and the
+  "Your wallet decides" promise, served as a 174 KB JPEG (WhatsApp-safe) with a
+  versioned URL so link caches refresh.
 - Added interface v3: an interactive "Talk to Kyra" Telegram simulator with a
   live decision trace that mirrors the real bot's safety rules, a
   pointer-reactive constellation behind the hero, and an interactive approval
