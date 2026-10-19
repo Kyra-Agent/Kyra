@@ -9,7 +9,7 @@ interface ModuleOrbitProps {
 const center = 200;
 const nodeRadius = 150;
 const coreRadius = 54;
-const moduleTones: Record<string, string> = {
+export const moduleTones: Record<string, string> = {
   nira: "#7aa8ff",
   vexa: "#5fd4e8",
   astra: "#b29bff",

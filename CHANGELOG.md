@@ -20,6 +20,14 @@ All notable public releases of Kyra Agent are documented here.
 
 ### Interface
 
+- Added interface v4 with three.js: a glowing Kyra core with orbit rings and a
+  shader-driven particle galaxy behind a glass hero console (pointer parallax,
+  scroll camera, click energy wave), and a 3D module orbit in Kyra Core that
+  links both ways with the module roster. Scenes load lazily after first
+  paint, pause off screen, render a still frame under reduced motion, and fall
+  back to the 2D/SVG versions without WebGL, with data saving, or on GPU
+  context loss. Added per-template accent colors, spinning gradient borders,
+  an idle CTA sheen, and colored section fields.
 - Redesigned the social preview card around the Kyra portrait and the
   "Your wallet decides" promise, served as a 174 KB JPEG (WhatsApp-safe) with a
   versioned URL so link caches refresh.

@@ -62,6 +62,7 @@ export function HeroConsole({
 
   return (
     <section className="hero-shell" aria-label="Kyra agent console">
+      <span className="hero-shell-ring" aria-hidden="true" />
       <div className="hero-console-topbar">
         <div className="window-controls" aria-hidden="true">
           <span />

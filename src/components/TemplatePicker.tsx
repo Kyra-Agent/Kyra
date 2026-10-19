@@ -1,7 +1,18 @@
+import type { CSSProperties } from "react";
 import { CheckCircle2, Clock3, LockKeyhole, Sparkles } from "lucide-react";
 import type { AgentTemplate } from "../types/agent";
 import type { SupabaseConnectionStatus } from "../services/supabaseKyraRepository";
 import { RevealHeading } from "./RevealHeading";
+
+// Each template carries its own accent through the card (top bar, glow, tint).
+const templateAccents: Record<string, string> = {
+  operator: "#7aa8ff",
+  scout: "#5fd4e8",
+  steward: "#8ef0c4",
+  executor: "#f6c978",
+  strategist: "#b29bff",
+  custom: "#ff9ad5",
+};
 
 interface TemplatePickerProps {
   templates: AgentTemplate[];
@@ -78,6 +89,7 @@ export function TemplatePicker({
               className={`template-card ${active ? "is-active" : ""}`}
               key={template.id}
               onClick={() => onSelect(template.id)}
+              style={{ "--tpl": templateAccents[template.id] ?? "#7aa8ff" } as CSSProperties}
               type="button"
             >
               <span className="template-card-top">

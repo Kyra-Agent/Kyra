@@ -11,6 +11,7 @@ import "./route-loading.css";
 import "./luxe.css";
 import "./luxe-motion.css";
 import "./luxe-v3.css";
+import "./luxe-v4.css";
 
 void consumeAuthCallbackSession();
 

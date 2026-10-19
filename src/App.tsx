@@ -27,7 +27,7 @@ import { FAQSection } from "./components/FAQSection";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { HeroConsole } from "./components/HeroConsole";
-import { HeroConstellation } from "./components/HeroConstellation";
+import { HeroScene } from "./components/HeroScene";
 import { HowItWorks } from "./components/HowItWorks";
 import { MotionRuntime } from "./components/MotionRuntime";
 import { OfficialTokenCard } from "./components/OfficialTokenCard";
@@ -824,7 +824,7 @@ function App() {
           <>
             <main>
               <section className="hero-section">
-                <HeroConstellation />
+                <HeroScene />
                 <div className="hero-copy">
                   <span className="demo-badge hero-badge">
                     <Sparkles size={15} />
