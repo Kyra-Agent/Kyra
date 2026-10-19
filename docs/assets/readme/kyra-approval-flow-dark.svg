@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="300" viewBox="0 0 1280 300" role="img" aria-label="Kyra approval path: Telegram, Kyra gate, dashboard review, wallet signature, then Robinhood Chain. Execution from chat is blocked.">
+<style>
+  .packet { animation: travel 8s cubic-bezier(0.65, 0, 0.35, 1) infinite; }
+  @keyframes travel {
+    0%, 6% { transform: translateX(0); opacity: 0; }
+    9% { opacity: 1; }
+    18%, 26% { transform: translateX(270px); }
+    38%, 46% { transform: translateX(510px); }
+    58%, 66% { transform: translateX(750px); }
+    80%, 92% { transform: translateX(1020px); opacity: 1; }
+    100% { transform: translateX(1020px); opacity: 0; }
+  }
+  .fill { animation: fill 8s cubic-bezier(0.65, 0, 0.35, 1) infinite; }
+  @keyframes fill {
+    0%, 6% { width: 0; } 18%, 26% { width: 270px; } 38%, 46% { width: 510px; }
+    58%, 66% { width: 750px; } 80%, 92% { width: 1020px; } 100% { width: 1020px; opacity: 0; }
+  }
+  .s1 .ring { animation: hit 8s infinite; animation-delay: 1.45s; }
+  .s2 .ring { animation: hit 8s infinite; animation-delay: 3.05s; }
+  .s3 .ring { animation: hit 8s infinite; animation-delay: 4.65s; }
+  .s4 .ring { animation: hit 8s infinite; animation-delay: 6.4s; }
+  @keyframes hit { 0% { stroke: #8ef0c4; stroke-width: 3; } 12%, 100% { stroke: #1c2638; stroke-width: 1.5; } }
+  .blocked { animation: blocked 4s ease-in-out infinite; }
+  @keyframes blocked { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+  .shot { animation: shot 4s ease-in infinite; }
+  @keyframes shot { 0% { transform: translate(0, 0); opacity: 0; } 10% { opacity: 1; } 55% { transform: translate(0, 32px); opacity: 1; } 70%, 100% { transform: translate(0, 32px); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+<rect x="0.5" y="0.5" width="1279" height="299" rx="24" fill="#04060a" stroke="#1c2638"/>
+<rect x="130" y="119" width="1020" height="2" rx="1" fill="#1c2638"/>
+<rect class="fill" x="130" y="119" width="1020" height="2" rx="1" fill="#8ef0c4"/>
+<g class="packet"><circle cx="130" cy="120" r="7" fill="#8ef0c4"/><circle cx="130" cy="120" r="14" fill="#8ef0c4" opacity="0.25"/></g>
+<g class="stage s0" transform="translate(130 120)" style="color:#7aa8ff">
+  <circle class="ring" r="34" fill="#0e1522" stroke="#1c2638" stroke-width="1.5"/>
+  <path d="M-11 -8h22a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-12l-7 5v-5h-3a3 3 0 0 1-3-3v-9a3 3 0 0 1 3-3z" fill="none" stroke="currentColor" stroke-width="2"/>
+</g>
+<text x="130" y="186" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#f3f7ff">Telegram</text>
+<text x="130" y="210" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#93a3b9">you ask</text>
+<g class="stage s1" transform="translate(400 120)" style="color:#7aa8ff">
+  <circle class="ring" r="34" fill="#0e1522" stroke="#1c2638" stroke-width="1.5"/>
+  <path d="M0 -13l11 4v7c0 7-5 11-11 14c-6-3-11-7-11-14v-7z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M-5 0l4 4l7-8" fill="none" stroke="currentColor" stroke-width="2"/>
+</g>
+<text x="400" y="186" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#f3f7ff">Kyra gate</text>
+<text x="400" y="210" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#93a3b9">plans, read-only</text>
+<g class="stage s2" transform="translate(640 120)" style="color:#7aa8ff">
+  <circle class="ring" r="34" fill="#0e1522" stroke="#1c2638" stroke-width="1.5"/>
+  <rect x="-12" y="-10" width="24" height="20" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M-12 -3h24M-4 -3v13" stroke="currentColor" stroke-width="2"/>
+</g>
+<text x="640" y="186" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#f3f7ff">Dashboard</text>
+<text x="640" y="210" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#93a3b9">you review</text>
+<g class="stage s3" transform="translate(880 120)" style="color:#7aa8ff">
+  <circle class="ring" r="34" fill="#0e1522" stroke="#1c2638" stroke-width="1.5"/>
+  <rect x="-12" y="-9" width="24" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="0" r="2.5" fill="currentColor"/>
+</g>
+<text x="880" y="186" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#f3f7ff">Wallet</text>
+<text x="880" y="210" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#93a3b9">you sign</text>
+<g class="stage s4" transform="translate(1150 120)" style="color:#7aa8ff">
+  <circle class="ring" r="34" fill="#0e1522" stroke="#1c2638" stroke-width="1.5"/>
+  <rect x="-13" y="-5" width="12" height="10" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="1" y="-5" width="12" height="10" rx="5" fill="none" stroke="currentColor" stroke-width="2"/>
+</g>
+<text x="1150" y="186" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#f3f7ff">Robinhood Chain</text>
+<text x="1150" y="210" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#93a3b9">only then</text>
+<path d="M130 222 V258 H262" fill="none" stroke="#ff8a95" stroke-width="1.5" stroke-dasharray="5 6" opacity="0.7"/>
+<circle class="shot" cx="130" cy="226" r="5" fill="#ff8a95"/>
+<g class="blocked" transform="translate(290 258)">
+  <rect x="-18" y="-17" width="368" height="34" rx="17" fill="#0e1522" stroke="#ff8a95"/>
+  <path d="M-6 -6l12 12M6 -6l-12 12" stroke="#ff8a95" stroke-width="2.4" stroke-linecap="round"/>
+  <text x="18" y="5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#f3f7ff">Execute from chat: blocked before any model sees it</text>
+</g>
+</svg>

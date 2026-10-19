@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400" role="img" aria-label="Kyra Agent: AI agents on Robinhood Chain. Telegram-native, approval-first.">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e9eff9"/><stop offset="1" stop-color="#f6f8fc"/></linearGradient>
+  <linearGradient id="title" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2f6ee6"/><stop offset="0.5" stop-color="#0f8a57"/><stop offset="1" stop-color="#6b4fd8"/></linearGradient>
+  <filter id="blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="60"/></filter>
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#d5deec" stroke-width="1" opacity="0.55"/></pattern>
+  <clipPath id="frame"><rect width="1280" height="400" rx="28"/></clipPath>
+  <clipPath id="type"><rect class="typer" x="72" y="268" width="560" height="40"/></clipPath>
+</defs>
+<style>
+  .aurora { opacity: 0.26; animation: drift 14s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+  .a2 { animation-duration: 18s; animation-delay: -6s; }
+  .a3 { animation-duration: 22s; animation-delay: -11s; }
+  @keyframes drift { from { transform: translate(-30px, -10px) scale(1); } to { transform: translate(40px, 20px) scale(1.15); } }
+  .link { stroke: #2f6ee6; stroke-width: 1.2; opacity: 0.18; animation: glow 5.6s ease-in-out infinite; }
+  @keyframes glow { 0%, 100% { opacity: 0.14; } 50% { opacity: 0.55; } }
+  .node { animation: pulse 4.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes pulse { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.6); } }
+  .rise { animation: rise 1.1s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .d1 { animation-delay: 0.15s; } .d2 { animation-delay: 0.35s; }
+  @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+  .typer { animation: type 7s steps(46, end) 0.8s infinite backwards; }
+  @keyframes type { 0% { width: 0; } 45%, 85% { width: 560px; } 100% { width: 0; } }
+  .caret { animation: caret 7s steps(46, end) 0.8s infinite, blink 0.9s steps(1) infinite; }
+  @keyframes caret { 0% { transform: translateX(0); } 45%, 85% { transform: translateX(560px); } 100% { transform: translateX(0); } }
+  @keyframes blink { 50% { opacity: 0; } }
+  .badge { animation: badge 3s ease-in-out infinite; }
+  @keyframes badge { 0%, 100% { opacity: 0.75; } 50% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+<g clip-path="url(#frame)">
+  <rect width="1280" height="400" fill="url(#bg)"/>
+  <rect width="1280" height="400" fill="url(#grid)"/>
+  <circle class="aurora" cx="260" cy="40" r="210" fill="#2f6ee6" filter="url(#blur)"/>
+  <circle class="aurora a2" cx="1040" cy="90" r="230" fill="#0f8a57" filter="url(#blur)"/>
+  <circle class="aurora a3" cx="760" cy="420" r="220" fill="#6b4fd8" filter="url(#blur)"/>
+  <g><line class="link" style="animation-delay:0.00s" x1="760" y1="90" x2="840" y2="150"/>
+<line class="link" style="animation-delay:0.35s" x1="840" y1="150" x2="930" y2="80"/>
+<line class="link" style="animation-delay:0.70s" x1="930" y1="80" x2="1100" y2="110"/>
+<line class="link" style="animation-delay:1.05s" x1="840" y1="150" x2="1010" y2="170"/>
+<line class="link" style="animation-delay:1.40s" x1="1010" y1="170" x2="1100" y2="110"/>
+<line class="link" style="animation-delay:1.75s" x1="1100" y1="110" x2="1180" y2="200"/>
+<line class="link" style="animation-delay:2.10s" x1="1010" y1="170" x2="880" y2="250"/>
+<line class="link" style="animation-delay:2.45s" x1="880" y1="250" x2="980" y2="300"/>
+<line class="link" style="animation-delay:2.80s" x1="980" y1="300" x2="1080" y2="260"/>
+<line class="link" style="animation-delay:3.15s" x1="1080" y1="260" x2="1180" y2="200"/>
+<line class="link" style="animation-delay:3.50s" x1="1080" y1="260" x2="1160" y2="320"/>
+<line class="link" style="animation-delay:3.85s" x1="880" y1="250" x2="800" y2="320"/>
+<line class="link" style="animation-delay:4.20s" x1="800" y1="320" x2="700" y2="200"/>
+<line class="link" style="animation-delay:4.55s" x1="700" y1="200" x2="760" y2="90"/>
+<line class="link" style="animation-delay:4.90s" x1="700" y1="200" x2="880" y2="250"/>
+<line class="link" style="animation-delay:5.25s" x1="980" y1="300" x2="800" y2="320"/></g>
+  <g><circle class="node" style="animation-delay:0.00s" cx="760" cy="90" r="5" fill="#2f6ee6"/>
+<circle class="node" style="animation-delay:0.40s" cx="840" cy="150" r="4" fill="#0f8a57"/>
+<circle class="node" style="animation-delay:0.80s" cx="930" cy="80" r="4" fill="#6b4fd8"/>
+<circle class="node" style="animation-delay:1.20s" cx="1010" cy="170" r="5" fill="#2f6ee6"/>
+<circle class="node" style="animation-delay:1.60s" cx="1100" cy="110" r="4" fill="#0f8a57"/>
+<circle class="node" style="animation-delay:2.00s" cx="1180" cy="200" r="4" fill="#6b4fd8"/>
+<circle class="node" style="animation-delay:2.40s" cx="880" cy="250" r="5" fill="#2f6ee6"/>
+<circle class="node" style="animation-delay:2.80s" cx="980" cy="300" r="4" fill="#0f8a57"/>
+<circle class="node" style="animation-delay:3.20s" cx="1080" cy="260" r="4" fill="#6b4fd8"/>
+<circle class="node" style="animation-delay:3.60s" cx="1160" cy="320" r="5" fill="#2f6ee6"/>
+<circle class="node" style="animation-delay:4.00s" cx="800" cy="320" r="4" fill="#0f8a57"/>
+<circle class="node" style="animation-delay:4.40s" cx="700" cy="200" r="4" fill="#6b4fd8"/></g>
+</g>
+<rect x="0.5" y="0.5" width="1279" height="399" rx="28" fill="none" stroke="#d5deec"/>
+<g class="rise">
+  <rect class="badge" x="72" y="66" width="284" height="34" rx="17" fill="#ffffff" stroke="#d5deec"/>
+  <circle cx="94" cy="83" r="5" fill="#0f8a57"/>
+  <text x="108" y="88" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#4f5f74" letter-spacing="1.5">ROBINHOOD CHAIN AGENTS</text>
+</g>
+<text class="rise d1" x="70" y="186" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="78" font-weight="800" letter-spacing="-2.5" fill="url(#title)">Kyra Agent</text>
+<text class="rise d2" x="72" y="232" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="24" fill="#4f5f74">Telegram-native AI agents. Your wallet makes every call.</text>
+<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="20">
+  <text x="72" y="296" fill="#7b889a">&gt;</text>
+  <g clip-path="url(#type)"><text x="96" y="296" fill="#0a1222">telegram <tspan fill="#2f6ee6">&#8250;</tspan> kyra plans <tspan fill="#2f6ee6">&#8250;</tspan> your wallet decides</text></g>
+  <rect class="caret" x="98" y="279" width="10" height="22" fill="#2f6ee6"/>
+</g>
+</svg>

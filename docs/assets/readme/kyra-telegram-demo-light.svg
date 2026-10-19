@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="548" viewBox="0 0 760 548" role="img" aria-label="Kyra Telegram demo: /help lists commands, a wallet question is answered read-only, and a swap request is refused.">
+<style>
+  .msg { animation: show 10s cubic-bezier(0.22, 1, 0.36, 1) infinite both; }
+  @keyframes show { 0% { opacity: 0; transform: translateY(10px); } 6%, 88% { opacity: 1; transform: none; } 96%, 100% { opacity: 0; } }
+  .dot { animation: online 2.4s ease-out infinite; }
+  @keyframes online { 0% { r: 5; opacity: 1; } 100% { r: 11; opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .msg, .dot { animation: none !important; } }
+</style>
+<rect x="0.5" y="0.5" width="759" height="547" rx="26" fill="#f6f8fc" stroke="#d5deec"/>
+<rect x="1" y="1" width="758" height="72" rx="26" fill="#ffffff"/>
+<rect x="1" y="48" width="758" height="25" fill="#ffffff"/>
+<line x1="1" y1="73" x2="759" y2="73" stroke="#d5deec"/>
+<circle cx="54" cy="37" r="20" fill="#2f6ee6"/>
+<text x="54" y="43" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" font-weight="800" fill="#ffffff">K</text>
+<text x="88" y="33" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#0a1222">Kyra Operator</text>
+<circle class="dot" cx="94" cy="50" r="5" fill="#0f8a57" opacity="0.6"/>
+<circle cx="94" cy="50" r="4" fill="#0f8a57"/>
+<text x="106" y="55" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#4f5f74">bot · read-only</text>
+<g class="msg" style="animation-delay:0.40s">
+  <rect x="639" y="104" width="73" height="40" rx="14" fill="#2f6ee6"/>
+  <text x="651" y="130" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" fill="#ffffff">/help</text>
+</g>
+<g class="msg" style="animation-delay:1.65s">
+  <rect x="48" y="158" width="470" height="68" rx="14" fill="#f1f5fb" stroke="#d5deec"/>
+  <text x="66" y="188" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#0a1222">Commands: /help /status /agent /actions /modules /policy</text><text x="66" y="210" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#4f5f74">Ask in plain English for a brief, review, or plan.</text>
+</g>
+<g class="msg" style="animation-delay:2.90s">
+  <rect x="537" y="240" width="175" height="40" rx="14" fill="#2f6ee6"/>
+  <text x="549" y="266" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" fill="#ffffff">Check my wallet</text>
+</g>
+<g class="msg" style="animation-delay:4.15s">
+  <rect x="48" y="294" width="470" height="68" rx="14" fill="#f1f5fb" stroke="#d5deec"/>
+  <text x="66" y="324" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#0a1222">I can't read live balances from Telegram.</text><text x="66" y="346" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#4f5f74">Connect your wallet in the private dashboard to review it.</text>
+</g>
+<g class="msg" style="animation-delay:5.40s">
+  <rect x="455" y="376" width="257" height="40" rx="14" fill="#2f6ee6"/>
+  <text x="467" y="402" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" fill="#ffffff">Swap 10 USDC to ETH now</text>
+</g>
+<g class="msg" style="animation-delay:6.65s">
+  <rect x="48" y="430" width="470" height="68" rx="14" fill="#f1f5fb" stroke="#c4475a"/>
+  <text x="66" y="460" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#0a1222">Kyra cannot execute that from Telegram.</text><text x="66" y="482" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#4f5f74">Review it in the dashboard; only your wallet can sign.</text>
+</g>
+</svg>

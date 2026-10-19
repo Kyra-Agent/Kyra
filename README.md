@@ -1,198 +1,146 @@
 <p align="center">
-  <img src="public/brand/kyra.jpg" alt="Kyra Agent" width="96" />
-</p>
-
-<h1 align="center">Kyra Agent</h1>
-
-<p align="center">
-  Robinhood Chain AI agent platform for Telegram-native workflows,
-  private agent workspaces, and approval-first onchain actions.
-</p>
-
-<p align="center">
-  <a href="https://kyraagent.xyz">Website</a>
-  &middot;
-  <a href="https://x.com/Kyra_Agent">X</a>
-  &middot;
-  <a href="https://github.com/Kyra-Agent/Kyra">GitHub</a>
+  <a href="https://kyraagent.xyz">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/kyra-hero-dark.svg" />
+      <img alt="Kyra Agent: Telegram-native AI agents on Robinhood Chain. Your wallet makes every call." src="docs/assets/readme/kyra-hero-light.svg" width="100%" />
+    </picture>
+  </a>
 </p>
 
 <p align="center">
-  <img alt="Release" src="https://img.shields.io/badge/Release-v1.0.0-111827?style=for-the-badge" />
-  <img alt="Robinhood Chain" src="https://img.shields.io/badge/Robinhood%20Chain-EVM-16A34A?style=for-the-badge" />
-  <img alt="Security" src="https://img.shields.io/badge/Security-Approval%20First-2563EB?style=for-the-badge" />
+  <a href="https://kyraagent.xyz"><img alt="Live" src="https://img.shields.io/badge/live-kyraagent.xyz-7aa8ff?style=for-the-badge" /></a>
+  <a href="https://kyraagent.xyz/try"><img alt="Try the agent" src="https://img.shields.io/badge/try%20it-in%20your%20browser-8ef0c4?style=for-the-badge" /></a>
+  <a href="https://github.com/Kyra-Agent/Kyra/actions/workflows/ci.yml"><img alt="Kyra CI" src="https://github.com/Kyra-Agent/Kyra/actions/workflows/ci.yml/badge.svg" /></a>
 </p>
 
-![Kyra Agent product preview](public/og-card.png)
+<p align="center">
+  <a href="https://kyraagent.xyz">Website</a> &middot;
+  <a href="https://kyraagent.xyz/try">Try it</a> &middot;
+  <a href="https://x.com/Kyra_Agent">X</a> &middot;
+  <a href="CHANGELOG.md">Changelog</a> &middot;
+  <a href="docs/README.md">Docs</a>
+</p>
 
-## Product Snapshot
+---
 
-Kyra Agent lets users deploy account-scoped AI agents that operate through Telegram, maintain private dashboard records, and publish shareable agent profiles. Its onchain lane targets Robinhood Chain while wallet authority remains with the user.
+**Kyra Agent** lets anyone deploy an AI agent that lives in Telegram, keeps its
+records in a private dashboard, and prepares Robinhood Chain actions that only
+the owner's wallet can sign. The agent explains, checks, and plans. It never
+holds keys and never moves funds on its own.
 
-Agents can understand intent, produce planning and risk context, and prepare bounded action reviews. Telegram stays read-only for wallet operations. Signing and submission require the connected user wallet, explicit approval, policy checks, and a private dashboard flow.
+## How it works
 
-## Product Surface
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/kyra-approval-flow-dark.svg" />
+  <img alt="Telegram, Kyra gate, dashboard review, wallet signature, Robinhood Chain. Execution from chat is blocked." src="docs/assets/readme/kyra-approval-flow-light.svg" width="100%" />
+</picture>
 
-| Surface | What it provides |
+| Step | What happens |
 | --- | --- |
-| Agent deployment | Template-based agent creation with account-scoped backend persistence |
-| Dashboard | Private workspace for agents, Telegram state, wallet policy, and action readiness |
-| Public profiles | Shareable agent identity, capabilities, commands, and safety policy |
-| Telegram | Live read-only commands and bounded natural-language planning |
-| LLM layer | Backend-only enrichment for eligible read-only replies |
-| Robinhood Chain wallet | User-controlled EVM wallet connection and approval boundary |
-| Execution path | Controlled review flow with policy checks and sanitized result handling |
+| **1. Deploy** | Pick a template, name the agent, publish its profile. Records stay in your private workspace (up to 3 agents). |
+| **2. Connect Telegram** | Paste a BotFather token during deploy or later from the dashboard. It is stored backend-only and never returned to the browser. |
+| **3. Talk to it** | Open the one-time link, press Start, and chat. Replies are read-only and always in English. |
+| **4. Approve in your wallet** | Onchain actions become reviews in the dashboard. Nothing is sent until you sign in your wallet. |
 
-## What Kyra Can Do
+## Talk to your agent
 
-- Deploy agent profiles from focused templates and module stacks.
-- Persist signed-in agent records through the backend.
-- Publish private dashboard and public profile views.
-- Reply in Telegram with read-only commands and planning chat.
-- Convert risky wallet or transaction requests into review drafts.
-- Bind prepared actions to Robinhood Chain and the selected deployed agent.
-- Require explicit user and wallet approval before an onchain action can proceed.
-- Preserve sanitized support, audit, and release evidence.
-
-## Telegram Commands
-
-Connected Telegram agents support a read-only command surface:
+<table>
+  <tr>
+    <td width="52%" valign="top">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/kyra-telegram-demo-dark.svg" />
+        <img alt="Telegram demo: /help lists commands, a wallet question is answered read-only, and a swap request is refused." src="docs/assets/readme/kyra-telegram-demo-light.svg" width="100%" />
+      </picture>
+    </td>
+    <td valign="top">
 
 | Command | Purpose |
 | --- | --- |
-| `/help` | Show available commands and examples |
-| `/status` | Report Telegram session and execution boundary |
-| `/agent` | Summarize the deployed agent role and focus |
-| `/actions` | Show available read-only and approval-required actions |
-| `/modules` | Show the deployed template module stack |
-| `/policy` | Explain the wallet and onchain safety boundary |
+| `/start` | Link your private chat, or show help |
+| `/help` | Commands and examples |
+| `/status` | Session and execution boundary |
+| `/agent` | The deployed role and focus |
+| `/actions` | Read-only vs. approval-required actions |
+| `/modules` | The template's module stack |
+| `/policy` | The wallet and onchain safety rules |
 
-Every natural-language reply is bound to the deployed agent's persisted
-template, role, actions, and module stack. The agent keeps that identity across
-supported languages. Users may compare templates, but a deployed agent cannot
-adopt another template's identity or capabilities. Foreign-template output is
-rejected, repaired once through the backend provider, and replaced with a
-template-safe response only if the provider still fails validation.
+Plain-text questions get a reply from the agent brain, scoped to the deployed
+template. Wallet questions are answered honestly (Telegram cannot see live
+balances), and any request to swap, send, approve, or sign is refused with a
+pointer to the dashboard. Try the same rules live at
+[kyraagent.xyz/try](https://kyraagent.xyz/try).
 
-Execution-like requests are rejected before any LLM call. The LLM can enrich
-eligible read-only planning, but it cannot authorize, approve, sign, or submit
-an onchain action.
+</td>
+  </tr>
+</table>
 
-Natural prompts can produce campaign plans, market briefs, narrative maps, launch copy, community pulse summaries, and risk reviews. Swap, transfer, approval, contract, wallet, and transaction requests from Telegram are refused and converted into safe review output.
+## Templates and modules
 
-## Agent Templates
-
-| Template | Role |
+| Template | Built for |
 | --- | --- |
-| Operator | Personal wallet readiness and action review agent |
-| Scout | Recon and launch monitor |
-| Steward | Project and community agent |
-| Executor | Rule-based action readiness agent |
-| Strategist | Market and campaign intelligence agent |
-| Custom | User-defined workflow and safety limits |
+| Operator | Personal wallet readiness and action reviews |
+| Scout | Launch monitoring and recon |
+| Steward | Projects and communities |
+| Executor | Rule-based action readiness |
+| Strategist | Market and campaign intelligence |
+| Custom | Your own workflow and limits |
 
-Templates are the user-facing package. Kyra modules are the internal capability layer behind them.
+Behind every template runs the same five-module core:
+**NIRA-01** lead orchestration · **VEXA-02** recon · **ASTRA-03** research ·
+**NOVA-04** data · **NYX-05** security guard.
 
-| Module | Capability |
+## Safety model
+
+> Kyra plans. Your wallet decides.
+
+- **No custody.** No seed phrases, no private keys, no hidden signing.
+- **Telegram is read-only.** It cannot sign, approve, or submit anything.
+- **Secrets are refused first.** Keys, tokens, and seed phrases pasted into chat
+  are blocked before any model or service sees them.
+- **Owner-only chat.** Only the linked owner chat receives replies.
+- **Fail closed.** Account, wallet, chain, agent, and approval drift stops the flow.
+- **Private by default.** Bot tokens, sessions, and wallet internals never reach
+  public profiles or the browser.
+
+## Robinhood Chain
+
+Users connect a compatible EVM wallet in their private dashboard, review each
+prepared action, and stay the final signer. The live transaction lane covers
+owner-approved native ETH transfers with a `0.005 ETH` per-action cap and a
+`0.02 ETH` daily cap per workspace, plus exact receipt verification.
+
+The previous KYRA token contract is retired: every KYRA transfer and swap path
+stays locked until a new official contract is announced on Kyra's channels.
+Protected swaps (T2) are built and verified but remain default-off. See the
+[Transaction Expansion Roadmap](docs/transaction-expansion-roadmap.md).
+
+Kyra is an independent product and does not imply affiliation with,
+sponsorship by, or endorsement from Robinhood.
+
+## Status
+
+**Relaunched in October 2026** and live at [kyraagent.xyz](https://kyraagent.xyz):
+fresh backend, all 15 Edge Functions redeployed, end-to-end Telegram verified,
+and a new interactive interface. Details in the
+[Robinhood Chain Relaunch Runbook](docs/robinhood-relaunch-runbook.md) and the
+[Changelog](CHANGELOG.md).
+
+## Stack
+
+| Layer | Technology |
 | --- | --- |
-| NIRA-01 | Lead orchestration |
-| VEXA-02 | Recon and monitoring |
-| ASTRA-03 | Research and reasoning |
-| NOVA-04 | Data and context |
-| NYX-05 | Security and risk guard |
+| Frontend | React 18, Vite, TypeScript, wagmi + viem |
+| Backend | Supabase Postgres with row-level security, 15 Deno Edge Functions |
+| Agent brain | Backend-only LLM via OpenRouter, validated before delivery |
+| Hosting | Netlify with a strict Content Security Policy |
 
-## Approval-First Execution
+## Documentation
 
-Kyra follows one rule: the agent can prepare, but the user wallet decides.
-
-In this documentation, **owner** means the signed-in user who owns a private workspace and its agents. It is not a separate privileged Kyra account; platform-admin recovery controls remain separate and internal.
-
-| Available surface | Protected boundary |
-| --- | --- |
-| Telegram read-only commands | Telegram-triggered wallet execution |
-| LLM-assisted planning replies | Hidden transaction submission |
-| Dashboard and public profiles | Seed phrase or private-key collection |
-| Wallet connection readiness | Autonomous fund movement |
-| Action review drafts | Contract calls without explicit approval |
-| Sanitized result recording | Public exposure of wallet internals or tokens |
-
-Current safety guarantees:
-
-- No seed phrase collection.
-- No private key custody.
-- No hidden transaction execution.
-- No Telegram-triggered signing.
-- No public exposure of Telegram bot tokens.
-- No raw session tokens, provider payloads, or wallet internals in public views.
-- Account, wallet, chain, agent, action, and approval drift fails closed.
-- Approval, risk review, receipt verification, rollback readiness, and privacy checks remain part of the execution path.
-
-## Robinhood Chain Boundary
-
-Robinhood Chain is Kyra's primary onchain target. Users connect a compatible EVM wallet in their private workspace, review the prepared action, and remain the final signing authority. Provider infrastructure supplies chain access but never replaces user consent or wallet authority.
-
-The current public release supports agent deployment, private workspaces, Telegram read-only interaction, Robinhood Chain wallet connectivity, and approval-first action review. Transaction submission is restricted to authenticated, selected-agent, explicitly approved wallet flows; public profiles and Telegram cannot submit.
-
-Kyra is an independent product and does not imply affiliation with, sponsorship by, or endorsement from Robinhood.
-
-## Product Status
-
-> **Relaunch in progress (2026-10-16).** The hosted backend is back online
-> with the relaunch migrations and redeployed Edge Functions; the public site
-> returns once Netlify team hosting is restored. The previous KYRA contract has
-> been retired. Native ETH transfers keep their protected lane; every KYRA
-> transfer and swap path stays locked until the new official contract is
-> published. See the [Robinhood Chain Relaunch Runbook](docs/robinhood-relaunch-runbook.md).
-
-Kyra's product foundation, backend persistence, privacy boundaries, agent deployment, Telegram and LLM layer, wallet policy, Robinhood Chain execution workflow, and mainnet release lane are implemented and verified. The production transaction lane supports owner-approved native ETH and official KYRA transfers on Robinhood Chain mainnet. Per-action caps are `0.005 ETH` or `10,000 KYRA`; per-workspace UTC-day caps are `0.02 ETH` or `50,000 KYRA`. Every transfer uses immutable backend intent, exact receipt verification, and private backend closeout.
-
-Transaction access remains deliberately narrower than the rest of the product. It is available only from an authenticated private workspace with selected-agent binding, a matching Robinhood Chain wallet, explicit user approval, deterministic policy and NYX-05 review, a short-lived one-time window, exact receipt verification, emergency disable, and privacy-safe evidence. Telegram and public profiles cannot sign or submit. Swaps, token approvals, unsupported assets, self-transfers, amounts above policy caps, and arbitrary calldata remain blocked.
-
-The current production hardening is live: immutable backend transaction intents, RPC-verified receipts, retry-safe Telegram delivery, session-scoped browser authentication, fresh-database bootstrap coverage, dependency scanning, and CI are deployed and verified. These controls strengthen the existing owner-controlled release lane without widening Telegram, public-profile, autonomous, token-approval, arbitrary-calldata, or hidden-signing access.
-
-## Transaction Expansion
-
-Kyra's transaction expansion is organized into four grouped phases. T1 is
-production-active on Robinhood Chain: authenticated users can prepare protected
-native ETH or official KYRA transfers from the private dashboard, subject to
-fixed per-action and daily limits, deterministic policy checks, and explicit
-confirmation in the connected wallet. Later phases add allowlisted swaps with
-exact token approvals, security and operations hardening, then an audited
-mainnet canary and staged public release. The complete T2 protected-swap foundation is implemented and verified locally, including exact allowance preparation, backend calldata verification, explicit wallet review, receipt closeout, and allowance cleanup. Its schema and JWT-protected backend functions were deployed on 2026-08-02. Repeated read-only provider observations, exact backend allowlists, the deployed quote service, and the default-off verification suite passed on 2026-08-03. T2 remains default-off and unreleased until a real signed-in private workspace records an accepted owner-scoped backend quote and the remaining fail-closed, canary, and release gates pass; T3-T4 remain planned.
-Telegram, public profiles, autonomous execution, arbitrary calldata, hidden
-signing, and private-key custody remain outside the product boundary.
-
-See the [Transaction Expansion Roadmap](docs/transaction-expansion-roadmap.md)
-for scope, release gates, and the remaining work before T2-T4 can be released.
-Use the [Protected Swap Qualification Runbook](docs/protected-swap-qualification-runbook.md)
-for the exact provider, fail-closed, canary, rollback, and release procedure.
-
-Detailed engineering evidence is tracked in:
-
+- [Engineering documentation index](docs/README.md)
 - [Robinhood Chain Relaunch Runbook](docs/robinhood-relaunch-runbook.md)
-- [v1.0.0 Release Notes](docs/release-v1.0.0.md)
-- [Changelog](CHANGELOG.md)
-- [`docs/product-phase-roadmap.md`](docs/product-phase-roadmap.md)
 - [Transaction Expansion Roadmap](docs/transaction-expansion-roadmap.md)
 - [Protected Swap Qualification Runbook](docs/protected-swap-qualification-runbook.md)
-- [`docs/robinhood-chain-migration-blueprint.md`](docs/robinhood-chain-migration-blueprint.md)
-- [`docs/robinhood-mainnet-cutover-runbook.md`](docs/robinhood-mainnet-cutover-runbook.md)
 - [Product Readiness Snapshot](docs/product-readiness-snapshot.md)
-- [Engineering documentation index](docs/README.md)
+- [v1.0.0 Release Notes](docs/release-v1.0.0.md)
 
-## Product Principles
-
-- User wallet authority first.
-- Telegram-native agent UX.
-- Backend-only handling for sensitive integrations.
-- Read-only by default; explicit approval before execution.
-- No custody, no seed phrases, no hidden signing.
-- Clear public copy, sanitized evidence, and explicit release controls.
-
-## Links
-
-| Destination | URL |
-| --- | --- |
-| Website | https://kyraagent.xyz |
-| X | https://x.com/Kyra_Agent |
-| Repository | https://github.com/Kyra-Agent/Kyra |
+<p align="center"><sub>Built for Robinhood Chain &middot; <a href="https://kyraagent.xyz">kyraagent.xyz</a> &middot; <a href="https://x.com/Kyra_Agent">@Kyra_Agent</a></sub></p>
