@@ -1,0 +1,661 @@
+/* Kyra interface v3 ------------------------------------------------------------
+   Hero constellation, the "Talk to Kyra" Telegram simulator, and the
+   interactive approval gate. Static fallbacks under reduced motion. */
+
+/* Hero constellation ------------------------------------------------------------ */
+
+.hero-section {
+  position: relative;
+  isolation: isolate;
+}
+
+.hero-constellation {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(120% 90% at 60% 45%, #000 45%, transparent 100%);
+  mask-image: radial-gradient(120% 90% at 60% 45%, #000 45%, transparent 100%);
+  animation: constellationIn 1.6s var(--motion-ease) 200ms both;
+}
+
+/* Telegram simulator ------------------------------------------------------------ */
+
+.simulator-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+  align-items: stretch;
+}
+
+.sim-phone {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  max-width: 520px;
+  width: 100%;
+  justify-self: center;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background:
+    radial-gradient(120% 70% at 0% 0%, color-mix(in srgb, var(--blue) 12%, transparent), transparent 55%),
+    var(--surface-gradient);
+  box-shadow: var(--premium-shadow);
+  overflow: hidden;
+}
+
+.sim-phone::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(140deg, color-mix(in srgb, var(--blue) 55%, transparent), transparent 40%, color-mix(in srgb, var(--violet) 40%, transparent));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.sim-phone-header {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel-strong) 80%, transparent);
+}
+
+.sim-phone-header strong {
+  display: block;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.sim-phone-header small {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.sim-avatar {
+  display: grid;
+  place-items: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), var(--violet));
+  color: #fff;
+}
+
+.sim-online-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 60%, transparent);
+  animation: simOnline 2.4s ease-out infinite;
+}
+
+.sim-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  height: clamp(300px, 46vh, 400px);
+  padding: 1rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.sim-bubble {
+  max-width: 86%;
+  margin: 0;
+  padding: 0.6rem 0.85rem;
+  border-radius: 16px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  animation: simBubbleIn 360ms var(--motion-spring) both;
+}
+
+.sim-bubble-user {
+  align-self: flex-end;
+  border-bottom-right-radius: 5px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--blue) 85%, #fff 0%), color-mix(in srgb, var(--blue-strong) 90%, var(--violet)));
+  color: #fff;
+  transform-origin: bottom right;
+}
+
+.sim-bubble-bot {
+  align-self: flex-start;
+  border: 1px solid var(--line);
+  border-bottom-left-radius: 5px;
+  background: var(--panel-strong);
+  color: var(--text);
+  transform-origin: bottom left;
+}
+
+.sim-bubble.is-streaming::after {
+  content: "";
+  display: inline-block;
+  width: 0.45ch;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: var(--blue);
+  animation: simCaret 900ms steps(1) infinite;
+}
+
+.sim-typing {
+  display: inline-flex;
+  gap: 0.3rem;
+  padding: 0.75rem 0.9rem;
+}
+
+.sim-typing span {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: var(--muted);
+  animation: simDot 900ms ease-in-out infinite;
+}
+
+.sim-typing span:nth-child(2) { animation-delay: 150ms; }
+.sim-typing span:nth-child(3) { animation-delay: 300ms; }
+
+.sim-suggestions {
+  display: flex;
+  gap: 0.45rem;
+  padding: 0.6rem 1rem;
+  overflow-x: auto;
+  border-top: 1px solid var(--line);
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 4%, #000 92%, transparent);
+}
+
+.sim-suggestions::-webkit-scrollbar {
+  display: none;
+}
+
+.sim-suggestions button {
+  flex: 0 0 auto;
+  padding: 0.42rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--blue) 7%, transparent);
+  color: var(--text);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition:
+    border-color 220ms var(--motion-ease),
+    background-color 220ms var(--motion-ease),
+    transform 260ms var(--motion-spring),
+    opacity 200ms var(--motion-ease);
+}
+
+.sim-suggestions button:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  background: color-mix(in srgb, var(--blue) 16%, transparent);
+  transform: translateY(-2px);
+}
+
+.sim-suggestions button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.sim-suggestions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.sim-input {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.6rem 0.8rem 0.85rem;
+}
+
+.sim-input input {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-strong);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.sim-input input:focus-visible {
+  border-color: var(--line-strong);
+  outline: 2px solid color-mix(in srgb, var(--blue) 35%, transparent);
+  outline-offset: 1px;
+}
+
+.sim-input button {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), var(--blue-strong));
+  color: #fff;
+  cursor: pointer;
+  transition: transform 260ms var(--motion-spring), opacity 200ms var(--motion-ease);
+}
+
+.sim-input button:hover:not(:disabled) {
+  transform: rotate(-12deg) scale(1.06);
+}
+
+.sim-input button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.sim-trace {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.3rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--surface-gradient);
+  box-shadow: var(--surface-highlight);
+}
+
+.sim-trace-kicker {
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.sim-trace ol {
+  position: relative;
+  display: grid;
+  gap: 1.1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sim-trace ol::before {
+  content: "";
+  position: absolute;
+  top: 0.9rem;
+  bottom: 0.9rem;
+  left: 1rem;
+  width: 1px;
+  background: var(--line);
+}
+
+.sim-trace li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: 0.8rem;
+  align-items: start;
+  opacity: 0.5;
+  transition: opacity 420ms var(--motion-ease);
+}
+
+.sim-trace li > svg {
+  box-sizing: content-box;
+  z-index: 1;
+  padding: 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--panel-strong);
+  color: var(--muted);
+  transition:
+    color 360ms var(--motion-ease),
+    border-color 360ms var(--motion-ease),
+    box-shadow 480ms var(--motion-ease),
+    transform 420ms var(--motion-spring);
+}
+
+.sim-trace li strong {
+  display: block;
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
+.sim-trace li small {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.sim-trace li.is-done {
+  opacity: 1;
+}
+
+.sim-trace li.is-done > svg {
+  border-color: var(--line-strong);
+  color: var(--blue);
+  transform: scale(1.06);
+}
+
+.sim-trace li.is-read_only > svg {
+  border-color: color-mix(in srgb, var(--green) 55%, transparent);
+  color: var(--green);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--green) 14%, transparent);
+}
+
+.sim-trace li.is-wallet > svg,
+.sim-trace li.is-dashboard > svg {
+  border-color: color-mix(in srgb, var(--amber) 55%, transparent);
+  color: var(--amber);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--amber) 14%, transparent);
+}
+
+.sim-trace li.is-secret > svg {
+  border-color: color-mix(in srgb, var(--red) 55%, transparent);
+  color: var(--red);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--red) 14%, transparent);
+  animation: gateShake 420ms var(--motion-ease);
+}
+
+.sim-trace-note {
+  margin: auto 0 0;
+  color: var(--faint);
+  font-size: 0.76rem;
+}
+
+/* Approval gate demo ----------------------------------------------------------- */
+
+.security-section .gate-demo {
+  grid-column: 1 / -1;
+}
+
+.gate-demo {
+  display: grid;
+  gap: 1.1rem;
+  padding: clamp(1rem, 2.5vw, 1.6rem);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(80% 120% at 50% 0%, color-mix(in srgb, var(--blue) 9%, transparent), transparent 60%),
+    var(--surface-gradient);
+  box-shadow: var(--surface-highlight);
+}
+
+.gate-demo-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.gate-demo-controls button {
+  padding: 0.5rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 220ms var(--motion-ease),
+    background-color 220ms var(--motion-ease),
+    transform 260ms var(--motion-spring);
+}
+
+.gate-demo-controls button:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-2px);
+}
+
+.gate-demo-controls button.is-active {
+  border-color: var(--line-strong);
+  background: color-mix(in srgb, var(--blue) 16%, transparent);
+}
+
+.gate-track {
+  --gate-color: var(--blue);
+  position: relative;
+  padding: 0.4rem 0 0;
+}
+
+.gate-track.tone-ok { --gate-color: var(--green); }
+.gate-track.tone-gated { --gate-color: var(--amber); }
+.gate-track.tone-blocked { --gate-color: var(--red); }
+
+.gate-line {
+  position: absolute;
+  top: calc(0.4rem + 1.3rem);
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--line);
+}
+
+.gate-line-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--gate-progress, 0) * 100%);
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--gate-color) 40%, transparent), var(--gate-color));
+  transition: width 700ms linear, background 300ms var(--motion-ease);
+}
+
+.gate-packet {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--gate-progress, 0) * 100%);
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  background: var(--gate-color);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--gate-color) 22%, transparent), 0 0 18px var(--gate-color);
+  transform: translate(-50%, -50%);
+  transition: left 700ms linear, background 300ms var(--motion-ease);
+}
+
+.gate-track.is-finished .gate-packet {
+  animation: gatePacketPulse 1.4s ease-out infinite;
+}
+
+.gate-stages {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gate-stage {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  transition: opacity 360ms var(--motion-ease);
+}
+
+.gate-stage-icon {
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--panel-strong);
+  color: var(--muted);
+  transition:
+    color 360ms var(--motion-ease),
+    border-color 360ms var(--motion-ease),
+    box-shadow 480ms var(--motion-ease),
+    transform 420ms var(--motion-spring);
+}
+
+.gate-stage small {
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.3;
+}
+
+.gate-stage.is-reached .gate-stage-icon,
+.gate-stage.is-stop .gate-stage-icon {
+  border-color: var(--gate-color);
+  color: var(--gate-color);
+  transform: scale(1.08);
+}
+
+.gate-stage.is-stop .gate-stage-icon {
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--gate-color) 18%, transparent);
+}
+
+.gate-track.tone-blocked .gate-stage.is-stop .gate-stage-icon {
+  animation: gateShake 420ms var(--motion-ease);
+}
+
+.gate-stage.is-reached small,
+.gate-stage.is-stop small {
+  color: var(--text);
+}
+
+.gate-stage.is-skipped {
+  opacity: 0.38;
+}
+
+.gate-stage.is-skipped .gate-stage-icon {
+  border-style: dashed;
+}
+
+.gate-demo-status {
+  min-height: 1.5em;
+  margin: 0;
+  color: var(--text);
+  font-size: 0.92rem;
+  text-align: center;
+}
+
+/* Header nav ---------------------------------------------------------------------- */
+
+/* Eight primary links fit the capped header width with slightly tighter pills. */
+.site-nav {
+  flex-shrink: 0;
+}
+
+.site-nav button {
+  padding-inline: 0.5rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+/* Responsive ------------------------------------------------------------------- */
+
+/* Between the compact breakpoint (520px) and ~600px the full header row was
+   wider than the viewport; the theme switch stays reachable in the menu. */
+@media (max-width: 640px) {
+  .header-actions .theme-toggle {
+    display: none;
+  }
+}
+
+@media (max-width: 960px) {
+  .simulator-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sim-phone {
+    max-width: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .sim-phone {
+    border-radius: 22px;
+  }
+
+  .sim-body {
+    height: 340px;
+  }
+
+  .gate-stage-icon {
+    width: 2.2rem;
+    height: 2.2rem;
+  }
+
+  .gate-line {
+    top: calc(0.4rem + 1.1rem);
+  }
+
+  .gate-stage small {
+    font-size: 0.68rem;
+  }
+}
+
+/* Keyframes -------------------------------------------------------------------- */
+
+@keyframes constellationIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes simBubbleIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.92); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes simCaret {
+  50% { opacity: 0; }
+}
+
+@keyframes simDot {
+  0%, 100% { opacity: 0.35; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-3px); }
+}
+
+@keyframes simOnline {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 55%, transparent); }
+  70%, 100% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--green) 0%, transparent); }
+}
+
+@keyframes gatePacketPulse {
+  0% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--gate-color) 30%, transparent), 0 0 18px var(--gate-color); }
+  70%, 100% { box-shadow: 0 0 0 14px color-mix(in srgb, var(--gate-color) 0%, transparent), 0 0 18px var(--gate-color); }
+}
+
+@keyframes gateShake {
+  0%, 100% { translate: 0 0; }
+  20% { translate: -4px 0; }
+  40% { translate: 4px 0; }
+  60% { translate: -3px 0; }
+  80% { translate: 2px 0; }
+}
+
+/* Reduced motion --------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-constellation,
+  .sim-bubble,
+  .sim-online-dot,
+  .sim-typing span,
+  .sim-bubble.is-streaming::after,
+  .sim-trace li.is-secret > svg,
+  .gate-track.is-finished .gate-packet,
+  .gate-track.tone-blocked .gate-stage.is-stop .gate-stage-icon {
+    animation: none !important;
+  }
+
+  .gate-line-fill,
+  .gate-packet,
+  .gate-stage-icon,
+  .sim-trace li,
+  .sim-trace li > svg {
+    transition: none !important;
+  }
+}

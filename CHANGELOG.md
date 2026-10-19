@@ -20,6 +20,12 @@ All notable public releases of Kyra Agent are documented here.
 
 ### Interface
 
+- Added interface v3: an interactive "Talk to Kyra" Telegram simulator with a
+  live decision trace that mirrors the real bot's safety rules, a
+  pointer-reactive constellation behind the hero, and an interactive approval
+  gate that shows where read-only questions, swaps, and pasted secrets stop.
+  Fixed header overflow between 521px and 600px and fitted eight desktop
+  nav links at 1241px.
 - Added Motion v2: a scroll-driven "How Kyra works" story with a sticky
   preview, an animated stats strip, a live module orbit linked to the Kyra
   Core roster, word-by-word section headings, pointer tilt on cards, magnetic

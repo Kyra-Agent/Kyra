@@ -27,11 +27,13 @@ import { FAQSection } from "./components/FAQSection";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { HeroConsole } from "./components/HeroConsole";
+import { HeroConstellation } from "./components/HeroConstellation";
 import { HowItWorks } from "./components/HowItWorks";
 import { MotionRuntime } from "./components/MotionRuntime";
 import { OfficialTokenCard } from "./components/OfficialTokenCard";
 import { SecuritySection } from "./components/SecuritySection";
 import { StatsStrip } from "./components/StatsStrip";
+import { TelegramSimulator } from "./components/TelegramSimulator";
 import { TemplatePicker } from "./components/TemplatePicker";
 import { WalletApprovalModal } from "./components/WalletApprovalModal";
 import { appConfig } from "./config/appConfig";
@@ -79,6 +81,7 @@ const fallbackAgentTemplates = kyraDataService.listTemplates();
 const demoScenarios = kyraDataService.listScenarios();
 const homeSectionIds = [
   "how-it-works",
+  "try",
   "templates",
   "deploy",
   "actions",
@@ -821,6 +824,7 @@ function App() {
           <>
             <main>
               <section className="hero-section">
+                <HeroConstellation />
                 <div className="hero-copy">
                   <span className="demo-badge hero-badge">
                     <Sparkles size={15} />
@@ -899,6 +903,7 @@ function App() {
 
               <StatsStrip templateCount={agentTemplates.length} />
               <HowItWorks />
+              <TelegramSimulator template={selectedTemplate} />
               <TemplatePicker
                 templates={agentTemplates}
                 selectedId={selectedId}

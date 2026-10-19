@@ -46,6 +46,9 @@ export function Header({
         <button type="button" onClick={() => onOpenSection("how-it-works")}>
           How it works
         </button>
+        <button type="button" onClick={() => onOpenSection("try")}>
+          Try it
+        </button>
         <button type="button" onClick={() => onOpenSection("templates")}>
           Templates
         </button>
@@ -104,6 +107,9 @@ export function Header({
       >
         <button type="button" onClick={() => handleNavigation(() => onOpenSection("how-it-works"))}>
           How it works
+        </button>
+        <button type="button" onClick={() => handleNavigation(() => onOpenSection("try"))}>
+          Try it
         </button>
         <button type="button" onClick={() => handleNavigation(() => onOpenSection("templates"))}>
           Templates

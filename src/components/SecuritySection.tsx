@@ -1,5 +1,6 @@
 import { LockKeyhole, ShieldCheck, WalletCards } from "lucide-react";
 import { currentWalletDisplayName } from "../config/productChains";
+import { ApprovalGateDemo } from "./ApprovalGateDemo";
 import { RevealHeading } from "./RevealHeading";
 
 const guarantees = [
@@ -46,6 +47,8 @@ export function SecuritySection() {
           </p>
         </article>
       </div>
+
+      <ApprovalGateDemo />
 
       <div className="guarantee-marquee">
         <ul className="guarantee-strip" aria-label="Kyra security guarantees">

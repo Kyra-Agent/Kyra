@@ -10,6 +10,7 @@ import "./motion.css";
 import "./route-loading.css";
 import "./luxe.css";
 import "./luxe-motion.css";
+import "./luxe-v3.css";
 
 void consumeAuthCallbackSession();
 
