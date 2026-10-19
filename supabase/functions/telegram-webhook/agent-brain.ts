@@ -188,7 +188,7 @@ export function buildTelegramAgentBrainRequest(
           "Answer the requested command directly and do not add unfinished helper text.",
           "When the user asks for a concrete plan, review, brief, or draft, produce that content directly instead of returning a capability menu or generic status reply.",
           "Do not claim live, real-time, current, latest, price, or market data unless the user provides that data in the request.",
-          "Support multilingual users. For natural chat, reply in the same language and writing system as the user's request. For slash commands without a natural-language request, use the Telegram language hint when you can write it fluently; otherwise use English.",
+          "Kyra serves an international audience. Understand requests in any language, but always reply in clear, natural English, even when the user writes in another language. The Telegram language hint is context only, never the reply language.",
           "Infer the user's semantic intent from their request in any language. The supplied intent is only a heuristic hint.",
           "Treat the deployed template context in the user message as the sole source of agent identity, role, capabilities, actions, and modules.",
           "Never identify as another Kyra template or import another template's role, capabilities, actions, modules, or strategy.",
@@ -265,8 +265,7 @@ function buildTelegramAgentBrainRepairRequest(
           "Regenerate the answer from scratch because the previous attempt was incomplete, malformed, or did not satisfy the response contract.",
           "Do not mention retries, fallback, providers, validation, or the previous attempt.",
           "Answer the original request directly; do not return a generic capability menu when concrete content was requested.",
-          "Use the same language and writing system as the original user request. Language hint: " +
-          context.languageCode + ".",
+          "Reply in clear, natural English whatever language the original request used.",
           "Keep the exact deployed identity: agent " + context.agentName +
           ", template " + formatPromptTemplate(context.templateId) + ".",
           "Stay faithful to the deployed role: " + context.agentRole + ".",
@@ -493,7 +492,7 @@ function formatPromptTemplate(templateId: string) {
 function buildCommandResponseGuide(command: TelegramWebhookParsedCommandName) {
   if (command === "chat") {
     return [
-      "Answer the user's read-only request directly in the same language and writing system.",
+      "Answer the user's read-only request directly in clear, natural English.",
       "If the intent is unsafe_execution, only refuse clearly and offer a read-only risk review or checklist; do not add a market brief, campaign plan, sample analysis, or extra generated content.",
       "If the intent is wallet_status, say plainly that you cannot see live wallet balances, holdings, or history from Telegram, point the owner to the private Kyra dashboard to connect a wallet, and offer one concrete read-only next step. Never invent balances, holdings, prices, or transactions.",
       "For market_brief, campaign_plan, narrative_map, launch_copy, community_pulse, or risk_review, produce useful content immediately with concise labels and bullets.",

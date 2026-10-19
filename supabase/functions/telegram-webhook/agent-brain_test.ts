@@ -218,8 +218,8 @@ Deno.test("telegram agent brain retries rejected content with a clean repair req
     "Repair request must explicitly request a fresh answer.",
   );
   assert(
-    repairMessage.includes("same language and writing system"),
-    "Repair request must preserve the user's language.",
+    repairMessage.includes("Reply in clear, natural English"),
+    "Repair request must keep the English reply contract.",
   );
   assert(
     repairMessage.includes("rule-based action readiness agent"),
@@ -552,8 +552,8 @@ Deno.test("telegram agent brain prompt carries a safe multilingual contract", ()
   const userMessage = request.messages[1]?.content ?? "";
 
   assert(
-    systemMessage.includes("same language and writing system"),
-    "Prompt must require the user's language and writing system.",
+    systemMessage.includes("always reply in clear, natural English"),
+    "Prompt must require English replies for every user language.",
   );
   assert(
     systemMessage.includes("Regardless of language"),
