@@ -43,6 +43,17 @@ Re-checked later on 2026-10-16: not released yet. Attaching the domain to
 site `9f030e51-…`), and `https://kyraagent.xyz` serves the disabled site's
 Netlify `404`. The TXT record is still published.
 
+Released on 2026-10-19 (support case 1145278). On 2026-10-20 `kyraagent.xyz`
+became the primary domain of `kyraagent` with `www.kyraagent.xyz` as an alias
+and forced HTTPS. Verified: apex, `/dashboard`, `/how-it-works`, a public
+agent route, and `og-card.png` return `200` over HTTPS; `http://` and `www`
+redirect `301` to `https://kyraagent.xyz`; CORS allowlists accept the origin.
+Remaining owner steps: point the Hostinger `www` CNAME at
+`kyraagent.netlify.app` (it still names the old `kyra-agent.netlify.app`),
+delete the `verified-for-netlify` TXT record, switch the Supabase Auth Site URL
+back to `https://kyraagent.xyz`, and confirm the managed certificate (expiring
+2026-10-30) renews.
+
 The general procedure:
 
 1. In the cancelled **Kyra-Agent** team, open the `kyra-agent` project and
