@@ -37,7 +37,15 @@
     0 0 0 1px rgba(0, 0, 0, 0.4);
   overflow: hidden;
   isolation: isolate;
-  animation: heroConsoleIn 1100ms var(--motion-ease) backwards 300ms;
+  /* Transform-only entrance: the print image is the LCP element, so the plate
+     must be visible from the first frame. */
+  animation: heroPlateIn 1100ms var(--motion-ease) backwards;
+}
+
+@keyframes heroPlateIn {
+  from {
+    transform: translate3d(0, 28px, 0) scale(0.97);
+  }
 }
 
 /* Print crop marks in the four corners. */

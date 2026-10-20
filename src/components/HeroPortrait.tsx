@@ -98,7 +98,7 @@ export function HeroPortrait() {
         alt=""
         aria-hidden="true"
         className="hero-portrait-print"
-        decoding="async"
+        fetchPriority="high"
         src={portraitUrl}
       />
       <div className="hero-portrait-stage" ref={containerRef} />
