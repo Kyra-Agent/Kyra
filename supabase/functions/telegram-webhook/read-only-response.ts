@@ -8,9 +8,15 @@ export interface TelegramReadOnlyCommandResponse {
 
 const helpText = [
   "Kyra Telegram",
-  "Commands: /help /status /agent /actions /modules /policy",
-  "Plain text: ask in your own words for a market brief, research summary, risk review, or plan.",
+  "Commands: /help /status /agent /actions /modules /policy /forget",
+  "Plain text: ask for a brief, review, or plan.",
+  "Memory: last 6 messages, 24h. /forget clears it.",
   "Boundary: wallet and onchain execution are disabled.",
+].join("\n");
+
+const forgetText = [
+  "Done. I cleared this chat's memory.",
+  "Earlier messages are no longer used. Your next message starts fresh.",
 ].join("\n");
 
 const walletStatusText = [
@@ -43,6 +49,7 @@ const statusText = [
   "Kyra Telegram session: active",
   "Command access: read-only",
   "Live replies: commands and read-only natural chat",
+  "Memory: last 6 messages for 24 hours (/forget clears it)",
   "Execution: wallet, write, approval, and onchain disabled",
 ].join("\n");
 
@@ -99,6 +106,10 @@ export function buildTelegramReadOnlyCommandResponse(
 
   if (command === "policy") {
     return { command, text: policyText };
+  }
+
+  if (command === "forget") {
+    return { command, text: forgetText };
   }
 
   if (command === "chat") {

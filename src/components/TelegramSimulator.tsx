@@ -104,8 +104,9 @@ function buildReply(text: string, template: AgentTemplate): SimulatedReply {
       verdict: "read_only",
       text: [
         "Kyra Telegram",
-        "Commands: /help /status /agent /actions /modules /policy",
-        "Plain text: ask in your own words for a market brief, research summary, risk review, or plan.",
+        "Commands: /help /status /agent /actions /modules /policy /forget",
+        "Plain text: ask for a brief, review, or plan.",
+        "Memory: last 6 messages, 24h. /forget clears it.",
         "Boundary: wallet and onchain execution are disabled.",
       ].join("\n"),
     };

@@ -38,9 +38,14 @@ export const faqs: FAQItem[] = [
       "Agents answer questions, explain their template and safety policy, and draft plans such as campaign briefs, swap reviews, and transfer checklists. Live wallet balances, token data, and launch tracking in chat are on the roadmap and marked as Planned on this page.",
   },
   {
+    question: "Does my agent remember our conversation?",
+    answer:
+      "For a short time. Your agent remembers the last six messages in your private chat for 24 hours so follow-ups make sense. Secrets are redacted, refusals are never stored, and you can wipe it instantly with /forget. Disconnecting the bot or removing the agent deletes it too.",
+  },
+  {
     question: "Can project teams use Kyra?",
     answer:
-      "Yes. The Steward and Strategist templates are built for teams: community answers, announcement drafts, and campaign plans, with admin actions kept separate from public users.",
+      "Yes, as a private assistant for the team. Today the bot answers only its owner's chat, so teams use Steward and Strategist to draft community answers, announcements, and campaign plans. A community mode for group chats is planned.",
   },
   {
     question: "How many agents can I deploy?",

@@ -2542,9 +2542,12 @@ Deno.test("telegram-webhook runtime dependencies enable lookup lazily", () => {
   );
   assertEquals(typeof dependencies.lookupTelegramTemplateContext, "function");
   assertEquals(typeof dependencies.generateTelegramAgentBrainReply, "function");
+  assertEquals(typeof dependencies.loadTelegramChatMemory, "function");
+  assertEquals(typeof dependencies.appendTelegramChatMemory, "function");
+  assertEquals(typeof dependencies.forgetTelegramChatMemory, "function");
   assertEquals(
     keys.join(","),
-    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey},${telegramWebhookOwnerLinkConsumeEnabledEnvKey},${telegramWebhookTemplateContextEnabledEnvKey},${telegramWebhookAgentBrainEnabledEnvKey},${telegramWebhookAgentBrainProviderEnabledEnvKey}`,
+    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey},${telegramWebhookOwnerLinkConsumeEnabledEnvKey},${telegramWebhookTemplateContextEnabledEnvKey},${telegramWebhookAgentBrainEnabledEnvKey},${telegramWebhookAgentBrainProviderEnabledEnvKey},KYRA_TELEGRAM_WEBHOOK_CHAT_MEMORY_ENABLED`,
   );
 });
 
@@ -3518,5 +3521,207 @@ Deno.test("telegram-webhook chat authorization rejects missing identity as inval
       ),
     400,
     "invalid_update",
+  );
+});
+
+function createMemoryTestDependencies(overrides: Record<string, unknown> = {}) {
+  return {
+    lookupRuntimeConfig: { enabled: true },
+    parseRuntimeConfig: { enabled: true },
+    chatAuthRuntimeConfig: { enabled: true },
+    claimRuntimeConfig: { enabled: true },
+    deliveryRuntimeConfig: { enabled: true },
+    templateContextRuntimeConfig: { enabled: true },
+    agentBrainRuntimeConfig: { enabled: true },
+    lookupTelegramWebhookSession: async () => ({
+      sessionId: "telegram-session-1",
+      agentId: "agent-1",
+      workspaceId: "workspace-1",
+      ownerUserId: "owner-1",
+      botHandle: "@kyra_test_bot",
+      webhookStatus: "active",
+    }),
+    lookupTelegramChatAuthorization: async () => ({
+      authorized: true,
+      role: "owner",
+    }),
+    claimTelegramUpdate: async () => ({ claimed: true, status: "claimed" }),
+    lookupTelegramTemplateContext: async () => ({
+      context: {
+        templateId: "strategist",
+        name: "Agent 666",
+        role: "Market and campaign intelligence agent",
+        summary: "Plans launches and narratives.",
+        actions: [],
+        modules: [],
+        readOnlyActions: ["campaign plan", "launch copy"],
+        dashboardGatedActions: [],
+        phase6GatedActions: [],
+        gatedActions: [],
+        safetyNote: "Telegram is read-only.",
+      },
+      text: "Template fallback.",
+    }),
+    ...overrides,
+  } as Parameters<typeof handleTelegramWebhookRequest>[1];
+}
+
+Deno.test("telegram-webhook passes chat memory to the brain and stores the delivered exchange", async () => {
+  const brainInputs: Array<Record<string, unknown>> = [];
+  const appended: Array<Record<string, unknown>> = [];
+  const order: string[] = [];
+
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("the token is ABC on Robinhood Chain", "en")),
+    createMemoryTestDependencies({
+      loadTelegramChatMemory: async (input: Record<string, unknown>) => {
+        order.push(`load:${input.telegramSessionId}:${input.telegramChatId}`);
+        return [
+          { role: "user", content: "draft a launch plan for my token" },
+          { role: "assistant", content: "Launch plan draft. Which token and chain?" },
+        ];
+      },
+      generateTelegramAgentBrainReply: async (input: unknown) => {
+        brainInputs.push(input as Record<string, unknown>);
+        order.push("brain");
+        return { text: "Launch plan for ABC\n- Announce on X.\n- Pin a risk note." };
+      },
+      deliverTelegramReadOnlyResponse: async () => {
+        order.push("deliver");
+        return { delivered: true };
+      },
+      appendTelegramChatMemory: async (input: Record<string, unknown>) => {
+        order.push("append");
+        appended.push(input);
+      },
+    }),
+  );
+
+  const body = await readJson(response);
+  const history = brainInputs[0]?.history as Array<Record<string, unknown>>;
+
+  assertEquals(body.status, "delivered");
+  assertEquals(history.length, 2);
+  assertEquals(history[1]?.role, "assistant");
+  assertEquals(order.slice(1).join(","), "brain,deliver,append");
+  assertEquals(appended.length, 1);
+  assertEquals(appended[0]?.userText, "the token is ABC on Robinhood Chain");
+  assert(
+    String(appended[0]?.assistantText).startsWith("Launch plan for ABC"),
+    "The delivered brain reply must be remembered.",
+  );
+});
+
+Deno.test("telegram-webhook does not remember refusals or brain fallbacks", async () => {
+  const appended: unknown[] = [];
+
+  for (const text of ["swap 10 USDC to ETH", "make a campaign plan"]) {
+    await handleTelegramWebhookRequest(
+      createJsonWebhookRequest(createWebhookUpdate(text, "en")),
+      createMemoryTestDependencies({
+        loadTelegramChatMemory: async () => [],
+        generateTelegramAgentBrainReply: async () => {
+          throw new Error("provider down");
+        },
+        deliverTelegramReadOnlyResponse: async () => ({ delivered: true }),
+        appendTelegramChatMemory: async (input: unknown) => {
+          appended.push(input);
+        },
+      }),
+    );
+  }
+
+  assertEquals(appended.length, 0);
+});
+
+Deno.test("telegram-webhook keeps replying when chat memory fails", async () => {
+  const deliveries: Array<Record<string, unknown>> = [];
+
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("make a campaign plan", "en")),
+    createMemoryTestDependencies({
+      loadTelegramChatMemory: async () => {
+        throw new Error("database down");
+      },
+      generateTelegramAgentBrainReply: async (input: unknown) => {
+        const history = (input as Record<string, unknown>).history as unknown[];
+        assertEquals(history.length, 0);
+        return { text: "Campaign plan\n- Lead with positioning." };
+      },
+      deliverTelegramReadOnlyResponse: async (input: Record<string, unknown>) => {
+        deliveries.push(input);
+        return { delivered: true };
+      },
+      appendTelegramChatMemory: async () => {
+        throw new Error("database down");
+      },
+    }),
+  );
+
+  const body = await readJson(response);
+
+  assertEquals(response.status, 200);
+  assertEquals(body.status, "delivered");
+  assertEquals(deliveries.length, 1);
+});
+
+Deno.test("telegram-webhook /forget clears chat memory without calling the brain", async () => {
+  const forgotten: Array<Record<string, unknown>> = [];
+  const deliveries: Array<Record<string, unknown>> = [];
+  let brainCalls = 0;
+
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("/forget", "en")),
+    createMemoryTestDependencies({
+      generateTelegramAgentBrainReply: async () => {
+        brainCalls += 1;
+        return { text: "should not run" };
+      },
+      forgetTelegramChatMemory: async (input: Record<string, unknown>) => {
+        forgotten.push(input);
+        return 4;
+      },
+      deliverTelegramReadOnlyResponse: async (input: Record<string, unknown>) => {
+        deliveries.push(input);
+        return { delivered: true };
+      },
+    }),
+  );
+
+  const body = await readJson(response);
+  const delivered = deliveries[0]?.response as Record<string, unknown>;
+
+  assertEquals(body.status, "delivered");
+  assertEquals(brainCalls, 0);
+  assertEquals(forgotten.length, 1);
+  assertEquals(forgotten[0]?.telegramSessionId, "telegram-session-1");
+  assertEquals(delivered?.command, "forget");
+  assert(
+    String(delivered?.text).includes("cleared this chat's memory"),
+    "/forget must confirm the memory was cleared.",
+  );
+});
+
+Deno.test("telegram-webhook /forget reports failure honestly", async () => {
+  const deliveries: Array<Record<string, unknown>> = [];
+
+  await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("/forget", "en")),
+    createMemoryTestDependencies({
+      forgetTelegramChatMemory: async () => {
+        throw new Error("database down");
+      },
+      deliverTelegramReadOnlyResponse: async (input: Record<string, unknown>) => {
+        deliveries.push(input);
+        return { delivered: true };
+      },
+    }),
+  );
+
+  const delivered = deliveries[0]?.response as Record<string, unknown>;
+
+  assert(
+    String(delivered?.text).includes("could not clear"),
+    "A failed /forget must not claim success.",
   );
 });

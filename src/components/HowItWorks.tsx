@@ -33,7 +33,7 @@ const storySteps = [
     icon: MessageSquareText,
     title: "Ask in plain language",
     copy:
-      "Chat with the bot or use /status, /modules, and /policy. Telegram replies are read-only and never move funds.",
+      "Chat with the bot like a teammate: it remembers the last few messages for 24 hours, and /forget clears them. Replies are read-only and never move funds.",
   },
   {
     id: "approve",

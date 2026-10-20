@@ -114,6 +114,7 @@ const telegramCommandRows = [
   { command: "/status", summary: "Agent and connection status" },
   { command: "/actions", summary: "What this template covers" },
   { command: "/policy", summary: "What always needs your approval" },
+  { command: "/forget", summary: "Clear the chat's short-term memory" },
 ];
 
 export function PublicAgent({

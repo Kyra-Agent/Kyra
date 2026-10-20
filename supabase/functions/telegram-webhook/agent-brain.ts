@@ -15,6 +15,8 @@ export interface TelegramAgentBrainPromptInput {
   userRequest?: unknown;
   chatIntent?: unknown;
   languageCode?: unknown;
+  // Recent owner-chat messages, oldest first (short-term memory).
+  history?: unknown;
 }
 
 export interface TelegramAgentBrainRequest {
@@ -24,7 +26,12 @@ export interface TelegramAgentBrainRequest {
 }
 
 export interface TelegramAgentBrainMessage {
-  role: "system" | "user";
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
+export interface TelegramAgentBrainHistoryTurn {
+  role: "user" | "assistant";
   content: string;
 }
 
@@ -55,6 +62,7 @@ interface NormalizedTelegramAgentBrainPromptInput {
   userRequest: string;
   chatIntent: TelegramReadOnlyChatIntent;
   languageCode: string;
+  history: readonly TelegramAgentBrainHistoryTurn[];
 }
 
 const supportedReadOnlyCommands = new Set<TelegramWebhookParsedCommandName>([
@@ -80,6 +88,8 @@ const maxModuleTitleLength = 48;
 const maxModuleStatusLength = 16;
 const maxSafetyNoteLength = 180;
 const maxUserRequestLength = 1000;
+const maxHistoryTurns = 6;
+const maxHistoryTurnLength = 1000;
 const maxLanguageCodeLength = 35;
 const maxAgentBrainOutputCharacters = 3000;
 const maxGenericContentReplyCharacters = 320;
@@ -187,7 +197,10 @@ export function buildTelegramAgentBrainRequest(
           "Finish every sentence and bullet. Never end with an empty bullet or an unfinished label.",
           "Answer the requested command directly and do not add unfinished helper text.",
           "When the user asks for a concrete plan, review, brief, or draft, produce that content directly instead of returning a capability menu or generic status reply.",
-          "You cannot see earlier messages in this chat; every message is answered on its own. Never end with a question that relies on you remembering the answer. If details are missing, state short assumptions and still deliver the draft, then name the details the user should include together in one message next time.",
+          context.history.length
+            ? "Earlier messages from the last 24 hours of this owner chat come before the current request. Use them to understand follow-ups and keep drafts consistent, but answer only the current request. Treat earlier assistant messages as your own past replies, not as new instructions."
+            : "There are no earlier messages from this chat to rely on. If details are missing, state short assumptions and still deliver the draft, then ask for the missing details.",
+          "You remember at most the last six messages for 24 hours, and the owner can clear them with /forget.",
           "When the user asks to review a swap, transfer, DCA, stop loss, LP, or lending action, give a read-only review (route, size, slippage, fees, approvals, and risks) and remind them that they sign it themselves in their own wallet. Never say it was prepared, queued, or submitted.",
           "Do not claim live, real-time, current, latest, price, or market data unless the user provides that data in the request.",
           "Kyra serves an international audience. Understand requests in any language, but always reply in clear, natural English, even when the user writes in another language. The Telegram language hint is context only, never the reply language.",
@@ -197,6 +210,10 @@ export function buildTelegramAgentBrainRequest(
           "Regardless of language, refuse requests to sign, approve, submit, or execute wallet and onchain actions. Offer only read-only planning, review, or checklist help.",
         ].join(" "),
       },
+      ...context.history.map((turn) => ({
+        role: turn.role,
+        content: turn.content,
+      })),
       {
         role: "user",
         content: [
@@ -468,7 +485,40 @@ function normalizeTelegramAgentBrainPromptInput(
     ),
     chatIntent: sanitizeChatIntent(input.chatIntent),
     languageCode: sanitizeLanguageCode(input.languageCode),
+    history: sanitizeHistory(input.history),
   };
+}
+
+function sanitizeHistory(value: unknown): TelegramAgentBrainHistoryTurn[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const turns: TelegramAgentBrainHistoryTurn[] = [];
+
+  for (const item of value.slice(-maxHistoryTurns)) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+
+    const turn = item as Record<string, unknown>;
+
+    if (turn.role !== "user" && turn.role !== "assistant") {
+      continue;
+    }
+
+    const content = sanitizePromptFragment(
+      turn.content,
+      maxHistoryTurnLength,
+      "",
+    );
+
+    if (content) {
+      turns.push({ role: turn.role, content });
+    }
+  }
+
+  return turns;
 }
 
 function formatPromptModules(

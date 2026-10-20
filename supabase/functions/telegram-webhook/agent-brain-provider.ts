@@ -24,7 +24,8 @@ const maxApiKeyLength = 4096;
 const maxModelLength = 128;
 const maxEndpointLength = 2048;
 const maxPromptMessageLength = 3000;
-const maxPromptMessages = 6;
+// System prompt, up to six remembered messages, the request, and one repair.
+const maxPromptMessages = 10;
 const maxAgentBrainCompletionTokens = 700;
 
 export function createOpenAiCompatibleTelegramAgentBrainProvider(
@@ -172,7 +173,7 @@ function assertProviderRequest(request: TelegramAgentBrainRequest) {
     const role = message.role;
     const content = message.content;
 
-    if (role !== "system" && role !== "user") {
+    if (role !== "system" && role !== "user" && role !== "assistant") {
       throw invalidProviderRequest();
     }
 

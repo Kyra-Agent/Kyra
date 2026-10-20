@@ -61,6 +61,13 @@ import {
   type TelegramAgentBrainReply,
 } from "./agent-brain.ts";
 import {
+  appendTelegramChatMemory,
+  forgetTelegramChatMemory,
+  loadTelegramChatMemory,
+  type TelegramChatMemoryRpcClient,
+  type TelegramChatMemoryTurn,
+} from "./chat-memory.ts";
+import {
   createOpenAiCompatibleTelegramAgentBrainProvider,
   type TelegramAgentBrainProviderFetch,
 } from "./agent-brain-provider.ts";
@@ -357,6 +364,20 @@ export interface TelegramWebhookDependencies {
   generateTelegramAgentBrainReply?: (
     input: TelegramAgentBrainPromptInput,
   ) => Promise<TelegramAgentBrainReply>;
+  loadTelegramChatMemory?: (input: {
+    telegramSessionId: string;
+    telegramChatId: string;
+  }) => Promise<TelegramChatMemoryTurn[]>;
+  appendTelegramChatMemory?: (input: {
+    telegramSessionId: string;
+    telegramChatId: string;
+    userText: string;
+    assistantText: string;
+  }) => Promise<void>;
+  forgetTelegramChatMemory?: (input: {
+    telegramSessionId: string;
+    telegramChatId: string;
+  }) => Promise<number>;
 }
 
 const disabledTelegramWebhookLookupRuntimeConfig:
@@ -377,6 +398,10 @@ const disabledTelegramWebhookAgentBrainRuntimeConfig:
   TelegramWebhookAgentBrainRuntimeConfig = { enabled: false };
 
 const telegramAgentBrainApiKeyEnvKey = "KYRA_TELEGRAM_AGENT_BRAIN_API_KEY";
+// Short-term chat memory follows the agent brain; set this to "false" to turn
+// it off without disabling the brain.
+const telegramChatMemoryEnabledEnvKey =
+  "KYRA_TELEGRAM_WEBHOOK_CHAT_MEMORY_ENABLED";
 const telegramAgentBrainModelEnvKey = "KYRA_TELEGRAM_AGENT_BRAIN_MODEL";
 const telegramAgentBrainEndpointEnvKey = "KYRA_TELEGRAM_AGENT_BRAIN_ENDPOINT";
 const telegramAgentBrainTimeoutMsEnvKey =
@@ -682,6 +707,33 @@ export function createTelegramWebhookDependencies(
         getAgentBrainProvider(),
       );
     };
+
+    if (
+      readOptionalEnv(telegramChatMemoryEnabledEnvKey)?.trim().toLowerCase() !==
+        "false"
+    ) {
+      const getMemoryRpcClient = () =>
+        getRpcClient() as unknown as TelegramChatMemoryRpcClient;
+
+      dependencies.loadTelegramChatMemory = async (input) => {
+        return await loadTelegramChatMemory({
+          ...input,
+          rpcClient: getMemoryRpcClient(),
+        });
+      };
+      dependencies.appendTelegramChatMemory = async (input) => {
+        await appendTelegramChatMemory({
+          ...input,
+          rpcClient: getMemoryRpcClient(),
+        });
+      };
+      dependencies.forgetTelegramChatMemory = async (input) => {
+        return await forgetTelegramChatMemory({
+          ...input,
+          rpcClient: getMemoryRpcClient(),
+        });
+      };
+    }
   }
 
   return dependencies;
@@ -909,6 +961,34 @@ export async function handleTelegramWebhookRequest(
       }
 
       let response = deliveryPlan.response;
+      let rememberedReply: string | null = null;
+
+      if (parsedUpdate.command === "forget") {
+        if (!dependencies.forgetTelegramChatMemory) {
+          response = {
+            command: parsedUpdate.command,
+            text: "Chat memory is off for this agent, so there is nothing to clear.",
+          };
+        } else {
+          try {
+            await dependencies.forgetTelegramChatMemory({
+              telegramSessionId: lookupSession.sessionId,
+              telegramChatId: parsedUpdate.telegramChatId,
+            });
+          } catch (error) {
+            logSafeEvent(
+              "telegram_chat_memory_fallback",
+              error instanceof HttpError ? error.code : "unexpected_error",
+            );
+            response = {
+              command: parsedUpdate.command,
+              text:
+                "I could not clear this chat's memory right now. Try /forget again in a moment.",
+            };
+          }
+        }
+      }
+
       const executionGate = parsedUpdate.command === "chat" &&
           chatAuthorization
         ? reviewTelegramExecutionGate({
@@ -976,6 +1056,23 @@ export async function handleTelegramWebhookRequest(
           classifyTelegramReadOnlyChatIntent(parsedUpdate.text) !==
             "unsafe_execution")
       ) {
+        let chatHistory: TelegramChatMemoryTurn[] = [];
+
+        if (dependencies.loadTelegramChatMemory) {
+          try {
+            chatHistory = await dependencies.loadTelegramChatMemory({
+              telegramSessionId: lookupSession.sessionId,
+              telegramChatId: parsedUpdate.telegramChatId,
+            });
+          } catch (error) {
+            // Memory is optional: answer without it rather than fail.
+            logSafeEvent(
+              "telegram_chat_memory_fallback",
+              error instanceof HttpError ? error.code : "unexpected_error",
+            );
+          }
+        }
+
         try {
           const agentBrainReply = await dependencies
             .generateTelegramAgentBrainReply({
@@ -991,11 +1088,13 @@ export async function handleTelegramWebhookRequest(
               userRequest: parsedUpdate.text,
               chatIntent: classifyTelegramReadOnlyChatIntent(parsedUpdate.text),
               languageCode: parsedUpdate.languageCode,
+              history: chatHistory,
             });
           response = {
             command: parsedUpdate.command,
             text: agentBrainReply.text,
           };
+          rememberedReply = agentBrainReply.text;
         } catch (error) {
           // Agent-brain is optional. Preserve read-only delivery if the provider
           // times out, rejects output, or returns a malformed response. Log the
@@ -1041,6 +1140,24 @@ export async function handleTelegramWebhookRequest(
           }
 
           throw sanitizeTelegramUpdateDeliveryMarkRpcError(error);
+        }
+      }
+
+      // Remember only exchanges the agent brain answered and the owner
+      // actually received; refusals, fallbacks, and commands are not stored.
+      if (rememberedReply && dependencies.appendTelegramChatMemory) {
+        try {
+          await dependencies.appendTelegramChatMemory({
+            telegramSessionId: lookupSession.sessionId,
+            telegramChatId: parsedUpdate.telegramChatId,
+            userText: parsedUpdate.text ?? "",
+            assistantText: rememberedReply,
+          });
+        } catch (error) {
+          logSafeEvent(
+            "telegram_chat_memory_fallback",
+            error instanceof HttpError ? error.code : "unexpected_error",
+          );
         }
       }
 

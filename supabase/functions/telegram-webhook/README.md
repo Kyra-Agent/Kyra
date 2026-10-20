@@ -32,6 +32,7 @@ Replies use the deployed template, module stack, user request, and detected lang
 ## Security Contract
 
 - Request bodies, chat content, prompts, replies, bot tokens, webhook secrets, challenge material, provider payloads, wallet data, and transaction material are not copied into logs or retry state.
+- Short-term chat memory (`telegram_chat_memory`) is the only place chat text is stored: the owner chat's last six brain-answered messages, secrets redacted, backend-only (RLS on, no anon or authenticated grants), deleted after 24 hours by a pg_cron job, on `/forget`, and with the Telegram session. Refusals, fallbacks, and commands are never stored. Set `KYRA_TELEGRAM_WEBHOOK_CHAT_MEMORY_ENABLED=false` to turn memory off.
 - Delivery state stores bounded identifiers, status, attempt count, lease timestamps, and delivery timestamps only.
 - Concurrent workers cannot deliver the same claimed update.
 - LLM endpoint, model, and API key are read only inside the Edge Function after webhook, session, authorization, claim, and provider gates pass.
