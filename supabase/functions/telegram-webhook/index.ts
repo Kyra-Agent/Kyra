@@ -76,6 +76,13 @@ import {
   type TelegramCommunitySetResult,
 } from "./community.ts";
 import {
+  handleMonitoringCommand,
+  isMonitoringCommand,
+  type MonitoringCommand,
+  type MonitoringRpcClient,
+  monitoringTexts,
+} from "./monitoring-commands.ts";
+import {
   type ChainDataTargets,
   extractChainDataTargets,
   hasChainDataTargets,
@@ -413,6 +420,11 @@ export interface TelegramWebhookDependencies {
     telegramChatId: string;
     telegramUserId: string;
   }) => Promise<TelegramCommunityQuotaResult>;
+  runMonitoringCommand?: (input: {
+    command: MonitoringCommand;
+    args: string;
+    agentId: string;
+  }) => Promise<string>;
 }
 
 const disabledTelegramWebhookLookupRuntimeConfig:
@@ -763,6 +775,17 @@ export function createTelegramWebhookDependencies(
       ? readChainDataRpcConfig(readOptionalEnv)
       : null;
 
+  if (chatAuthRuntimeConfig.enabled) {
+    dependencies.runMonitoringCommand = async (input) => {
+      return await handleMonitoringCommand({
+        ...input,
+        rpcClient: getRpcClient() as unknown as MonitoringRpcClient,
+        chainRpcUrl: chainDataRpcConfig?.rpcUrl ?? null,
+        fetchImpl: options.fetchChainData,
+      });
+    };
+  }
+
   if (chainDataRpcConfig) {
     dependencies.readLiveChainData = async (targets) => {
       return await readLiveChainData({
@@ -1104,6 +1127,29 @@ export async function handleTelegramWebhookRequest(
           command: parsedUpdate.command,
           text: withAskBotHandle(text, lookupSession.botHandle),
         };
+      }
+
+      if (isMonitoringCommand(parsedUpdate.command)) {
+        let text = monitoringTexts.failed;
+
+        if (isCommunityMember || isGroupChat) {
+          text = monitoringTexts.ownerOnly;
+        } else if (dependencies.runMonitoringCommand) {
+          try {
+            text = await dependencies.runMonitoringCommand({
+              command: parsedUpdate.command,
+              args: parsedUpdate.text ?? "",
+              agentId: lookupSession.agentId,
+            });
+          } catch (error) {
+            logSafeEvent(
+              "telegram_monitoring_fallback",
+              error instanceof HttpError ? error.code : "unexpected_error",
+            );
+          }
+        }
+
+        response = { command: parsedUpdate.command, text };
       }
 
       if (isCommunityMember && parsedUpdate.command === "help") {

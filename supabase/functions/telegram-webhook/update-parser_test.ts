@@ -346,3 +346,31 @@ Deno.test("telegram update parser keeps private chats addressed and supports com
     assertEquals(parsed.addressedToBot, true);
   }
 });
+
+Deno.test("telegram update parser reads monitoring commands and their arguments", () => {
+  const cases: Array<[string, string, string | undefined]> = [
+    ["/watch 0x5fc5360d0400a0fd4f2af552add042d716f1d168", "watch", "0x5fc5360d0400a0fd4f2af552add042d716f1d168"],
+    ["/alert@kyra_test_bot 0x5fc5360d0400a0fd4f2af552add042d716f1d168   above  2.5", "alert", "0x5fc5360d0400a0fd4f2af552add042d716f1d168 above 2.5"],
+    ["/launches on", "launches", "on"],
+    ["/watch", "watch", undefined],
+    ["/watchlist", "watchlist", undefined],
+    ["/alerts_clear", "alerts_clear", undefined],
+  ];
+
+  for (const [text, command, args] of cases) {
+    const parsed = parseTelegramWebhookUpdate(
+      {
+        update_id: 9400,
+        message: {
+          message_id: 5,
+          text,
+          from: { id: 555, is_bot: false },
+          chat: { id: 555, type: "private" },
+        },
+      },
+      { expectedBotUsername: "@kyra_test_bot" },
+    );
+    assertEquals(parsed.command, command, text);
+    assertEquals(parsed.text, args, text);
+  }
+});

@@ -35,7 +35,7 @@ export const faqs: FAQItem[] = [
   {
     question: "What can an agent do today?",
     answer:
-      "Paste a wallet address, token address, or transaction hash and your agent reads it live from Robinhood Chain: balances, token supply, holder checks, and recent transfers. Agents also draft campaign briefs, swap reviews, and transfer checklists, and answer project questions from the knowledge you give them. USD prices and launch tracking are still on the roadmap.",
+      "Paste a wallet address, token address, or transaction hash and your agent reads it live from Robinhood Chain: balances, token supply, holder checks, and recent transfers. Agents also draft campaign briefs, swap reviews, and transfer checklists, and answer project questions from the knowledge you give them. You can also turn on alerts: /watch a wallet or token, /alert a token price, or /launches for a digest of new Robinhood Chain pools. Prices come from on-chain pools.",
   },
   {
     question: "Does my agent remember our conversation?",

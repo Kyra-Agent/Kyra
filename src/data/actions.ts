@@ -63,7 +63,7 @@ export const actions: ActionDefinition[] = [
     id: "launch-monitor",
     name: "Launch Monitor",
     summary:
-      `Track new launches and project activity across the ${currentProductChain.name} ecosystem.`,
-    tier: "later",
+      `Turn on /launches and get a digest of new ${currentProductChain.name} DEX pools every 30 minutes, plus /watch alerts for wallets and tokens.`,
+    tier: "mvp",
   },
 ];

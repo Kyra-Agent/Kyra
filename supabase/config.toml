@@ -39,6 +39,11 @@ verify_jwt = true
 [functions.agent-settings]
 verify_jwt = true
 
+# Called every five minutes by pg_cron through pg_net. It checks a shared
+# secret (x-kyra-monitor-secret) instead of a user JWT.
+[functions.telegram-monitor]
+verify_jwt = false
+
 # Telegram disconnect is called by a signed-in dashboard user. Keep Supabase
 # gateway JWT verification enabled in addition to future function ownership
 # validation and operator action checks.

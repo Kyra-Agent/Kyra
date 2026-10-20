@@ -4076,3 +4076,51 @@ Deno.test("telegram-webhook gives members community help, no memory, and no exec
     assert(String(delivered?.text).startsWith(expected), `${text}: ${String(delivered?.text)}`);
   }
 });
+
+Deno.test("telegram-webhook runs monitoring commands for the owner only", async () => {
+  const calls: Array<Record<string, unknown>> = [];
+  const deliveries: Array<Record<string, unknown>> = [];
+
+  await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("/launches on")),
+    createMemoryTestDependencies({
+      runMonitoringCommand: async (input: Record<string, unknown>) => {
+        calls.push(input);
+        return "Launch monitor is on.";
+      },
+      deliverTelegramReadOnlyResponse: async (input: Record<string, unknown>) => {
+        deliveries.push(input);
+        return { delivered: true };
+      },
+    }),
+  );
+
+  assertEquals(calls.length, 1);
+  assertEquals(calls[0]?.command, "launches");
+  assertEquals(calls[0]?.args, "on");
+  assertEquals((deliveries[0]?.response as Record<string, unknown>)?.text, "Launch monitor is on.");
+
+  const memberCalls: unknown[] = [];
+  const memberDeliveries: Array<Record<string, unknown>> = [];
+  await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createCommunityUpdate("/watch@kyra_test_bot 0x5fc5360d0400a0fd4f2af552add042d716f1d168")),
+    createCommunityDependencies({
+      runMonitoringCommand: async (input: unknown) => {
+        memberCalls.push(input);
+        return "should not run";
+      },
+      deliverTelegramReadOnlyResponse: async (input: Record<string, unknown>) => {
+        memberDeliveries.push(input);
+        return { delivered: true };
+      },
+    }),
+  );
+
+  assertEquals(memberCalls.length, 0);
+  assert(
+    String((memberDeliveries[0]?.response as Record<string, unknown>)?.text).startsWith(
+      "Monitoring is set up by the agent owner",
+    ),
+    "Members must not change monitoring.",
+  );
+});

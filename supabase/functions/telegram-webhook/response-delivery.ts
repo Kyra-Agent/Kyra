@@ -177,6 +177,13 @@ export function assertTelegramDeliveryResponse(
     response.command !== "forget" &&
     response.command !== "community_on" &&
     response.command !== "community_off" &&
+    response.command !== "watch" &&
+    response.command !== "unwatch" &&
+    response.command !== "watchlist" &&
+    response.command !== "alert" &&
+    response.command !== "alerts" &&
+    response.command !== "alerts_clear" &&
+    response.command !== "launches" &&
     response.command !== "chat"
   ) {
     throw invalidTelegramDeliveryResponse();

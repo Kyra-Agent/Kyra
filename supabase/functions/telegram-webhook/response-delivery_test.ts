@@ -345,6 +345,13 @@ Deno.test("telegram delivery accepts the reply of every parsed command", () => {
       "forget",
       "community_on",
       "community_off",
+      "watch",
+      "unwatch",
+      "watchlist",
+      "alert",
+      "alerts",
+      "alerts_clear",
+      "launches",
     ]
   ) {
     const parsed = parseTelegramWebhookUpdate({

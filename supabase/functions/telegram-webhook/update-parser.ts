@@ -10,6 +10,13 @@ export type TelegramWebhookParsedCommandName =
   | "forget"
   | "community_on"
   | "community_off"
+  | "watch"
+  | "unwatch"
+  | "watchlist"
+  | "alert"
+  | "alerts"
+  | "alerts_clear"
+  | "launches"
   | "chat";
 
 export type TelegramChatType = "private" | "group" | "supergroup" | "other";
@@ -45,9 +52,21 @@ const supportedCommands = new Set<TelegramWebhookParsedCommandName>([
   "forget",
   "community_on",
   "community_off",
+  "watchlist",
+  "alerts",
+  "alerts_clear",
+]);
+// Monitoring commands that carry arguments ("/watch 0x...", "/launches on").
+const argumentCommands = new Set<TelegramWebhookParsedCommandName>([
+  "watch",
+  "unwatch",
+  "alert",
+  "launches",
 ]);
 const telegramCommandPattern =
   /^\/([A-Za-z][A-Za-z0-9_]*)(?:@([A-Za-z0-9_]{5,32}))?$/;
+const telegramArgumentCommandPattern =
+  /^\/([A-Za-z][A-Za-z0-9_]*)(?:@([A-Za-z0-9_]{5,32}))?(?:\s+([\s\S]*))?$/;
 const telegramAskPattern =
   /^\/ask(?:@([A-Za-z0-9_]{5,32}))?(?:\s+([\s\S]*))?$/i;
 const telegramBotUsernamePattern = /^[A-Za-z0-9_]{5,32}$/;
@@ -185,6 +204,35 @@ function parseReadOnlyMessageText(
     }
 
     return { command: "chat", text, addressed: false };
+  }
+
+  const argumentMatch = telegramArgumentCommandPattern.exec(text);
+  const argumentCommand = argumentMatch?.[1]?.toLowerCase() as
+    | TelegramWebhookParsedCommandName
+    | undefined;
+
+  if (argumentMatch && argumentCommand && argumentCommands.has(argumentCommand)) {
+    const targetBotUsername = argumentMatch[2];
+
+    if (
+      targetBotUsername &&
+      targetBotUsername.toLowerCase() !==
+        normalizeExpectedBotUsername(expectedBotUsername)
+    ) {
+      throw unsupportedUpdate();
+    }
+
+    const args = (argumentMatch[3] ?? "").trim().replace(/\s+/g, " ");
+
+    if (args.length > 200) {
+      throw unsupportedUpdate();
+    }
+
+    return {
+      command: argumentCommand,
+      ...(args ? { text: args } : {}),
+      addressed: true,
+    };
   }
 
   // "/ask <question>" is how group members talk to the bot when Telegram's

@@ -199,7 +199,11 @@ Deno.test("chain data describes a wallet, a token, a holder check, and a transac
   assert(text.includes("Total supply: 1,000,000 MITSU"), "Supply missing.");
   assert(text.includes("Transfers in the last ~5 min: 3"), "Token activity missing.");
   assert(text.includes("- Status: succeeded"), "Transaction status missing.");
-  assert(text.includes("Not included: USD prices, holder counts"), "Limits must be stated.");
+  assert(text.includes("Not included: holder counts"), "Limits must be stated.");
+  assert(
+    text.includes("- Price: no liquid USDG or WETH pool found"),
+    "Tokens without a pool must not get an invented price.",
+  );
   assert(!/[0-9a-fA-F]{64}/.test(text), "Full 64-hex hashes must never appear.");
 });
 

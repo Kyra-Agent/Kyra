@@ -5,6 +5,7 @@ import {
   toEventSelector,
 } from "npm:viem@2.57.7";
 import { HttpError } from "./core.ts";
+import { formatUsd, readTokenPricesUsd, type TokenPrice, wethAddress } from "./prices.ts";
 
 // Read-only Robinhood Chain data for Telegram answers. When a chat message
 // contains a wallet address, token address, or transaction hash, the webhook
@@ -20,12 +21,12 @@ export interface ChainDataRpcConfig {
   rpcUrl: string;
 }
 
-interface RpcCall {
+export interface RpcCall {
   method: string;
   params: unknown[];
 }
 
-interface TokenMeta {
+export interface TokenMeta {
   address: string;
   name: string;
   symbol: string;
@@ -43,11 +44,11 @@ interface TransferRow {
   txHash: string;
 }
 
-const robinhoodChainIdHex = "0x1237";
+export const robinhoodChainIdHex = "0x1237";
 // ERC-20 and ERC-721 share this event signature.
-const transferTopic = toEventSelector("Transfer(address,address,uint256)");
+export const transferTopic = toEventSelector("Transfer(address,address,uint256)");
 const explorerUrl = "https://robinhoodchain.blockscout.com";
-const selectors = {
+export const selectors = {
   name: "0x06fdde03",
   symbol: "0x95d89b41",
   decimals: "0x313ce567",
@@ -55,7 +56,7 @@ const selectors = {
   balanceOf: "0x70a08231",
 };
 // Well-known Robinhood Chain tokens checked for every wallet.
-const coreTokens: readonly TokenMeta[] = [
+export const coreTokens: readonly TokenMeta[] = [
   {
     address: "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
     name: "Wrapped Ether",
@@ -80,6 +81,7 @@ const tokenActivityBlocks = 3_000;
 const approxSecondsPerBlock = 0.1;
 const defaultTimeoutMs = 6_000;
 const maxFactBlockLength = 2_600;
+const maxPricedTokens = 8;
 
 const addressPattern = /(?<![0-9a-fA-Fx])0x[0-9a-fA-F]{40}(?![0-9a-fA-F])/g;
 const txHashPattern = /(?<![0-9a-fA-Fx])0x[0-9a-fA-F]{64}(?![0-9a-fA-F])/;
@@ -332,19 +334,53 @@ export async function readLiveChainData(input: {
     (windowsSearched * walletLogWindowBlocks * approxSecondsPerBlock) / 60,
   );
 
+  // USD values from on-chain DEX pools; optional, so a failure only drops
+  // the dollar figures.
+  let prices = new Map<string, TokenPrice | null>();
+  try {
+    const priceTokens = [
+      { address: wethAddress, decimals: 18 },
+      ...tokens.map((token) => ({ address: token.address, decimals: token.decimals })),
+      ...walletBalances.flat()
+        .filter((entry) => entry.raw !== null && entry.raw > 0n)
+        .map((entry) => ({ address: entry.token.address, decimals: entry.token.decimals })),
+    ];
+    prices = await readTokenPricesUsd(
+      rpc,
+      [...new Map(priceTokens.map((token) => [token.address, token])).values()]
+        .slice(0, maxPricedTokens),
+    );
+  } catch {
+    prices = new Map();
+  }
+  const usdValue = (raw: bigint, decimals: number, address: string) => {
+    const price = prices.get(address);
+    return price ? Number(formatUnits(raw, decimals)) * price.usd : null;
+  };
+  const withUsd = (value: number | null) => value === null ? "" : ` (~${formatUsd(value)})`;
+
   wallets.forEach((wallet, index) => {
     const lines = [
       `${wallet.isContract ? "Smart contract account" : "Wallet"} ${wallet.address}`,
     ];
-    lines.push(`- ETH: ${formatAmount(wallet.ethWei, 18)}`);
+    const ethUsd = usdValue(wallet.ethWei, 18, wethAddress);
+    let totalUsd = ethUsd ?? 0;
+    lines.push(`- ETH: ${formatAmount(wallet.ethWei, 18)}${withUsd(ethUsd)}`);
 
     const holdings = walletBalances[index]
       .filter((entry) => entry.raw !== null && entry.raw > 0n);
     for (const entry of holdings) {
-      lines.push(`- ${entry.token.symbol}: ${formatAmount(entry.raw!, entry.token.decimals)}`);
+      const value = usdValue(entry.raw!, entry.token.decimals, entry.token.address);
+      totalUsd += value ?? 0;
+      lines.push(
+        `- ${entry.token.symbol}: ${formatAmount(entry.raw!, entry.token.decimals)}${withUsd(value)}`,
+      );
     }
     if (!holdings.length) {
       lines.push("- No balance in WETH, USDG, or recently used tokens");
+    }
+    if (totalUsd > 0) {
+      lines.push(`- Estimated value: ~${formatUsd(totalUsd)} (priced assets only)`);
     }
     if (wallet.nonce !== null && !wallet.isContract) {
       lines.push(`- Transactions sent from this wallet: ${groupDigits(String(wallet.nonce))}`);
@@ -383,6 +419,14 @@ export async function readLiveChainData(input: {
     if (token.totalSupply !== null) {
       lines.push(`- Total supply: ${formatAmount(token.totalSupply, token.decimals)} ${token.symbol}`);
     }
+    const price = prices.get(token.address);
+    lines.push(
+      price
+        ? `- Price: ${formatUsd(price.usd)} (from an on-chain ${
+          price.source === "v2_pool" ? "DEX pool" : "Uniswap V3 pool"
+        })`
+        : "- Price: no liquid USDG or WETH pool found",
+    );
     const activityMinutes = Math.max(
       1,
       Math.round((tokenActivityBlocks * approxSecondsPerBlock) / 60),
@@ -404,7 +448,7 @@ export async function readLiveChainData(input: {
   const header =
     `Live Robinhood Chain data, read at block ${groupDigits(String(head))}:`;
   const footer =
-    "Not included: USD prices, holder counts, and history older than the window above.";
+    "Not included: holder counts, prices for tokens without a liquid pool, and history older than the window above. Prices come from on-chain pools and can move fast.";
   let block = [header, ...sections, footer].join("\n\n");
 
   if (block.length > maxFactBlockLength) {
@@ -556,7 +600,7 @@ function dedupeTransfers(rows: TransferRow[]) {
     });
 }
 
-function createBatchRpc(rpcUrl: string, fetchImpl: typeof fetch, timeoutMs: number) {
+export function createBatchRpc(rpcUrl: string, fetchImpl: typeof fetch, timeoutMs: number) {
   return async (calls: RpcCall[]): Promise<unknown[]> => {
     if (!calls.length) {
       return [];
@@ -608,7 +652,7 @@ function createBatchRpc(rpcUrl: string, fetchImpl: typeof fetch, timeoutMs: numb
   };
 }
 
-function ethCall(to: string, data: string): RpcCall {
+export function ethCall(to: string, data: string): RpcCall {
   return { method: "eth_call", params: [{ to, data }, "latest"] };
 }
 
@@ -619,7 +663,7 @@ function transferLogs(fromBlock: number, toBlock: number, topics: unknown[]): Rp
   };
 }
 
-function readAbiString(value: unknown) {
+export function readAbiString(value: unknown) {
   if (typeof value !== "string" || !/^0x[0-9a-fA-F]*$/.test(value) || value.length <= 2) {
     return null;
   }
@@ -646,7 +690,7 @@ function cleanLabel(value: string) {
   return label || null;
 }
 
-function readUint(value: unknown) {
+export function readUint(value: unknown) {
   if (typeof value !== "string" || !/^0x[0-9a-fA-F]{1,64}$/.test(value)) {
     return null;
   }
@@ -657,7 +701,7 @@ function readUint(value: unknown) {
   }
 }
 
-function readHexBigInt(value: unknown) {
+export function readHexBigInt(value: unknown) {
   if (typeof value !== "string" || !/^0x[0-9a-fA-F]+$/.test(value)) {
     return null;
   }
@@ -668,7 +712,7 @@ function readHexBigInt(value: unknown) {
   }
 }
 
-function readHexNumber(value: unknown) {
+export function readHexNumber(value: unknown) {
   const parsed = readHexBigInt(value);
   return parsed !== null && parsed <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(parsed) : null;
 }
@@ -681,7 +725,7 @@ export function formatAmount(raw: bigint, decimals: number) {
   return text === "0" && raw > 0n ? "<0.000001" : text;
 }
 
-function groupDigits(value: string) {
+export function groupDigits(value: string) {
   return value.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
@@ -697,7 +741,7 @@ function uniqueTokens(tokens: TokenMeta[]) {
   return [...seen.values()];
 }
 
-function padAddress(address: string) {
+export function padAddress(address: string) {
   return address.toLowerCase().replace(/^0x/, "").padStart(64, "0");
 }
 
@@ -705,11 +749,11 @@ function topicAddress(topic: string) {
   return `0x${topic.slice(-40)}`.toLowerCase();
 }
 
-function toHex(value: number) {
+export function toHex(value: number) {
   return `0x${value.toString(16)}`;
 }
 
-function shortAddress(address: string) {
+export function shortAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
@@ -717,7 +761,7 @@ function shortHash(hash: string) {
   return hash.length > 14 ? `${hash.slice(0, 8)}...${hash.slice(-4)}` : hash;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 

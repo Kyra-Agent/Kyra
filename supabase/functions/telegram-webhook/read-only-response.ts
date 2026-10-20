@@ -9,8 +9,8 @@ export interface TelegramReadOnlyCommandResponse {
 const helpText = [
   "Kyra Telegram",
   "Commands: /help /status /agent /actions /modules /policy /forget",
+  "Monitor: /watch /watchlist /alert /alerts /launches",
   "Plain text: ask for a brief, review, or plan.",
-  "Memory: last 6 messages, 24h. /forget clears it.",
   "Boundary: wallet and onchain execution are disabled.",
 ].join("\n");
 
@@ -36,6 +36,9 @@ export const communityTexts = {
   memberLimited: "You have asked a lot in a short time. Please try again in about 10 minutes.",
   groupLimited: "This group has reached its question limit for the hour. Please try again later.",
 };
+
+const monitoringUnavailableText =
+  "Monitoring is not available right now. Try again in a moment.";
 
 const forgetText = [
   "Done. I cleared this chat's memory.",
@@ -137,6 +140,14 @@ export function buildTelegramReadOnlyCommandResponse(
   // The webhook replaces these with the actual outcome.
   if (command === "community_on" || command === "community_off") {
     return { command, text: communityTexts.failed };
+  }
+
+  if (
+    command === "watch" || command === "unwatch" || command === "watchlist" ||
+    command === "alert" || command === "alerts" || command === "alerts_clear" ||
+    command === "launches"
+  ) {
+    return { command, text: monitoringUnavailableText };
   }
 
   if (command === "chat") {
