@@ -3215,14 +3215,14 @@ export function Dashboard({
                 <strong>private by default</strong>
               </div>
               <p>
-                Public visitors do not see dashboard records, wallet status,
-                approval queues, transaction controls, support evidence, or
-                release readiness.
+                Public visitors do not see dashboard records, your wallet,
+                your approval queue, or your activity. Only your public agent
+                profile is shareable.
               </p>
               <small>
-                Signing in only loads account-scoped Kyra records. Wallet keys,
-                Telegram bot tokens, and transaction execution stay behind
-                separate wallet confirmations.
+                Signing in only loads your own Kyra records. Kyra never asks for
+                your wallet keys, and nothing is signed without your
+                confirmation in your wallet.
               </small>
             </section>
           </div>
