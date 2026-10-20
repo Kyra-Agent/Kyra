@@ -105,7 +105,8 @@
     "check:protected-swap-types": "deno check supabase/functions/swap-quote-prepare/core.ts supabase/functions/swap-quote-prepare/provider.ts supabase/functions/swap-execution-prepare/core.ts supabase/functions/swap-result-closeout/core.ts supabase/functions/swap-result-closeout/receipt-verifier.ts",
     "test:protected-swap": "npm run check:protected-swap-provider-config && npm run test:protected-swap-provider-qualification && npm run check:protected-swap-types && npm run test:swap-frontend-policy && npm run test:swap-quote-prepare && npm run test:swap-execution-prepare && npm run test:swap-result-closeout",
     "test:all": "node scripts/run-all-tests.mjs",
-    "check:robinhood-only": "node scripts/check-robinhood-only-repository.mjs"
+    "check:robinhood-only": "node scripts/check-robinhood-only-repository.mjs",
+    "check:release-bundle": "node scripts/check-release-bundle.mjs"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",

@@ -102,6 +102,13 @@ Every outward action must run under the official Kyra identity only.
 
 Do not push, deploy, or link while another personal account is active.
 
+Production site builds need the Netlify site variables (chain release target,
+mainnet window, controlled submission). Netlify adds them only when it runs
+the build, so deploy with `netlify deploy --prod`. If you deploy a local
+`dist` with `--no-build`, load the variables first and run
+`npm run check:release-bundle` before deploying; without them the site ships
+with wallet signing turned off.
+
 ## 1. Local Verification
 
 Run the full gate before touching production:
