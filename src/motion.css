@@ -25,7 +25,6 @@ body,
 .button,
 .theme-toggle,
 .compact-nav-trigger,
-.icon-link,
 input,
 select,
 textarea {
@@ -108,8 +107,7 @@ body {
 
 .button,
 .theme-toggle,
-.compact-nav-trigger,
-.icon-link {
+.compact-nav-trigger {
   position: relative;
   isolation: isolate;
   transition-property: transform, border-color, background-color, box-shadow, color;
@@ -117,8 +115,7 @@ body {
 
 .button:active,
 .theme-toggle:active,
-.compact-nav-trigger:active,
-.icon-link:active {
+.compact-nav-trigger:active {
   transform: translateY(0) scale(0.975);
   transition-duration: var(--motion-fast);
 }
@@ -279,8 +276,7 @@ textarea:focus-visible {
 .status-pill,
 .module-status,
 .live-indicator,
-.telegram-status-card,
-.header-product-badge {
+.telegram-status-card {
   transition:
     border-color var(--motion-base) var(--motion-ease),
     background-color var(--motion-base) var(--motion-ease),

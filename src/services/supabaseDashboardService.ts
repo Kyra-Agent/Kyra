@@ -197,10 +197,7 @@ function mapChainActionRouteStatus(
   return "queued";
 }
 
-function mapWorkspace(
-  row: WorkspaceRow,
-  session: KyraAuthSession,
-): DemoWorkspaceRecord {
+function mapWorkspace(row: WorkspaceRow): DemoWorkspaceRecord {
   return {
     id: row.id,
     name: row.name,
@@ -697,7 +694,7 @@ export async function fetchSupabaseDashboardData(
       ok: true,
       status: "connected",
       data: {
-        workspace: mapWorkspace(workspace, session),
+        workspace: mapWorkspace(workspace),
         agentInstances: mappedAgents,
         approvalRequests: mappedApprovalRequests,
         walletPolicies: walletPolicies.flatMap(mapWalletPolicy).slice(0, 6),

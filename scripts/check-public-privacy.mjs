@@ -369,7 +369,7 @@ assert(
 );
 assert(
   dashboardPage.includes("Private account workspace") &&
-    dashboardPage.includes("Public visitors can use the product pages and public agent profiles without seeing operational or wallet internals."),
+    dashboardPage.includes("Public agent profiles stay viewable by anyone, without exposing your records or wallet."),
   "Signed-out dashboard must show a public-safe private workspace notice.",
 );
 assert(

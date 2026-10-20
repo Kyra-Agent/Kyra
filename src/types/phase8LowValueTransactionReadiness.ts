@@ -2,7 +2,6 @@
 import {
   ownerTransactionValue,
   ownerTransactionValueLabel,
-  ownerTransactionValueWei,
 } from "../config/ownerTransactionPolicy";
 import { productChainId } from "./unsignedTransactionHandoff";
 

@@ -2,6 +2,21 @@
    Three.js scenes, a richer color system, and premium transitions. Every
    effect degrades to the v3 look without WebGL or under reduced motion. */
 
+/* Largest Contentful Paint ------------------------------------------------------ */
+
+/* The hero subtitle is the page's LCP element. It is visible from the first
+   frame and only slides into place, so the entrance never delays LCP. */
+.hero-copy > .hero-subtitle {
+  animation-name: heroRiseVisible;
+  animation-delay: 0ms;
+}
+
+@keyframes heroRiseVisible {
+  from {
+    transform: translate3d(0, 10px, 0);
+  }
+}
+
 /* Hero portrait (halftone print plate) ---------------------------------------- */
 
 .hero-portrait {
@@ -392,4 +407,89 @@
   .module-signal-labels span {
     font-size: 0.6rem;
   }
+}
+
+/* Not found ------------------------------------------------------------------------ */
+
+.not-found-page {
+  display: grid;
+  place-items: center;
+  width: calc(100% - 32px);
+  max-width: 1180px;
+  min-height: calc(100svh - 260px);
+  margin: 0 auto;
+  padding: 3rem 0 5rem;
+}
+
+.not-found-panel {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  max-width: 560px;
+  text-align: center;
+}
+
+.not-found-code {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-family: var(--font-mono);
+  font-size: clamp(4rem, 3rem + 6vw, 7.5rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.not-found-panel h1 {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.4rem);
+  letter-spacing: -0.03em;
+}
+
+.not-found-panel p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.not-found-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+/* Action tiers: Ready, Guided, Planned. */
+.action-tier-legend {
+  font-size: 0.86rem;
+}
+
+.action-tier-legend span {
+  display: inline-block;
+  padding: 0.05rem 0.42rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  opacity: 1;
+}
+
+.action-tier-legend .tier-mvp,
+.action-card.tier-mvp .mini-label {
+  border-color: color-mix(in srgb, var(--green) 45%, transparent);
+  color: var(--green);
+}
+
+.action-tier-legend .tier-demo,
+.action-card.tier-demo .mini-label {
+  border-color: color-mix(in srgb, var(--blue) 45%, transparent);
+  color: var(--blue);
+}
+
+.action-tier-legend .tier-later,
+.action-card.tier-later .mini-label {
+  color: var(--muted);
 }

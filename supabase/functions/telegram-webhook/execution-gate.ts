@@ -81,7 +81,11 @@ export function reviewTelegramExecutionGate(
   // brain or any third-party model provider.
   if (secretLikePattern.test(text)) {
     return blockedDecision(
-      "Telegram cannot process secrets, wallet keys, or token material.",
+      [
+        "Kyra cannot process secrets, wallet keys, or token material, and never passes them to the agent.",
+        "If that was a real seed phrase or private key, treat it as exposed: delete the message and move your funds to a new wallet.",
+        "If it was a bot token, revoke it in @BotFather and reconnect from your Kyra dashboard.",
+      ].join("\n"),
       detectDraftKind(text),
     );
   }

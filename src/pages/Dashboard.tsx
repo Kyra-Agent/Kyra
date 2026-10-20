@@ -3424,8 +3424,8 @@ export function Dashboard({
               <span>Private account workspace</span>
               <strong>sign in required</strong>
             </div>
-            <p>Kyra keeps agent records, wallet status, approval queues, transaction controls, support evidence, and release readiness inside the private account workspace.</p>
-            <small>Public visitors can use the product pages and public agent profiles without seeing operational or wallet internals.</small>
+            <p>Sign in to see your agents, Telegram connection, approval queue, and activity log. Everything here is private to your account.</p>
+            <small>Public agent profiles stay viewable by anyone, without exposing your records or wallet.</small>
           </section>
         ) : (
           <>

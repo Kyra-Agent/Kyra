@@ -18,6 +18,26 @@ All notable public releases of Kyra Agent are documented here.
 - Resolved high-severity dependency advisories and aligned the Edge Function
   `viem` pin with the frontend.
 
+### Audit fixes
+
+- Unknown URLs now render a real "Page not found" view and Netlify answers
+  them with HTTP 404 instead of a soft 200; added `sitemap.xml` and linked it
+  from `robots.txt`.
+- Tightened the production CSP (`connect-src` no longer allows
+  `*.netlify.app`) and removed the Netlify badge script that logged a console
+  error.
+- Improved LCP: the hero subtitle no longer starts invisible.
+- The Telegram bot now tells users to treat a pasted seed phrase, private key,
+  or bot token as exposed and how to recover, instead of only refusing it.
+- Action layer labels match what ships: Ready (works in chat today), Guided
+  (the agent walks you through it), and Planned (needs live chain data).
+  Rewrote the FAQ, safety banner, and deploy copy in plain language; the
+  Executor template is labeled Advanced, not Pro.
+- The hero headline now has real spaces between words for copy, search, and
+  translation tools.
+- Turned on `noUnusedLocals` and `noUnusedParameters` and removed the dead code
+  and CSS they surfaced.
+
 ### Interface
 
 - Added interface v4 around Kyra's identity: the hero portrait is now a

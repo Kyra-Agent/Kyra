@@ -58,8 +58,8 @@ function buildReply(text: string, template: AgentTemplate): SimulatedReply {
     return {
       verdict: "secret",
       text: [
-        "Telegram cannot process secrets, wallet keys, or token material.",
-        "Never share a seed phrase or private key with anyone, including Kyra.",
+        "Kyra cannot process secrets, wallet keys, or token material, and never passes them to the agent.",
+        "If that was a real seed phrase or private key, treat it as exposed: delete the message and move your funds to a new wallet.",
       ].join("\n"),
     };
   }

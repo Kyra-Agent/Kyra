@@ -12,10 +12,7 @@
   VITE_KYRA_PHASE8_CONTROLLED_SUBMISSION = "owner_approved_window"
   VITE_KYRA_PHASE8_LOW_VALUE_SUBMISSION = "owner_low_value_window"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# Routing (200 for app routes, 404 otherwise) lives in public/_redirects.
 
 [[headers]]
   for = "/*"
@@ -24,7 +21,7 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
-    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://*.supabase.in https://*.netlify.app https://rpc.mainnet.chain.robinhood.com https://rpc.testnet.chain.robinhood.com; upgrade-insecure-requests"
+    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://*.supabase.in https://rpc.mainnet.chain.robinhood.com https://rpc.testnet.chain.robinhood.com; upgrade-insecure-requests"
 
 [[headers]]
   for = "/assets/*"

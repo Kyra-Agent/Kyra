@@ -55,7 +55,7 @@ export function evaluatePhase9Closeout(input: Phase9CloseoutInput): Phase9Closeo
     publicExecutionRuntimeEnabled: false,
     reasons,
     controls: buildControls(input),
-    message: getMessage(phase9StructurallyComplete, reasons),
+    message: getMessage(phase9StructurallyComplete),
   };
 }
 
@@ -99,7 +99,7 @@ function buildControls(input: Phase9CloseoutInput): Phase9CloseoutItem[] {
   ];
 }
 
-function getMessage(phase9StructurallyComplete: boolean, reasons: Phase9CloseoutReason[]) {
+function getMessage(phase9StructurallyComplete: boolean) {
   if (phase9StructurallyComplete) {
     return "Public execution safety is structurally complete; release readiness can continue while runtime remains disabled.";
   }

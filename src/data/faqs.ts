@@ -5,46 +5,46 @@ export const faqs: FAQItem[] = [
   {
     question: "What is Kyra?",
     answer:
-      `Kyra is a ${currentProductChain.name}-native AI agent platform. It lets users deploy Telegram-native agents that read context, understand commands, and prepare approval-first action reviews.`,
+      `Kyra lets you deploy an AI agent for ${currentProductChain.name} and talk to it through your own Telegram bot. Each agent starts from a template, explains and plans in plain language, and never moves funds on its own.`,
   },
   {
-    question: "Does Kyra execute real transactions automatically?",
+    question: "Does Kyra execute transactions automatically?",
     answer:
-      "No. Kyra can deploy agents, run Telegram read-only replies, and prepare approval-first review flows. Transaction execution requires explicit user and wallet approval.",
+      "No. Telegram replies are read-only. When something would touch funds, Kyra stops and points you to a review in your private dashboard, and nothing is sent until you sign it in your own wallet.",
   },
   {
     question: "Does Kyra control my wallet?",
     answer:
-      "No. Kyra never needs seed phrases or private keys. The agent can prepare review context, but wallet prompts, signing, and onchain execution stay behind the user-controlled approval path.",
+      "No. Kyra never asks for seed phrases or private keys and does not hold funds. If you paste a secret into chat, the agent refuses it, never passes it to the AI model, and tells you how to secure your wallet.",
   },
   {
     question: "Who pays for onchain actions?",
     answer:
-      "Network and protocol fees are paid by the connected wallet. Kyra shows the account holder what is being approved before submission.",
+      "Your connected wallet pays network and protocol fees for anything you sign. Kyra shows what you are approving before your wallet asks for a signature.",
   },
   {
     question: "Why Telegram first?",
     answer:
-      "Telegram gives Kyra a fast command interface for personal and community agents. The product output is still a full agent workspace: Telegram interface, dashboard, public profile, and approval-first workflow.",
+      "Telegram is where most crypto users and communities already talk. Your agent replies there, while records, settings, and approvals live in your private Kyra dashboard.",
   },
   {
-    question: "Do I need to expose a Telegram bot token?",
+    question: "What happens to my Telegram bot token?",
     answer:
-      "No. Public pages never collect bot tokens. Users connect Telegram only through deploy or an explicit reconnect flow, and token handling stays backend-scoped.",
+      "You paste the BotFather token once, inside the signed-in deploy or reconnect flow. It is encrypted on Kyra's backend, never shown in the browser again, and you can revoke it in BotFather at any time.",
   },
   {
-    question: `What is the ${currentProductChain.name} action layer?`,
+    question: "What can an agent do today?",
     answer:
-      `It is the approval-first workflow Kyra uses to prepare ${currentProductChain.name} action reviews while keeping wallet prompts and execution under explicit user control.`,
+      "Agents answer questions, explain their template and safety policy, and draft plans such as campaign briefs, swap reviews, and transfer checklists. Live wallet balances, token data, and launch tracking in chat are on the roadmap and marked as Planned on this page.",
   },
   {
     question: "Can project teams use Kyra?",
     answer:
-      "Yes. Project-facing agents can answer token questions, verify holders, monitor launches, and keep admin actions separated from public user actions.",
+      "Yes. The Steward and Strategist templates are built for teams: community answers, announcement drafts, and campaign plans, with admin actions kept separate from public users.",
   },
   {
-    question: "Can I save an agent?",
+    question: "How many agents can I deploy?",
     answer:
-      "Yes. Signed-in users can persist agent records for dashboard and public profile views. Telegram connections stay account-managed, while wallet transactions remain approval-first.",
+      "Each account workspace holds up to three agents. Every agent gets its own public profile, Telegram connection, and activity log in the dashboard.",
   },
 ];

@@ -35,8 +35,15 @@ export function ActionConsole() {
         <p className="eyebrow">Action Layer</p>
         <RevealHeading text="Every command becomes a controlled review." />
         <p>
-          Kyra reads context, prepares bounded summaries, and routes wallet or
-          onchain requests through explicit user approval.
+          Kyra explains, plans, and drafts reviews. Anything that would touch
+          funds waits for your signature in your own wallet.
+        </p>
+        <p className="action-tier-legend">
+          <span className="tier-mvp">Ready</span> works in chat today.{" "}
+          <span className="tier-demo">Guided</span> means the agent walks you
+          through it and you act in your wallet.{" "}
+          <span className="tier-later">Planned</span> needs live chain data
+          and is on the roadmap.
         </p>
       </div>
 

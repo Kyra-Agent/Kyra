@@ -24,7 +24,7 @@ interface TemplatePickerProps {
 
 const statusLabel = {
   mvp: "Ready",
-  advanced: "Pro",
+  advanced: "Advanced",
   "coming-soon": "Soon",
 };
 
@@ -33,26 +33,6 @@ const statusIcon = {
   advanced: Sparkles,
   "coming-soon": Clock3,
 };
-
-function getCatalogTone(status: SupabaseConnectionStatus) {
-  if (status === "connected") {
-    return "ready";
-  }
-
-  return status === "error" ? "error" : "standby";
-}
-
-function getCatalogLabel(status: SupabaseConnectionStatus) {
-  if (status === "connected") {
-    return "Catalog: Connected";
-  }
-
-  if (status === "error") {
-    return "Catalog: Built-in fallback";
-  }
-
-  return status === "checking" ? "Catalog: Checking" : "Catalog: Built-in";
-}
 
 export function TemplatePicker({
   templates,
@@ -69,14 +49,12 @@ export function TemplatePicker({
         <p>
           Templates keep the product simple. Kyra modules handle orchestration, research, data, and security underneath.
         </p>
-        <div className="catalog-status-row">
-          <span className={`readiness-chip readiness-${getCatalogTone(catalogStatus)}`}>
-            {getCatalogLabel(catalogStatus)}
-          </span>
-          {catalogError ? (
-            <small>Connected catalog is temporarily offline. Built-in Kyra templates are loaded safely.</small>
-          ) : null}
-        </div>
+        {catalogStatus === "error" && catalogError ? (
+          <div className="catalog-status-row">
+            <span className="readiness-chip readiness-error">Offline copy</span>
+            <small>The live catalog is temporarily unreachable, so Kyra is showing its built-in templates.</small>
+          </div>
+        ) : null}
       </div>
 
       <div className="template-grid">

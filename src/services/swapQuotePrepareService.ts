@@ -3,7 +3,6 @@ import { appConfig } from "../config/appConfig";
 import {
   getSwapTokenSymbolForAddress,
   type ReviewedSwapQuoteRequest,
-  swapQuotePolicyVersion,
 } from "../config/swapQuotePolicy";
 import { robinhoodChain } from "../config/productChains";
 import type { KyraAuthSession } from "./supabaseAuthService";

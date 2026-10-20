@@ -167,7 +167,6 @@ button {
 
 :root[data-theme="light"] .button-ghost,
 :root[data-theme="light"] .theme-toggle,
-:root[data-theme="light"] .icon-link,
 :root[data-theme="light"] .trust-row span,
 :root[data-theme="light"] .chip,
 :root[data-theme="light"] .guarantee-strip li {
@@ -456,11 +455,6 @@ button {
   min-width: 0;
   justify-content: flex-end;
 }
-
-.header-actions .header-safety {
-  display: none;
-}
-
 .header-actions .header-account {
   min-width: 92px;
 }
@@ -500,27 +494,6 @@ button {
   gap: 0.48rem;
   text-decoration: none;
 }
-
-.icon-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 38px;
-  width: 38px;
-  min-width: 38px;
-  height: 38px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text);
-  font-weight: 900;
-  line-height: 1;
-  transition:
-    border-color 160ms ease,
-    background 160ms ease,
-    transform 160ms ease;
-}
-
 .theme-toggle {
   display: inline-flex;
   align-items: center;
@@ -551,13 +524,6 @@ button {
 .theme-toggle span {
   font-size: 0.82rem;
 }
-
-.icon-link:hover {
-  transform: translateY(-1px);
-  border-color: var(--line-strong);
-  background: rgba(94, 162, 255, 0.09);
-}
-
 .x-link {
   font-family: var(--font-mono);
   font-size: 0.9rem;
@@ -631,15 +597,6 @@ button {
   padding: 0 0.72rem;
   white-space: nowrap;
 }
-
-.header-product-badge {
-  border-color: rgba(138, 230, 177, 0.28);
-  background:
-    linear-gradient(135deg, rgba(138, 230, 177, 0.12), rgba(94, 162, 255, 0.07)),
-    rgba(255, 255, 255, 0.035);
-  color: var(--green);
-}
-
 .demo-badge.compact {
   padding: 0.35rem 0.5rem;
 }
@@ -1621,12 +1578,6 @@ h2 {
 .wizard-controls .button {
   width: 100%;
 }
-
-.deploy-button {
-  width: 100%;
-  margin-top: 1rem;
-}
-
 .deploy-receipt {
   display: grid;
   gap: 0.75rem;
@@ -5646,11 +5597,6 @@ h2 {
     background: rgba(94, 162, 255, 0.09);
     color: var(--text);
   }
-
-  .header-actions .header-safety {
-    display: inline-flex;
-  }
-
   .hero-section {
     grid-template-columns: 1fr;
     min-height: auto;
@@ -5733,11 +5679,6 @@ h2 {
   .header-actions {
     gap: 0.45rem;
   }
-
-  .header-actions .hide-on-mobile {
-    display: none;
-  }
-
   .button-small {
     min-height: 36px;
     padding: 0.55rem 0.64rem;
@@ -6095,11 +6036,6 @@ h2 {
   .header-actions .button-primary {
     display: none;
   }
-
-  .header-actions .icon-link {
-    display: none;
-  }
-
   .theme-toggle {
     display: none;
   }
@@ -6333,31 +6269,6 @@ h2 {
   margin: 12px 0;
   color: #d8e7f5;
 }
-
-.phase-8-funding-guide {
-  display: grid;
-  gap: 6px;
-  margin: 12px 0;
-  border: 1px solid rgba(245, 158, 11, 0.34);
-  border-radius: 8px;
-  padding: 12px;
-  background: rgba(120, 72, 8, 0.16);
-}
-
-.phase-8-funding-guide strong {
-  color: #f8df8a;
-}
-
-.phase-8-funding-guide span {
-  color: #f6fbff;
-  font-size: 0.88rem;
-}
-
-.phase-8-funding-guide small {
-  color: #b9c9db;
-  line-height: 1.5;
-}
-
 .phase-8-submit-boundary .button {
   width: 100%;
   justify-content: center;

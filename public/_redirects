@@ -1,1 +1,15 @@
-/* /index.html 200
+# Known SPA routes render the app with 200; anything else renders the
+# app's not-found view with a real 404. Keep in sync with isKnownHomePath
+# in src/App.tsx.
+/                 /index.html  200
+/how-it-works     /index.html  200
+/try              /index.html  200
+/templates        /index.html  200
+/deploy           /index.html  200
+/actions          /index.html  200
+/security         /index.html  200
+/faq              /index.html  200
+/dashboard        /index.html  200
+/dashboard/*      /index.html  200
+/agents/*         /index.html  200
+/*                /index.html  404

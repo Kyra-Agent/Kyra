@@ -31,6 +31,7 @@ import { HeroPortrait } from "./components/HeroPortrait";
 import { RevealHeading } from "./components/RevealHeading";
 import { HowItWorks } from "./components/HowItWorks";
 import { MotionRuntime } from "./components/MotionRuntime";
+import { NotFound } from "./components/NotFound";
 import { OfficialTokenCard } from "./components/OfficialTokenCard";
 import { SecuritySection } from "./components/SecuritySection";
 import { StatsStrip } from "./components/StatsStrip";
@@ -94,6 +95,13 @@ type HomeSectionId = (typeof homeSectionIds)[number];
 
 function isHomeSectionId(sectionId: string): sectionId is HomeSectionId {
   return homeSectionIds.includes(sectionId as HomeSectionId);
+}
+
+// Paths the home route serves. Keep in sync with public/_redirects, which
+// answers 404 for anything else.
+function isKnownHomePath(pathname: string) {
+  const trimmed = pathname.replace(/^\/|\/$/g, "");
+  return trimmed === "" || isHomeSectionId(trimmed);
 }
 
 function getHomeSectionIdFromPath(pathname: string) {
@@ -322,7 +330,7 @@ function App() {
   const [deployInitialStepId, setDeployInitialStepId] = useState<
     DeployWizardStepId
   >("account");
-  const [route, setRoute] = useState<"home" | "dashboard" | "agent">(() => {
+  const [route, setRoute] = useState<"home" | "dashboard" | "agent" | "notfound">(() => {
     if (typeof window === "undefined") {
       return "home";
     }
@@ -338,7 +346,7 @@ function App() {
       return "agent";
     }
 
-    return "home";
+    return isKnownHomePath(window.location.pathname) ? "home" : "notfound";
   });
 
   const selectedTemplate = useMemo(
@@ -588,6 +596,12 @@ function App() {
         return;
       }
 
+      if (!isKnownHomePath(window.location.pathname)) {
+        setHomeSectionId(null);
+        setRoute("notfound");
+        return;
+      }
+
       setHomeSectionId(getHomeSectionIdFromPath(window.location.pathname));
       setRoute("home");
     }
@@ -780,10 +794,10 @@ function App() {
       >
         <span>
           <ShieldCheck size={15} />
-          PRODUCT READY
+          APPROVAL FIRST
         </span>
         <p>
-          Public-ready agent workspace. Account records stay private, Telegram tokens stay backend-only, and every onchain action stays behind explicit user and wallet approval.
+          Kyra never asks for seed phrases or private keys. Bot tokens stay encrypted on the backend, and nothing moves onchain until you sign it in your own wallet.
         </p>
       </div>
 
@@ -808,6 +822,13 @@ function App() {
               />
             </Suspense>
           </RouteErrorBoundary>
+        )
+        : route === "notfound"
+        ? (
+          <NotFound
+            onHome={() => navigate("home")}
+            onDashboard={() => navigate("dashboard")}
+          />
         )
         : route === "agent"
         ? (

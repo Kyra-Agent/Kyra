@@ -556,16 +556,11 @@ textarea:focus-visible {
 
 .hero-word {
   display: inline-block;
-  margin-right: 0.22em;
   opacity: 0;
   transform: translate3d(0, 0.6em, 0) rotate(2deg);
   filter: blur(10px);
   animation: heroWordIn 1000ms var(--motion-ease) forwards;
   animation-delay: calc(220ms + var(--word-index, 0) * 75ms);
-}
-
-.hero-word:last-child {
-  margin-right: 0;
 }
 
 .hero-title-accent .hero-word {

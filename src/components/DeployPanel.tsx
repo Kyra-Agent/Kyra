@@ -206,7 +206,7 @@ export function DeployPanel({
     () => [
       `kyra deploy --template ${selectedTemplate.id} --agent "${agentName || "Unnamed Agent"}"`,
       `agent.instance=${agentRecord.id}`,
-      `agent.public_route=${agentRecord.publicPath}`,
+      `agent.public_route=${agentRecord.publicPath || "assigned_on_publish"}`,
       `profile.template=${selectedTemplate.name}`,
       "profile.mode=protected",
       `agent.record_groups=${backendTables.length}`,
@@ -763,24 +763,24 @@ export function DeployPanel({
     <section className="section deploy-section" id="deploy">
       <div className="section-heading">
         <p className="eyebrow">Deploy Flow</p>
-        <RevealHeading text="Deploy a public-ready agent workspace." />
+        <RevealHeading text="Deploy your agent in a few minutes." />
         <p>
-          Choose a template, configure identity, connect Telegram, and publish an agent profile with private dashboard records and explicit user approval for every onchain action.
+          Sign in, pick a template, name your agent, and connect your own Telegram bot. You get a public profile, a private dashboard, and an approval step in front of every onchain action.
         </p>
       </div>
 
       <div className="deploy-howto" aria-label="How to deploy a Kyra agent">
         <article>
           <span>01</span>
-          <strong>Create workspace</strong>
+          <strong>Sign in</strong>
           <p>
-            Save private agent records, quota, and the public route under your Kyra account.
+            Sign in so your agent, its settings, and its activity are saved to your private workspace.
           </p>
         </article>
         <article>
           <span>02</span>
           <strong>Choose a template</strong>
-          <p>Pick Operator, Steward, Strategist, or another agent profile for the use case.</p>
+          <p>Pick Operator, Steward, Strategist, or another role that fits what you need.</p>
         </article>
         <article>
           <span>03</span>
@@ -789,8 +789,8 @@ export function DeployPanel({
         </article>
         <article>
           <span>04</span>
-          <strong>Launch profile</strong>
-          <p>Publish the backend-persisted profile, then manage it from the private dashboard.</p>
+          <strong>Connect and publish</strong>
+          <p>Add your Telegram bot if you want chat, publish, then manage everything from the dashboard.</p>
         </article>
       </div>
 
@@ -823,9 +823,9 @@ export function DeployPanel({
             {wizardStep === 0 ? (
               <div className="wizard-screen">
                 <span className="wizard-kicker">Step 01</span>
-                <h3>Create a workspace for this agent</h3>
+                <h3>Sign in to save your agent</h3>
                 <p>
-                  Kyra saves deployed agents to a private account workspace with quota, dashboard records, and public profile routes. Existing users can switch to sign in on the account page.
+                  Your agents are saved to a private workspace that holds up to three agents. New here? Create an account; already have one? Sign in on the same page.
                 </p>
 
                 <div className="deploy-account-card">
@@ -835,11 +835,11 @@ export function DeployPanel({
                   </span>
                   <strong>
                     {authSession
-                      ? "Kyra can persist this agent to your private workspace."
-                      : "Create an account to unlock saved routes and private dashboard records."}
+                      ? "You are signed in. This agent will be saved to your workspace."
+                      : "Sign in to save this agent and get a shareable public profile."}
                   </strong>
                   <p>
-                    Account access stores workspace records only. Wallet connection, signing, and transactions remain separate user-approved actions.
+                    Your Kyra account only stores agent records. Connecting a wallet and signing anything are separate steps you approve yourself.
                   </p>
                   <button className="button button-ghost" type="button" onClick={onOpenAccount}>
                     <UserRound size={16} />
@@ -853,7 +853,7 @@ export function DeployPanel({
               <div className="wizard-screen">
                 <span className="wizard-kicker">Step 02</span>
                 <h3>Choose template</h3>
-                <p>Start from a clear use case. Kyra modules run behind the selected template.</p>
+                <p>Start from a clear use case. Kyra's modules run behind whichever template you pick.</p>
 
                 <div className="field template-menu-field">
                   <span>Agent template</span>
@@ -1057,8 +1057,8 @@ export function DeployPanel({
                 <h3>Publish agent</h3>
                 <p>
                   {authSession
-                    ? "Publish a backend-persisted agent profile with dashboard records and a shareable public route."
-                    : "Review the agent output. Sign in before deploying if you want backend persistence and a shareable public route."}
+                    ? "Publish your agent. It gets a shareable public profile, and its records stay in your private dashboard."
+                    : "Review your agent. Sign in before publishing to save it and get a shareable public profile."}
                 </p>
 
                 <div className="wizard-review-grid">
