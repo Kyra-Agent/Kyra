@@ -1,3 +1,4 @@
+import type { toAgentSettingsPayload } from "../config/agentSettings";
 import { appConfig } from "../config/appConfig";
 import {
   currentProductChain,
@@ -44,6 +45,7 @@ export interface DeployPersistenceInput {
   template: AgentTemplate;
   agentName: string;
   selectedActions: string[];
+  settings?: ReturnType<typeof toAgentSettingsPayload>;
 }
 
 export interface DeployPersistenceResult {
@@ -441,11 +443,13 @@ async function saveViaDeployFunction({
   template,
   agentName,
   selectedActions,
+  settings,
 }: {
   session: KyraAuthSession;
   template: AgentTemplate;
   agentName: string;
   selectedActions: string[];
+  settings?: ReturnType<typeof toAgentSettingsPayload>;
 }) {
   if (!appConfig.functions.deployAgentConfigured) {
     throw new DeployFunctionError(
@@ -470,6 +474,7 @@ async function saveViaDeployFunction({
       selectedActions,
       chainKey: currentProductChain.key,
       chainId: currentProductChain.id,
+      ...(settings ? { settings } : {}),
     }),
   });
   const payload = await parseDeployFunctionResponse(response);
@@ -576,6 +581,7 @@ export async function saveSupabaseDemoDeployment({
   template,
   agentName,
   selectedActions,
+  settings,
 }: DeployPersistenceInput): Promise<DeployPersistenceResult> {
   if (!session) {
     return {
@@ -614,6 +620,7 @@ export async function saveSupabaseDemoDeployment({
         template,
         agentName,
         selectedActions,
+        settings,
       });
     } catch (error) {
       const fallbackAllowed = canUseRestDeployFallback() &&

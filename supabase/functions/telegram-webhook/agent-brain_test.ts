@@ -1631,3 +1631,51 @@ Deno.test("telegram agent brain without memory asks for missing details", () => 
     "Without memory the brain must not pretend to remember.",
   );
 });
+
+Deno.test("telegram agent brain includes owner settings without letting them override safety", () => {
+  const request = buildTelegramAgentBrainRequest({
+    command: "chat",
+    templateId: "steward",
+    userRequest: "when is the unlock?",
+    persona: "friendly",
+    ownerInstructions: "Always mention our Discord.",
+    projectKnowledge: "Token: ABC\nUnlock: March 1\nKey sk-or-v1-abcdefghijklmnopqrstuvwxyz",
+    riskProfile: "conservative",
+    maxReviewUsd: 500,
+  });
+  const system = request.messages[0]?.content ?? "";
+  const user = request.messages[request.messages.length - 1]?.content ?? "";
+
+  assert(system.includes("warm, friendly"), "Persona must set the tone.");
+  assert(
+    system.includes("never override the rules above"),
+    "Owner text must not override safety.",
+  );
+  assert(
+    system.includes("only from the project knowledge"),
+    "Project questions must be grounded in owner knowledge.",
+  );
+  assert(user.includes("Unlock: March 1"), "Knowledge must keep its lines.");
+  assert(user.includes("Always mention our Discord."), "Instructions must reach the prompt.");
+  assert(user.includes("$500 per action"), "Review limit must reach the prompt.");
+  assert(user.includes("Owner risk profile: conservative"), "Risk profile must reach the prompt.");
+  assert(!user.includes("sk-or-v1-"), "Secrets in knowledge must be hidden.");
+});
+
+Deno.test("telegram agent brain falls back to safe owner defaults", () => {
+  const request = buildTelegramAgentBrainRequest({
+    command: "chat",
+    templateId: "operator",
+    userRequest: "hi",
+    persona: "pirate",
+    riskProfile: "yolo",
+    maxReviewUsd: -5,
+  });
+  const system = request.messages[0]?.content ?? "";
+  const user = request.messages[request.messages.length - 1]?.content ?? "";
+
+  assert(system.includes("clear, measured, and professional"), "Unknown persona must fall back.");
+  assert(user.includes("Owner risk profile: balanced"), "Unknown risk must fall back.");
+  assert(user.includes("Owner review limit: none set"), "Invalid limit must be ignored.");
+  assert(user.includes("Project knowledge:\nnone provided"), "Missing knowledge must say so.");
+});

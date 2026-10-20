@@ -1,4 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  type AgentSettings,
+  toAgentSettingsRow,
+  validateAgentSettings,
+} from "../_shared/agent-settings.ts";
 
 type KyraSupabaseClient = ReturnType<typeof createClient<any>>;
 type TemplateStatus = "mvp" | "advanced" | "coming-soon";
@@ -19,6 +24,7 @@ interface DeployAgentRequest {
   selectedActions?: unknown;
   chainKey?: unknown;
   chainId?: unknown;
+  settings?: unknown;
 }
 
 interface AgentTemplateRow {
@@ -532,6 +538,23 @@ async function insertRelatedRecords(
   }
 }
 
+async function insertAgentSettings(
+  serviceClient: KyraSupabaseClient,
+  workspaceId: string,
+  agentId: string,
+  settings: AgentSettings,
+) {
+  const { error } = await serviceClient.from("agent_settings").insert({
+    agent_id: agentId,
+    workspace_id: workspaceId,
+    ...toAgentSettingsRow(settings),
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
 async function cleanupPartialAgent(
   serviceClient: KyraSupabaseClient,
   agentId: string | null,
@@ -613,7 +636,21 @@ Deno.serve(async (request) => {
 
     const template = await getTemplate(serviceClient, templateId);
     const allowedActions = readJsonArray(template.actions);
-    const requestedActions = normalizeStringArray(body.selectedActions);
+    const settingsValidation = validateAgentSettings(
+      body.settings,
+      allowedActions,
+    );
+
+    if (!settingsValidation.ok) {
+      throw new HttpError(400, "invalid_settings", settingsValidation.message, {
+        field: settingsValidation.field,
+      });
+    }
+
+    const settings = settingsValidation.settings;
+    const requestedActions = settings.enabledActions.length
+      ? settings.enabledActions
+      : normalizeStringArray(body.selectedActions);
     const filteredActions = requestedActions.length
       ? requestedActions.filter((action) => allowedActions.includes(action))
       : allowedActions;
@@ -647,6 +684,7 @@ Deno.serve(async (request) => {
         template,
         policy,
       );
+      await insertAgentSettings(serviceClient, workspace.id, agent.id, settings);
 
       try {
         nextUsed = await getAgentCount(serviceClient, workspace.id);

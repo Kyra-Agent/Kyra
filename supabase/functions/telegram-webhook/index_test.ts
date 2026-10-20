@@ -2973,6 +2973,14 @@ Deno.test("telegram-webhook runtime template context lookup uses REST before del
         );
       }
 
+      if (url.includes("/rest/v1/agent_settings")) {
+        assert(
+          url.includes(`agent_id=eq.${templateAgentId}`),
+          "Settings lookup must be scoped to the resolved session agent id.",
+        );
+        return new Response(JSON.stringify([]), { status: 200 });
+      }
+
       if (url.endsWith("/resolve_telegram_delivery_token")) {
         return new Response(JSON.stringify(testBotToken), { status: 200 });
       }
@@ -2999,7 +3007,7 @@ Deno.test("telegram-webhook runtime template context lookup uses REST before del
 
   assertEquals(response.status, 200);
   assertEquals(body.status, "delivered");
-  assertEquals(calls.length, 7);
+  assertEquals(calls.length, 8);
   assert(
     calls[0].url.endsWith("/resolve_telegram_webhook_session"),
     "Session lookup must run first.",
@@ -3021,13 +3029,18 @@ Deno.test("telegram-webhook runtime template context lookup uses REST before del
     "Template REST lookup must run before delivery token resolution.",
   );
   assert(
-    calls[5].url.endsWith("/resolve_telegram_delivery_token"),
+    calls[5].url.includes("/rest/v1/agent_settings"),
+    "Owner settings REST lookup must run with the template lookup.",
+  );
+  assert(
+    calls[6].url.endsWith("/resolve_telegram_delivery_token"),
     "Delivery token must be resolved after template context lookup.",
   );
   assertEquals(calls[3].method, "GET");
   assertEquals(calls[4].method, "GET");
+  assertEquals(calls[5].method, "GET");
   assert(
-    calls[6].url.endsWith("/mark_telegram_update_delivered"),
+    calls[7].url.endsWith("/mark_telegram_update_delivered"),
     "Delivery completion must be persisted after Telegram delivery.",
   );
 });

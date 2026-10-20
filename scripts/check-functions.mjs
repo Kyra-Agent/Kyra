@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
 const entrypoints = [
+  "agent-settings",
   "chain-action-prepare",
   "chain-status-provider",
   "deploy-agent",
@@ -20,6 +21,7 @@ const entrypoints = [
 ];
 
 const expectedJwt = new Map([
+  ["agent-settings", true],
   ["chain-action-prepare", true],
   ["chain-status-provider", false],
   ["remove-agent", true],

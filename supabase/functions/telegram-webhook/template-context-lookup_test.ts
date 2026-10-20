@@ -72,13 +72,15 @@ function createLookupClient(options?: {
   templateRows?: unknown[];
   agentError?: unknown;
   templateError?: unknown;
+  settingsRows?: unknown[];
+  settingsError?: unknown;
 }) {
   const calls: LookupCall[] = [];
 
   return {
     calls,
     client: {
-      from(table: "agent_instances" | "agent_templates") {
+      from(table: "agent_instances" | "agent_templates" | "agent_settings") {
         const call: LookupCall = { table, filters: [] };
         calls.push(call);
 
@@ -98,6 +100,13 @@ function createLookupClient(options?: {
               return {
                 data: (options?.agentRows ?? [agentRow]) as T[],
                 error: options?.agentError ?? null,
+              };
+            }
+
+            if (table === "agent_settings") {
+              return {
+                data: (options?.settingsRows ?? []) as T[],
+                error: options?.settingsError ?? null,
               };
             }
 
@@ -141,7 +150,7 @@ Deno.test("telegram template context lookup calls exact tables with bounded args
     serviceClient: client,
   });
 
-  assertEquals(calls.length, 2);
+  assertEquals(calls.length, 3);
   assertEquals(calls[0].table, "agent_instances");
   assertEquals(calls[0].columns, "id,template_id,display_name");
   assertEquals(calls[0].filters.length, 1);
@@ -154,6 +163,11 @@ Deno.test("telegram template context lookup calls exact tables with bounded args
   assertEquals(calls[1].filters[0].column, "id");
   assertEquals(calls[1].filters[0].value, "strategist");
   assertEquals(calls[1].limit, 2);
+  assertEquals(calls[2].table, "agent_settings");
+  assertEquals(calls[2].filters[0].column, "agent_id");
+  assertEquals(calls[2].filters[0].value, agentId);
+  assertEquals(calls[2].limit, 1);
+  assertEquals(result.context.ownerSettings, undefined);
   assertEquals(result.context.name, "KEE-RAHH Strategist");
   assertEquals(result.context.readOnlyActions.length, 5);
   assert(
@@ -277,4 +291,39 @@ Deno.test("telegram template context lookup keeps executor execution gated", asy
       ?.availability,
     "phase6_wallet_gated",
   );
+});
+
+Deno.test("telegram template context lookup applies owner settings", async () => {
+  const { client } = createLookupClient({
+    settingsRows: [{
+      persona: "friendly",
+      instructions: "Focus on the ABC launch.",
+      knowledge: "Token: ABC\nUnlock: March 1",
+      enabled_actions: ["campaign plan", "launch copy"],
+      enabled_modules: ["ASTRA-03"],
+      risk_profile: "conservative",
+      max_review_usd: 500,
+    }],
+  });
+  const result = await lookupTelegramTemplateContext({
+    agentId,
+    serviceClient: client,
+  });
+
+  assertEquals(result.context.readOnlyActions.join(","), "campaign plan,launch copy");
+  assertEquals(result.context.modules.map((module) => module.name).join(","), "ASTRA-03");
+  assertEquals(result.context.ownerSettings?.persona, "friendly");
+  assertEquals(result.context.ownerSettings?.knowledge, "Token: ABC\nUnlock: March 1");
+  assertEquals(result.context.ownerSettings?.maxReviewUsd, 500);
+});
+
+Deno.test("telegram template context lookup keeps answering when settings fail", async () => {
+  const { client } = createLookupClient({ settingsError: { message: "down" } });
+  const result = await lookupTelegramTemplateContext({
+    agentId,
+    serviceClient: client,
+  });
+
+  assertEquals(result.context.ownerSettings, undefined);
+  assertEquals(result.context.readOnlyActions.length, 5);
 });

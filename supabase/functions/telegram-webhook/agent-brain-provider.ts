@@ -23,7 +23,8 @@ const maxProviderTimeoutMs = 30000;
 const maxApiKeyLength = 4096;
 const maxModelLength = 128;
 const maxEndpointLength = 2048;
-const maxPromptMessageLength = 3000;
+// Room for owner instructions (1000) and project knowledge (4000) plus context.
+const maxPromptMessageLength = 8000;
 // System prompt, up to six remembered messages, the request, and one repair.
 const maxPromptMessages = 10;
 const maxAgentBrainCompletionTokens = 700;

@@ -1,3 +1,4 @@
+import type { AgentSettings } from "../_shared/agent-settings.ts";
 import { HttpError, sanitizeErrorMessage } from "./core.ts";
 import type { TelegramReadOnlyChatIntent } from "./read-only-response.ts";
 
@@ -13,6 +14,16 @@ export interface TelegramTemplateContextSource {
   summary?: unknown;
   actions?: unknown;
   modules?: unknown;
+  // Owner settings from agent_settings; absent for agents that never saved any.
+  settings?: AgentSettings | null;
+}
+
+export interface TelegramAgentOwnerSettings {
+  persona: AgentSettings["persona"];
+  instructions: string;
+  knowledge: string;
+  riskProfile: AgentSettings["riskProfile"];
+  maxReviewUsd: number | null;
 }
 
 export interface TelegramTemplateActionContext {
@@ -38,6 +49,7 @@ export interface TelegramTemplateContext {
   phase6GatedActions: readonly string[];
   gatedActions: readonly string[];
   safetyNote: string;
+  ownerSettings?: TelegramAgentOwnerSettings;
 }
 
 export type TelegramTemplateContextReplyCommand =
@@ -138,11 +150,24 @@ export function buildTelegramTemplateContext(
     maxTemplateSummaryLength,
     "Kyra agent profile.",
   );
-  const actions = sanitizeActionList(source.actions).map((action) => ({
-    name: action,
-    availability: classifyTemplateAction(action),
-  }));
-  const modules = sanitizeModuleList(source.modules);
+  const settings = source.settings ?? null;
+  const templateActions = sanitizeActionList(source.actions);
+  // Owners can switch template actions off; an empty or invalid selection
+  // keeps the full template catalog.
+  const enabledActions = new Set(
+    (settings?.enabledActions ?? []).map((action) => action.toLowerCase()),
+  );
+  const selectedActions = enabledActions.size
+    ? templateActions.filter((action) => enabledActions.has(action))
+    : templateActions;
+  const actions = (selectedActions.length ? selectedActions : templateActions)
+    .map((action) => ({
+      name: action,
+      availability: classifyTemplateAction(action),
+    }));
+  const modules = sanitizeModuleList(
+    settings?.enabledModules.length ? settings.enabledModules : source.modules,
+  );
   const readOnlyActions = actions
     .filter((action) => action.availability === "read_only_ready")
     .map((action) => action.name);
@@ -169,6 +194,17 @@ export function buildTelegramTemplateContext(
     gatedActions,
     safetyNote:
       "Telegram is read-only. Wallet, approval, Robinhood Chain actions, and onchain execution stay gated behind owner approval.",
+    ...(settings
+      ? {
+        ownerSettings: {
+          persona: settings.persona,
+          instructions: settings.instructions,
+          knowledge: settings.knowledge,
+          riskProfile: settings.riskProfile,
+          maxReviewUsd: settings.maxReviewUsd,
+        },
+      }
+      : {}),
   };
 }
 

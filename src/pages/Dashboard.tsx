@@ -27,6 +27,7 @@ import {
   type OwnerWalletConnectionStatus,
 } from "../components/OwnerWalletConnectionPanel";
 import { Phase8LowValueSubmitter } from "../components/Phase8LowValueSubmitter";
+import { AgentSettingsPanel } from "../components/AgentSettingsPanel";
 import { TransferLanePanel } from "../components/TransferLanePanel";
 import { ProtectedSwapLanePanel } from "../components/ProtectedSwapLanePanel";
 import type { AgentTemplate } from "../types/agent";
@@ -3591,6 +3592,16 @@ export function Dashboard({
                 </div>
               )}
           </section>
+
+          {authSession && agentRecord ? (
+            <AgentSettingsPanel
+              agentId={agentRecord.id}
+              agentName={agentRecord.displayName}
+              key={agentRecord.id}
+              session={authSession}
+              template={activeTemplate}
+            />
+          ) : null}
 
           <section className="dashboard-panel telegram-status-panel">
             <div className="panel-title">

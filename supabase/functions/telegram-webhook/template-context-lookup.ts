@@ -1,3 +1,8 @@
+import {
+  type AgentSettings,
+  fromAgentSettingsRow,
+} from "../_shared/agent-settings.ts";
+import { logSafeEvent } from "../_shared/safe-log.ts";
 import { HttpError } from "./core.ts";
 import {
   buildTelegramTemplateContextReply,
@@ -20,7 +25,7 @@ export interface TelegramTemplateContextLookupBuilder {
 
 export interface TelegramTemplateContextLookupClient {
   from(
-    table: "agent_instances" | "agent_templates",
+    table: "agent_instances" | "agent_templates" | "agent_settings",
   ): TelegramTemplateContextLookupBuilder;
 }
 
@@ -62,6 +67,7 @@ export async function lookupTelegramTemplateContext(input: {
       input.serviceClient,
       agent.templateId,
     );
+    const settings = await lookupAgentSettings(input.serviceClient, agent.id);
 
     return buildTelegramTemplateContextReply({
       templateId: template.id,
@@ -70,6 +76,7 @@ export async function lookupTelegramTemplateContext(input: {
       summary: template.summary,
       actions: template.actions,
       modules: template.modules,
+      settings,
     }, input.command ?? "agent");
   } catch (error) {
     if (
@@ -147,6 +154,33 @@ async function lookupAgentTemplate(
   }
 
   return mapAgentTemplateRow(data[0]);
+}
+
+// Settings are optional: agents deployed before settings existed have no row,
+// and a failed read falls back to template defaults instead of silencing the
+// bot.
+async function lookupAgentSettings(
+  serviceClient: TelegramTemplateContextLookupClient,
+  agentId: string,
+): Promise<AgentSettings | null> {
+  try {
+    const { data, error } = await serviceClient
+      .from("agent_settings")
+      .select(
+        "persona,instructions,knowledge,enabled_actions,enabled_modules,risk_profile,max_review_usd",
+      )
+      .eq("agent_id", agentId)
+      .limit<Record<string, unknown>>(1);
+
+    if (error || !Array.isArray(data)) {
+      throw new Error("Agent settings lookup failed.");
+    }
+
+    return data.length ? fromAgentSettingsRow(data[0]) : null;
+  } catch {
+    logSafeEvent("telegram_agent_settings_fallback", "lookup_failed");
+    return null;
+  }
 }
 
 function mapAgentInstanceRow(value: unknown) {

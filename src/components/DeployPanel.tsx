@@ -13,6 +13,11 @@ import {
   X,
 } from "lucide-react";
 import { appConfig } from "../config/appConfig";
+import {
+  createDefaultAgentSettings,
+  getAgentSettingsProblem,
+  toAgentSettingsPayload,
+} from "../config/agentSettings";
 import { currentProductChain } from "../config/productChains";
 import { demoAgentLimits } from "../config/demoLimits";
 import type { AgentTemplate } from "../types/agent";
@@ -37,6 +42,7 @@ import {
   validateTelegramBotTokenForDeploy,
 } from "../services/telegramConnectService";
 import { issueTelegramOwnerLink } from "../services/telegramLinkService";
+import { AgentSettingsFields } from "./AgentSettingsFields";
 import { RevealHeading } from "./RevealHeading";
 
 interface DeployPanelProps {
@@ -147,7 +153,11 @@ export function DeployPanel({
   onOpenAgent,
   onAuthSessionChange,
 }: DeployPanelProps) {
-  const [agentName, setAgentName] = useState("Kyra Operator");
+  const [agentName, setAgentName] = useState(() => `Kyra ${selectedTemplate.name}`);
+  // Until the owner types a name, the default follows the chosen template.
+  const agentNameEditedRef = useRef(false);
+  const [agentSettings, setAgentSettings] = useState(createDefaultAgentSettings);
+  const [settingsProblem, setSettingsProblem] = useState<string | null>(null);
   const [deploying, setDeploying] = useState(false);
   const [activeLogStep, setActiveLogStep] = useState(0);
   const [wizardStep, setWizardStep] = useState(() => getWizardStepIndex(initialStepId));
@@ -190,10 +200,28 @@ export function DeployPanel({
     [selectedTemplate.id],
   );
 
-  const selectedActions = useMemo(
-    () => selectedTemplate.actions.slice(0, 5),
-    [selectedTemplate.actions],
-  );
+  const selectedActions = useMemo(() => {
+    const enabled = new Set(agentSettings.enabledActions);
+
+    return enabled.size
+      ? selectedTemplate.actions.filter((action) => enabled.has(action))
+      : selectedTemplate.actions;
+  }, [agentSettings.enabledActions, selectedTemplate.actions]);
+
+  // Action and module choices belong to one template; switching templates
+  // starts from that template's full catalog.
+  useEffect(() => {
+    setAgentSettings((current) => ({
+      ...current,
+      enabledActions: [],
+      enabledModules: [],
+    }));
+    setSettingsProblem(null);
+
+    if (!agentNameEditedRef.current) {
+      setAgentName(`Kyra ${selectedTemplate.name}`);
+    }
+  }, [selectedTemplate.id, selectedTemplate.name]);
   const telegramConnectTokenInputEnabled = appConfig.featureFlags.telegramConnectTokenInput;
   const telegramTokenQueuedForDeploy =
     telegramConnectTokenInputEnabled && telegramBotToken.trim().length > 0;
@@ -574,6 +602,7 @@ export function DeployPanel({
                 template: selectedTemplate,
                 agentName,
                 selectedActions,
+                settings: toAgentSettingsPayload(agentSettings),
               });
               setPersistStatus(result.status);
               setPersistMessage(result.message);
@@ -697,6 +726,16 @@ export function DeployPanel({
     }
 
     setTemplateMenuOpen(false);
+
+    if (wizardStep === 2) {
+      const problem = getAgentSettingsProblem(agentSettings);
+
+      setSettingsProblem(problem);
+
+      if (problem) {
+        return;
+      }
+    }
 
     if (atDeployStep) {
       if (quotaBlocksDeploy) {
@@ -907,29 +946,34 @@ export function DeployPanel({
               <div className="wizard-screen">
                 <span className="wizard-kicker">Step 03</span>
                 <h3>Configure agent</h3>
-                <p>Set the visible identity and confirm which approval-first actions are enabled.</p>
+                <p>Name your agent, then set its tone, actions, focus, and what it should know. You can change all of this later in the dashboard.</p>
 
                 <label className="field">
                   <span>Agent name</span>
                   <input
                     value={agentName}
-                    onChange={(event) => setAgentName(event.target.value)}
-                    placeholder="Kyra Operator"
+                    onChange={(event) => {
+                      agentNameEditedRef.current = true;
+                      setAgentName(event.target.value);
+                    }}
+                    placeholder={`Kyra ${selectedTemplate.name}`}
                     disabled={deploying}
                   />
                 </label>
 
-                <div className="action-select">
-                  <span className="field-label">Enabled actions</span>
-                  <div className="chip-row">
-                    {selectedActions.map((action) => (
-                      <span className="chip chip-active" key={action}>
-                        <CheckCircle2 size={13} />
-                        {action}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                <AgentSettingsFields
+                  disabled={deploying}
+                  idPrefix="deploy"
+                  onChange={(next) => {
+                    setAgentSettings(next);
+                    setSettingsProblem(null);
+                  }}
+                  template={selectedTemplate}
+                  value={agentSettings}
+                />
+                {settingsProblem ? (
+                  <p className="agent-settings-error" role="alert">{settingsProblem}</p>
+                ) : null}
               </div>
             ) : null}
 

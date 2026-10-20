@@ -1089,6 +1089,14 @@ export async function handleTelegramWebhookRequest(
               chatIntent: classifyTelegramReadOnlyChatIntent(parsedUpdate.text),
               languageCode: parsedUpdate.languageCode,
               history: chatHistory,
+              persona: templateContext?.context.ownerSettings?.persona,
+              ownerInstructions: templateContext?.context.ownerSettings
+                ?.instructions,
+              projectKnowledge: templateContext?.context.ownerSettings
+                ?.knowledge,
+              riskProfile: templateContext?.context.ownerSettings?.riskProfile,
+              maxReviewUsd: templateContext?.context.ownerSettings
+                ?.maxReviewUsd,
             });
           response = {
             command: parsedUpdate.command,

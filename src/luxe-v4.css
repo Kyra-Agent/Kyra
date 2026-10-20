@@ -501,3 +501,167 @@
 .action-card.tier-later .mini-label {
   color: var(--muted);
 }
+
+/* Agent settings: deploy wizard step 3 and the dashboard settings panel. */
+.agent-settings-fields {
+  display: grid;
+  gap: 1rem;
+}
+
+.agent-settings-group {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.agent-settings-group legend {
+  margin-bottom: 0.4rem;
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.agent-settings-group[disabled] {
+  opacity: 0.6;
+}
+
+.agent-settings-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.5rem;
+}
+
+.agent-settings-options button {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.agent-settings-options button small {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.agent-settings-options button:hover {
+  border-color: var(--line-strong);
+}
+
+.agent-settings-options button.is-selected {
+  border-color: color-mix(in srgb, var(--blue) 60%, transparent);
+  background: color-mix(in srgb, var(--blue) 12%, transparent);
+}
+
+.agent-settings-options button:focus-visible,
+.agent-settings-chip:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.agent-settings-chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.agent-settings-chip:not(.chip-active) {
+  color: var(--muted);
+}
+
+.agent-settings-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.agent-settings-text span {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.agent-settings-text span small {
+  font-variant-numeric: tabular-nums;
+}
+
+.agent-settings-text textarea {
+  width: 100%;
+  min-height: 84px;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  transition: border-color 160ms ease;
+}
+
+.agent-settings-text textarea:focus {
+  border-color: var(--line-strong);
+}
+
+.agent-settings-limit {
+  max-width: 260px;
+  margin-bottom: 0;
+}
+
+.agent-settings-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.82rem;
+}
+
+.agent-settings-panel {
+  grid-column: 1 / -1;
+}
+
+.agent-settings-intro {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.agent-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.agent-settings-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.agent-settings-status.status-saved {
+  color: var(--green);
+}
+
+.agent-settings-status.status-error {
+  color: var(--danger);
+}
+
+:root[data-theme="light"] .agent-settings-options button,
+:root[data-theme="light"] .agent-settings-text textarea {
+  background: rgba(255, 255, 255, 0.7);
+}
