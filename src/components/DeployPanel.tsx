@@ -15,6 +15,7 @@ import {
 import { appConfig } from "../config/appConfig";
 import {
   createDefaultAgentSettings,
+  getTemplateSettingDefaults,
   getAgentSettingsProblem,
   toAgentSettingsPayload,
 } from "../config/agentSettings";
@@ -156,7 +157,12 @@ export function DeployPanel({
   const [agentName, setAgentName] = useState(() => `Kyra ${selectedTemplate.name}`);
   // Until the owner types a name, the default follows the chosen template.
   const agentNameEditedRef = useRef(false);
-  const [agentSettings, setAgentSettings] = useState(createDefaultAgentSettings);
+  const [agentSettings, setAgentSettings] = useState(() => ({
+    ...createDefaultAgentSettings(),
+    ...getTemplateSettingDefaults(selectedTemplate.id),
+  }));
+  // Until the owner picks a tone or risk profile, they follow the template.
+  const styleEditedRef = useRef(false);
   const [settingsProblem, setSettingsProblem] = useState<string | null>(null);
   const [deploying, setDeploying] = useState(false);
   const [activeLogStep, setActiveLogStep] = useState(0);
@@ -213,6 +219,7 @@ export function DeployPanel({
   useEffect(() => {
     setAgentSettings((current) => ({
       ...current,
+      ...(styleEditedRef.current ? {} : getTemplateSettingDefaults(selectedTemplate.id)),
       enabledActions: [],
       enabledModules: [],
     }));
@@ -965,6 +972,12 @@ export function DeployPanel({
                   disabled={deploying}
                   idPrefix="deploy"
                   onChange={(next) => {
+                    if (
+                      next.persona !== agentSettings.persona ||
+                      next.riskProfile !== agentSettings.riskProfile
+                    ) {
+                      styleEditedRef.current = true;
+                    }
                     setAgentSettings(next);
                     setSettingsProblem(null);
                   }}

@@ -66,6 +66,25 @@ export function createDefaultAgentSettings(): AgentSettingsDraft {
   };
 }
 
+// Every template can use every feature; these starting points give each one
+// its own feel. Owners can change them in the wizard or the dashboard.
+const templateSettingDefaults: Record<
+  string,
+  Pick<AgentSettingsDraft, "persona" | "riskProfile">
+> = {
+  operator: { persona: "professional", riskProfile: "balanced" },
+  scout: { persona: "concise", riskProfile: "balanced" },
+  steward: { persona: "friendly", riskProfile: "balanced" },
+  executor: { persona: "concise", riskProfile: "conservative" },
+  strategist: { persona: "bold", riskProfile: "balanced" },
+  custom: { persona: "professional", riskProfile: "balanced" },
+};
+
+export function getTemplateSettingDefaults(templateId: string) {
+  return templateSettingDefaults[templateId] ??
+    { persona: "professional" as const, riskProfile: "balanced" as const };
+}
+
 export function readAgentSettingsDraft(value: unknown): AgentSettingsDraft {
   const draft = createDefaultAgentSettings();
 

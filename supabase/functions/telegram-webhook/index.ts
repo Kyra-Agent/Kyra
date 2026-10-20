@@ -103,6 +103,7 @@ import { reviewTelegramExecutionGate } from "./execution-gate.ts";
 import { logSafeEvent } from "../_shared/safe-log.ts";
 import {
   buildTelegramOwnerLinkReply,
+  buildTelegramTemplateHelpText,
   classifyTelegramReadOnlyChatIntent,
   communityTexts,
   type TelegramReadOnlyCommandResponse,
@@ -1203,6 +1204,30 @@ export async function handleTelegramWebhookRequest(
           command: parsedUpdate.command,
           text: executionGate.responseText,
         };
+      }
+
+      // Owners get /help that leads with their template's strengths. If the
+      // template cannot be read, the standard help still goes out.
+      if (
+        parsedUpdate.command === "help" && !isCommunityMember &&
+        templateContextRuntimeConfig.enabled &&
+        dependencies.lookupTelegramTemplateContext
+      ) {
+        try {
+          const helpContext = await dependencies.lookupTelegramTemplateContext(
+            lookupSession.agentId,
+            "agent",
+          );
+          response = {
+            command: "help",
+            text: buildTelegramTemplateHelpText(helpContext.context.templateId),
+          };
+        } catch (error) {
+          logSafeEvent(
+            "telegram_help_template_fallback",
+            error instanceof HttpError ? error.code : "unexpected_error",
+          );
+        }
       }
 
       let templateContext: TelegramTemplateContextLookupOutput | null = null;

@@ -34,6 +34,16 @@ const statusIcon = {
   "coming-soon": Clock3,
 };
 
+// What each template turns on or leans into from day one.
+const templateStarts: Record<string, string> = {
+  operator: "wallet checks, /watch and /alert, balanced risk",
+  scout: "launch digests on, token checks, concise replies",
+  steward: "friendly tone, project knowledge, community mode for your group",
+  executor: "conservative risk, DCA and stop-loss rule drafts",
+  strategist: "bold tone, campaign plans and launch copy",
+  custom: "your own prompt, modules, and safety limits",
+};
+
 export function TemplatePicker({
   templates,
   selectedId,
@@ -47,7 +57,8 @@ export function TemplatePicker({
         <p className="eyebrow">Agent Templates</p>
         <RevealHeading text="Start from a role users already understand." />
         <p>
-          Templates keep the product simple. Kyra modules handle orchestration, research, data, and security underneath.
+          Every agent gets every feature: live chain data, memory, alerts, and community mode. A template
+          sets the starting focus, tone, and defaults, and you can change them anytime.
         </p>
         {catalogStatus === "error" && catalogError ? (
           <div className="catalog-status-row">
@@ -81,6 +92,11 @@ export function TemplatePicker({
                 </span>
               </span>
               <span className="template-summary">{template.summary}</span>
+              {templateStarts[template.id] ? (
+                <span className="template-starts">
+                  <strong>Starts with:</strong> {templateStarts[template.id]}
+                </span>
+              ) : null}
               <span className="chip-row">
                 {template.actions.slice(0, 4).map((action) => (
                   <span className="chip" key={action}>

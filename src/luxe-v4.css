@@ -711,3 +711,19 @@
   color: var(--text);
   font-size: 0.8rem;
 }
+
+/* "Starts with" line on template cards. */
+.template-starts {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.template-starts strong {
+  display: inline;
+  font-size: inherit;
+  letter-spacing: normal;
+  color: var(--text);
+  font-weight: 600;
+}

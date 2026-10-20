@@ -686,6 +686,17 @@ Deno.serve(async (request) => {
       );
       await insertAgentSettings(serviceClient, workspace.id, agent.id, settings);
 
+      // Scout leads with launch monitoring, so its digests start on. Best
+      // effort: the owner can still turn them on with /launches on.
+      if (template.id === "scout") {
+        await serviceClient.from("agent_launch_subscriptions").insert({
+          agent_id: agent.id,
+          workspace_id: workspace.id,
+          enabled: true,
+          last_digest_at: new Date().toISOString(),
+        });
+      }
+
       try {
         nextUsed = await getAgentCount(serviceClient, workspace.id);
       } catch {

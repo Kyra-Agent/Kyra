@@ -37,6 +37,36 @@ export const communityTexts = {
   groupLimited: "This group has reached its question limit for the hour. Please try again later.",
 };
 
+// Every agent has every feature; /help points each template at the features
+// its card leads with.
+const templateHelpTips: Record<string, string> = {
+  operator:
+    "Operator tip: send a wallet address for live balances, then /watch it and /alert the tokens you hold.",
+  scout:
+    "Scout tip: launch digests are on (/launches off to stop). /watch tokens you like, or send any token address for a quick check.",
+  steward:
+    "Steward tip: add project facts in the dashboard settings, then add me to your group and send /community_on there.",
+  executor:
+    "Executor tip: set safety limits in the dashboard, then ask me to draft DCA or stop-loss rules for any token.",
+  strategist:
+    "Strategist tip: add your project knowledge in the dashboard, then ask for a campaign plan or a launch thread.",
+  custom:
+    "Custom tip: write your custom prompt and pick modules in the dashboard settings. Every command above works for you.",
+};
+
+export function buildTelegramTemplateHelpText(templateId: unknown) {
+  const tip = typeof templateId === "string" ? templateHelpTips[templateId] : undefined;
+
+  if (!tip) {
+    return helpText;
+  }
+
+  const lines = helpText.split("\n");
+  // Insert the tip before the boundary line.
+  lines.splice(lines.length - 1, 0, tip);
+  return lines.join("\n");
+}
+
 const monitoringUnavailableText =
   "Monitoring is not available right now. Try again in a moment.";
 

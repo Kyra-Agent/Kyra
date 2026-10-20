@@ -4124,3 +4124,53 @@ Deno.test("telegram-webhook runs monitoring commands for the owner only", async 
     "Members must not change monitoring.",
   );
 });
+
+Deno.test("telegram-webhook /help leads with the owner's template and falls back safely", async () => {
+  const deliveries: Array<Record<string, unknown>> = [];
+  const deliver = async (input: Record<string, unknown>) => {
+    deliveries.push(input);
+    return { delivered: true };
+  };
+
+  await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("/help")),
+    createMemoryTestDependencies({
+      lookupTelegramTemplateContext: async () => ({
+        context: {
+          templateId: "steward",
+          name: "ABC Steward",
+          role: "Project and community agent",
+          summary: "Answers community questions.",
+          actions: [],
+          modules: [],
+          readOnlyActions: [],
+          dashboardGatedActions: [],
+          phase6GatedActions: [],
+          gatedActions: [],
+          safetyNote: "Telegram is read-only.",
+        },
+        text: "Template profile.",
+      }),
+      deliverTelegramReadOnlyResponse: deliver,
+    }),
+  );
+
+  const stewardHelp = String((deliveries[0]?.response as Record<string, unknown>)?.text);
+  assert(stewardHelp.includes("Steward tip:"), stewardHelp);
+  assert(stewardHelp.includes("/community_on"), stewardHelp);
+  assert(stewardHelp.endsWith("Boundary: wallet and onchain execution are disabled."), stewardHelp);
+
+  await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("/help")),
+    createMemoryTestDependencies({
+      lookupTelegramTemplateContext: async () => {
+        throw new Error("database down");
+      },
+      deliverTelegramReadOnlyResponse: deliver,
+    }),
+  );
+
+  const fallbackHelp = String((deliveries[1]?.response as Record<string, unknown>)?.text);
+  assert(fallbackHelp.startsWith("Kyra Telegram"), fallbackHelp);
+  assert(!fallbackHelp.includes("tip:"), "Fallback help has no template tip.");
+});
