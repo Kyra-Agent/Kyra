@@ -2547,7 +2547,7 @@ Deno.test("telegram-webhook runtime dependencies enable lookup lazily", () => {
   assertEquals(typeof dependencies.forgetTelegramChatMemory, "function");
   assertEquals(
     keys.join(","),
-    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey},${telegramWebhookOwnerLinkConsumeEnabledEnvKey},${telegramWebhookTemplateContextEnabledEnvKey},${telegramWebhookAgentBrainEnabledEnvKey},${telegramWebhookAgentBrainProviderEnabledEnvKey},KYRA_TELEGRAM_WEBHOOK_CHAT_MEMORY_ENABLED`,
+    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey},${telegramWebhookOwnerLinkConsumeEnabledEnvKey},${telegramWebhookTemplateContextEnabledEnvKey},${telegramWebhookAgentBrainEnabledEnvKey},${telegramWebhookAgentBrainProviderEnabledEnvKey},KYRA_TELEGRAM_WEBHOOK_CHAIN_DATA_ENABLED,KYRA_ROBINHOOD_MAINNET_RPC_URL,KYRA_ROBINHOOD_MAINNET_RPC_ALLOWED_HOSTS,KYRA_TELEGRAM_WEBHOOK_CHAT_MEMORY_ENABLED`,
   );
 });
 
@@ -3737,4 +3737,102 @@ Deno.test("telegram-webhook /forget reports failure honestly", async () => {
     String(delivered?.text).includes("could not clear"),
     "A failed /forget must not claim success.",
   );
+});
+
+const chainTestWallet = "0xb3921dc28f3456596ef4e08dd2a430a605c74928";
+
+Deno.test("telegram-webhook passes live chain data to the brain", async () => {
+  const brainInputs: Array<Record<string, unknown>> = [];
+  const chainTargets: unknown[] = [];
+
+  await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate(`how is ${chainTestWallet} doing?`, "en")),
+    createMemoryTestDependencies({
+      readLiveChainData: async (targets: unknown) => {
+        chainTargets.push(targets);
+        return "Live Robinhood Chain data, read at block 1:\n\nWallet ...\n- ETH: 1";
+      },
+      generateTelegramAgentBrainReply: async (input: unknown) => {
+        brainInputs.push(input as Record<string, unknown>);
+        return { text: "Your wallet holds 1 ETH." };
+      },
+      deliverTelegramReadOnlyResponse: async () => ({ delivered: true }),
+    }),
+  );
+
+  assertEquals(chainTargets.length, 1);
+  assert(
+    String(brainInputs[0]?.liveChainData).includes("- ETH: 1"),
+    "The brain must receive the chain facts.",
+  );
+});
+
+Deno.test("telegram-webhook delivers chain facts when the brain fails", async () => {
+  const deliveries: Array<Record<string, unknown>> = [];
+
+  await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate(`balance of ${chainTestWallet}`, "en")),
+    createMemoryTestDependencies({
+      readLiveChainData: async () => "Live Robinhood Chain data, read at block 1:\n\n- ETH: 2",
+      generateTelegramAgentBrainReply: async () => {
+        throw new Error("provider down");
+      },
+      deliverTelegramReadOnlyResponse: async (input: Record<string, unknown>) => {
+        deliveries.push(input);
+        return { delivered: true };
+      },
+    }),
+  );
+
+  const delivered = deliveries[0]?.response as Record<string, unknown>;
+  assert(String(delivered?.text).includes("- ETH: 2"), "Facts must reach the owner.");
+});
+
+Deno.test("telegram-webhook keeps refusing bare commands that mention an address", async () => {
+  const deliveries: Array<Record<string, unknown>> = [];
+  let chainReads = 0;
+
+  await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate(`send 5 ETH to ${chainTestWallet}`, "en")),
+    createMemoryTestDependencies({
+      readLiveChainData: async () => {
+        chainReads += 1;
+        return "should not run";
+      },
+      generateTelegramAgentBrainReply: async () => ({ text: "should not run" }),
+      deliverTelegramReadOnlyResponse: async (input: Record<string, unknown>) => {
+        deliveries.push(input);
+        return { delivered: true };
+      },
+    }),
+  );
+
+  const delivered = deliveries[0]?.response as Record<string, unknown>;
+  assertEquals(chainReads, 0);
+  assert(
+    String(delivered?.text).includes("cannot execute that from Telegram"),
+    "Execution requests must keep the refusal.",
+  );
+});
+
+Deno.test("telegram-webhook still answers when chain data fails", async () => {
+  const brainInputs: Array<Record<string, unknown>> = [];
+
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate(`check ${chainTestWallet}`, "en")),
+    createMemoryTestDependencies({
+      readLiveChainData: async () => {
+        throw new Error("rpc down");
+      },
+      generateTelegramAgentBrainReply: async (input: unknown) => {
+        brainInputs.push(input as Record<string, unknown>);
+        return { text: "I could not read the chain right now." };
+      },
+      deliverTelegramReadOnlyResponse: async () => ({ delivered: true }),
+    }),
+  );
+
+  const body = await readJson(response);
+  assertEquals(body.status, "delivered");
+  assertEquals(brainInputs[0]?.liveChainData, "");
 });

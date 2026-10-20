@@ -134,13 +134,25 @@ function buildReply(text: string, template: AgentTemplate): SimulatedReply {
     };
   }
 
+  if (/0x[0-9a-fA-F]{40}/.test(text)) {
+    return {
+      verdict: "wallet",
+      text: [
+        "Live Robinhood Chain data (sample in this preview):",
+        "- ETH: 0.0038",
+        "- USDG: 1.52",
+        "- Latest transfer: In 1.52 USDG",
+        "Your real bot reads the address you send straight from the chain.",
+      ].join("\n"),
+    };
+  }
+
   if (walletPattern.test(text)) {
     return {
       verdict: "wallet",
       text: [
-        "I can't read live wallet balances or history from Telegram.",
-        "Open your private Kyra dashboard and connect your wallet to review them.",
-        `Here I can help you plan a ${template.actions[1] ?? "review"} instead.`,
+        "Send me the public wallet address (0x...) and I will read its balances and recent transfers from Robinhood Chain.",
+        "Never send a private key or seed phrase. A public address is all I need.",
       ].join("\n"),
     };
   }
@@ -172,8 +184,8 @@ const verdictCopy: Record<Verdict, { label: string; detail: string }> = {
     detail: "Answered in chat. No wallet, no transaction.",
   },
   wallet: {
-    label: "Dashboard for wallet data",
-    detail: "Telegram never sees balances; the owner checks them privately.",
+    label: "Live chain read",
+    detail: "Public addresses are read from Robinhood Chain. Keys are never needed.",
   },
   dashboard: {
     label: "Refused: needs your wallet",

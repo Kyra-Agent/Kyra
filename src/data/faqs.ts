@@ -35,7 +35,7 @@ export const faqs: FAQItem[] = [
   {
     question: "What can an agent do today?",
     answer:
-      "Agents answer questions, explain their template and safety policy, and draft plans such as campaign briefs, swap reviews, and transfer checklists. Live wallet balances, token data, and launch tracking in chat are on the roadmap and marked as Planned on this page.",
+      "Paste a wallet address, token address, or transaction hash and your agent reads it live from Robinhood Chain: balances, token supply, holder checks, and recent transfers. Agents also draft campaign briefs, swap reviews, and transfer checklists, and answer project questions from the knowledge you give them. USD prices and launch tracking are still on the roadmap.",
   },
   {
     question: "Does my agent remember our conversation?",

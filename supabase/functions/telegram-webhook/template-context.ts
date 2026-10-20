@@ -323,8 +323,8 @@ function buildTelegramTemplateChatFallbackLines(input: {
   if (input.intent === "wallet_status") {
     return [
       `${input.name} wallet check`,
-      "Telegram cannot read live wallet balances, holdings, or history.",
-      "Open your private Kyra dashboard and connect your wallet to review them.",
+      "Send the public wallet address (0x...) and I will read its balances and recent transfers from Robinhood Chain.",
+      "Never send a private key or seed phrase. A public address is all I need.",
       `Here I can help with: ${scope}.`,
       boundary,
     ];

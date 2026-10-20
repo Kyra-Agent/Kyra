@@ -42,8 +42,7 @@ export function ActionConsole() {
           <span className="tier-mvp">Ready</span> works in chat today.{" "}
           <span className="tier-demo">Guided</span> means the agent walks you
           through it and you act in your wallet.{" "}
-          <span className="tier-later">Planned</span> needs live chain data
-          and is on the roadmap.
+          <span className="tier-later">Planned</span> is on the roadmap.
         </p>
       </div>
 

@@ -68,6 +68,13 @@ import {
   type TelegramChatMemoryTurn,
 } from "./chat-memory.ts";
 import {
+  type ChainDataTargets,
+  extractChainDataTargets,
+  hasChainDataTargets,
+  readChainDataRpcConfig,
+  readLiveChainData,
+} from "./chain-data.ts";
+import {
   createOpenAiCompatibleTelegramAgentBrainProvider,
   type TelegramAgentBrainProviderFetch,
 } from "./agent-brain-provider.ts";
@@ -312,6 +319,7 @@ export interface TelegramWebhookRuntimeOptions {
   getOptionalEnv?: OptionalEnvReader;
   fetchRpc?: typeof fetch;
   fetchTelegram?: TelegramResponseDeliveryFetch;
+  fetchChainData?: typeof fetch;
   fetchAgentBrain?: TelegramAgentBrainProviderFetch;
   telegramDeliveryTimeoutMs?: number;
   telegramAgentBrainTimeoutMs?: number;
@@ -378,6 +386,7 @@ export interface TelegramWebhookDependencies {
     telegramSessionId: string;
     telegramChatId: string;
   }) => Promise<number>;
+  readLiveChainData?: (targets: ChainDataTargets) => Promise<string>;
 }
 
 const disabledTelegramWebhookLookupRuntimeConfig:
@@ -402,6 +411,10 @@ const telegramAgentBrainApiKeyEnvKey = "KYRA_TELEGRAM_AGENT_BRAIN_API_KEY";
 // it off without disabling the brain.
 const telegramChatMemoryEnabledEnvKey =
   "KYRA_TELEGRAM_WEBHOOK_CHAT_MEMORY_ENABLED";
+// Live Robinhood Chain reads use the same reviewed RPC secret as receipt
+// verification; set this to "false" to turn them off.
+const telegramChainDataEnabledEnvKey =
+  "KYRA_TELEGRAM_WEBHOOK_CHAIN_DATA_ENABLED";
 const telegramAgentBrainModelEnvKey = "KYRA_TELEGRAM_AGENT_BRAIN_MODEL";
 const telegramAgentBrainEndpointEnvKey = "KYRA_TELEGRAM_AGENT_BRAIN_ENDPOINT";
 const telegramAgentBrainTimeoutMsEnvKey =
@@ -683,6 +696,22 @@ export function createTelegramWebhookDependencies(
         ...input,
         rpcClient:
           getRpcClient() as unknown as TelegramOwnerLinkConsumeRpcClient,
+      });
+    };
+  }
+
+  const chainDataRpcConfig =
+    readOptionalEnv(telegramChainDataEnabledEnvKey)?.trim().toLowerCase() !==
+        "false"
+      ? readChainDataRpcConfig(readOptionalEnv)
+      : null;
+
+  if (chainDataRpcConfig) {
+    dependencies.readLiveChainData = async (targets) => {
+      return await readLiveChainData({
+        targets,
+        rpcUrl: chainDataRpcConfig.rpcUrl,
+        fetchImpl: options.fetchChainData,
       });
     };
   }
@@ -1043,36 +1072,57 @@ export async function handleTelegramWebhookRequest(
         }
       }
 
-      if (
-        agentBrainRuntimeConfig.enabled &&
-        dependencies.generateTelegramAgentBrainReply &&
-        templateContext !== null &&
-        shouldUseTelegramAgentBrain(parsedUpdate.command) &&
+      // A review or plan about a wallet action ("review a swap of 500 USDC")
+      // gets a read-only answer; a bare command keeps the gate's refusal.
+      const answerableChat = shouldUseTelegramAgentBrain(parsedUpdate.command) &&
         executionGate?.status !== "blocked" &&
-        // A review or plan about a wallet action ("review a swap of 500 USDC")
-        // gets a read-only answer from the brain; a bare command keeps the
-        // gate's refusal.
         (executionGate?.status !== "approval_draft_candidate" ||
           classifyTelegramReadOnlyChatIntent(parsedUpdate.text) !==
-            "unsafe_execution")
-      ) {
-        let chatHistory: TelegramChatMemoryTurn[] = [];
+            "unsafe_execution");
+      let chatHistory: TelegramChatMemoryTurn[] = [];
+      let liveChainData = "";
 
-        if (dependencies.loadTelegramChatMemory) {
+      if (answerableChat && dependencies.loadTelegramChatMemory) {
+        try {
+          chatHistory = await dependencies.loadTelegramChatMemory({
+            telegramSessionId: lookupSession.sessionId,
+            telegramChatId: parsedUpdate.telegramChatId,
+          });
+        } catch (error) {
+          // Memory is optional: answer without it rather than fail.
+          logSafeEvent(
+            "telegram_chat_memory_fallback",
+            error instanceof HttpError ? error.code : "unexpected_error",
+          );
+        }
+      }
+
+      if (answerableChat && dependencies.readLiveChainData) {
+        const chainTargets = extractChainDataTargets(
+          parsedUpdate.text,
+          chatHistory,
+        );
+
+        if (hasChainDataTargets(chainTargets)) {
           try {
-            chatHistory = await dependencies.loadTelegramChatMemory({
-              telegramSessionId: lookupSession.sessionId,
-              telegramChatId: parsedUpdate.telegramChatId,
-            });
+            liveChainData = await dependencies.readLiveChainData(chainTargets);
+            // If the brain is off or fails, the owner still gets the facts.
+            response = { command: parsedUpdate.command, text: liveChainData };
           } catch (error) {
-            // Memory is optional: answer without it rather than fail.
             logSafeEvent(
-              "telegram_chat_memory_fallback",
+              "telegram_chain_data_fallback",
               error instanceof HttpError ? error.code : "unexpected_error",
             );
           }
         }
+      }
 
+      if (
+        agentBrainRuntimeConfig.enabled &&
+        dependencies.generateTelegramAgentBrainReply &&
+        templateContext !== null &&
+        answerableChat
+      ) {
         try {
           const agentBrainReply = await dependencies
             .generateTelegramAgentBrainReply({
@@ -1097,6 +1147,7 @@ export async function handleTelegramWebhookRequest(
               riskProfile: templateContext?.context.ownerSettings?.riskProfile,
               maxReviewUsd: templateContext?.context.ownerSettings
                 ?.maxReviewUsd,
+              liveChainData,
             });
           response = {
             command: parsedUpdate.command,

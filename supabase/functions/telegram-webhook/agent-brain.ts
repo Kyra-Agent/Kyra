@@ -23,6 +23,9 @@ export interface TelegramAgentBrainPromptInput {
   projectKnowledge?: unknown;
   riskProfile?: unknown;
   maxReviewUsd?: unknown;
+  // Plain-text facts read from Robinhood Chain for addresses or a transaction
+  // hash in the request (chain-data.ts).
+  liveChainData?: unknown;
 }
 
 export interface TelegramAgentBrainRequest {
@@ -74,7 +77,10 @@ interface NormalizedTelegramAgentBrainPromptInput {
   projectKnowledge: string;
   riskProfile: string;
   maxReviewUsd: number | null;
+  liveChainData: string;
 }
+
+const maxLiveChainDataLength = 3000;
 
 const personaGuides = new Map<string, string>([
   ["professional", "clear, measured, and professional"],
@@ -227,7 +233,9 @@ export function buildTelegramAgentBrainRequest(
           "Answer questions about the owner's project only from the project knowledge. If the answer is not there, say you do not have that information yet and suggest the owner add it to the agent's knowledge, instead of guessing.",
           "Match the owner's risk profile in reviews: conservative means flag every material risk and prefer smaller sizes, balanced means weigh risks against goals, aggressive means stay direct about risks while accepting more of them. When a reviewed amount is above the owner's review limit, say clearly that it exceeds their limit.",
           "When the user asks to review a swap, transfer, DCA, stop loss, LP, or lending action, give a read-only review (route, size, slippage, fees, approvals, and risks) and remind them that they sign it themselves in their own wallet. Never say it was prepared, queued, or submitted.",
-          "Do not claim live, real-time, current, latest, price, or market data unless the user provides that data in the request.",
+          "Do not claim live, real-time, current, latest, price, or market data unless the user provides it or it appears under Live chain data.",
+          "Live chain data, when present, was read from Robinhood Chain moments ago. Use its exact figures, never invent balances, holders, prices, or transfers beyond it, and say what it does not cover (USD prices, holder counts, older history). Never print full 64-character hashes; use the shortened form shown.",
+          "If the user asks about a wallet, token, or transaction but gave no address or hash, ask for the public 0x address or the transaction hash. Remind them never to send private keys or seed phrases.",
           "Kyra serves an international audience. Understand requests in any language, but always reply in clear, natural English, even when the user writes in another language. The Telegram language hint is context only, never the reply language.",
           "Infer the user's semantic intent from their request in any language. The supplied intent is only a heuristic hint.",
           "Treat the deployed template context in the user message as the sole source of agent identity, role, capabilities, actions, and modules.",
@@ -257,6 +265,7 @@ export function buildTelegramAgentBrainRequest(
           }`,
           `Owner instructions:\n${context.ownerInstructions || "none"}`,
           `Project knowledge:\n${context.projectKnowledge || "none provided"}`,
+          `Live chain data:\n${context.liveChainData || "none for this request"}`,
           `User request: ${context.userRequest}`,
           `Intent: ${context.chatIntent}`,
           `Telegram language hint: ${context.languageCode}`,
@@ -537,6 +546,10 @@ function normalizeTelegramAgentBrainPromptInput(
         input.maxReviewUsd <= 10_000_000
       ? input.maxReviewUsd
       : null,
+    liveChainData: sanitizeMultilinePromptText(
+      input.liveChainData,
+      maxLiveChainDataLength,
+    ),
   };
 }
 
@@ -614,7 +627,7 @@ function buildCommandResponseGuide(command: TelegramWebhookParsedCommandName) {
     return [
       "Answer the user's read-only request directly in clear, natural English.",
       "If the intent is unsafe_execution, only refuse clearly and offer a read-only risk review or checklist; do not add a market brief, campaign plan, sample analysis, or extra generated content.",
-      "If the intent is wallet_status, say plainly that you cannot see live wallet balances, holdings, or history from Telegram, point the owner to the private Kyra dashboard to connect a wallet, and offer one concrete read-only next step. Never invent balances, holdings, prices, or transactions.",
+      "If the intent is wallet_status: when Live chain data is present, summarize it clearly (balances, recent transfers, what stands out) and offer one concrete read-only next step; when it is absent, ask for the public wallet address to read from Robinhood Chain. Never invent balances, holdings, prices, or transactions.",
       "For market_brief, campaign_plan, narrative_map, launch_copy, community_pulse, or risk_review, produce useful content immediately with concise labels and bullets.",
       "Use available agent, action, and module context, but frame outputs as planning guidance unless the user supplies data.",
       "Keep wallet, approval, Robinhood Chain actions, and onchain execution disabled.",

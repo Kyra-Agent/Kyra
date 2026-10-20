@@ -20,9 +20,8 @@ const forgetText = [
 ].join("\n");
 
 const walletStatusText = [
-  "Kyra cannot read live wallet balances or history from Telegram.",
-  "Open your private Kyra dashboard and connect your wallet to review it.",
-  "Here I can explain your agent's review scope or help plan a review.",
+  "Send the public wallet address (0x...) and I will read its balances and recent transfers from Robinhood Chain.",
+  "Never send a private key or seed phrase. A public address is all I need.",
 ].join("\n");
 
 const ownerLinkedText = [

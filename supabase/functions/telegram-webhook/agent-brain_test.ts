@@ -1679,3 +1679,32 @@ Deno.test("telegram agent brain falls back to safe owner defaults", () => {
   assert(user.includes("Owner review limit: none set"), "Invalid limit must be ignored.");
   assert(user.includes("Project knowledge:\nnone provided"), "Missing knowledge must say so.");
 });
+
+Deno.test("telegram agent brain grounds wallet answers in live chain data", () => {
+  const withData = buildTelegramAgentBrainRequest({
+    command: "chat",
+    templateId: "operator",
+    userRequest: "how is my wallet?",
+    chatIntent: "wallet_status",
+    liveChainData: "Live Robinhood Chain data, read at block 1:\nWallet 0xb3921dc28f3456596ef4e08dd2a430a605c74928\n- ETH: 1.5",
+  });
+  const system = withData.messages[0]?.content ?? "";
+  const user = withData.messages[withData.messages.length - 1]?.content ?? "";
+
+  assert(user.includes("Live chain data:\nLive Robinhood Chain data"), "Facts must reach the prompt.");
+  assert(user.includes("- ETH: 1.5"), "Fact lines must keep their line breaks.");
+  assert(system.includes("Use its exact figures"), "The brain must stick to the facts.");
+
+  const withoutData = buildTelegramAgentBrainRequest({
+    command: "chat",
+    templateId: "operator",
+    userRequest: "how is my wallet?",
+    chatIntent: "wallet_status",
+  });
+  assert(
+    (withoutData.messages[withoutData.messages.length - 1]?.content ?? "").includes(
+      "Live chain data:\nnone for this request",
+    ),
+    "Without facts the prompt must say so.",
+  );
+});

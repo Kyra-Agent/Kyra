@@ -442,12 +442,12 @@ Deno.test("telegram template chat fallback answers wallet questions honestly", (
   );
 
   assert(
-    text.includes("cannot read live wallet balances"),
-    "Wallet fallback must not pretend to see live balances.",
+    text.includes("public wallet address"),
+    "Wallet fallback must ask for a public address, not pretend to see balances.",
   );
   assert(
-    text.includes("Kyra dashboard"),
-    "Wallet fallback must point the owner to the dashboard.",
+    text.includes("Never send a private key or seed phrase"),
+    "Wallet fallback must warn against sending secrets.",
   );
   assert(
     !/cannot execute that/i.test(text),
