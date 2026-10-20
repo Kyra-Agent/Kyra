@@ -1,6 +1,7 @@
 import {
   assertExistingScope,
   assertStoredTransactionIntent,
+  isWithinFirstCloseoutGrace,
   assertTransactionResultCloseoutBody,
   canTransitionExecutionResult,
   deriveVerifiedResult,
@@ -219,4 +220,14 @@ Deno.test("closeout rejects replay scope mutation", () => {
       }),
     "closeout_scope_conflict",
   );
+});
+
+Deno.test("closeout accepts a first record for a day after the review expired", () => {
+  const expiresAt = "2026-10-21T00:00:00.000Z";
+
+  assert(isWithinFirstCloseoutGrace(expiresAt, new Date("2026-10-20T23:59:00.000Z")), "Before expiry is allowed.");
+  assert(isWithinFirstCloseoutGrace(expiresAt, new Date("2026-10-21T12:00:00.000Z")), "Within a day after expiry is allowed.");
+  assert(!isWithinFirstCloseoutGrace(expiresAt, new Date("2026-10-22T00:00:01.000Z")), "After a day is refused.");
+  assert(!isWithinFirstCloseoutGrace("not a date", new Date()), "Bad dates are refused.");
+  assert(!isWithinFirstCloseoutGrace(null, new Date()), "Missing dates are refused.");
 });

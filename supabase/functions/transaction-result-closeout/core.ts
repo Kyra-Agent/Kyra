@@ -149,6 +149,17 @@ export function assertTransactionResultCloseoutBody(
   };
 }
 
+// A transfer can be signed just before its review expires and only become
+// visible on chain afterwards, or the first closeout can fail and be retried
+// later. The receipt is still checked against the exact locked intent, so
+// the first record may be written for a day after the review expired.
+export const firstCloseoutGraceMs = 24 * 60 * 60 * 1000;
+
+export function isWithinFirstCloseoutGrace(expiresAt: unknown, now = new Date()) {
+  const expires = typeof expiresAt === "string" ? Date.parse(expiresAt) : NaN;
+  return Number.isFinite(expires) && now.getTime() < expires + firstCloseoutGraceMs;
+}
+
 export function assertStoredTransactionIntent(
   value: unknown,
   expected: {

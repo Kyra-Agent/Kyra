@@ -7,6 +7,7 @@ import {
   type ExistingExecutionResult,
   HttpError,
   isStaleSubmittedResult,
+  isWithinFirstCloseoutGrace,
 } from "./core.ts";
 import {
   readReceiptRpcConfig,
@@ -226,11 +227,16 @@ Deno.serve(async (request) => {
     if (existingError) throw existingError;
 
     if (!existingData) {
-      assertStoredTransactionIntent(intent, {
-        workspaceId: body.workspaceId,
-        agentId: body.agentId,
-        preparedActionId: body.preparedActionId,
-      });
+      assertStoredTransactionIntent(
+        intent,
+        {
+          workspaceId: body.workspaceId,
+          agentId: body.agentId,
+          preparedActionId: body.preparedActionId,
+        },
+        new Date(),
+        isWithinFirstCloseoutGrace(intent.expires_at),
+      );
     }
 
     const rpcConfig = readReceiptRpcConfig((key) => Deno.env.get(key));

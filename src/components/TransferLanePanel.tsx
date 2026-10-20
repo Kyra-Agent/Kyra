@@ -313,10 +313,16 @@ export function TransferLanePanel({
     record: Phase8PersistedExecutionResult,
   ) {
     setMessage("Verifying the submitted transaction with the private backend...");
-    const closeout = await persistTransactionResultCloseout(
+    // A freshly broadcast transaction can take a moment to reach the
+    // verification RPC, so retry a few times before asking for a refresh.
+    let closeout = await persistTransactionResultCloseout(
       currentSession,
       record,
     );
+    for (let attempt = 1; attempt < 4 && closeout.status !== "saved"; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 2_000 * attempt));
+      closeout = await persistTransactionResultCloseout(currentSession, record);
+    }
     if (closeout.status !== "saved") {
       setLaneState("submitted");
       setMessage(
@@ -449,7 +455,14 @@ export function TransferLanePanel({
       ) : null}
 
       <p className="transfer-lane-message" aria-live="polite">{message}</p>
-      {txHash ? <small className="transfer-hash">Hash: {maskHash(txHash)}</small> : null}
+      {txHash ? (
+        <small className="transfer-hash">
+          Hash: {maskHash(txHash)}{" "}
+          <a href={`${currentProductChain.explorerUrl}/tx/${txHash}`} rel="noopener noreferrer" target="_blank">
+            View on explorer
+          </a>
+        </small>
+      ) : null}
 
       <div className="transfer-lane-actions">
         {laneState === "draft" || laneState === "error" ? (
