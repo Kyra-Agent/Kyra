@@ -6,6 +6,8 @@ import {
   deliverTelegramReadOnlyResponse,
   type TelegramResponseDeliveryFetch,
 } from "./response-delivery.ts";
+import { buildTelegramReadOnlyCommandResponse } from "./read-only-response.ts";
+import { parseTelegramWebhookUpdate } from "./update-parser.ts";
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -327,4 +329,34 @@ Deno.test("telegram response delivery validators return bounded values", () => {
   assertEquals(actionsResponse.command, "actions");
   assertEquals(modulesResponse.command, "modules");
   assertEquals(policyResponse.command, "policy");
+});
+
+// Every command the parser accepts must also pass the delivery allowlist,
+// otherwise the bot runs the command but never replies.
+Deno.test("telegram delivery accepts the reply of every parsed command", () => {
+  for (
+    const command of [
+      "help",
+      "status",
+      "agent",
+      "actions",
+      "modules",
+      "policy",
+      "forget",
+    ]
+  ) {
+    const parsed = parseTelegramWebhookUpdate({
+      update_id: 1001,
+      message: {
+        message_id: 7,
+        text: `/${command}`,
+        from: { id: 123456, is_bot: false, language_code: "en" },
+        chat: { id: 123456, type: "private" },
+      },
+    });
+
+    assertEquals(parsed.command, command);
+    const response = buildTelegramReadOnlyCommandResponse(parsed.command);
+    assertEquals(assertTelegramDeliveryResponse(response).command, command);
+  }
 });
