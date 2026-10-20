@@ -3559,7 +3559,7 @@ export function Dashboard({
           <section className="dashboard-panel agent-overview-panel">
             <div className="panel-title">
               <span>Agent overview</span>
-              <span>{agentRecord ? agentRecord.id : "empty"}</span>
+              <span>{agentRecord ? agentRecord.displayName : "empty"}</span>
             </div>
             {agentRecord
               ? (
@@ -3833,7 +3833,9 @@ export function Dashboard({
                     <strong>No approval requests.</strong>
                     <p>
                       {authSession
-                        ? "Deploy an agent before Kyra creates wallet approval records."
+                        ? agentRecords.length
+                          ? "Nothing is waiting for you. When an action needs your signature, it shows up here first."
+                          : "Deploy an agent before Kyra creates wallet approval records."
                         : "Sign in to load account-scoped approval records. Private queues stay hidden while signed out."}
                     </p>
                   </div>

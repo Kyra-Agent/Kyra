@@ -181,17 +181,6 @@ export function AuthSessionPanel({
             </div>
           </div>
 
-          <div className="auth-choice-summary" aria-label="Account path summary">
-            <div className={isSignUpMode ? "is-active" : undefined}>
-              <strong>Create account</strong>
-              <span>For new Kyra users who need a private workspace.</span>
-            </div>
-            <div className={!isSignUpMode ? "is-active" : undefined}>
-              <strong>Sign in</strong>
-              <span>For returning users with an existing email and password.</span>
-            </div>
-          </div>
-
           <form
             className="auth-form-grid"
             id="kyra-account-auth-form"

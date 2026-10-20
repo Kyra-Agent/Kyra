@@ -823,7 +823,7 @@ export function DeployPanel({
             {wizardStep === 0 ? (
               <div className="wizard-screen">
                 <span className="wizard-kicker">Step 01</span>
-                <h3>Sign in to save your agent</h3>
+                <h3>{authSession ? "Your workspace is ready" : "Sign in to save your agent"}</h3>
                 <p>
                   Your agents are saved to a private workspace that holds up to three agents. New here? Create an account; already have one? Sign in on the same page.
                 </p>
@@ -1123,9 +1123,14 @@ export function DeployPanel({
               className="button button-primary"
               type="button"
               disabled={deploying || (atDeployStep && quotaBlocksDeploy)}
-              onClick={goNext}
+              onClick={atDeployStep && !authSession ? onOpenAccount : goNext}
             >
-              {atDeployStep ? (
+              {atDeployStep && !authSession ? (
+                <>
+                  <KeyRound size={17} />
+                  Sign in to deploy
+                </>
+              ) : atDeployStep ? (
                 <>
                   <Play size={17} />
                   {deploying
@@ -1145,7 +1150,11 @@ export function DeployPanel({
               <div className="receipt-top">
                 <span>
                   {persistStatus === "error" ? <ShieldCheck size={16} /> : <CheckCircle2 size={16} />}
-                  {persistStatus === "error" ? "Deploy requires attention" : "Agent deployed"}
+                  {persistStatus === "error"
+                    ? "Deploy requires attention"
+                    : persistStatus === "saved"
+                      ? "Agent deployed"
+                      : "Preview only, not saved"}
                 </span>
                 <strong>{receiptSourceLabel}</strong>
               </div>

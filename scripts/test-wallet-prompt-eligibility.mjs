@@ -118,7 +118,7 @@ try {
   );
   assertEquals(
     getWalletPromptBlockMessage("wallet_execution_disabled"),
-    "Wallet signing is still disabled by the runtime gate.",
+    "Wallet signing is not switched on yet. Kyra never opens a wallet prompt without your click.",
   );
 } finally {
   rmSync(outDir, { recursive: true, force: true });

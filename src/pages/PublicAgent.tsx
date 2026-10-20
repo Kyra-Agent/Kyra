@@ -107,6 +107,15 @@ function getPublicAgentHeadline(displayName: string, templateName: string) {
   return `${normalizedName} ${normalizedTemplateName}`;
 }
 
+// The commands the Telegram bot actually answers. Plain-language messages work
+// too; template actions are shown separately in the agent summary.
+const telegramCommandRows = [
+  { command: "/help", summary: "What this agent can do" },
+  { command: "/status", summary: "Agent and connection status" },
+  { command: "/actions", summary: "What this template covers" },
+  { command: "/policy", summary: "What always needs your approval" },
+];
+
 export function PublicAgent({
   agentSlug,
   onBackDashboard,
@@ -119,7 +128,6 @@ export function PublicAgent({
   const showUnavailableAgent = !publicProfile && publicStatus !== "loading";
   const agentRecord = publicProfile?.agent ?? null;
   const activeTemplate = publicProfile?.template ?? null;
-  const commandRows = activeTemplate?.actions.slice(0, 4) ?? [];
   const profileSource = "Persisted agent profile";
   const telegramPanelStatus = getPublicTelegramPanelStatus(agentRecord?.telegramStatus ?? "mocked");
 
@@ -405,18 +413,18 @@ export function PublicAgent({
 
         <article className="public-panel">
           <div className="panel-title">
-            <span>Try commands</span>
-            <span>{commandRows.length} examples</span>
+            <span>Telegram commands</span>
+            <span>or ask in plain language</span>
           </div>
           <div className="command-demo-list public-command-list">
-            {commandRows.map((action) => (
-              <div key={action}>
+            {telegramCommandRows.map((row) => (
+              <div key={row.command}>
                 <MessageSquareText size={16} />
                 <span>
-                  <code>{action}</code>
-                  <small>Read-only agent request</small>
+                  <code>{row.command}</code>
+                  <small>{row.summary}</small>
                 </span>
-                <em>protected</em>
+                <em>read-only</em>
               </div>
             ))}
           </div>

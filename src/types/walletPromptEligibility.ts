@@ -50,7 +50,7 @@ export interface WalletPromptEligibilityResult {
 const allowedPromptSource: WalletPromptSource = "owner_dashboard_click";
 
 const promptBlockMessages: Record<WalletPromptBlockReason, string> = {
-  wallet_execution_disabled: "Wallet signing is still disabled by the runtime gate.",
+  wallet_execution_disabled: "Wallet signing is not switched on yet. Kyra never opens a wallet prompt without your click.",
   not_owner_dashboard: "Wallet prompts are only allowed from the private owner dashboard.",
   owner_session_required: "A fresh owner session is required before any wallet prompt.",
   agent_binding_required: "A selected deployed agent binding is required.",

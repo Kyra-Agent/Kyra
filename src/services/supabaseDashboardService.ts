@@ -428,7 +428,7 @@ function createPreparedActionPreview(
     return {
       ...basePreview,
       status: "draft",
-      approvalRequirement: "Wallet approval remains disabled by the runtime gate.",
+      approvalRequirement: "Wallet approval is not switched on yet; nothing can be signed from here.",
     };
   }
 
