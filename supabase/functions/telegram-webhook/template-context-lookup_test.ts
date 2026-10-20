@@ -240,7 +240,7 @@ Deno.test("telegram template context lookup sanitizes DB and malformed rows", as
   }
 });
 
-Deno.test("telegram template context lookup keeps executor gated", async () => {
+Deno.test("telegram template context lookup keeps executor execution gated", async () => {
   const { client } = createLookupClient({
     agentRows: [{
       ...agentRow,
@@ -258,6 +258,7 @@ Deno.test("telegram template context lookup keeps executor gated", async () => {
         "stop loss check",
         "lp review",
         "lend review",
+        "dca",
       ],
       modules: ["NIRA-01", "NOVA-04", "NYX-05"],
     }],
@@ -267,10 +268,13 @@ Deno.test("telegram template context lookup keeps executor gated", async () => {
     serviceClient: client,
   });
 
-  assertEquals(result.context.readOnlyActions.length, 0);
-  assertEquals(result.context.gatedActions.length, 5);
-
-  for (const action of result.context.actions) {
-    assertEquals(action.availability, "phase6_wallet_gated");
-  }
+  // Reviews are read-only planning; the action that would move funds stays
+  // wallet-gated.
+  assertEquals(result.context.readOnlyActions.length, 5);
+  assertEquals(result.context.gatedActions.join(","), "dca");
+  assertEquals(
+    result.context.actions.find((action) => action.name === "dca")
+      ?.availability,
+    "phase6_wallet_gated",
+  );
 });

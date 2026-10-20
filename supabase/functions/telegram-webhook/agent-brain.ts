@@ -187,6 +187,8 @@ export function buildTelegramAgentBrainRequest(
           "Finish every sentence and bullet. Never end with an empty bullet or an unfinished label.",
           "Answer the requested command directly and do not add unfinished helper text.",
           "When the user asks for a concrete plan, review, brief, or draft, produce that content directly instead of returning a capability menu or generic status reply.",
+          "You cannot see earlier messages in this chat; every message is answered on its own. Never end with a question that relies on you remembering the answer. If details are missing, state short assumptions and still deliver the draft, then name the details the user should include together in one message next time.",
+          "When the user asks to review a swap, transfer, DCA, stop loss, LP, or lending action, give a read-only review (route, size, slippage, fees, approvals, and risks) and remind them that they sign it themselves in their own wallet. Never say it was prepared, queued, or submitted.",
           "Do not claim live, real-time, current, latest, price, or market data unless the user provides that data in the request.",
           "Kyra serves an international audience. Understand requests in any language, but always reply in clear, natural English, even when the user writes in another language. The Telegram language hint is context only, never the reply language.",
           "Infer the user's semantic intent from their request in any language. The supplied intent is only a heuristic hint.",

@@ -335,3 +335,37 @@ Deno.test("telegram chat intent separates wallet questions from execution", () =
     "unsafe_execution",
   );
 });
+
+Deno.test("telegram chat intent sends wallet-action reviews to the agent and refuses bare commands", () => {
+  for (
+    const text of [
+      "Review a swap of 500 USDC to ETH for me",
+      "Draft a DCA plan buying ETH every week",
+      "Should we do a token buyback?",
+      "How do I bridge to Robinhood Chain?",
+      "Write an FAQ on how to claim the airdrop",
+      "what are the risks of staking here?",
+    ]
+  ) {
+    assert(
+      classifyTelegramReadOnlyChatIntent(text) !== "unsafe_execution",
+      `Review request must reach the agent: ${text}`,
+    );
+  }
+
+  for (
+    const text of [
+      "swap 10 USDC to ETH",
+      "Swap 10 USDC to ETH now",
+      "send 5 ETH to my friend",
+      "review this swap and execute it",
+      "what is my seed phrase for?",
+    ]
+  ) {
+    assertEquals(
+      classifyTelegramReadOnlyChatIntent(text),
+      "unsafe_execution",
+      `Execution or secret request must stay refused: ${text}`,
+    );
+  }
+});

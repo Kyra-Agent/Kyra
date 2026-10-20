@@ -892,7 +892,7 @@ export function DeployPanel({
                               <small>{template.role}</small>
                             </span>
                             <span className={`mini-label-inline status-${template.status}`}>
-                              {template.status === "coming-soon" ? "soon" : template.status === "mvp" ? "ready" : "pro"}
+                              {template.status === "coming-soon" ? "soon" : template.status === "mvp" ? "ready" : "advanced"}
                             </span>
                           </button>
                         );

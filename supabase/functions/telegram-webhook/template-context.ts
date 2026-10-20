@@ -69,25 +69,21 @@ const secretLikePatterns = [
   /api\.telegram\.org/i,
 ];
 
+// Actions that need live wallet data or would move funds. Review and planning
+// actions ("swap review", "dca plan", "stop loss check") are read-only chat
+// work: the agent explains and drafts, and the owner signs in their wallet.
 const walletOrExecutionActions = new Set([
   "approve",
   "balance",
-  "conditional review",
   "conditional swap",
   "dca",
-  "dca plan",
   "holder verify",
   "lend",
-  "lend review",
-  "lp review",
   "lp manage",
   "portfolio",
   "send",
   "stop loss",
-  "stop loss check",
   "swap",
-  "swap review",
-  "transfer review",
   "tx history",
 ]);
 

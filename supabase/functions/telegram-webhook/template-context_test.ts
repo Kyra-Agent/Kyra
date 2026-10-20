@@ -339,19 +339,15 @@ Deno.test("telegram template chat fallback returns a complete DCA ETH risk revie
   assertNoSensitiveMaterial(text);
 });
 
-Deno.test("telegram template context gates executor wallet actions for phase 6", () => {
+Deno.test("telegram template context treats executor reviews as read-only planning", () => {
   const context = buildTelegramTemplateContext(seedTemplates[3]);
 
   assertEquals(context.templateId, "executor");
-  assertEquals(context.readOnlyActions.length, 0);
+  assertEquals(context.gatedActions.length, 0);
   assertEquals(
-    context.gatedActions.join(","),
+    context.readOnlyActions.join(","),
     "conditional review,dca plan,stop loss check,lp review,lend review",
   );
-
-  for (const action of context.actions) {
-    assertEquals(action.availability, "phase6_wallet_gated");
-  }
 });
 
 Deno.test("telegram template context keeps strategist actions read-only ready", () => {
@@ -368,8 +364,14 @@ Deno.test("telegram template context keeps strategist actions read-only ready", 
 Deno.test("telegram template action classifier separates read-only dashboard and phase6 actions", () => {
   assertEquals(classifyTemplateAction("market brief"), "read_only_ready");
   assertEquals(classifyTemplateAction("announcement"), "dashboard_gated");
-  assertEquals(classifyTemplateAction("swap review"), "phase6_wallet_gated");
-  assertEquals(classifyTemplateAction("dca plan"), "phase6_wallet_gated");
+  // Reviews and plans are read-only chat work; live data and fund movement
+  // stay gated.
+  assertEquals(classifyTemplateAction("swap review"), "read_only_ready");
+  assertEquals(classifyTemplateAction("dca plan"), "read_only_ready");
+  assertEquals(classifyTemplateAction("swap"), "phase6_wallet_gated");
+  assertEquals(classifyTemplateAction("dca"), "phase6_wallet_gated");
+  assertEquals(classifyTemplateAction("balance"), "phase6_wallet_gated");
+  assertEquals(classifyTemplateAction("holder verify"), "phase6_wallet_gated");
 });
 
 Deno.test("telegram template context exposes module statuses without execution claims", () => {

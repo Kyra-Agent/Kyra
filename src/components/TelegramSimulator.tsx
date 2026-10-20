@@ -31,6 +31,7 @@ const suggestions = [
   "/help",
   "What can you do?",
   "Check my wallet",
+  "Review a swap of 500 USDC to ETH",
   "Swap 10 USDC to ETH now",
   "Draft a launch plan",
   "Here is my seed phrase",
@@ -46,6 +47,12 @@ const walletPattern =
   /\b(wallet|balance|portfolio|holdings?|tx|transactions?|history|onchain)\b/i;
 const helpPattern = /^\/help\b|\b(help|what can you do|commands?|capabilities)\b/i;
 const statusPattern = /^\/status\b/i;
+// Mirrors the live bot: a question or review about a wallet action gets a
+// read-only review; a bare "do it" command is refused.
+const reviewCuePattern =
+  /\?|\b(review|check|plan|draft|explain|analy[sz]e|assess|compare|simulate|estimate|checklist|risks?|should|would|could|how|what|why|when|which)\b/i;
+const directExecutionCuePattern =
+  /\b(now|right away|immediately|asap|execute|submit|broadcast|do it|confirm it)\b/i;
 const planPattern =
   /\b(plan|launch|campaign|strategy|brief|narrative|roadmap|checklist|risk)\b/i;
 
@@ -64,13 +71,30 @@ function buildReply(text: string, template: AgentTemplate): SimulatedReply {
     };
   }
 
+  if (
+    actionPattern.test(text) &&
+    reviewCuePattern.test(text) &&
+    !directExecutionCuePattern.test(text)
+  ) {
+    return {
+      verdict: "read_only",
+      text: [
+        "Read-only review (sample)",
+        "- Route and size: confirm the pair, amount, and that the pool has enough depth.",
+        "- Slippage and fees: set a tight slippage limit and check network fees first.",
+        "- Approvals: approve only the exact amount, never unlimited.",
+        "You sign it yourself in your own wallet. Kyra never submits it.",
+      ].join("\n"),
+    };
+  }
+
   if (actionPattern.test(text)) {
     return {
       verdict: "dashboard",
       text: [
-        "Kyra cannot execute that from Telegram.",
-        "Telegram execution stays disabled.",
-        "Prepare it as a review in your private dashboard; nothing is sent until you sign in your wallet.",
+        "Kyra cannot execute that from Telegram. It never moves funds from chat.",
+        'Ask me to review it instead, for example "review a swap of 10 USDC to ETH".',
+        "When you are ready, you sign it yourself in your own wallet.",
       ].join("\n"),
     };
   }
@@ -127,7 +151,7 @@ function buildReply(text: string, template: AgentTemplate): SimulatedReply {
         `${template.name} launch plan (sample outline)`,
         "1. Define the audience and the one message to land.",
         "2. Line up proof: docs, audits, and a clear risk note.",
-        `3. Stage the announcement, then review any ${currentProductChain.name} action in the dashboard.`,
+        `3. Stage the announcement, then sign any ${currentProductChain.name} action yourself in your wallet.`,
       ].join("\n"),
     };
   }
@@ -151,8 +175,8 @@ const verdictCopy: Record<Verdict, { label: string; detail: string }> = {
     detail: "Telegram never sees balances; the owner checks them privately.",
   },
   dashboard: {
-    label: "Needs dashboard + wallet",
-    detail: "Telegram refuses. A review can be prepared; only a wallet signature sends it.",
+    label: "Refused: needs your wallet",
+    detail: "Telegram never executes. Ask for a review; only your wallet signature sends it.",
   },
   secret: {
     label: "Blocked: secret material",

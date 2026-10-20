@@ -103,7 +103,10 @@ export function reviewTelegramExecutionGate(
 
   if (directExecutionPattern.test(text)) {
     return blockedDecision(
-      "Command rejected: Telegram cannot execute, sign, submit, or approve wallet actions.",
+      [
+        "Command rejected: Kyra never executes, signs, submits, or approves wallet actions from Telegram.",
+        'Ask me to review it instead, for example "review a swap of 10 USDC to ETH", then sign it yourself in your own wallet.',
+      ].join("\n"),
       detectDraftKind(text),
     );
   }
@@ -117,10 +120,9 @@ export function reviewTelegramExecutionGate(
     replayProtectionRequired: true,
     rateLimitRequired: true,
     responseText: [
-      "Kyra cannot execute that from Telegram.",
-      "Telegram execution stays disabled.",
-      "This can only become an owner-scoped dashboard approval draft after all owner safety gates pass.",
-      "No wallet prompt, signature, Robinhood Chain provider call, or transaction submission was created.",
+      "Kyra cannot execute that from Telegram. It never moves funds from chat.",
+      'Ask me to review it instead, for example "review a swap of 10 USDC to ETH", and I will walk through route, size, slippage, fees, and risks.',
+      "No wallet prompt, signature, or transaction was created. When you are ready, you sign it yourself in your own wallet.",
     ].join("\n"),
   };
 }

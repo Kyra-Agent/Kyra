@@ -216,7 +216,7 @@ for (const boundary of [
   "canExecuteFromTelegram: false",
   "canCreateDraftNow: false",
   "approval_draft_candidate",
-  "Command rejected: Telegram cannot execute",
+  "Command rejected: Kyra never executes",
 ]) {
   if (!telegramGate.includes(boundary)) {
     throw new Error("Telegram execution boundary missing: " + boundary);

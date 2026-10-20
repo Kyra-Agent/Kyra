@@ -130,8 +130,30 @@ export type TelegramReadOnlyChatIntent =
   | "unsafe_execution"
   | "general";
 
-const unsafeExecutionPattern =
-  /\b(send|transfer|swap|approve|approval|allowance|permit|revoke|sign|execute|bridge|mint|burn|stake|unstake|claim|withdraw|deposit|buy|sell|delegate|wrap|unwrap|borrow|lend|liquidate|repay|kirim|tukar|setujui|persetujuan|izin|cabut|tandatangani|jalankan|jembatani|bakar|klaim|tarik|setor|beli|jual|delegasikan|bungkus|pinjam|bayar)\b|\b(private key|kunci privat|seed phrase|frasa seed|robinhood chain actions|aksi robinhood chain|contract call|panggilan kontrak|calldata)\b/i;
+const walletActionVerbPattern =
+  /\b(send|transfer|swap|approve|approval|allowance|permit|revoke|sign|execute|bridge|mint|burn|stake|unstake|claim|withdraw|deposit|buy|sell|delegate|wrap|unwrap|borrow|lend|liquidate|repay|kirim|tukar|setujui|persetujuan|izin|cabut|tandatangani|jalankan|jembatani|bakar|klaim|tarik|setor|beli|jual|delegasikan|bungkus|pinjam|bayar)\b/i;
+const alwaysUnsafePattern =
+  /\b(private key|kunci privat|seed phrase|frasa seed|robinhood chain actions|aksi robinhood chain|contract call|panggilan kontrak|calldata)\b/i;
+// "Do it now" language keeps a wallet verb on the refusal path even when the
+// message also asks a question.
+const directExecutionCuePattern =
+  /\b(now|right away|immediately|asap|execute|submit|broadcast|do it|confirm it|sekarang|langsung|jalankan)\b/i;
+// Reviews, plans, drafts, and questions about a wallet action are read-only
+// work the agent can do; only bare commands ("swap 10 USDC to ETH") are refused.
+const planningCuePattern =
+  /\?|\b(review|check|plan|planning|draft|explain|analy[sz]e|assess|evaluate|compare|simulate|estimate|strategy|checklist|risks?|pros|cons|should|would|could|how|what|why|when|which|tips|guide|faq|thread|tweet|copy|announcement|write|idea|ideas|campaign|tinjau|cek|rencana|jelaskan|analisa|analisis|bandingkan|risiko|bagaimana|gimana|apa|kenapa|kapan|apakah|sebaiknya|tulis)\b/i;
+
+function isUnsafeExecutionRequest(text: string) {
+  if (alwaysUnsafePattern.test(text)) {
+    return true;
+  }
+
+  if (!walletActionVerbPattern.test(text)) {
+    return false;
+  }
+
+  return directExecutionCuePattern.test(text) || !planningCuePattern.test(text);
+}
 // Read-only wallet questions (balance, history, portfolio). Answered honestly
 // as "not visible from Telegram", never treated as an execution request.
 const walletStatusPattern =
@@ -146,7 +168,7 @@ export function classifyTelegramReadOnlyChatIntent(
 
   const text = value.toLowerCase();
 
-  if (unsafeExecutionPattern.test(text)) {
+  if (isUnsafeExecutionRequest(text)) {
     return "unsafe_execution";
   }
 

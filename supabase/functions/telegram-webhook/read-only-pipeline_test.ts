@@ -208,12 +208,13 @@ Deno.test("telegram read-only pipeline routes owner execution intent to draft bo
   assertEquals(result.commandKind, "read_only");
   assertEquals(result.authorizationRole, "owner");
   assert(
-    result.response.text.includes("Telegram execution stays disabled."),
+    result.response.text.includes("cannot execute that from Telegram") &&
+      result.response.text.includes("never moves funds from chat"),
     "Owner execution intent must stay disabled from Telegram.",
   );
   assert(
-    result.response.text.includes("approval draft"),
-    "Owner execution intent may only describe a future approval draft.",
+    result.response.text.includes("sign it yourself in your own wallet"),
+    "Owner execution intent must point signing to the owner's wallet.",
   );
   assert(
     result.response.text.includes("No wallet prompt"),

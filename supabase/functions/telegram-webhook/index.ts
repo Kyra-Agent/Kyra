@@ -969,7 +969,12 @@ export async function handleTelegramWebhookRequest(
         templateContext !== null &&
         shouldUseTelegramAgentBrain(parsedUpdate.command) &&
         executionGate?.status !== "blocked" &&
-        executionGate?.status !== "approval_draft_candidate"
+        // A review or plan about a wallet action ("review a swap of 500 USDC")
+        // gets a read-only answer from the brain; a bare command keeps the
+        // gate's refusal.
+        (executionGate?.status !== "approval_draft_candidate" ||
+          classifyTelegramReadOnlyChatIntent(parsedUpdate.text) !==
+            "unsafe_execution")
       ) {
         try {
           const agentBrainReply = await dependencies
