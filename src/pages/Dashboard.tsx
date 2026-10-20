@@ -870,9 +870,10 @@ export function Dashboard({
   );
   const isAdmin = authSession?.user.app_metadata?.role === "admin";
   const canViewOperationalReadiness = isAdmin;
-  // The private transfer lane renders inside the admin-only operational
-  // area, and only while the controlled submission window is open.
-  const transferLaneAvailable = canViewOperationalReadiness &&
+  // Every signed-in owner gets the private transfer lane while the
+  // controlled submission window is open. Per-transfer and daily caps are
+  // enforced by transaction-intent-prepare and the database as well.
+  const transferLaneAvailable = Boolean(authSession) &&
     appConfig.integrations.phase8ControlledSubmission === "owner_approved_window";
   const postResetRefreshPendingRef = useRef(false);
   const [backendEvents, setBackendEvents] = useState<BackendEvent[]>(() =>
@@ -4153,6 +4154,19 @@ export function Dashboard({
             )}
           </section>
 
+          {transferLaneAvailable ? (
+            <section className="dashboard-panel transfer-lane-section">
+              <TransferLanePanel
+                session={authSession}
+                workspaceId={dashboardData?.workspace.id ?? null}
+                agentId={agentRecord?.id ?? null}
+                agentName={agentRecord?.displayName ?? null}
+                agentChainKey={agentRecord?.chainKey ?? null}
+                walletStatus={ownerWalletConnectionStatus}
+              />
+            </section>
+          ) : null}
+
           {isAdmin
             ? (
               <section
@@ -5243,14 +5257,6 @@ export function Dashboard({
                 ? <small>{formatGateHint(phase8SecurityAbuseHardening.reasons)}</small>
                 : <small>Replay, double-submit, public, Telegram, calldata, swap, token approval, and unsanitized failure boundaries are hardened.</small>}
             </div>
-            <TransferLanePanel
-              session={authSession}
-              workspaceId={dashboardData?.workspace.id ?? null}
-              agentId={agentRecord?.id ?? null}
-              agentName={agentRecord?.displayName ?? null}
-              agentChainKey={agentRecord?.chainKey ?? null}
-              walletStatus={ownerWalletConnectionStatus}
-            />
             <div className="phase-8-low-value-panel">
               <div className="result-monitoring-header">
                 <span>Low-value readiness</span>

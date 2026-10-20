@@ -110,11 +110,16 @@ export async function prepareTransferTransactionIntent(
     const payload = await readResponse(response);
 
     if (!response.ok || !isPreparedTransferResponse(payload)) {
+      const dailyLimitReached = typeof payload === "object" && payload !== null &&
+        (payload as Record<string, unknown>).status === "daily_transfer_limit_exceeded";
+
       return {
         ok: false,
         status: response.status === 429 ? "rate-limited" : "error",
-        message: response.status === 429
-          ? "The private transfer review limit has been reached. Wait before trying again."
+        message: dailyLimitReached
+          ? `You've reached today's ${input.transaction.tokenSymbol} transfer limit for this workspace. It resets at 00:00 UTC.`
+          : response.status === 429
+          ? "Too many transfer requests in a short time. Wait a few minutes before trying again."
           : "Transfer preparation failed safely.",
       };
     }

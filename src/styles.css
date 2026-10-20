@@ -7378,6 +7378,11 @@ h2 {
 }
 
 /* Private T1 transfer lane */
+/* The transfer lane needs the full dashboard width on any layout. */
+.transfer-lane-section {
+  grid-column: 1 / -1;
+}
+
 .transfer-lane-panel {
   grid-column: 1 / -1;
   display: grid;
