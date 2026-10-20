@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { CheckCircle2, Clock3, LockKeyhole, Sparkles } from "lucide-react";
 import type { AgentTemplate } from "../types/agent";
 import type { SupabaseConnectionStatus } from "../services/supabaseKyraRepository";
+import { templateStarts } from "../config/agentSettings";
 import { RevealHeading } from "./RevealHeading";
 
 // Each template carries its own accent through the card (top bar, glow, tint).
@@ -32,16 +33,6 @@ const statusIcon = {
   mvp: CheckCircle2,
   advanced: Sparkles,
   "coming-soon": Clock3,
-};
-
-// What each template turns on or leans into from day one.
-const templateStarts: Record<string, string> = {
-  operator: "wallet checks, /watch and /alert, balanced risk",
-  scout: "launch digests on, token checks, concise replies",
-  steward: "friendly tone, project knowledge, community mode for your group",
-  executor: "conservative risk, DCA and stop-loss rule drafts",
-  strategist: "bold tone, campaign plans and launch copy",
-  custom: "your own prompt, modules, and safety limits",
 };
 
 export function TemplatePicker({

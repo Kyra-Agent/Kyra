@@ -1,6 +1,7 @@
 import { toEventSelector } from "npm:viem@2.57.7";
 import { HttpError } from "./core.ts";
 import {
+  createBatchRpc,
   extractChainDataTargets,
   formatAmount,
   hasChainDataTargets,
@@ -262,4 +263,25 @@ Deno.test("chain data says transfers are unavailable when log queries are reject
 
   assert(text.includes("not available from the chain reader"), text);
   assert(!text.includes("No token transfers"), "A failed read must not claim zero transfers.");
+});
+
+Deno.test("chain data splits large RPC batches and keeps results in order", async () => {
+  const sizes: number[] = [];
+  const fakeFetch = (async (_url: string, init?: RequestInit) => {
+    const batch = JSON.parse(String(init?.body)) as Array<{ id: number; params: unknown[] }>;
+    sizes.push(batch.length);
+    return new Response(
+      JSON.stringify(batch.map((call) => ({ jsonrpc: "2.0", id: call.id, result: call.params[0] }))),
+      { status: 200 },
+    );
+  }) as typeof fetch;
+  const rpc = createBatchRpc("https://rpc.example", fakeFetch, 1_000);
+  const results = await rpc(
+    Array.from({ length: 250 }, (_, index) => ({ method: "eth_call", params: [index] })),
+  );
+
+  assertEquals(sizes.join(","), "100,100,50");
+  assertEquals(results.length, 250);
+  assertEquals(results[0], 0);
+  assertEquals(results[249], 249);
 });

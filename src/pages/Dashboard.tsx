@@ -147,7 +147,6 @@ import type {
   DemoRecordStatus,
   DemoTelegramSessionSummary,
   DemoTelegramWebhookStatus,
-  DemoWalletProviderStatus,
   DemoWalletReadiness,
   DemoWalletReadinessState,
 } from "../types/backend";
@@ -399,22 +398,6 @@ function getDisplayedWalletReadiness(
       "The wallet connection stays in this browser session and never appears on public profiles.",
   };
 }
-function getWalletProviderStatusFallback(): DemoWalletProviderStatus {
-  const connectionEnabled =
-    appConfig.integrations.walletConnection === "owner_click_only";
-
-  return {
-    providerStack: "Wagmi + Viem",
-    dependencyStatus: "installed",
-    runtimeGate: connectionEnabled ? "enabled" : "disabled",
-    promptAccess: connectionEnabled ? "owner_click_only" : "disabled",
-    connectorPriority: [currentWalletDisplayName],
-    safetyNote: connectionEnabled
-      ? "Connection starts only after your click. Signing always requires wallet confirmation."
-      : `${currentWalletDisplayName} connection is disabled.`,
-  };
-}
-
 function getPreparedActionPreviewFallback(
   signedIn: boolean,
 ): DemoPreparedActionPreview {
@@ -532,11 +515,6 @@ function formatProductRecordText(value: string) {
     .replace(/\bowner chat\b/giu, "private chat");
 }
 
-function formatWalletPromptAccess(value: string) {
-  return value === "owner_click_only"
-    ? "your confirmation only"
-    : value.replace(/_/g, " ");
-}
 function getCatalogValue(
   status: SupabaseConnectionStatus,
   templateCount: number,
@@ -667,7 +645,7 @@ function getTelegramSessionLabel(
     return "webhook paused";
   }
 
-  return "session pending";
+  return "no bot yet";
 }
 
 // Deploy stores an internal placeholder handle on the session until a real
@@ -706,14 +684,14 @@ function getTelegramSessionHeadline(
     return "Telegram paused";
   }
 
-  return "Telegram session pending";
+  return "Telegram not connected";
 }
 
 function getTelegramSessionDescription(
   session: TelegramSessionDisplayStatus | null,
 ) {
   if (!session) {
-    return "Use the deploy flow with a valid BotFather token to create a backend-only Telegram session for this agent.";
+    return "Connect a bot from @BotFather below to chat with this agent in Telegram.";
   }
 
   if (session.ownerChatLinked) {
@@ -721,18 +699,18 @@ function getTelegramSessionDescription(
   }
 
   if (session.webhookStatus === "active") {
-    return "Backend-only bot session and webhook are active. Link your private Telegram chat before read-only commands are enabled.";
+    return "Your bot is connected. Open it in Telegram and press Start with your owner link to activate the chat.";
   }
 
   if (session.webhookStatus === "queued") {
-    return "Connect validation passed. Webhook activation still needs backend finalization.";
+    return "Your bot token was accepted. Kyra is finishing the connection.";
   }
 
   if (session.webhookStatus === "paused") {
     return "Telegram delivery is paused for this agent. Deploy again with a valid BotFather token when ready.";
   }
 
-  return "This agent is waiting for a live Telegram session.";
+  return "No bot is connected yet. Connect one from @BotFather below to chat with this agent in Telegram.";
 }
 
 function getTelegramOwnerPairingLabel(
@@ -1296,6 +1274,10 @@ export function Dashboard({
     agentRecords.find((agent) => agent.id === selectedDashboardAgentId) ??
       dashboardData?.latestAgent ??
       null;
+  // Only the selected agent's wallet policy, not every agent in the workspace.
+  const walletPolicies = (dashboardData?.walletPolicies ?? []).filter((policy) =>
+    !policy.agentId || policy.agentId === agentRecord?.id
+  );
   const selectedAgentMatchesRuntime = Boolean(
     agentRecord && agentRecord.chainKey === currentProductChain.key,
   );
@@ -1360,7 +1342,6 @@ export function Dashboard({
 
     return [];
   }, [agentRecord, dashboardData]);
-  const walletPolicies = dashboardData?.walletPolicies ?? [];
   const persistedWalletReadiness = agentRecord
     ? dashboardData?.walletReadinessByAgent[agentRecord.id] ??
       getWalletReadinessFallback(Boolean(authSession), true)
@@ -1370,8 +1351,6 @@ export function Dashboard({
     ownerWalletConnectionStatus,
     selectedAgentMatchesRuntime,
   );
-  const walletProviderStatus = dashboardData?.walletProviderStatus ??
-    getWalletProviderStatusFallback();
   const walletReadinessTone = getWalletReadinessTone(walletReadiness.state);
   const walletPromptEligibility = useMemo(
     () =>
@@ -3369,7 +3348,7 @@ export function Dashboard({
                 ? "Private workspace"
                 : agentRecord
                 ? dashboardStatus === "connected"
-                  ? "Persisted agent"
+                  ? "Your agent"
                   : "Agent ready"
                 : dashboardStatus === "loading"
                 ? "Syncing workspace"
@@ -3553,7 +3532,7 @@ export function Dashboard({
           <article>
             <span>Approval policy</span>
             <strong>{walletReadiness.approvalGate}</strong>
-            <small>{walletReadiness.execution.toLowerCase()}</small>
+            <small>you sign everything</small>
           </article>
         </section>
 
@@ -4119,32 +4098,6 @@ export function Dashboard({
                 walletStatus={ownerWalletConnectionStatus}
               />
             ) : null}
-            <div className="wallet-policy-list">
-              <article>
-                <span>Provider stack</span>
-                <strong>{walletProviderStatus.providerStack}</strong>
-                <small>
-                  {walletProviderStatus.dependencyStatus}: wallet gate{" "}
-                  {walletProviderStatus.runtimeGate}
-                </small>
-              </article>
-              <article>
-                <span>Prompt access</span>
-                <strong>
-                  {formatWalletPromptAccess(walletProviderStatus.promptAccess)}
-                </strong>
-                <small>{walletProviderStatus.safetyNote}</small>
-              </article>
-              <article>
-                <span>Connector priority</span>
-                <strong>
-                  {walletProviderStatus.connectorPriority.join(" -> ")}
-                </strong>
-                <small>
-                  No automatic wallet prompt or Telegram-triggered signing.
-                </small>
-              </article>
-            </div>
             <div className="wallet-policy-list">
               {walletPolicies.length
                 ? (

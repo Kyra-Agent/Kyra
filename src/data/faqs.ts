@@ -10,7 +10,7 @@ export const faqs: FAQItem[] = [
   {
     question: "Does Kyra execute transactions automatically?",
     answer:
-      "No. Telegram replies are read-only. When something would touch funds, Kyra stops and points you to a review in your private dashboard, and nothing is sent until you sign it in your own wallet.",
+      "No. Telegram replies are read-only. When something would touch funds, your agent gives you a read-only review instead, and nothing is sent unless you sign it yourself in your own wallet.",
   },
   {
     question: "Does Kyra control my wallet?",

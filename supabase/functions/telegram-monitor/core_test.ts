@@ -41,6 +41,8 @@ function createStore(options: {
     claimed: new Set<string>(),
     released: [] as string[],
     digestMarked: [] as string[],
+    digestAttempted: [] as string[],
+    checked: [] as string[],
   };
 
   const store: MonitorStore = {
@@ -62,8 +64,14 @@ function createStore(options: {
     async markDigestSent(agentId) {
       state.digestMarked.push(agentId);
     },
+    async markDigestAttempted(agentId) {
+      state.digestAttempted.push(agentId);
+    },
     async listWatchItems() {
       return state.watch;
+    },
+    async markWatchItemsChecked(ids) {
+      state.checked.push(...ids);
     },
     async updateWatchItem(id, patch) {
       state.watch = state.watch.map((item) =>
@@ -223,6 +231,46 @@ Deno.test("monitor caps messages per agent and keeps going when a step fails", a
 
   assertEquals(sent, 5);
   assert(report.skipped.includes("launch_scan"), "A failed scan must be reported, not fatal.");
+});
+
+Deno.test("monitor rotates watch items and failed digests to the back of the queue", async () => {
+  const wallets = Array.from({ length: 30 }, (_, index): WatchItem => ({
+    id: `w${index}`,
+    agentId: `agent-${index}`,
+    address: "0x" + String(index).padStart(40, "0"),
+    kind: "wallet",
+    label: "",
+    lastBlock: 999_000,
+    lastPriceUsd: null,
+  }));
+  const { store, state } = createStore({
+    cursor: 990_000,
+    watch: wallets,
+    subscriptions: [{ agentId: agent, lastDigestAt: null }],
+  });
+
+  await runMonitorCycle(store, createChain(), async () => false);
+
+  assertEquals(state.checked.length, 25, "Only the wallets checked this cycle are marked.");
+  assertEquals(state.checked[0], "w0");
+  assertEquals(state.digestMarked.length, 0, "An undelivered digest is not marked as sent.");
+  assertEquals(state.digestAttempted[0], agent, "An undelivered digest moves to the back of the queue.");
+});
+
+Deno.test("monitor prices every alerted token, not only the first few", async () => {
+  const alerts = Array.from({ length: 40 }, (_, index): PriceAlert => ({
+    id: `a${index}`,
+    agentId: `agent-${index}`,
+    tokenAddress: "0x" + String(index).padStart(40, "1"),
+    tokenLabel: "TKN",
+    direction: "above",
+    targetUsd: 1,
+  }));
+  const prices = Object.fromEntries(alerts.map((alert) => [alert.tokenAddress, 2]));
+  const { store } = createStore({ cursor: 1_000_000, alerts });
+
+  const report = await runMonitorCycle(store, createChain({ prices }), async () => true);
+  assertEquals(report.priceAlertsSent, 40);
 });
 
 Deno.test("monitor alert crossing and digest wording", () => {

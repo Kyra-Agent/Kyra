@@ -58,7 +58,10 @@ export function AuthSessionPanel({
   const statusTone = getStatusTone(status);
   const isSignUpMode = authMode === "signup";
   const emailReady = email.trim().length > 3 && email.includes("@");
-  const passwordReady = password.length >= 6;
+  // New accounts need 8 characters; existing accounts may still sign in
+  // with the older 6-character minimum.
+  const minPasswordLength = isSignUpMode ? 8 : 6;
+  const passwordReady = password.length >= minPasswordLength;
   const canSubmit = emailReady && passwordReady && !busy;
 
   function applyResult(result: KyraAuthResult) {
@@ -207,12 +210,12 @@ export function AuthSessionPanel({
                 disabled={busy}
                 minLength={6}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder={isSignUpMode ? "Create at least 6 characters" : "Enter your password"}
+                placeholder={isSignUpMode ? "Create at least 8 characters" : "Enter your password"}
                 type="password"
                 value={password}
               />
               <small className="auth-field-hint">
-                {passwordReady ? "Password is ready for this account step." : "Use at least 6 characters. Never reuse wallet or seed-phrase passwords."}
+                {passwordReady ? "Password is ready for this account step." : `Use at least ${minPasswordLength} characters. Never reuse wallet or seed-phrase passwords.`}
               </small>
             </label>
           </form>

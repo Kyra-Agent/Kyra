@@ -48,7 +48,7 @@ const capabilityRows = [
 
 function getPublicStatusLabel(status: PublicAgentProfileStatus) {
   if (status === "connected") {
-    return "Persisted agent profile";
+    return "Agent profile";
   }
 
   if (status === "loading") {
@@ -60,6 +60,15 @@ function getPublicStatusLabel(status: PublicAgentProfileStatus) {
 
 function formatPublicRouteStatus(status: string) {
   return status === "mocked" ? "protected" : status;
+}
+
+// Online only once the owner has a live Telegram bot on this agent.
+function formatPublicTelegramStatus(status: string) {
+  return status === "active" ? "live" : status === "queued" ? "activating" : "not connected";
+}
+
+function getPublicAgentLiveLabel(telegramStatus: string) {
+  return telegramStatus === "active" ? "online" : "setting up";
 }
 
 function getPublicTelegramPanelStatus(status: string) {
@@ -84,11 +93,11 @@ function getPublicTelegramPanelStatus(status: string) {
   }
 
   return {
-    eyebrow: "Telegram boundary",
-    headline: "Owner controlled",
+    eyebrow: "Telegram",
+    headline: "No bot connected yet",
     description:
-      "Public profiles never collect bot tokens. Owners connect Telegram during deploy and manage selected-agent status or owner pairing from the dashboard.",
-    label: "Owner controlled",
+      "The owner has not connected a Telegram bot to this agent yet. Public profiles never collect bot tokens.",
+    label: "Not live yet",
   };
 }
 
@@ -130,7 +139,7 @@ export function PublicAgent({
   const showUnavailableAgent = !publicProfile && publicStatus !== "loading";
   const agentRecord = publicProfile?.agent ?? null;
   const activeTemplate = publicProfile?.template ?? null;
-  const profileSource = "Persisted agent profile";
+  const profileSource = "Agent profile";
   const telegramPanelStatus = getPublicTelegramPanelStatus(agentRecord?.telegramStatus ?? "mocked");
 
   useEffect(() => {
@@ -249,7 +258,7 @@ export function PublicAgent({
           <div className="public-status-line" aria-label="Agent public status">
             <span>
               <Activity size={15} />
-              {visibleAgentRecord.status}
+              {getPublicAgentLiveLabel(visibleAgentRecord.telegramStatus)}
             </span>
             <span>
               <Radio size={15} />
@@ -290,7 +299,7 @@ export function PublicAgent({
             </button>
           </div>
           <span className="demo-action-note">
-            Telegram connection changes stay owner-only and are handled from deploy or approved account settings.
+            Only the owner can connect or change this agent's Telegram bot, from their private dashboard.
           </span>
         </div>
 
@@ -317,7 +326,7 @@ export function PublicAgent({
           <div className="profile-status-grid">
             <span>
               Status
-              <strong>{visibleAgentRecord.status}</strong>
+              <strong>{getPublicAgentLiveLabel(visibleAgentRecord.telegramStatus)}</strong>
             </span>
             <span>
               Network
@@ -370,7 +379,7 @@ export function PublicAgent({
         <article className="public-panel telegram-status-panel">
           <div className="panel-title">
             <span>Telegram connection</span>
-            <span>{formatPublicRouteStatus(agentRecord.telegramStatus)}</span>
+            <span>{formatPublicTelegramStatus(agentRecord.telegramStatus)}</span>
           </div>
           <div className="telegram-status-card">
             <span className="telegram-status-icon">
@@ -444,7 +453,7 @@ export function PublicAgent({
             </span>
             <span>
               Telegram
-              <strong>{formatPublicRouteStatus(visibleAgentRecord.telegramStatus)}</strong>
+              <strong>{formatPublicTelegramStatus(visibleAgentRecord.telegramStatus)}</strong>
             </span>
             <span>
               {currentProductChain.name} actions

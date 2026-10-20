@@ -80,6 +80,17 @@ const templateSettingDefaults: Record<
   custom: { persona: "professional", riskProfile: "balanced" },
 };
 
+// What each template turns on or leans into from day one, shown on the
+// template cards and in the deploy wizard.
+export const templateStarts: Record<string, string> = {
+  operator: "wallet checks, /watch and /alert, balanced risk",
+  scout: "launch digests on, token checks, concise replies",
+  steward: "friendly tone, project knowledge, community mode for your group",
+  executor: "conservative risk, DCA and stop-loss rule drafts",
+  strategist: "bold tone, campaign plans and launch copy",
+  custom: "your own prompt, modules, and safety limits",
+};
+
 export function getTemplateSettingDefaults(templateId: string) {
   return templateSettingDefaults[templateId] ??
     { persona: "professional" as const, riskProfile: "balanced" as const };

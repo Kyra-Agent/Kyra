@@ -40,7 +40,7 @@ const storySteps = [
     icon: Wallet,
     title: "Approve in your wallet",
     copy:
-      "Onchain actions are prepared as reviews in your private dashboard. Nothing is sent until you sign in your wallet.",
+      "Your agent reviews swaps and transfers with you in chat. You sign anything yourself in your own wallet, and Kyra never moves funds.",
   },
 ] as const;
 

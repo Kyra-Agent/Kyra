@@ -611,6 +611,8 @@ function dedupeTransfers(rows: TransferRow[]) {
     });
 }
 
+const maxRpcBatchSize = 100;
+
 // onRpcError receives only the method name and JSON-RPC error code, never the
 // URL or message, so it is safe to surface in diagnostics.
 export function createBatchRpc(
@@ -619,11 +621,9 @@ export function createBatchRpc(
   timeoutMs: number,
   onRpcError?: (method: string, code: number | null) => void,
 ) {
-  return async (calls: RpcCall[]): Promise<unknown[]> => {
-    if (!calls.length) {
-      return [];
-    }
-
+  // Providers cap how many calls one JSON-RPC batch may carry, so large
+  // batches go out as sequential chunks with their results joined in order.
+  const sendChunk = async (calls: RpcCall[]): Promise<unknown[]> => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -670,6 +670,14 @@ export function createBatchRpc(
     } finally {
       clearTimeout(timer);
     }
+  };
+
+  return async (calls: RpcCall[]): Promise<unknown[]> => {
+    const results: unknown[] = [];
+    for (let start = 0; start < calls.length; start += maxRpcBatchSize) {
+      results.push(...await sendChunk(calls.slice(start, start + maxRpcBatchSize)));
+    }
+    return results;
   };
 }
 

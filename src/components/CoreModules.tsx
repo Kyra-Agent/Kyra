@@ -20,7 +20,7 @@ export function CoreModules() {
         <RevealHeading text="Internal modules power every template." />
         <p>
           Users choose simple agent templates. Kyra keeps its identity through a focused
-          roster of research, data, execution, and security modules.
+          roster of recon, research, data, and security modules.
         </p>
       </div>
 

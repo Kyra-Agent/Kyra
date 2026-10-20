@@ -264,32 +264,27 @@ function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
+// The stored daily cap is not enforced anywhere yet, so it is not shown as
+// if it were a live limit.
 function mapWalletPolicy(row: WalletPolicyRow): DemoWalletPolicy[] {
   return [
     {
       id: `${row.id}_account`,
+      agentId: row.agent_id ?? undefined,
       label: row.wallet_label,
       value: row.wallet_address
         ? shortenAddress(row.wallet_address)
-        : "No live wallet connected",
+        : "No wallet connected",
       status: row.status === "active" ? "active" : "gated",
-      description: "Persisted owner policy record. No wallet prompt or funds touched.",
-    },
-    {
-      id: `${row.id}_limit`,
-      label: "Daily limit",
-      value: row.daily_limit_usdc
-        ? `${row.daily_limit_usdc} USDC`
-        : "No cap set",
-      status: "gated",
-      description: "Stored spending cap for future wallet policy enforcement.",
+      description: "Only you see this. Kyra never holds keys or moves funds.",
     },
     {
       id: `${row.id}_approval`,
+      agentId: row.agent_id ?? undefined,
       label: "Approval gate",
       value: row.approval_required ? "Required" : "Optional",
       status: row.approval_required ? "active" : "gated",
-      description: "Every write action remains behind wallet approval.",
+      description: "Anything that touches funds waits for your signature.",
     },
   ];
 }

@@ -68,8 +68,10 @@ function createChain(
   const logsRpc = createBatchRpc(robinhoodLogsRpcUrl, fetch, 12_000, onRpcError);
 
   return {
+    // The head comes from the logs RPC: asking it for blocks past its own
+    // head returns an empty list, and the cursor would skip those blocks.
     async head() {
-      const [chainId, block] = await rpc([
+      const [chainId, block] = await logsRpc([
         { method: "eth_chainId", params: [] },
         { method: "eth_blockNumber", params: [] },
       ]);
@@ -151,7 +153,7 @@ function createChain(
     },
 
     async tokenMeta(addresses) {
-      const unique = [...new Set(addresses)].slice(0, 40);
+      const unique = [...new Set(addresses)].slice(0, 200);
       const meta = new Map<string, TokenMeta>();
       if (!unique.length) {
         return meta;
@@ -221,6 +223,7 @@ function createStore(client: any): MonitorStore {
         .select("agent_id,last_digest_at")
         .eq("enabled", true)
         .or(`last_digest_at.is.null,last_digest_at.lt.${olderThan}`)
+        .order("attempted_at", { ascending: true, nullsFirst: true })
         .limit(50);
       check(result);
       return (result.data ?? []).map((row: Record<string, unknown>) => ({
@@ -256,11 +259,19 @@ function createStore(client: any): MonitorStore {
       };
     },
     async markDigestSent(agentId, at) {
-      check(await client.from("agent_launch_subscriptions").update({ last_digest_at: at }).eq("agent_id", agentId));
+      check(
+        await client.from("agent_launch_subscriptions")
+          .update({ last_digest_at: at, attempted_at: at })
+          .eq("agent_id", agentId),
+      );
+    },
+    async markDigestAttempted(agentId, at) {
+      check(await client.from("agent_launch_subscriptions").update({ attempted_at: at }).eq("agent_id", agentId));
     },
     async listWatchItems(limit) {
       const result = await client.from("agent_watch_items")
         .select("id,agent_id,address,kind,label,last_block,last_price_usd")
+        .order("checked_at", { ascending: true, nullsFirst: true })
         .order("created_at", { ascending: true })
         .limit(limit);
       check(result);
@@ -273,6 +284,9 @@ function createStore(client: any): MonitorStore {
         lastBlock: row.last_block === null ? null : Number(row.last_block),
         lastPriceUsd: row.last_price_usd === null ? null : Number(row.last_price_usd),
       }));
+    },
+    async markWatchItemsChecked(ids, at) {
+      check(await client.from("agent_watch_items").update({ checked_at: at }).in("id", ids));
     },
     async updateWatchItem(id, patch) {
       check(await client.from("agent_watch_items").update({

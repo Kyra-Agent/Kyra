@@ -71,6 +71,7 @@ export interface DemoApprovalRequest {
 
 export interface DemoWalletPolicy {
   id: string;
+  agentId?: string;
   label: string;
   value: string;
   status: "active" | "gated" | "inactive";

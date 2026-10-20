@@ -2550,6 +2550,7 @@ Deno.test("telegram-webhook runtime dependencies enable lookup lazily", () => {
   assertEquals(typeof dependencies.setTelegramCommunityChat, "function");
   assertEquals(typeof dependencies.isTelegramCommunityChatEnabled, "function");
   assertEquals(typeof dependencies.consumeTelegramCommunityQuota, "function");
+  assertEquals(typeof dependencies.consumeTelegramOwnerBrainQuota, "function");
   assertEquals(
     keys.join(","),
     `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey},${telegramWebhookOwnerLinkConsumeEnabledEnvKey},${telegramWebhookTemplateContextEnabledEnvKey},${telegramWebhookAgentBrainEnabledEnvKey},${telegramWebhookAgentBrainProviderEnabledEnvKey},KYRA_TELEGRAM_WEBHOOK_COMMUNITY_ENABLED,KYRA_TELEGRAM_WEBHOOK_CHAIN_DATA_ENABLED,KYRA_ROBINHOOD_MAINNET_RPC_URL,KYRA_ROBINHOOD_MAINNET_RPC_ALLOWED_HOSTS,KYRA_TELEGRAM_WEBHOOK_CHAT_MEMORY_ENABLED`,
@@ -4173,4 +4174,55 @@ Deno.test("telegram-webhook /help leads with the owner's template and falls back
   const fallbackHelp = String((deliveries[1]?.response as Record<string, unknown>)?.text);
   assert(fallbackHelp.startsWith("Kyra Telegram"), fallbackHelp);
   assert(!fallbackHelp.includes("tip:"), "Fallback help has no template tip.");
+});
+
+Deno.test("telegram-webhook caps owner brain answers and explains the limit", async () => {
+  for (const quota of ["burst_limited", "daily_limited"] as const) {
+    let brainCalls = 0;
+    const delivered: string[] = [];
+
+    await handleTelegramWebhookRequest(
+      createJsonWebhookRequest(createWebhookUpdate("make a campaign plan", "en")),
+      createMemoryTestDependencies({
+        consumeTelegramOwnerBrainQuota: async (input: Record<string, unknown>) => {
+          assertEquals(input.agentId, "agent-1");
+          return quota;
+        },
+        generateTelegramAgentBrainReply: async () => {
+          brainCalls += 1;
+          return { text: "Plan." };
+        },
+        deliverTelegramReadOnlyResponse: async (input: Record<string, unknown>) => {
+          delivered.push(String((input.response as Record<string, unknown>).text));
+          return { delivered: true };
+        },
+      }),
+    );
+
+    assertEquals(brainCalls, 0, `${quota} must skip the brain.`);
+    assert(
+      delivered[0]?.includes(quota === "daily_limited" ? "today's limit" : "a few minutes"),
+      String(delivered[0]),
+    );
+  }
+});
+
+Deno.test("telegram-webhook still answers the owner when the quota check fails", async () => {
+  let brainCalls = 0;
+
+  await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createWebhookUpdate("make a campaign plan", "en")),
+    createMemoryTestDependencies({
+      consumeTelegramOwnerBrainQuota: async () => {
+        throw new Error("database down");
+      },
+      generateTelegramAgentBrainReply: async () => {
+        brainCalls += 1;
+        return { text: "Plan." };
+      },
+      deliverTelegramReadOnlyResponse: async () => ({ delivered: true }),
+    }),
+  );
+
+  assertEquals(brainCalls, 1);
 });

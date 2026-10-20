@@ -500,7 +500,7 @@ async function saveViaDeployFunction({
 
   return {
     status: "saved",
-    message: "Agent deployment persisted by the Kyra backend.",
+    message: "Your agent is live and saved to your private workspace.",
     workspaceId: payload.workspaceId,
     agentId: payload.agentId,
     publicSlug: payload.publicSlug,
@@ -562,7 +562,7 @@ async function saveViaSupabaseRestFallback({
 
   return {
     status: "saved",
-    message: "Agent deployment persisted by the Kyra backend.",
+    message: "Your agent is live and saved to your private workspace.",
     workspaceId: workspace.id,
     agentId: agent.id,
     publicSlug: agent.public_slug,

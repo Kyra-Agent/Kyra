@@ -4,6 +4,7 @@ import {
   Suspense,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ErrorInfo,
   type ReactNode,
@@ -295,6 +296,9 @@ function App() {
     loadStoredAuthSession()
   );
   const hasInitialAuthSession = Boolean(authSession);
+  // Set when the deploy wizard sends a visitor to sign in, so they land back
+  // in the wizard instead of an empty dashboard.
+  const resumeDeployAfterAuthRef = useRef(false);
   const [authStatus, setAuthStatus] = useState<KyraAuthStatus>(() =>
     hasInitialAuthSession
       ? "signed-in"
@@ -511,6 +515,11 @@ function App() {
     setAuthSession(session);
     setAuthStatus(status);
     setAuthMessage(message);
+
+    if (session && resumeDeployAfterAuthRef.current) {
+      resumeDeployAfterAuthRef.current = false;
+      openHomeSection("deploy", { deployStepId: "template" });
+    }
   }
 
   function toggleTheme() {
@@ -653,7 +662,8 @@ function App() {
     window.scrollTo({ top: 0, behavior: animated ? "instant" : "smooth" });
   }
 
-  function openAccountSession() {
+  function openAccountSession(options?: { resumeDeploy?: boolean }) {
+    resumeDeployAfterAuthRef.current = options?.resumeDeploy ?? false;
     runRouteTransition((animated) => {
       setHomeSectionId(null);
       setRoute("dashboard");
@@ -784,7 +794,7 @@ function App() {
         onOpenDashboard={() => navigate("dashboard")}
         onOpenHome={() => navigate("home")}
         onOpenAgent={() => void openAgentFromHeader()}
-        onOpenAccount={openAccountSession}
+        onOpenAccount={() => openAccountSession()}
         onOpenSection={openHomeSection}
       />
       <div
@@ -948,9 +958,10 @@ function App() {
                 selectedTemplate={selectedTemplate}
                 authSession={authSession}
                 initialStepId={deployInitialStepId}
-                onOpenAccount={openAccountSession}
+                onOpenAccount={() => openAccountSession({ resumeDeploy: true })}
                 onSelectTemplate={setSelectedId}
                 onOpenAgent={(target) => navigate("agent", target)}
+                onOpenDashboard={() => navigate("dashboard")}
                 onAuthSessionChange={updateAuthSession}
               />
               <DashboardPreview selectedTemplate={selectedTemplate} />

@@ -727,3 +727,20 @@
   color: var(--text);
   font-weight: 600;
 }
+
+.wizard-template-brief {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.wizard-template-brief p {
+  margin: 0;
+}
+
+.wizard-template-brief small {
+  color: var(--muted);
+}

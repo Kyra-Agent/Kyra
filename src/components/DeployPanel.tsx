@@ -6,6 +6,7 @@ import {
   Copy,
   ExternalLink,
   KeyRound,
+  LayoutDashboard,
   Play,
   ShieldCheck,
   UserRound,
@@ -17,6 +18,7 @@ import {
   createDefaultAgentSettings,
   getTemplateSettingDefaults,
   getAgentSettingsProblem,
+  templateStarts,
   toAgentSettingsPayload,
 } from "../config/agentSettings";
 import { currentProductChain } from "../config/productChains";
@@ -54,6 +56,7 @@ interface DeployPanelProps {
   onOpenAccount: () => void;
   onSelectTemplate: (templateId: string) => void;
   onOpenAgent: (target?: { templateId?: string; publicPath?: string }) => void;
+  onOpenDashboard: () => void;
   onAuthSessionChange: (
     session: KyraAuthSession | null,
     status: KyraAuthStatus,
@@ -152,6 +155,7 @@ export function DeployPanel({
   onOpenAccount,
   onSelectTemplate,
   onOpenAgent,
+  onOpenDashboard,
   onAuthSessionChange,
 }: DeployPanelProps) {
   const [agentName, setAgentName] = useState(() => `Kyra ${selectedTemplate.name}`);
@@ -179,7 +183,7 @@ export function DeployPanel({
   const [telegramDeployConnectStatus, setTelegramDeployConnectStatus] =
     useState<TelegramDeployConnectUiStatus>("idle");
   const [telegramDeployConnectMessage, setTelegramDeployConnectMessage] = useState(
-    "Optional: paste a BotFather token during deploy. Kyra validates it before quota is used and clears it after submit.",
+    "Optional: paste your BotFather token, or skip and connect later from the dashboard.",
   );
   const [telegramConnectedBotHandle, setTelegramConnectedBotHandle] = useState<string | null>(null);
   const [telegramOwnerLinkStatus, setTelegramOwnerLinkStatus] =
@@ -280,13 +284,16 @@ export function DeployPanel({
   const atDeployStep = wizardStep === wizardSteps.length - 1;
   const atAccountStep = wizardStep === 0;
   const quotaBlocksDeploy = Boolean(authSession && agentQuota.reached);
+  // Once saved, the main button leads to the dashboard so a second click
+  // cannot create a duplicate agent.
+  const deploySaved = deployed && persistStatus === "saved";
   const telegramStepTitle = telegramConnectTokenInputEnabled ? "Connect Telegram during deploy" : "Telegram status";
   const telegramStepDescription = telegramConnectTokenInputEnabled
-    ? "Paste a BotFather token only in this deploy step. Kyra validates it before quota is used, stores token refs backend-only, and clears the field after submit."
+    ? "Paste the token @BotFather gave you. Kyra checks it, stores it encrypted on the backend, and clears this field after you deploy. You can also skip this and connect later from the dashboard."
     : "Telegram token entry is only available in approved private deploy flows. Public profiles stay safe, and token handling remains backend-only.";
   const telegramInterfaceStatus = telegramConnectTokenInputEnabled
     ? telegramTokenQueuedForDeploy
-      ? "validates before quota"
+      ? "checked before deploy"
       : "optional during deploy"
     : "owner controlled";
   const telegramReviewPlatformLabel = telegramConnectTokenInputEnabled
@@ -360,7 +367,7 @@ export function DeployPanel({
       "Owner chat activation is created after the webhook is active.",
     );
     setTelegramDeployConnectMessage(
-      message ?? "Optional: connect Telegram during deploy. Token is cleared after submit.",
+      message ?? "Optional: connect Telegram now, or later from the dashboard.",
     );
   }
 
@@ -789,6 +796,15 @@ export function DeployPanel({
     setWizardStep((step) => Math.min(step + 1, wizardSteps.length - 1));
   }
 
+  function startAnotherDeploy() {
+    setDeployed(false);
+    setPersistStatus("skipped");
+    setPersistedRecord(null);
+    agentNameEditedRef.current = false;
+    setAgentName(`Kyra ${selectedTemplate.name}`);
+    setWizardStep(getWizardStepIndex("template"));
+  }
+
   function copyPreviewLink() {
     if (!hasPersistedPublicRoute) {
       return;
@@ -831,7 +847,7 @@ export function DeployPanel({
         <article>
           <span>03</span>
           <strong>Shape the agent</strong>
-          <p>Name the agent and review its enabled actions before publishing.</p>
+          <p>Name the agent, set its tone, and add what it should know.</p>
         </article>
         <article>
           <span>04</span>
@@ -946,6 +962,16 @@ export function DeployPanel({
                     </div>
                   ) : null}
                 </div>
+
+                <div className="wizard-template-brief">
+                  <p>{selectedTemplate.summary}</p>
+                  {templateStarts[selectedTemplate.id] ? (
+                    <p className="template-starts">
+                      <strong>Starts with:</strong> {templateStarts[selectedTemplate.id]}
+                    </p>
+                  ) : null}
+                  <small>Every template gets every feature. You can change tone, knowledge, and limits anytime.</small>
+                </div>
               </div>
             ) : null}
 
@@ -1008,8 +1034,8 @@ export function DeployPanel({
                           setTelegramDeployConnectStatus(event.target.value.trim() ? "ready" : "idle");
                           setTelegramDeployConnectMessage(
                             event.target.value.trim()
-                              ? "Telegram bot token will be validated before this deploy uses quota."
-                              : "Optional: paste a BotFather token during deploy. Kyra validates it before quota is used and clears it after submit.",
+                              ? "Kyra checks this token before it creates your agent."
+                              : "Optional: paste your BotFather token, or skip and connect later from the dashboard.",
                           );
                         }}
                         placeholder="123456:AA..."
@@ -1049,7 +1075,7 @@ export function DeployPanel({
                     <ol>
                       <li>Open Telegram and message @BotFather.</li>
                       <li>Create a bot with /newbot and choose a handle.</li>
-                      <li>Paste the token only in this deploy step.</li>
+                      <li>Paste the token here. Never share it anywhere else.</li>
                     </ol>
                   ) : (
                     <ol>
@@ -1136,8 +1162,8 @@ export function DeployPanel({
                     <strong>approval required</strong>
                   </span>
                   <span>
-                    Persistence
-                    <strong>{authSession ? "Workspace persistence active" : "Sign in to save route"}</strong>
+                    Saved to
+                    <strong>{authSession ? "Your private workspace" : "Sign in to save"}</strong>
                   </span>
                   <span>
                     Agent limit
@@ -1157,7 +1183,7 @@ export function DeployPanel({
                   {quotaBlocksDeploy
                     ? `${agentQuota.message} Max ${agentQuota.limit} agents per workspace.`
                     : authSession
-                    ? "Account session active. Kyra will persist this agent through the connected backend."
+                    ? "You're signed in. This agent will be saved to your private workspace."
                     : "No active account session. Sign in first to save this agent and public route."}
                 </div>
               </div>
@@ -1179,10 +1205,21 @@ export function DeployPanel({
             <button
               className="button button-primary"
               type="button"
-              disabled={deploying || (atDeployStep && quotaBlocksDeploy)}
-              onClick={atDeployStep && !authSession ? onOpenAccount : goNext}
+              disabled={deploying || (atDeployStep && quotaBlocksDeploy && !deploySaved)}
+              onClick={
+                atDeployStep && deploySaved
+                  ? onOpenDashboard
+                  : atDeployStep && !authSession
+                  ? onOpenAccount
+                  : goNext
+              }
             >
-              {atDeployStep && !authSession ? (
+              {atDeployStep && deploySaved ? (
+                <>
+                  <LayoutDashboard size={17} />
+                  Open dashboard
+                </>
+              ) : atDeployStep && !authSession ? (
                 <>
                   <KeyRound size={17} />
                   Sign in to deploy
@@ -1239,14 +1276,6 @@ export function DeployPanel({
                       <strong>approval required</strong>
                     </span>
                     <span>
-                      Record
-                      <strong>{persistedRecord?.agentId ?? agentRecord.id}</strong>
-                    </span>
-                    <span>
-                      Workspace
-                      <strong>{persistedRecord?.workspaceId ?? "not saved"}</strong>
-                    </span>
-                    <span>
                       Agent quota
                       <strong>{receiptQuotaLabel}</strong>
                     </span>
@@ -1256,14 +1285,14 @@ export function DeployPanel({
                     </span>
                   </div>
                   <p className="receipt-safety-line">
-                    Backend persistence stores agent records only. No real transaction or wallet key is used.
-                    Telegram tokens are never stored in frontend state after submit.
+                    Your agent is saved to your private workspace. Kyra never asks for wallet keys, and
+                    your bot token stays encrypted on the backend.
                   </p>
                   {telegramDeployConnectStatus === "success" ? (
                     <div className="deploy-persist-note persist-success">
                       <ShieldCheck size={15} />
-                      Telegram webhook active. Link the owner chat before commands are enabled; write,
-                      wallet, approval, and onchain actions still require explicit user approval.
+                      Your bot is connected. Open it in Telegram and press Start to link your chat. Anything
+                      that touches funds still needs your approval in your own wallet.
                     </div>
                   ) : telegramDeployConnectStatus !== "idle" ? (
                     <div className={`deploy-persist-note persist-${telegramDeployConnectStatus}`}>
@@ -1273,7 +1302,7 @@ export function DeployPanel({
                   ) : (
                     <div className="deploy-persist-note persist-standby">
                       <ShieldCheck size={15} />
-                      Telegram was not connected during this deploy.
+                      Telegram is not connected yet. Open the dashboard to connect your bot.
                     </div>
                   )}
                   {telegramOwnerLinkStatus !== "idle" ? (
@@ -1334,6 +1363,12 @@ export function DeployPanel({
                       <ExternalLink size={14} />
                       Open public agent
                     </button>
+                    {deploySaved && !agentQuota.reached ? (
+                      <button type="button" onClick={startAnotherDeploy}>
+                        <Play size={14} />
+                        Deploy another agent
+                      </button>
+                    ) : null}
                   </div>
                 </>
               ) : (

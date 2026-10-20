@@ -42,8 +42,8 @@ export function SecuritySection() {
           <ShieldCheck size={22} />
           <strong>Risk guard</strong>
           <p>
-            Kyra checks risky tokens, suspicious approvals, slippage, and unsafe
-            flows.
+            Reviews flag risky tokens, slippage, and unsafe requests, and the
+            agent refuses keys and seed phrases.
           </p>
         </article>
       </div>

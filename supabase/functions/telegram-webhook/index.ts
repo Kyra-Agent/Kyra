@@ -76,6 +76,12 @@ import {
   type TelegramCommunitySetResult,
 } from "./community.ts";
 import {
+  consumeTelegramOwnerBrainQuota,
+  ownerQuotaTexts,
+  type TelegramOwnerBrainQuotaResult,
+  type TelegramOwnerQuotaRpcClient,
+} from "./owner-quota.ts";
+import {
   handleMonitoringCommand,
   isMonitoringCommand,
   type MonitoringCommand,
@@ -422,6 +428,9 @@ export interface TelegramWebhookDependencies {
     telegramChatId: string;
     telegramUserId: string;
   }) => Promise<TelegramCommunityQuotaResult>;
+  consumeTelegramOwnerBrainQuota?: (input: {
+    agentId: string;
+  }) => Promise<TelegramOwnerBrainQuotaResult>;
   runMonitoringCommand?: (input: {
     command: MonitoringCommand;
     args: string;
@@ -818,6 +827,12 @@ export function createTelegramWebhookDependencies(
         input,
         getAgentBrainProvider(),
       );
+    };
+    dependencies.consumeTelegramOwnerBrainQuota = async (input) => {
+      return await consumeTelegramOwnerBrainQuota({
+        ...input,
+        rpcClient: getRpcClient() as unknown as TelegramOwnerQuotaRpcClient,
+      });
     };
 
     if (
@@ -1344,6 +1359,39 @@ export async function handleTelegramWebhookRequest(
               error instanceof HttpError ? error.code : "unexpected_error",
             );
           }
+        }
+      }
+
+      // Owner chats are capped too, so one account cannot drain the model
+      // credits. If the check itself fails, the owner is still answered.
+      if (
+        answerableChat && !isCommunityMember &&
+        agentBrainRuntimeConfig.enabled &&
+        dependencies.generateTelegramAgentBrainReply &&
+        dependencies.consumeTelegramOwnerBrainQuota &&
+        templateContext !== null
+      ) {
+        let quota: TelegramOwnerBrainQuotaResult = "allowed";
+
+        try {
+          quota = await dependencies.consumeTelegramOwnerBrainQuota({
+            agentId: lookupSession.agentId,
+          });
+        } catch (error) {
+          logSafeEvent(
+            "telegram_owner_quota_fallback",
+            error instanceof HttpError ? error.code : "unexpected_error",
+          );
+        }
+
+        if (quota !== "allowed") {
+          answerableChat = false;
+          response = {
+            command: parsedUpdate.command,
+            text: liveChainData
+              ? `${liveChainData}\n\n${ownerQuotaTexts[quota]}`
+              : ownerQuotaTexts[quota],
+          };
         }
       }
 

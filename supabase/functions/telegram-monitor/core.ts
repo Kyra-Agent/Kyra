@@ -69,7 +69,10 @@ export interface MonitorStore {
   dueLaunchSubscriptions(olderThan: string): Promise<LaunchSubscription[]>;
   launchEventsSince(since: string | null, limit: number): Promise<{ total: number; events: LaunchEvent[] }>;
   markDigestSent(agentId: string, at: string): Promise<void>;
+  markDigestAttempted(agentId: string, at: string): Promise<void>;
+  // Least recently checked first.
   listWatchItems(limit: number): Promise<WatchItem[]>;
+  markWatchItemsChecked(ids: string[], at: string): Promise<void>;
   updateWatchItem(id: string, patch: { lastBlock?: number; lastPriceUsd?: number }): Promise<void>;
   activeAlerts(limit: number): Promise<PriceAlert[]>;
   claimAlert(id: string, priceUsd: number): Promise<boolean>;
@@ -189,6 +192,8 @@ export async function runMonitorCycle(
             formatLaunchDigest(total, events),
           );
           if (!ok) {
+            // Moves to the back of the queue so it cannot block other agents.
+            await store.markDigestAttempted(subscription.agentId, now.toISOString());
             continue;
           }
           report.digestsSent += 1;
@@ -218,19 +223,19 @@ export async function runMonitorCycle(
         : new Map<string, number | null>();
 
       let walletChecks = 0;
-      const ordered = [...items].sort((a, b) =>
-        (a.lastBlock ?? -1) - (b.lastBlock ?? -1)
-      );
+      const checked: string[] = [];
 
-      for (const item of ordered) {
+      for (const item of items) {
         if (!timeLeft()) {
           break;
         }
 
+        if (item.kind === "wallet" && walletChecks >= maxWalletChecksPerCycle) {
+          continue;
+        }
+        checked.push(item.id);
+
         if (item.kind === "wallet") {
-          if (walletChecks >= maxWalletChecksPerCycle) {
-            continue;
-          }
           walletChecks += 1;
           const fromBlock = item.lastBlock === null
             ? Math.max(0, head - walletFirstScanBlocks)
@@ -281,6 +286,10 @@ export async function runMonitorCycle(
           }
         }
       }
+
+      if (checked.length) {
+        await store.markWatchItemsChecked(checked, now.toISOString());
+      }
     } catch {
       report.skipped.push("watchlist");
     }
@@ -290,7 +299,7 @@ export async function runMonitorCycle(
   if (timeLeft()) {
     try {
       const alerts = await store.activeAlerts(maxAlerts);
-      const tokens = [...new Set(alerts.map((alert) => alert.tokenAddress))].slice(0, 25);
+      const tokens = [...new Set(alerts.map((alert) => alert.tokenAddress))];
       const meta = tokens.length ? await chain.tokenMeta(tokens) : new Map<string, TokenMeta>();
       const prices = tokens.length
         ? await chain.pricesUsd(
