@@ -116,6 +116,9 @@ const maxMetaLookups = 40;
 const maxWatchItems = 200;
 const maxAlerts = 200;
 const maxMessagesPerAgent = 5;
+// Wallet log checks hit the public chain RPC; spread them across cycles,
+// least recently checked first.
+const maxWalletChecksPerCycle = 25;
 
 export async function runMonitorCycle(
   store: MonitorStore,
@@ -214,12 +217,21 @@ export async function runMonitorCycle(
         )
         : new Map<string, number | null>();
 
-      for (const item of items) {
+      let walletChecks = 0;
+      const ordered = [...items].sort((a, b) =>
+        (a.lastBlock ?? -1) - (b.lastBlock ?? -1)
+      );
+
+      for (const item of ordered) {
         if (!timeLeft()) {
           break;
         }
 
         if (item.kind === "wallet") {
+          if (walletChecks >= maxWalletChecksPerCycle) {
+            continue;
+          }
+          walletChecks += 1;
           const fromBlock = item.lastBlock === null
             ? Math.max(0, head - walletFirstScanBlocks)
             : Math.max(item.lastBlock + 1, head - maxScanBlocks);

@@ -88,6 +88,7 @@ import {
   hasChainDataTargets,
   readChainDataRpcConfig,
   readLiveChainData,
+  robinhoodLogsRpcUrl,
 } from "./chain-data.ts";
 import {
   createOpenAiCompatibleTelegramAgentBrainProvider,
@@ -791,6 +792,7 @@ export function createTelegramWebhookDependencies(
       return await readLiveChainData({
         targets,
         rpcUrl: chainDataRpcConfig.rpcUrl,
+        logsRpcUrl: robinhoodLogsRpcUrl,
         fetchImpl: options.fetchChainData,
       });
     };

@@ -45,6 +45,10 @@ interface TransferRow {
 }
 
 export const robinhoodChainIdHex = "0x1237";
+// Log queries use the official public Robinhood Chain RPC: it serves
+// eth_getLogs over 30,000-block ranges, while many hosted provider plans cap
+// log ranges at a few blocks. Logs are public data, and no secret is sent.
+export const robinhoodLogsRpcUrl = "https://rpc.mainnet.chain.robinhood.com";
 // ERC-20 and ERC-721 share this event signature.
 export const transferTopic = toEventSelector("Transfer(address,address,uint256)");
 const explorerUrl = "https://robinhoodchain.blockscout.com";
@@ -153,11 +157,18 @@ export function readChainDataRpcConfig(
 export async function readLiveChainData(input: {
   targets: ChainDataTargets;
   rpcUrl: string;
+  // eth_getLogs goes to the public chain RPC by default; see robinhoodLogsRpcUrl.
+  logsRpcUrl?: string;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
 }): Promise<string> {
   const rpc = createBatchRpc(
     input.rpcUrl,
+    input.fetchImpl ?? fetch,
+    input.timeoutMs ?? defaultTimeoutMs,
+  );
+  const logsRpc = createBatchRpc(
+    input.logsRpcUrl ?? input.rpcUrl,
     input.fetchImpl ?? fetch,
     input.timeoutMs ?? defaultTimeoutMs,
   );
@@ -220,25 +231,15 @@ export async function readLiveChainData(input: {
     wallets.push({ address, ethWei, nonce, isContract });
   });
 
-  // Balances of core tokens and of any token named in the same message, plus
-  // recent token activity, in one batch.
+  // Balances of core tokens and of any token named in the same message.
   const balanceTokens = uniqueTokens([...coreTokens, ...tokens]);
-  const second = await rpc([
-    ...wallets.flatMap((wallet) =>
+  const second = await rpc(
+    wallets.flatMap((wallet) =>
       balanceTokens.map((token) =>
         ethCall(token.address, selectors.balanceOf + padAddress(wallet.address))
       )
     ),
-    ...tokens.map((token) => ({
-      method: "eth_getLogs",
-      params: [{
-        address: token.address,
-        fromBlock: toHex(Math.max(0, head - tokenActivityBlocks)),
-        toBlock: toHex(head),
-        topics: [transferTopic],
-      }],
-    })),
-  ]);
+  );
 
   const walletBalances = wallets.map((_, walletIndex) =>
     balanceTokens.map((token, tokenIndex) => ({
@@ -246,8 +247,18 @@ export async function readLiveChainData(input: {
       raw: readHexBigInt(second[walletIndex * balanceTokens.length + tokenIndex]),
     }))
   );
-  const activityOffset = wallets.length * balanceTokens.length;
-  const tokenActivity = tokens.map((_, index) => second[activityOffset + index]);
+  // Recent token activity; a failed log read shows as "not readable".
+  const tokenActivity: unknown[] = tokens.length
+    ? await logsRpc(tokens.map((token) => ({
+      method: "eth_getLogs",
+      params: [{
+        address: token.address,
+        fromBlock: toHex(Math.max(0, head - tokenActivityBlocks)),
+        toBlock: toHex(head),
+        topics: [transferTopic],
+      }],
+    }))).catch(() => tokens.map(() => null))
+    : [];
 
   // Recent transfers per wallet, searched backward in bounded windows.
   const walletTransfers: TransferRow[][] = [];
@@ -264,10 +275,10 @@ export async function readLiveChainData(input: {
       const toBlock = head - windowIndex * walletLogWindowBlocks;
       const fromBlock = Math.max(0, toBlock - walletLogWindowBlocks + 1);
       const topic = padAddress(wallet.address);
-      const logs = await rpc([
+      const logs = await logsRpc([
         transferLogs(fromBlock, toBlock, [transferTopic, null, `0x${topic}`]),
         transferLogs(fromBlock, toBlock, [transferTopic, `0x${topic}`]),
-      ]);
+      ]).catch(() => [null, null]);
 
       if (!Array.isArray(logs[0]) || !Array.isArray(logs[1])) {
         unavailable = rows.length === 0;
@@ -600,7 +611,14 @@ function dedupeTransfers(rows: TransferRow[]) {
     });
 }
 
-export function createBatchRpc(rpcUrl: string, fetchImpl: typeof fetch, timeoutMs: number) {
+// onRpcError receives only the method name and JSON-RPC error code, never the
+// URL or message, so it is safe to surface in diagnostics.
+export function createBatchRpc(
+  rpcUrl: string,
+  fetchImpl: typeof fetch,
+  timeoutMs: number,
+  onRpcError?: (method: string, code: number | null) => void,
+) {
   return async (calls: RpcCall[]): Promise<unknown[]> => {
     if (!calls.length) {
       return [];
@@ -629,6 +647,7 @@ export function createBatchRpc(rpcUrl: string, fetchImpl: typeof fetch, timeoutM
       const payload = await response.json();
 
       if (!Array.isArray(payload)) {
+        onRpcError?.("batch", readRpcErrorCode(payload));
         throw chainDataFailure("chain_data_unavailable");
       }
 
@@ -636,6 +655,8 @@ export function createBatchRpc(rpcUrl: string, fetchImpl: typeof fetch, timeoutM
       for (const item of payload) {
         if (isRecord(item) && typeof item.id === "number" && "result" in item) {
           results[item.id] = item.result;
+        } else if (isRecord(item) && typeof item.id === "number" && "error" in item) {
+          onRpcError?.(calls[item.id]?.method ?? "unknown", readRpcErrorCode(item));
         }
       }
       return results;
@@ -650,6 +671,14 @@ export function createBatchRpc(rpcUrl: string, fetchImpl: typeof fetch, timeoutM
       clearTimeout(timer);
     }
   };
+}
+
+function readRpcErrorCode(value: unknown) {
+  if (!isRecord(value) || !isRecord(value.error)) {
+    return null;
+  }
+  const code = value.error.code;
+  return typeof code === "number" && Number.isInteger(code) ? code : null;
 }
 
 export function ethCall(to: string, data: string): RpcCall {

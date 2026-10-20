@@ -9,6 +9,7 @@ import {
   readHexNumber,
   readUint,
   robinhoodChainIdHex,
+  robinhoodLogsRpcUrl,
   selectors,
   toHex,
   transferTopic,
@@ -59,8 +60,12 @@ function topicAddress(topic: unknown) {
   return typeof topic === "string" ? `0x${topic.slice(-40)}`.toLowerCase() : "";
 }
 
-function createChain(rpcUrl: string): MonitorChain {
-  const rpc = createBatchRpc(rpcUrl, fetch, 8_000);
+function createChain(
+  rpcUrl: string,
+  onRpcError: (method: string, code: number | null) => void,
+): MonitorChain {
+  const rpc = createBatchRpc(rpcUrl, fetch, 8_000, onRpcError);
+  const logsRpc = createBatchRpc(robinhoodLogsRpcUrl, fetch, 12_000, onRpcError);
 
   return {
     async head() {
@@ -77,7 +82,7 @@ function createChain(rpcUrl: string): MonitorChain {
 
     async poolLogs(fromBlock, toBlock) {
       const range = { fromBlock: toHex(fromBlock), toBlock: toHex(toBlock) };
-      const results = await rpc([
+      const results = await logsRpc([
         ...v2Factories.map((factory) => ({
           method: "eth_getLogs",
           params: [{ ...range, address: factory, topics: [pairCreatedTopic] }],
@@ -123,7 +128,7 @@ function createChain(rpcUrl: string): MonitorChain {
     async walletTransfers(wallet, fromBlock, toBlock) {
       const padded = `0x${wallet.slice(2).padStart(64, "0")}`;
       const range = { fromBlock: toHex(fromBlock), toBlock: toHex(toBlock) };
-      const [incoming, outgoing] = await rpc([
+      const [incoming, outgoing] = await logsRpc([
         { method: "eth_getLogs", params: [{ ...range, topics: [transferTopic, null, padded] }] },
         { method: "eth_getLogs", params: [{ ...range, topics: [transferTopic, padded] }] },
       ]);
@@ -391,16 +396,24 @@ Deno.serve(async (request) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
+  // Method names and JSON-RPC error codes only, so pg_net responses show why
+  // a step came back empty without exposing the RPC URL.
+  const rpcErrors = new Set<string>();
+
   try {
     const report = await runMonitorCycle(
       createStore(client),
-      createChain(rpcConfig.rpcUrl),
+      createChain(rpcConfig.rpcUrl, (method, code) => {
+        if (rpcErrors.size < 10) {
+          rpcErrors.add(`${method}:${code ?? "unknown"}`);
+        }
+      }),
       createSender(client),
     );
     for (const step of report.skipped) {
       logSafeEvent("telegram_monitor_step_skipped", step);
     }
-    return jsonResponse({ ok: true, status: "done", ...report });
+    return jsonResponse({ ok: true, status: "done", ...report, rpcErrors: [...rpcErrors] });
   } catch {
     logSafeEvent("telegram_monitor_failed", "cycle_error");
     return jsonResponse({ ok: false, status: "cycle_failed" }, 500);
