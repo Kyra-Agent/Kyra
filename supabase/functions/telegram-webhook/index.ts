@@ -68,6 +68,14 @@ import {
   type TelegramChatMemoryTurn,
 } from "./chat-memory.ts";
 import {
+  consumeTelegramCommunityQuota,
+  isTelegramCommunityChatEnabled,
+  setTelegramCommunityChat,
+  type TelegramCommunityQuotaResult,
+  type TelegramCommunityRpcClient,
+  type TelegramCommunitySetResult,
+} from "./community.ts";
+import {
   type ChainDataTargets,
   extractChainDataTargets,
   hasChainDataTargets,
@@ -88,6 +96,7 @@ import { logSafeEvent } from "../_shared/safe-log.ts";
 import {
   buildTelegramOwnerLinkReply,
   classifyTelegramReadOnlyChatIntent,
+  communityTexts,
   type TelegramReadOnlyCommandResponse,
 } from "./read-only-response.ts";
 import {
@@ -357,6 +366,7 @@ export interface TelegramWebhookDependencies {
     telegramSessionId: string;
     telegramChatId: string;
     response: TelegramReadOnlyCommandResponse;
+    replyToMessageId?: string;
   }) => Promise<unknown>;
   consumeTelegramOwnerLinkChallenge?: (input: {
     telegramSessionId: string;
@@ -387,6 +397,22 @@ export interface TelegramWebhookDependencies {
     telegramChatId: string;
   }) => Promise<number>;
   readLiveChainData?: (targets: ChainDataTargets) => Promise<string>;
+  setTelegramCommunityChat?: (input: {
+    agentId: string;
+    telegramUserId: string;
+    telegramChatId: string;
+    chatTitle: string;
+    enabled: boolean;
+  }) => Promise<TelegramCommunitySetResult>;
+  isTelegramCommunityChatEnabled?: (input: {
+    agentId: string;
+    telegramChatId: string;
+  }) => Promise<boolean>;
+  consumeTelegramCommunityQuota?: (input: {
+    agentId: string;
+    telegramChatId: string;
+    telegramUserId: string;
+  }) => Promise<TelegramCommunityQuotaResult>;
 }
 
 const disabledTelegramWebhookLookupRuntimeConfig:
@@ -415,6 +441,8 @@ const telegramChatMemoryEnabledEnvKey =
 // verification; set this to "false" to turn them off.
 const telegramChainDataEnabledEnvKey =
   "KYRA_TELEGRAM_WEBHOOK_CHAIN_DATA_ENABLED";
+const telegramCommunityEnabledEnvKey =
+  "KYRA_TELEGRAM_WEBHOOK_COMMUNITY_ENABLED";
 const telegramAgentBrainModelEnvKey = "KYRA_TELEGRAM_AGENT_BRAIN_MODEL";
 const telegramAgentBrainEndpointEnvKey = "KYRA_TELEGRAM_AGENT_BRAIN_ENDPOINT";
 const telegramAgentBrainTimeoutMsEnvKey =
@@ -649,6 +677,34 @@ export function createTelegramWebhookDependencies(
           getRpcClient() as unknown as TelegramChatAuthorizationLookupRpcClient,
       });
     };
+
+    // Community mode (groups) can be switched off without touching owner chat.
+    if (
+      readOptionalEnv(telegramCommunityEnabledEnvKey)?.trim().toLowerCase() !==
+        "false"
+    ) {
+      const getCommunityRpcClient = () =>
+        getRpcClient() as unknown as TelegramCommunityRpcClient;
+
+      dependencies.setTelegramCommunityChat = async (input) => {
+        return await setTelegramCommunityChat({
+          ...input,
+          rpcClient: getCommunityRpcClient(),
+        });
+      };
+      dependencies.isTelegramCommunityChatEnabled = async (input) => {
+        return await isTelegramCommunityChatEnabled({
+          ...input,
+          rpcClient: getCommunityRpcClient(),
+        });
+      };
+      dependencies.consumeTelegramCommunityQuota = async (input) => {
+        return await consumeTelegramCommunityQuota({
+          ...input,
+          rpcClient: getCommunityRpcClient(),
+        });
+      };
+    }
   }
 
   if (claimRuntimeConfig.enabled) {
@@ -681,6 +737,7 @@ export function createTelegramWebhookDependencies(
           botToken,
           telegramChatId: input.telegramChatId,
           response: input.response,
+          replyToMessageId: input.replyToMessageId,
         },
         {
           fetch: options.fetchTelegram,
@@ -888,6 +945,14 @@ export async function handleTelegramWebhookRequest(
       });
     }
 
+    // Group chatter that is not meant for the bot is never processed.
+    if (parsedUpdate?.addressedToBot === false) {
+      return ignoredTelegramUpdateResponse();
+    }
+
+    const isGroupChat = parsedUpdate?.chatType === "group" ||
+      parsedUpdate?.chatType === "supergroup";
+
     if (chatAuthRuntimeConfig.enabled) {
       if (!lookupSession || !parsedUpdate) {
         throw new HttpError(
@@ -914,21 +979,33 @@ export async function handleTelegramWebhookRequest(
         });
       } catch (error) {
         if (
-          error instanceof HttpError &&
-          error.statusCode === 403 &&
-          error.code === "chat_not_authorized"
+          !(error instanceof HttpError) ||
+          error.statusCode !== 403 ||
+          error.code !== "chat_not_authorized"
         ) {
-          return jsonResponse(
-            {
-              ok: true,
-              status: "ignored",
-              message: "Telegram update ignored.",
-            },
-            200,
-          );
+          throw error;
         }
 
-        throw error;
+        // Outside the owner chat, a group can still be served as a community:
+        // /community_on and /community_off go on (the database checks the
+        // sender is the owner); everything else needs community mode on.
+        const communityCommand = parsedUpdate.command === "community_on" ||
+          parsedUpdate.command === "community_off";
+        let communityAccess = false;
+
+        if (isGroupChat && dependencies.isTelegramCommunityChatEnabled) {
+          communityAccess = communityCommand ||
+            await dependencies.isTelegramCommunityChatEnabled({
+              agentId: lookupSession.agentId,
+              telegramChatId: parsedUpdate.telegramChatId,
+            });
+        }
+
+        if (!communityAccess) {
+          return ignoredTelegramUpdateResponse();
+        }
+
+        chatAuthorization = { authorized: true, role: "member" };
       }
     }
 
@@ -991,8 +1068,54 @@ export async function handleTelegramWebhookRequest(
 
       let response = deliveryPlan.response;
       let rememberedReply: string | null = null;
+      // Group members reached through community mode: read-only, no memory,
+      // rate limited, and no access to the owner's private settings.
+      const isCommunityMember = chatAuthorization?.role === "member";
 
-      if (parsedUpdate.command === "forget") {
+      if (
+        parsedUpdate.command === "community_on" ||
+        parsedUpdate.command === "community_off"
+      ) {
+        let text: string = communityTexts.notGroup;
+
+        if (isGroupChat && dependencies.setTelegramCommunityChat) {
+          try {
+            text = getCommunitySetReply(
+              await dependencies.setTelegramCommunityChat({
+                agentId: lookupSession.agentId,
+                telegramUserId: parsedUpdate.telegramUserId,
+                telegramChatId: parsedUpdate.telegramChatId,
+                chatTitle: parsedUpdate.chatTitle ?? "",
+                enabled: parsedUpdate.command === "community_on",
+              }),
+            );
+          } catch (error) {
+            logSafeEvent(
+              "telegram_community_fallback",
+              error instanceof HttpError ? error.code : "unexpected_error",
+            );
+            text = communityTexts.failed;
+          }
+        } else if (isGroupChat) {
+          text = communityTexts.failed;
+        }
+
+        response = {
+          command: parsedUpdate.command,
+          text: withAskBotHandle(text, lookupSession.botHandle),
+        };
+      }
+
+      if (isCommunityMember && parsedUpdate.command === "help") {
+        response = {
+          command: "help",
+          text: withAskBotHandle(communityTexts.help, lookupSession.botHandle),
+        };
+      }
+
+      if (isCommunityMember && parsedUpdate.command === "forget") {
+        response = { command: "forget", text: communityTexts.memberForget };
+      } else if (parsedUpdate.command === "forget") {
         if (!dependencies.forgetTelegramChatMemory) {
           response = {
             command: parsedUpdate.command,
@@ -1074,7 +1197,7 @@ export async function handleTelegramWebhookRequest(
 
       // A review or plan about a wallet action ("review a swap of 500 USDC")
       // gets a read-only answer; a bare command keeps the gate's refusal.
-      const answerableChat = shouldUseTelegramAgentBrain(parsedUpdate.command) &&
+      let answerableChat = shouldUseTelegramAgentBrain(parsedUpdate.command) &&
         executionGate?.status !== "blocked" &&
         (executionGate?.status !== "approval_draft_candidate" ||
           classifyTelegramReadOnlyChatIntent(parsedUpdate.text) !==
@@ -1082,7 +1205,41 @@ export async function handleTelegramWebhookRequest(
       let chatHistory: TelegramChatMemoryTurn[] = [];
       let liveChainData = "";
 
-      if (answerableChat && dependencies.loadTelegramChatMemory) {
+      // Community questions count against per-member and per-group limits.
+      // If the quota check itself fails, the question is not answered.
+      if (answerableChat && isCommunityMember) {
+        let quota: TelegramCommunityQuotaResult = "group_limited";
+
+        if (dependencies.consumeTelegramCommunityQuota) {
+          try {
+            quota = await dependencies.consumeTelegramCommunityQuota({
+              agentId: lookupSession.agentId,
+              telegramChatId: parsedUpdate.telegramChatId,
+              telegramUserId: parsedUpdate.telegramUserId,
+            });
+          } catch (error) {
+            logSafeEvent(
+              "telegram_community_fallback",
+              error instanceof HttpError ? error.code : "unexpected_error",
+            );
+          }
+        }
+
+        if (quota !== "allowed") {
+          answerableChat = false;
+          response = {
+            command: parsedUpdate.command,
+            text: quota === "member_limited"
+              ? communityTexts.memberLimited
+              : communityTexts.groupLimited,
+          };
+        }
+      }
+
+      if (
+        answerableChat && !isCommunityMember &&
+        dependencies.loadTelegramChatMemory
+      ) {
         try {
           chatHistory = await dependencies.loadTelegramChatMemory({
             telegramSessionId: lookupSession.sessionId,
@@ -1144,16 +1301,22 @@ export async function handleTelegramWebhookRequest(
                 ?.instructions,
               projectKnowledge: templateContext?.context.ownerSettings
                 ?.knowledge,
-              riskProfile: templateContext?.context.ownerSettings?.riskProfile,
-              maxReviewUsd: templateContext?.context.ownerSettings
-                ?.maxReviewUsd,
+              // The owner's risk profile and review limit stay private.
+              riskProfile: isCommunityMember
+                ? undefined
+                : templateContext?.context.ownerSettings?.riskProfile,
+              maxReviewUsd: isCommunityMember
+                ? undefined
+                : templateContext?.context.ownerSettings?.maxReviewUsd,
               liveChainData,
+              audience: isCommunityMember ? "community" : "owner",
             });
           response = {
             command: parsedUpdate.command,
             text: agentBrainReply.text,
           };
-          rememberedReply = agentBrainReply.text;
+          // Group members' messages are never stored.
+          rememberedReply = isCommunityMember ? null : agentBrainReply.text;
         } catch (error) {
           // Agent-brain is optional. Preserve read-only delivery if the provider
           // times out, rejects output, or returns a malformed response. Log the
@@ -1178,6 +1341,7 @@ export async function handleTelegramWebhookRequest(
           telegramSessionId: lookupSession.sessionId,
           telegramChatId: parsedUpdate.telegramChatId,
           response,
+          ...(isGroupChat ? { replyToMessageId: parsedUpdate.messageId } : {}),
         });
       } catch (error) {
         if (error instanceof HttpError) {
@@ -1239,6 +1403,12 @@ export async function handleTelegramWebhookRequest(
       501,
     );
   } catch (error) {
+    // Stickers, photos, joins, edits, and unknown commands are acknowledged
+    // so Telegram does not keep retrying them.
+    if (error instanceof HttpError && error.code === "unsupported_update") {
+      return ignoredTelegramUpdateResponse();
+    }
+
     if (error instanceof HttpError) {
       return jsonResponse(
         {
@@ -1258,6 +1428,44 @@ export async function handleTelegramWebhookRequest(
       },
       500,
     );
+  }
+}
+
+function ignoredTelegramUpdateResponse() {
+  return jsonResponse(
+    {
+      ok: true,
+      status: "ignored",
+      message: "Telegram update ignored.",
+    },
+    200,
+  );
+}
+
+// Telegram only passes "/ask@bot" (or replies) to bots in groups, so spell
+// out the exact command with this bot's name.
+function withAskBotHandle(text: string, botHandle: string | null | undefined) {
+  return botHandle && /^@[A-Za-z0-9_]{5,32}$/.test(botHandle)
+    ? text.replace("/ask followed", `/ask${botHandle} followed`)
+    : text;
+}
+
+function getCommunitySetReply(result: TelegramCommunitySetResult) {
+  switch (result) {
+    case "enabled":
+      return communityTexts.enabled;
+    case "already_enabled":
+      return communityTexts.alreadyEnabled;
+    case "disabled":
+      return communityTexts.disabled;
+    case "already_disabled":
+      return communityTexts.alreadyDisabled;
+    case "not_owner":
+      return communityTexts.notOwner;
+    case "not_group":
+      return communityTexts.notGroup;
+    case "limit_reached":
+      return communityTexts.limitReached;
   }
 }
 

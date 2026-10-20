@@ -28,6 +28,7 @@ import {
 } from "../components/OwnerWalletConnectionPanel";
 import { Phase8LowValueSubmitter } from "../components/Phase8LowValueSubmitter";
 import { AgentSettingsPanel } from "../components/AgentSettingsPanel";
+import { CommunityChatsPanel } from "../components/CommunityChatsPanel";
 import { TransferLanePanel } from "../components/TransferLanePanel";
 import { ProtectedSwapLanePanel } from "../components/ProtectedSwapLanePanel";
 import type { AgentTemplate } from "../types/agent";
@@ -3600,6 +3601,16 @@ export function Dashboard({
               key={agentRecord.id}
               session={authSession}
               template={activeTemplate}
+            />
+          ) : null}
+
+          {authSession && agentRecord && selectedTelegramActive ? (
+            <CommunityChatsPanel
+              agentId={agentRecord.id}
+              agentName={agentRecord.displayName}
+              botHandle={getConnectedTelegramBotHandle(selectedTelegramStatus)}
+              key={`community-${agentRecord.id}`}
+              session={authSession}
             />
           ) : null}
 

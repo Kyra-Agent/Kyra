@@ -665,3 +665,49 @@
 :root[data-theme="light"] .agent-settings-text textarea {
   background: rgba(255, 255, 255, 0.7);
 }
+
+/* Community chats panel (dashboard). */
+.community-chats-panel {
+  grid-column: 1 / -1;
+}
+
+.community-chat-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.community-chat-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.community-chat-list small {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.community-chat-steps {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.community-chat-steps code {
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--blue) 12%, transparent);
+  color: var(--text);
+  font-size: 0.8rem;
+}

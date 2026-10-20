@@ -45,7 +45,7 @@ export const faqs: FAQItem[] = [
   {
     question: "Can project teams use Kyra?",
     answer:
-      "Yes, as a private assistant for the team. Today the bot answers only its owner's chat, so teams use Steward and Strategist to draft community answers, announcements, and campaign plans. A community mode for group chats is planned.",
+      "Yes. Add your bot to your Telegram group and send /community_on from the owner account. Members then ask with /ask, and the agent answers from your project knowledge and live Robinhood Chain data. Answers are read-only and rate limited, members are never asked for keys, and you can turn it off anytime with /community_off.",
   },
   {
     question: "How many agents can I deploy?",

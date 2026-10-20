@@ -10,6 +10,8 @@ export interface TelegramResponseDeliveryInput {
   botToken: unknown;
   telegramChatId: unknown;
   response: unknown;
+  // In groups the answer is threaded under the member's question.
+  replyToMessageId?: unknown;
 }
 
 export interface TelegramResponseDeliveryOptions {
@@ -33,6 +35,7 @@ export async function deliverTelegramReadOnlyResponse(
   const botToken = assertTelegramDeliveryBotToken(input.botToken);
   const chatId = assertTelegramDeliveryChatId(input.telegramChatId);
   const response = assertTelegramDeliveryResponse(input.response);
+  const replyToMessageId = readReplyToMessageId(input.replyToMessageId);
   const fetchTelegram = options.fetch ?? fetch;
   const controller = new AbortController();
   const timeoutId = setTimeout(
@@ -53,6 +56,14 @@ export async function deliverTelegramReadOnlyResponse(
           chat_id: chatId,
           text: response.text,
           disable_web_page_preview: true,
+          ...(replyToMessageId
+            ? {
+              reply_parameters: {
+                message_id: replyToMessageId,
+                allow_sending_without_reply: true,
+              },
+            }
+            : {}),
         }),
       },
     );
@@ -164,6 +175,8 @@ export function assertTelegramDeliveryResponse(
     response.command !== "modules" &&
     response.command !== "policy" &&
     response.command !== "forget" &&
+    response.command !== "community_on" &&
+    response.command !== "community_off" &&
     response.command !== "chat"
   ) {
     throw invalidTelegramDeliveryResponse();
@@ -239,4 +252,10 @@ function throwTelegramDeliveryFailed(): never {
 
 function throwTelegramUnavailable(): never {
   throw new HttpError(503, "telegram_unavailable", "Telegram is unavailable.");
+}
+
+function readReplyToMessageId(value: unknown) {
+  const id = typeof value === "string" ? Number(value) : value;
+
+  return typeof id === "number" && Number.isSafeInteger(id) && id > 0 ? id : null;
 }

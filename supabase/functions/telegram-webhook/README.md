@@ -32,6 +32,8 @@ Replies use the deployed template, module stack, user request, and detected lang
 ## Security Contract
 
 - Request bodies, chat content, prompts, replies, bot tokens, webhook secrets, challenge material, provider payloads, wallet data, and transaction material are not copied into logs or retry state.
+- Community mode (`telegram_community_chats`): only the linked owner, matched by Telegram user id, can turn a group on or off (`/community_on`, `/community_off`, max 5 groups per agent). Members are read-only, reach the bot only through `/ask`, replies to the bot, or mentions, never get memory or the owner's risk settings, and are rate limited to 6 questions per 10 minutes each and 60 per group per hour (`consume_telegram_community_quota`, fails closed). Set `KYRA_TELEGRAM_WEBHOOK_COMMUNITY_ENABLED=false` to turn it off.
+- Unsupported updates (stickers, joins, edits, unknown commands) are acknowledged with `ignored` so Telegram does not retry them.
 - Short-term chat memory (`telegram_chat_memory`) is the only place chat text is stored: the owner chat's last six brain-answered messages, secrets redacted, backend-only (RLS on, no anon or authenticated grants), deleted after 24 hours by a pg_cron job, on `/forget`, and with the Telegram session. Refusals, fallbacks, and commands are never stored. Set `KYRA_TELEGRAM_WEBHOOK_CHAT_MEMORY_ENABLED=false` to turn memory off.
 - Delivery state stores bounded identifiers, status, attempt count, lease timestamps, and delivery timestamps only.
 - Concurrent workers cannot deliver the same claimed update.

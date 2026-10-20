@@ -8,7 +8,11 @@ export type TelegramWebhookParsedCommandName =
   | "modules"
   | "policy"
   | "forget"
+  | "community_on"
+  | "community_off"
   | "chat";
+
+export type TelegramChatType = "private" | "group" | "supergroup" | "other";
 
 export interface TelegramWebhookParsedCommand {
   updateId: string;
@@ -19,6 +23,12 @@ export interface TelegramWebhookParsedCommand {
   command: TelegramWebhookParsedCommandName;
   commandKind: "read_only";
   text?: string;
+  // Absent on older fixtures; treated as a private chat.
+  chatType?: TelegramChatType;
+  // In groups, true only for /ask, commands, replies to the bot, or messages
+  // that mention it. Private chats are always addressed to the bot.
+  addressedToBot?: boolean;
+  chatTitle?: string;
 }
 
 export interface TelegramWebhookUpdateParseOptions {
@@ -33,9 +43,13 @@ const supportedCommands = new Set<TelegramWebhookParsedCommandName>([
   "modules",
   "policy",
   "forget",
+  "community_on",
+  "community_off",
 ]);
 const telegramCommandPattern =
   /^\/([A-Za-z][A-Za-z0-9_]*)(?:@([A-Za-z0-9_]{5,32}))?$/;
+const telegramAskPattern =
+  /^\/ask(?:@([A-Za-z0-9_]{5,32}))?(?:\s+([\s\S]*))?$/i;
 const telegramBotUsernamePattern = /^[A-Za-z0-9_]{5,32}$/;
 const telegramLanguageCodePattern = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,2}$/;
 const maxReadOnlyChatTextLength = 1000;
@@ -53,10 +67,31 @@ export function parseTelegramWebhookUpdate(
   const telegramUserId = readPositiveSafeInteger(from.id);
   const telegramChatId = readNonZeroSafeInteger(chat.id);
   const languageCode = readLanguageCode(from.language_code);
+  const chatType = readChatType(chat.type);
   const parsedMessage = parseReadOnlyMessageText(
     message.text,
     options.expectedBotUsername,
   );
+  const isGroup = chatType === "group" || chatType === "supergroup";
+  const botUsername = normalizeExpectedBotUsername(options.expectedBotUsername);
+  let text = parsedMessage.text;
+  let addressedToBot = !isGroup || parsedMessage.addressed;
+
+  if (isGroup && parsedMessage.command === "chat" && !parsedMessage.addressed) {
+    const mentionsBot = Boolean(
+      botUsername && text?.toLowerCase().includes(`@${botUsername}`),
+    );
+    addressedToBot = mentionsBot || isReplyToBot(message.reply_to_message, botUsername);
+
+    if (mentionsBot && text && botUsername) {
+      // botUsername is limited to [A-Za-z0-9_], so it is safe inside a RegExp.
+      text = text.replace(new RegExp(`@${botUsername}\\b`, "gi"), "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+  }
+
+  const chatTitle = isGroup ? readChatTitle(chat.title) : "";
 
   return {
     updateId: String(updateId),
@@ -66,8 +101,44 @@ export function parseTelegramWebhookUpdate(
     ...(languageCode ? { languageCode } : {}),
     command: parsedMessage.command,
     commandKind: "read_only",
-    ...(parsedMessage.text ? { text: parsedMessage.text } : {}),
+    ...(text ? { text } : {}),
+    chatType,
+    addressedToBot,
+    ...(chatTitle ? { chatTitle } : {}),
   };
+}
+
+function readChatType(value: unknown): TelegramChatType {
+  return value === "private" || value === "group" || value === "supergroup"
+    ? value
+    : value === undefined
+    ? "private"
+    : "other";
+}
+
+function readChatTitle(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.replace(/[\u0000-\u001f\u007f<>`]/g, "").trim().slice(0, 64);
+}
+
+function isReplyToBot(value: unknown, botUsername: string | null) {
+  if (!botUsername || typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const from = (value as Record<string, unknown>).from;
+
+  if (typeof from !== "object" || from === null) {
+    return false;
+  }
+
+  const sender = from as Record<string, unknown>;
+  return sender.is_bot === true &&
+    typeof sender.username === "string" &&
+    sender.username.toLowerCase() === botUsername;
 }
 
 function readLanguageCode(value: unknown) {
@@ -92,7 +163,12 @@ function readMessage(value: unknown) {
 function parseReadOnlyMessageText(
   value: unknown,
   expectedBotUsername: string | null | undefined,
-): { command: TelegramWebhookParsedCommandName; text?: string } {
+): {
+  command: TelegramWebhookParsedCommandName;
+  text?: string;
+  // True when the message targets the bot explicitly (a command or /ask).
+  addressed: boolean;
+} {
   if (typeof value !== "string") {
     throw unsupportedUpdate();
   }
@@ -108,7 +184,35 @@ function parseReadOnlyMessageText(
       throw unsupportedUpdate();
     }
 
-    return { command: "chat", text };
+    return { command: "chat", text, addressed: false };
+  }
+
+  // "/ask <question>" is how group members talk to the bot when Telegram's
+  // privacy mode hides plain messages from it.
+  const askMatch = telegramAskPattern.exec(text);
+
+  if (askMatch) {
+    const targetBotUsername = askMatch[1];
+
+    if (
+      targetBotUsername &&
+      targetBotUsername.toLowerCase() !==
+        normalizeExpectedBotUsername(expectedBotUsername)
+    ) {
+      throw unsupportedUpdate();
+    }
+
+    const question = (askMatch[2] ?? "").trim();
+
+    if (!question) {
+      return { command: "help", addressed: true };
+    }
+
+    if (question.length > maxReadOnlyChatTextLength) {
+      throw unsupportedUpdate();
+    }
+
+    return { command: "chat", text: question, addressed: true };
   }
 
   if (text !== value) {
@@ -134,7 +238,7 @@ function parseReadOnlyMessageText(
     throw unsupportedUpdate();
   }
 
-  return { command: command as TelegramWebhookParsedCommandName };
+  return { command: command as TelegramWebhookParsedCommandName, addressed: true };
 }
 
 function normalizeExpectedBotUsername(value: string | null | undefined) {

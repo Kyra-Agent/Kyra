@@ -477,8 +477,9 @@ Deno.test("telegram-webhook parse gate sanitizes unsupported updates", async () 
   const body = await readJson(response);
   const serialized = JSON.stringify(body);
 
-  assertEquals(response.status, 422);
-  assertEquals(body.status, "unsupported_update");
+  // Unsupported updates are acknowledged so Telegram does not retry them.
+  assertEquals(response.status, 200);
+  assertEquals(body.status, "ignored");
   assert(!serialized.includes(rawCommand), "Raw command must not be echoed.");
   assert(
     !serialized.includes("123456"),
@@ -2431,8 +2432,9 @@ Deno.test("telegram-webhook parse failure prevents chat auth lookup", async () =
 
   const body = await readJson(response);
 
-  assertEquals(response.status, 422);
-  assertEquals(body.status, "unsupported_update");
+  // Unsupported updates are acknowledged so Telegram does not retry them.
+  assertEquals(response.status, 200);
+  assertEquals(body.status, "ignored");
   assert(!authCalled, "Parse failure must prevent chat auth lookup.");
 });
 
@@ -2545,9 +2547,12 @@ Deno.test("telegram-webhook runtime dependencies enable lookup lazily", () => {
   assertEquals(typeof dependencies.loadTelegramChatMemory, "function");
   assertEquals(typeof dependencies.appendTelegramChatMemory, "function");
   assertEquals(typeof dependencies.forgetTelegramChatMemory, "function");
+  assertEquals(typeof dependencies.setTelegramCommunityChat, "function");
+  assertEquals(typeof dependencies.isTelegramCommunityChatEnabled, "function");
+  assertEquals(typeof dependencies.consumeTelegramCommunityQuota, "function");
   assertEquals(
     keys.join(","),
-    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey},${telegramWebhookOwnerLinkConsumeEnabledEnvKey},${telegramWebhookTemplateContextEnabledEnvKey},${telegramWebhookAgentBrainEnabledEnvKey},${telegramWebhookAgentBrainProviderEnabledEnvKey},KYRA_TELEGRAM_WEBHOOK_CHAIN_DATA_ENABLED,KYRA_ROBINHOOD_MAINNET_RPC_URL,KYRA_ROBINHOOD_MAINNET_RPC_ALLOWED_HOSTS,KYRA_TELEGRAM_WEBHOOK_CHAT_MEMORY_ENABLED`,
+    `${telegramWebhookLookupEnabledEnvKey},${telegramWebhookParseEnabledEnvKey},${telegramWebhookChatAuthEnabledEnvKey},${telegramWebhookClaimEnabledEnvKey},${telegramWebhookDeliveryEnabledEnvKey},${telegramWebhookOwnerLinkConsumeEnabledEnvKey},${telegramWebhookTemplateContextEnabledEnvKey},${telegramWebhookAgentBrainEnabledEnvKey},${telegramWebhookAgentBrainProviderEnabledEnvKey},KYRA_TELEGRAM_WEBHOOK_COMMUNITY_ENABLED,KYRA_TELEGRAM_WEBHOOK_CHAIN_DATA_ENABLED,KYRA_ROBINHOOD_MAINNET_RPC_URL,KYRA_ROBINHOOD_MAINNET_RPC_ALLOWED_HOSTS,KYRA_TELEGRAM_WEBHOOK_CHAT_MEMORY_ENABLED`,
   );
 });
 
@@ -3835,4 +3840,239 @@ Deno.test("telegram-webhook still answers when chain data fails", async () => {
   const body = await readJson(response);
   assertEquals(body.status, "delivered");
   assertEquals(brainInputs[0]?.liveChainData, "");
+});
+
+function createCommunityUpdate(text: string, userId = 777) {
+  return {
+    update_id: 9300,
+    message: {
+      message_id: 88,
+      from: { id: userId, language_code: "en" },
+      chat: { id: -1001234567890, type: "supergroup", title: "ABC Community" },
+      text,
+    },
+  };
+}
+
+function createCommunityDependencies(overrides: Record<string, unknown> = {}) {
+  return createMemoryTestDependencies({
+    lookupTelegramChatAuthorization: async () => {
+      throw new HttpError(403, "chat_not_authorized", "Not authorized.");
+    },
+    isTelegramCommunityChatEnabled: async () => true,
+    consumeTelegramCommunityQuota: async () => "allowed",
+    ...overrides,
+  });
+}
+
+Deno.test("telegram-webhook ignores group chatter that is not meant for the bot", async () => {
+  let authCalls = 0;
+
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createCommunityUpdate("gm everyone")),
+    createCommunityDependencies({
+      lookupTelegramChatAuthorization: async () => {
+        authCalls += 1;
+        throw new HttpError(403, "chat_not_authorized", "Not authorized.");
+      },
+    }),
+  );
+  const body = await readJson(response);
+
+  assertEquals(body.status, "ignored");
+  assertEquals(authCalls, 0);
+});
+
+Deno.test("telegram-webhook answers community members read-only without memory or owner settings", async () => {
+  const brainInputs: Array<Record<string, unknown>> = [];
+  const deliveries: Array<Record<string, unknown>> = [];
+  const quotaCalls: Array<Record<string, unknown>> = [];
+  let memoryCalls = 0;
+
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createCommunityUpdate("/ask when is the unlock?")),
+    createCommunityDependencies({
+      consumeTelegramCommunityQuota: async (input: Record<string, unknown>) => {
+        quotaCalls.push(input);
+        return "allowed";
+      },
+      loadTelegramChatMemory: async () => {
+        memoryCalls += 1;
+        return [];
+      },
+      appendTelegramChatMemory: async () => {
+        memoryCalls += 1;
+      },
+      lookupTelegramTemplateContext: async () => ({
+        context: {
+          templateId: "steward",
+          name: "ABC Steward",
+          role: "Project and community agent",
+          summary: "Answers community questions.",
+          actions: [],
+          modules: [],
+          readOnlyActions: ["faq"],
+          dashboardGatedActions: [],
+          phase6GatedActions: [],
+          gatedActions: [],
+          safetyNote: "Telegram is read-only.",
+          ownerSettings: {
+            persona: "friendly",
+            instructions: "Mention the website.",
+            knowledge: "Unlock: March 1",
+            riskProfile: "conservative",
+            maxReviewUsd: 500,
+          },
+        },
+        text: "Template fallback.",
+      }),
+      generateTelegramAgentBrainReply: async (input: unknown) => {
+        brainInputs.push(input as Record<string, unknown>);
+        return { text: "The unlock is on March 1." };
+      },
+      deliverTelegramReadOnlyResponse: async (input: Record<string, unknown>) => {
+        deliveries.push(input);
+        return { delivered: true };
+      },
+    }),
+  );
+  const body = await readJson(response);
+
+  assertEquals(body.status, "delivered");
+  assertEquals(quotaCalls.length, 1);
+  assertEquals(quotaCalls[0]?.telegramUserId, "777");
+  assertEquals(memoryCalls, 0);
+  assertEquals(brainInputs[0]?.audience, "community");
+  assertEquals(brainInputs[0]?.userRequest, "when is the unlock?");
+  assertEquals(brainInputs[0]?.projectKnowledge, "Unlock: March 1");
+  assertEquals(brainInputs[0]?.riskProfile, undefined);
+  assertEquals(brainInputs[0]?.maxReviewUsd, undefined);
+  assertEquals(deliveries[0]?.replyToMessageId, "88");
+});
+
+Deno.test("telegram-webhook ignores members in groups without community mode", async () => {
+  let brainCalls = 0;
+
+  const response = await handleTelegramWebhookRequest(
+    createJsonWebhookRequest(createCommunityUpdate("/ask hi")),
+    createCommunityDependencies({
+      isTelegramCommunityChatEnabled: async () => false,
+      generateTelegramAgentBrainReply: async () => {
+        brainCalls += 1;
+        return { text: "no" };
+      },
+      deliverTelegramReadOnlyResponse: async () => ({ delivered: true }),
+    }),
+  );
+  const body = await readJson(response);
+
+  assertEquals(body.status, "ignored");
+  assertEquals(brainCalls, 0);
+});
+
+Deno.test("telegram-webhook lets only the owner switch community mode", async () => {
+  const cases: Array<[string, string]> = [
+    ["enabled", "Community mode is on for this group."],
+    ["not_owner", "Only this agent"],
+  ];
+
+  for (const [result, expected] of cases) {
+    const setCalls: Array<Record<string, unknown>> = [];
+    const deliveries: Array<Record<string, unknown>> = [];
+
+    await handleTelegramWebhookRequest(
+      createJsonWebhookRequest(createCommunityUpdate("/community_on@kyra_test_bot")),
+      createCommunityDependencies({
+        isTelegramCommunityChatEnabled: async () => false,
+        setTelegramCommunityChat: async (input: Record<string, unknown>) => {
+          setCalls.push(input);
+          return result;
+        },
+        deliverTelegramReadOnlyResponse: async (input: Record<string, unknown>) => {
+          deliveries.push(input);
+          return { delivered: true };
+        },
+      }),
+    );
+
+    const delivered = deliveries[0]?.response as Record<string, unknown>;
+    assertEquals(setCalls[0]?.enabled, true);
+    assertEquals(setCalls[0]?.telegramUserId, "777");
+    assertEquals(setCalls[0]?.chatTitle, "ABC Community");
+    assert(String(delivered?.text).startsWith(expected), String(delivered?.text));
+  }
+});
+
+Deno.test("telegram-webhook enforces community limits and fails closed", async () => {
+  const cases: Array<[string, string]> = [
+    ["member_limited", "You have asked a lot"],
+    ["group_limited", "This group has reached its question limit"],
+    ["throws", "This group has reached its question limit"],
+  ];
+
+  for (const [quota, expected] of cases) {
+    let brainCalls = 0;
+    const deliveries: Array<Record<string, unknown>> = [];
+
+    await handleTelegramWebhookRequest(
+      createJsonWebhookRequest(createCommunityUpdate("/ask what is the supply?")),
+      createCommunityDependencies({
+        consumeTelegramCommunityQuota: async () => {
+          if (quota === "throws") {
+            throw new Error("db down");
+          }
+          return quota;
+        },
+        generateTelegramAgentBrainReply: async () => {
+          brainCalls += 1;
+          return { text: "no" };
+        },
+        deliverTelegramReadOnlyResponse: async (input: Record<string, unknown>) => {
+          deliveries.push(input);
+          return { delivered: true };
+        },
+      }),
+    );
+
+    const delivered = deliveries[0]?.response as Record<string, unknown>;
+    assertEquals(brainCalls, 0);
+    assert(String(delivered?.text).startsWith(expected), String(delivered?.text));
+  }
+});
+
+Deno.test("telegram-webhook gives members community help, no memory, and no execution", async () => {
+  const cases: Array<[string, string]> = [
+    ["/help", "Ask me about this project with /ask@kyra_test_bot followed by your question"],
+    ["/forget", "I do not keep memory in groups."],
+    ["/ask send 5 ETH to 0xb3921dc28f3456596ef4e08dd2a430a605c74928", "Only an owner dashboard flow"],
+  ];
+
+  for (const [text, expected] of cases) {
+    let brainCalls = 0;
+    let forgetCalls = 0;
+    const deliveries: Array<Record<string, unknown>> = [];
+
+    await handleTelegramWebhookRequest(
+      createJsonWebhookRequest(createCommunityUpdate(text)),
+      createCommunityDependencies({
+        forgetTelegramChatMemory: async () => {
+          forgetCalls += 1;
+          return 0;
+        },
+        generateTelegramAgentBrainReply: async () => {
+          brainCalls += 1;
+          return { text: "no" };
+        },
+        deliverTelegramReadOnlyResponse: async (input: Record<string, unknown>) => {
+          deliveries.push(input);
+          return { delivered: true };
+        },
+      }),
+    );
+
+    const delivered = deliveries[0]?.response as Record<string, unknown>;
+    assertEquals(brainCalls, 0, text);
+    assertEquals(forgetCalls, 0, text);
+    assert(String(delivered?.text).startsWith(expected), `${text}: ${String(delivered?.text)}`);
+  }
 });

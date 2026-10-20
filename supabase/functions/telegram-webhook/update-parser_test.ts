@@ -252,3 +252,97 @@ Deno.test("telegram update parser errors do not expose raw update values", () =>
     "Error must not expose Telegram username.",
   );
 });
+
+function createGroupUpdate(text: string, extra: Record<string, unknown> = {}) {
+  return {
+    update_id: 9100,
+    message: {
+      message_id: 77,
+      text,
+      from: { id: 555, is_bot: false, language_code: "en" },
+      chat: { id: -1001234567890, type: "supergroup", title: "ABC <Community>\n" },
+      ...extra,
+    },
+  };
+}
+
+const groupBot = { expectedBotUsername: "@kyra_test_bot" };
+
+Deno.test("telegram update parser treats /ask as a question meant for the bot", () => {
+  for (
+    const text of [
+      "/ask when is the unlock?",
+      "/ask@kyra_test_bot when is the unlock?",
+      "/ASK   when is the unlock?",
+    ]
+  ) {
+    const parsed = parseTelegramWebhookUpdate(createGroupUpdate(text), groupBot);
+    assertEquals(parsed.command, "chat");
+    assertEquals(parsed.text, "when is the unlock?");
+    assertEquals(parsed.addressedToBot, true);
+    assertEquals(parsed.chatType, "supergroup");
+    assertEquals(parsed.chatTitle, "ABC Community");
+  }
+
+  assertEquals(
+    parseTelegramWebhookUpdate(createGroupUpdate("/ask"), groupBot).command,
+    "help",
+  );
+  assertThrowsHttpError(
+    () => parseTelegramWebhookUpdate(createGroupUpdate("/ask@other_bot hi"), groupBot),
+    422,
+    "unsupported_update",
+  );
+});
+
+Deno.test("telegram update parser only addresses group chatter that targets the bot", () => {
+  const chatter = parseTelegramWebhookUpdate(createGroupUpdate("gm everyone"), groupBot);
+  assertEquals(chatter.command, "chat");
+  assertEquals(chatter.addressedToBot, false);
+
+  const mention = parseTelegramWebhookUpdate(
+    createGroupUpdate("hey @Kyra_Test_Bot what is the supply?"),
+    groupBot,
+  );
+  assertEquals(mention.addressedToBot, true);
+  assertEquals(mention.text, "hey what is the supply?");
+
+  const reply = parseTelegramWebhookUpdate(
+    createGroupUpdate("and the vesting?", {
+      reply_to_message: { from: { id: 1, is_bot: true, username: "kyra_test_bot" } },
+    }),
+    groupBot,
+  );
+  assertEquals(reply.addressedToBot, true);
+
+  const replyToHuman = parseTelegramWebhookUpdate(
+    createGroupUpdate("agreed", {
+      reply_to_message: { from: { id: 2, is_bot: false, username: "kyra_test_bot" } },
+    }),
+    groupBot,
+  );
+  assertEquals(replyToHuman.addressedToBot, false);
+});
+
+Deno.test("telegram update parser keeps private chats addressed and supports community commands", () => {
+  const privateChat = parseTelegramWebhookUpdate({
+    update_id: 9200,
+    message: {
+      message_id: 3,
+      text: "gm",
+      from: { id: 555, is_bot: false },
+      chat: { id: 555, type: "private" },
+    },
+  });
+  assertEquals(privateChat.addressedToBot, true);
+  assertEquals(privateChat.chatType, "private");
+
+  for (const command of ["community_on", "community_off"]) {
+    const parsed = parseTelegramWebhookUpdate(
+      createGroupUpdate(`/${command}@kyra_test_bot`),
+      groupBot,
+    );
+    assertEquals(parsed.command, command);
+    assertEquals(parsed.addressedToBot, true);
+  }
+});

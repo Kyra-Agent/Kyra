@@ -14,6 +14,29 @@ const helpText = [
   "Boundary: wallet and onchain execution are disabled.",
 ].join("\n");
 
+// Replies used in Telegram groups with community mode (Steward and others).
+export const communityTexts = {
+  help: [
+    "Ask me about this project with /ask followed by your question, or reply to one of my messages.",
+    "I answer from the project's info and live Robinhood Chain data.",
+    "I never move funds, and I will never ask for your keys or seed phrase.",
+  ].join("\n"),
+  enabled: [
+    "Community mode is on for this group.",
+    "Members can ask with /ask followed by a question, or by replying to me. Turn it off with /community_off.",
+  ].join("\n"),
+  alreadyEnabled: "Community mode is already on for this group.",
+  disabled: "Community mode is off. I will stop answering members in this group.",
+  alreadyDisabled: "Community mode was not on for this group.",
+  notOwner: "Only this agent's owner can turn community mode on or off.",
+  notGroup: "Community mode works in Telegram groups. Add me to a group and send /community_on there.",
+  limitReached: "This agent is already active in 5 groups. Turn one off with /community_off before adding another.",
+  failed: "I could not change community mode right now. Try again in a moment.",
+  memberForget: "I do not keep memory in groups. Only the owner's private chat has short-term memory.",
+  memberLimited: "You have asked a lot in a short time. Please try again in about 10 minutes.",
+  groupLimited: "This group has reached its question limit for the hour. Please try again later.",
+};
+
 const forgetText = [
   "Done. I cleared this chat's memory.",
   "Earlier messages are no longer used. Your next message starts fresh.",
@@ -109,6 +132,11 @@ export function buildTelegramReadOnlyCommandResponse(
 
   if (command === "forget") {
     return { command, text: forgetText };
+  }
+
+  // The webhook replaces these with the actual outcome.
+  if (command === "community_on" || command === "community_off") {
+    return { command, text: communityTexts.failed };
   }
 
   if (command === "chat") {

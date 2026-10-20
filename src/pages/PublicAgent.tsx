@@ -111,6 +111,7 @@ function getPublicAgentHeadline(displayName: string, templateName: string) {
 // too; template actions are shown separately in the agent summary.
 const telegramCommandRows = [
   { command: "/help", summary: "What this agent can do" },
+  { command: "/ask", summary: "Ask a question in a community group" },
   { command: "/status", summary: "Agent and connection status" },
   { command: "/actions", summary: "What this template covers" },
   { command: "/policy", summary: "What always needs your approval" },
