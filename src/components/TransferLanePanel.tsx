@@ -336,7 +336,7 @@ export function TransferLanePanel({
   }
 
   return (
-    <section className={`transfer-lane-panel state-${laneState}`}>
+    <section className={`transfer-lane-panel state-${laneState}`} id="transfer-lane">
       <div className="transfer-lane-heading">
         <div>
           <span className="transfer-lane-kicker">

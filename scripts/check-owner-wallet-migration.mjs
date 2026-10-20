@@ -55,7 +55,7 @@ for (const expected of [
   "Connected EVM wallet",
   "sessionExpiresAt",
   "requestSequenceRef",
-  "Signing and transactions remain disabled.",
+  "Connecting never signs anything",
   "No signing, token approval, or transaction request is made.",
 ]) {
   includes("owner wallet panel", panel, expected);

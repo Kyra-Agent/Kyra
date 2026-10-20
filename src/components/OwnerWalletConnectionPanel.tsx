@@ -324,7 +324,7 @@ export function OwnerWalletConnectionPanel({
       setBinding(nextBinding);
       setUiState("connected");
       setMessage(
-        "Wallet connected to the selected agent. Signing and transactions remain disabled. Continue to transaction review when ready.",
+        "Wallet connected to the selected agent. Connecting never signs anything; every transaction needs its own confirmation in your wallet.",
       );
     } catch (error) {
       disconnectMutation.disconnect();

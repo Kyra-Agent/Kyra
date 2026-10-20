@@ -393,7 +393,7 @@ function getDisplayedWalletReadiness(
     approvalGate: "Required",
     execution: "Ready for approval",
     nextAction:
-      "Continue to transaction review. Nothing is signed or submitted without your wallet confirmation.",
+      "Wallet ready. Nothing is signed or submitted without your confirmation in your wallet.",
     privacyNote:
       "The wallet connection stays in this browser session and never appears on public profiles.",
   };
@@ -870,6 +870,10 @@ export function Dashboard({
   );
   const isAdmin = authSession?.user.app_metadata?.role === "admin";
   const canViewOperationalReadiness = isAdmin;
+  // The private transfer lane renders inside the admin-only operational
+  // area, and only while the controlled submission window is open.
+  const transferLaneAvailable = canViewOperationalReadiness &&
+    appConfig.integrations.phase8ControlledSubmission === "owner_approved_window";
   const postResetRefreshPendingRef = useRef(false);
   const [backendEvents, setBackendEvents] = useState<BackendEvent[]>(() =>
     getBackendEvents()
@@ -1022,10 +1026,13 @@ export function Dashboard({
         .getElementById(
           appConfig.featureFlags.protectedSwapLane
             ? "protected-swap-lane"
+            : transferLaneAvailable
+            ? "transfer-lane"
             : "transaction-review",
         )
         ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 120);
+      // Runs after the section scroll above and the route update settle.
+    }, 600);
   }
   useEffect(() => {
     if (!authSession) {
@@ -3994,18 +4001,26 @@ export function Dashboard({
                 <div>
                   <small>Wallet approval boundary</small>
                   <strong>
-                    {walletPromptEligibility.eligible
+                    {transferLaneAvailable
+                      ? "Transfer lane open"
+                      : walletPromptEligibility.eligible
                       ? "Prompt eligible"
                       : "Prompt locked"}
                   </strong>
                 </div>
                 <span>
-                  {appConfig.integrations.walletExecution === "disabled"
+                  {transferLaneAvailable
+                    ? "you confirm in wallet"
+                    : appConfig.integrations.walletExecution === "disabled"
                     ? "execution disabled"
                     : "review required"}
                 </span>
               </div>
-              <p>{walletPromptEligibility.message}</p>
+              <p>
+                {transferLaneAvailable
+                  ? "Send ETH from the private transfer lane: review it, lock it, then confirm the exact request in your wallet. Kyra never signs for you."
+                  : walletPromptEligibility.message}
+              </p>
               <div className="wallet-signing-boundary-grid">
                 <span>
                   Source
@@ -4028,11 +4043,13 @@ export function Dashboard({
                   <strong>Blocked</strong>
                 </span>
               </div>
-              <ul>
-                {walletPromptEligibility.reasons.slice(0, 4).map((reason) => (
-                  <li key={reason}>{getWalletPromptBlockMessage(reason)}</li>
-                ))}
-              </ul>
+              {transferLaneAvailable ? null : (
+                <ul>
+                  {walletPromptEligibility.reasons.slice(0, 4).map((reason) => (
+                    <li key={reason}>{getWalletPromptBlockMessage(reason)}</li>
+                  ))}
+                </ul>
+              )}
             </div>
             <div
               className={`wallet-readiness-card readiness-${walletReadinessTone}`}
@@ -4066,27 +4083,36 @@ export function Dashboard({
               </div>
               <p>{walletReadiness.nextAction}</p>
               <small>{walletReadiness.privacyNote}</small>
-              <div className="wallet-next-step">
-                <button
-                  className="button button-primary"
-                  onClick={openTransactionReview}
-                  type="button"
-                >
-                  <ShieldCheck size={16} />
-                  {appConfig.featureFlags.protectedSwapLane
-                    ? runtimeBoundWalletConnected
-                      ? "Continue to swap quote"
-                      : "View swap requirements"
-                    : runtimeBoundWalletConnected
-                      ? "Continue to transaction review"
-                      : "View transaction requirements"}
-                </button>
-                <small>
-                  {appConfig.featureFlags.protectedSwapLane
-                    ? "Private read-only quotes. Nothing is signed or submitted from this step."
-                    : "Private to your account. Wallet confirmation is always required before submission."}
-                </small>
-              </div>
+              {appConfig.featureFlags.protectedSwapLane || transferLaneAvailable ? (
+                <div className="wallet-next-step">
+                  <button
+                    className="button button-primary"
+                    onClick={openTransactionReview}
+                    type="button"
+                  >
+                    <ShieldCheck size={16} />
+                    {appConfig.featureFlags.protectedSwapLane
+                      ? runtimeBoundWalletConnected
+                        ? "Continue to swap quote"
+                        : "View swap requirements"
+                      : runtimeBoundWalletConnected
+                        ? "Open transfer lane"
+                        : "View transfer requirements"}
+                  </button>
+                  <small>
+                    {appConfig.featureFlags.protectedSwapLane
+                      ? "Private read-only quotes. Nothing is signed or submitted from this step."
+                      : "Private to your account. Wallet confirmation is always required before submission."}
+                  </small>
+                </div>
+              ) : (
+                <div className="wallet-next-step">
+                  <small>
+                    Wallet transfers are not open for this account yet. Your agent can still review swaps and
+                    transfers with you in Telegram.
+                  </small>
+                </div>
+              )}
             </div>
             {appConfig.featureFlags.protectedSwapLane ? (
               <ProtectedSwapLanePanel
