@@ -86,9 +86,15 @@ export function createReviewedTransfer(input: {
   }
 
   const decimals = 18;
+  // parseUnits rounds extra decimals; refuse them instead of sending a
+  // different amount than the one typed.
+  const typedAmount = input.amount.trim();
+  if ((/^\d+(?:\.(\d+))?$/u.exec(typedAmount)?.[1] ?? "").length > decimals) {
+    return { ok: false, message: `Amounts support up to ${decimals} decimal places.` };
+  }
   let amountAtomic: bigint;
   try {
-    amountAtomic = parseUnits(input.amount.trim(), decimals);
+    amountAtomic = parseUnits(typedAmount, decimals);
   } catch {
     return { ok: false, message: "Enter a valid positive transfer amount." };
   }

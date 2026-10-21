@@ -8,6 +8,7 @@ import { productChainId } from "../types/unsignedTransactionHandoff";
 import type { KyraAuthSession } from "./supabaseAuthService";
 import { getSupabaseApiKey } from "./supabaseRestClient";
 import { isServerExpiryWithinLifetime } from "./serverExpiry";
+import { readServerMessage } from "./serverMessage";
 
 export interface TransferTransactionIntentPrepareInput {
   workspaceId: string;
@@ -225,14 +226,6 @@ function isCanonicalUuid(value: unknown): value is string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-// transaction-intent-prepare only returns fixed, user-facing messages.
-function readServerMessage(payload: unknown) {
-  const message = isRecord(payload) ? payload.message : null;
-  return typeof message === "string" && message.length > 0 && message.length <= 200
-    ? message
-    : null;
 }
 
 async function readResponse(response: Response): Promise<unknown> {

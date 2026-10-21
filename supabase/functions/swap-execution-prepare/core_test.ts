@@ -2,12 +2,15 @@ import {
   assertEquals,
   assertThrows,
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { testKyraTokenAddress as kyraTokenAddress } from "../_shared/official-token-test-fixture.ts";
 import {
   robinhoodMainnetChainId,
   robinhoodMainnetChainKey,
 } from "../_shared/transfer-transaction-policy.ts";
-import { zeroExNativeTokenAddress } from "../_shared/swap-quote-policy.ts";
+import {
+  nativeSwapTokenAddress,
+  usdgTokenAddress,
+} from "../_shared/swap-quote-policy.ts";
+import { uniswapSwapRouter02Address } from "../_shared/uniswap-robinhood.ts";
 import {
   assertSwapExecutionPrepareBody,
   HttpError,
@@ -21,8 +24,9 @@ const agentId = "2f538ddd-e2e8-4ba2-89a3-cab4a4a85799";
 const quoteRecordId = "1f538ddd-e2e8-4ba2-89a3-cab4a4a85798";
 const ownerUserId = "3f538ddd-e2e8-4ba2-89a3-cab4a4a85797";
 const taker = "0x2cfB1A2C7F70C2011C837b89d74a25b7bbfd0d2e";
-const spender = "0x0000000000001fF3684f28c67538d4D072C22734";
-const target = "0x0000000000000000000000000000000000001234";
+const spender = uniswapSwapRouter02Address;
+const target = uniswapSwapRouter02Address;
+const routerWord = "000000000000000000000000caf681a66d020601342297493863e78c959e5cb2";
 const now = new Date("2026-08-01T00:00:00.000Z");
 
 function body(step: "allowance_set" | "swap" | "allowance_revoke") {
@@ -46,16 +50,16 @@ function quote(
     chain_key: robinhoodMainnetChainKey,
     chain_id: robinhoodMainnetChainId,
     taker_address: taker,
-    sell_token_address: kyraTokenAddress,
-    sell_token_symbol: "KYRA",
-    buy_token_address: zeroExNativeTokenAddress,
-    sell_amount_atomic: "1000000000000000000",
+    sell_token_address: usdgTokenAddress,
+    sell_token_symbol: "USDG",
+    buy_token_address: nativeSwapTokenAddress,
+    sell_amount_atomic: "1000000",
     allowance_target: spender,
     transaction_to: target,
     transaction_data: "0x1234",
     transaction_value_wei: "0",
     status: "allowance_required",
-    policy_version: 1,
+    policy_version: 2,
     quote_issued_at: "2026-08-01T00:00:00.000Z",
     expires_at: "2026-08-01T00:01:15.000Z",
     ...overrides,
@@ -82,12 +86,26 @@ Deno.test("prepares exact allowance and never unlimited approval", () => {
     now,
   });
   assertEquals(intent.step, "allowance_set");
-  assertEquals(intent.transaction_to, kyraTokenAddress);
+  assertEquals(intent.transaction_to, usdgTokenAddress);
   assertEquals(intent.spender_address, spender);
-  assertEquals(intent.allowance_amount_atomic, "1000000000000000000");
+  assertEquals(intent.allowance_amount_atomic, "1000000");
   assertEquals(
     intent.transaction_data,
-    "0x095ea7b30000000000000000000000000000000000001ff3684f28c67538d4d072c227340000000000000000000000000000000000000000000000000de0b6b3a7640000",
+    `0x095ea7b3${routerWord}00000000000000000000000000000000000000000000000000000000000f4240`,
+  );
+});
+
+Deno.test("refuses an allowance for any spender other than the Uniswap router", () => {
+  assertThrows(
+    () =>
+      prepareSwapExecutionIntent({
+        body: body("allowance_set"),
+        ownerUserId,
+        quote: quote({ allowance_target: "0x0000000000001fF3684f28c67538d4D072C22734" }),
+        now,
+      }),
+    HttpError,
+    "stored quote",
   );
 });
 
@@ -104,6 +122,7 @@ Deno.test("prepares only the immutable backend-reviewed swap payload", () => {
   });
   assertEquals(intent.transaction_to, target);
   assertEquals(intent.transaction_data, "0x1234");
+  assertEquals(intent.spender_address, null);
   assertEquals(intent.transaction_value_wei, "7");
   assertEquals(intent.token_address, null);
 });
@@ -118,7 +137,7 @@ Deno.test("prepares revoke as exact zero allowance", () => {
   assertEquals(intent.allowance_amount_atomic, "0");
   assertEquals(
     intent.transaction_data,
-    "0x095ea7b30000000000000000000000000000000000001ff3684f28c67538d4d072c227340000000000000000000000000000000000000000000000000000000000000000",
+    `0x095ea7b3${routerWord}${"0".repeat(64)}`,
   );
 });
 
@@ -151,7 +170,7 @@ Deno.test("rejects expired, wrong-scope, and inapplicable steps", () => {
         body: body("allowance_set"),
         ownerUserId,
         quote: quote({
-          sell_token_address: zeroExNativeTokenAddress,
+          sell_token_address: nativeSwapTokenAddress,
           sell_token_symbol: "ETH",
           allowance_target: null,
         }),

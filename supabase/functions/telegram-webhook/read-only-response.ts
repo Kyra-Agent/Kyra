@@ -47,7 +47,7 @@ const templateHelpTips: Record<string, string> = {
   steward:
     "Steward tip: add project facts in the dashboard settings, then add me to your group and send /community_on there.",
   executor:
-    "Executor tip: set safety limits in the dashboard, then ask me to draft DCA or stop-loss rules for any token.",
+    "Executor tip: ask me to review a swap or draft DCA and stop-loss rules, then run ETH and USDG swaps yourself from the swap lane in your dashboard.",
   strategist:
     "Strategist tip: add your project knowledge in the dashboard, then ask for a campaign plan or a launch thread.",
   custom:

@@ -283,7 +283,7 @@ Deno.serve(async (request) => {
       );
     }
     const erc20AllowanceLineage = intent.step === "swap" &&
-      quote.sell_token_symbol === "KYRA" &&
+      quote.sell_token_symbol === "USDG" &&
       typeof quote.allowance_target === "string";
 
     const submissionKey = await sha256Hex(

@@ -875,6 +875,9 @@ export function Dashboard({
   // enforced by transaction-intent-prepare and the database as well.
   const transferLaneAvailable = Boolean(authSession) &&
     appConfig.integrations.phase8ControlledSubmission === "owner_approved_window";
+  // The Uniswap swap lane follows its own release flag.
+  const swapLaneAvailable = Boolean(authSession) &&
+    appConfig.featureFlags.protectedSwapLane;
   const postResetRefreshPendingRef = useRef(false);
   const [backendEvents, setBackendEvents] = useState<BackendEvent[]>(() =>
     getBackendEvents()
@@ -1020,17 +1023,11 @@ export function Dashboard({
     window.dispatchEvent(new PopStateEvent("popstate"));
   }
 
-  function openTransactionReview() {
+  function openTransactionReview(target: "transfer-lane" | "protected-swap-lane") {
     openDashboardSection("approvals");
     window.setTimeout(() => {
       document
-        .getElementById(
-          appConfig.featureFlags.protectedSwapLane
-            ? "protected-swap-lane"
-            : transferLaneAvailable
-            ? "transfer-lane"
-            : "transaction-review",
-        )
+        .getElementById(target)
         ?.scrollIntoView({ behavior: "smooth", block: "start" });
       // Runs after the section scroll above and the route update settle.
     }, 600);
@@ -4084,26 +4081,30 @@ export function Dashboard({
               </div>
               <p>{walletReadiness.nextAction}</p>
               <small>{walletReadiness.privacyNote}</small>
-              {appConfig.featureFlags.protectedSwapLane || transferLaneAvailable ? (
+              {swapLaneAvailable || transferLaneAvailable ? (
                 <div className="wallet-next-step">
-                  <button
-                    className="button button-primary"
-                    onClick={openTransactionReview}
-                    type="button"
-                  >
-                    <ShieldCheck size={16} />
-                    {appConfig.featureFlags.protectedSwapLane
-                      ? runtimeBoundWalletConnected
-                        ? "Continue to swap quote"
-                        : "View swap requirements"
-                      : runtimeBoundWalletConnected
-                        ? "Open transfer lane"
-                        : "View transfer requirements"}
-                  </button>
+                  {transferLaneAvailable ? (
+                    <button
+                      className="button button-primary"
+                      onClick={() => openTransactionReview("transfer-lane")}
+                      type="button"
+                    >
+                      <ShieldCheck size={16} />
+                      {runtimeBoundWalletConnected ? "Open transfer lane" : "View transfer requirements"}
+                    </button>
+                  ) : null}
+                  {swapLaneAvailable ? (
+                    <button
+                      className={transferLaneAvailable ? "button button-ghost" : "button button-primary"}
+                      onClick={() => openTransactionReview("protected-swap-lane")}
+                      type="button"
+                    >
+                      <ShieldCheck size={16} />
+                      {runtimeBoundWalletConnected ? "Open swap" : "View swap requirements"}
+                    </button>
+                  ) : null}
                   <small>
-                    {appConfig.featureFlags.protectedSwapLane
-                      ? "Private read-only quotes. Nothing is signed or submitted from this step."
-                      : "Private to your account. Wallet confirmation is always required before submission."}
+                    Private to your account. Wallet confirmation is always required before submission.
                   </small>
                 </div>
               ) : (
@@ -4115,16 +4116,6 @@ export function Dashboard({
                 </div>
               )}
             </div>
-            {appConfig.featureFlags.protectedSwapLane ? (
-              <ProtectedSwapLanePanel
-                session={authSession}
-                workspaceId={dashboardData?.workspace.id ?? null}
-                agentId={agentRecord?.id ?? null}
-                agentName={agentRecord?.displayName ?? null}
-                agentChainKey={agentRecord?.chainKey ?? null}
-                walletStatus={ownerWalletConnectionStatus}
-              />
-            ) : null}
             <div className="wallet-policy-list">
               {walletPolicies.length
                 ? (
@@ -4157,6 +4148,19 @@ export function Dashboard({
           {transferLaneAvailable ? (
             <section className="dashboard-panel transfer-lane-section">
               <TransferLanePanel
+                session={authSession}
+                workspaceId={dashboardData?.workspace.id ?? null}
+                agentId={agentRecord?.id ?? null}
+                agentName={agentRecord?.displayName ?? null}
+                agentChainKey={agentRecord?.chainKey ?? null}
+                walletStatus={ownerWalletConnectionStatus}
+              />
+            </section>
+          ) : null}
+
+          {swapLaneAvailable ? (
+            <section className="dashboard-panel transfer-lane-section">
+              <ProtectedSwapLanePanel
                 session={authSession}
                 workspaceId={dashboardData?.workspace.id ?? null}
                 agentId={agentRecord?.id ?? null}

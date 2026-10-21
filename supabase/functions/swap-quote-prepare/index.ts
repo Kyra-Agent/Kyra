@@ -5,11 +5,10 @@ import {
   matchesExistingSwapQuote,
 } from "./core.ts";
 import {
-  fetchReviewedZeroExQuote,
-  readAddressAllowlist,
-  readSourceAllowlist,
+  fetchReviewedUniswapQuote,
   type ReviewedSwapQuote,
-} from "./provider.ts";
+} from "./uniswap-provider.ts";
+import { readReceiptRpcConfig } from "../transaction-result-closeout/receipt-verifier.ts";
 import {
   type ChainActionRateLimitRpcClient,
   createChainActionRateLimitChecker,
@@ -61,17 +60,7 @@ function getEnv(key: string) {
   return value;
 }
 
-function getProviderTimeoutMs() {
-  const value = Number(Deno.env.get("KYRA_ZEROX_TIMEOUT_MS") ?? "3500");
-  if (!Number.isInteger(value) || value < 1000 || value > 5000) {
-    throw new HttpError(
-      503,
-      "swap_quote_not_configured",
-      "Protected swap quotes are not configured.",
-    );
-  }
-  return value;
-}
+const providerTimeoutMs = 8_000;
 
 async function readJsonBody(request: Request) {
   const contentType = request.headers.get("Content-Type")?.toLowerCase() ?? "";
@@ -151,8 +140,8 @@ function quoteResponse(
   record: {
     id: string;
     status: "quote_ready" | "allowance_required";
-    sell_token_symbol: "ETH" | "KYRA";
-    buy_token_symbol: "ETH" | "KYRA";
+    sell_token_symbol: "ETH" | "USDG";
+    buy_token_symbol: "ETH" | "USDG";
     buy_amount_atomic: string;
     minimum_buy_amount_atomic: string;
     route_summary: string;
@@ -349,23 +338,10 @@ Deno.serve(async (request) => {
       );
     }
 
-    let providerConfig;
+    let rpcUrl: string;
     try {
-      providerConfig = {
-        apiKey: getEnv("KYRA_ZEROX_API_KEY"),
-        allowedTransactionTargets: readAddressAllowlist(
-          getEnv("KYRA_ZEROX_SWAP_ALLOWED_TARGETS"),
-        ),
-        allowedAllowanceTargets: readAddressAllowlist(
-          getEnv("KYRA_ZEROX_ALLOWANCE_ALLOWED_TARGETS"),
-        ),
-        allowedLiquiditySources: readSourceAllowlist(
-          getEnv("KYRA_ZEROX_ALLOWED_SOURCES"),
-        ),
-        timeoutMs: getProviderTimeoutMs(),
-      };
-    } catch (error) {
-      if (error instanceof HttpError) throw error;
+      rpcUrl = readReceiptRpcConfig((key) => Deno.env.get(key)).rpcUrl;
+    } catch {
       throw new HttpError(
         503,
         "swap_quote_not_configured",
@@ -373,7 +349,10 @@ Deno.serve(async (request) => {
       );
     }
 
-    const quote = await fetchReviewedZeroExQuote(body, providerConfig);
+    const quote = await fetchReviewedUniswapQuote(body, {
+      rpcUrl,
+      timeoutMs: providerTimeoutMs,
+    });
     const fingerprint = await fingerprintQuote(quote);
     const { data: inserted, error: insertError } = await serviceClient
       .from("swap_quote_reviews")
@@ -386,10 +365,10 @@ Deno.serve(async (request) => {
         taker_address: body.taker,
         sell_token_address: quote.sellTokenAddress,
         sell_token_symbol: quote.sellTokenSymbol,
-        sell_token_decimals: 18,
+        sell_token_decimals: quote.sellTokenDecimals,
         buy_token_address: quote.buyTokenAddress,
         buy_token_symbol: quote.buyTokenSymbol,
-        buy_token_decimals: 18,
+        buy_token_decimals: quote.buyTokenDecimals,
         sell_amount_atomic: quote.sellAmountAtomic,
         buy_amount_atomic: quote.buyAmountAtomic,
         minimum_buy_amount_atomic: quote.minimumBuyAmountAtomic,

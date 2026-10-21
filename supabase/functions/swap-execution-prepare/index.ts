@@ -376,6 +376,13 @@ Deno.serve(async (request) => {
         preparedResponse(body, expected, raced.id),
       );
     }
+    if (insertError?.message?.includes("daily_swap_limit_exceeded")) {
+      throw new HttpError(
+        429,
+        "daily_swap_limit_exceeded",
+        "You've reached today's swap limit for this workspace. It resets at 00:00 UTC.",
+      );
+    }
     if (insertError?.code === "23514") {
       throw new HttpError(
         409,

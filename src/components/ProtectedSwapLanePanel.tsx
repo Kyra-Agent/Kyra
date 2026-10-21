@@ -13,7 +13,8 @@ import { useConnection, useSendTransaction } from "wagmi";
 import { currentProductChain, type ProductChainKey } from "../config/productChains";
 import {
   createReviewedSwapQuoteRequest,
-  isProtectedSwapPairAvailable,
+  getSwapTokenDecimals,
+  getSwapTokenMaxSellLabel,
   type ReviewedSwapQuoteRequest,
   type SwapTokenSymbol,
 } from "../config/swapQuotePolicy";
@@ -59,9 +60,7 @@ interface QuoteContext {
 }
 
 const initialMessage =
-  "Choose ETH or KYRA and request a private, time-limited quote. Nothing opens in your wallet until you approve the next step.";
-const unpublishedTokenMessage =
-  "Protected swaps open after the official KYRA contract is published on Robinhood Chain.";
+  "Choose a direction and amount, then review a live Uniswap quote. Nothing opens in your wallet until you lock the swap.";
 const slippageOptions = [50, 100, 200] as const;
 
 export function ProtectedSwapLanePanel({
@@ -78,15 +77,13 @@ export function ProtectedSwapLanePanel({
   const [amount, setAmount] = useState("");
   const [slippageBps, setSlippageBps] = useState<number>(50);
   const [laneState, setLaneState] = useState<SwapLaneState>("draft");
-  const [message, setMessage] = useState(
-    isProtectedSwapPairAvailable() ? initialMessage : unpublishedTokenMessage,
-  );
+  const [message, setMessage] = useState(initialMessage);
   const [quoteContext, setQuoteContext] = useState<QuoteContext | null>(null);
   const [prepared, setPrepared] = useState<PreparedSwapExecution | null>(null);
   const [txHash, setTxHash] = useState<`0x${string}` | null>(null);
   const [nextAction, setNextAction] = useState<SwapExecutionNextAction | null>(null);
 
-  const buyToken: SwapTokenSymbol = sellToken === "ETH" ? "KYRA" : "ETH";
+  const buyToken: SwapTokenSymbol = sellToken === "ETH" ? "USDG" : "ETH";
   const walletBound = Boolean(
     walletStatus.connected && walletStatus.address &&
       connection.status === "connected" &&
@@ -95,10 +92,7 @@ export function ProtectedSwapLanePanel({
       walletStatus.chainId === productChainId &&
       agentChainKey === currentProductChain.key,
   );
-  const pairAvailable = isProtectedSwapPairAvailable();
-  const scopeReady = Boolean(
-    pairAvailable && session && workspaceId && agentId && walletBound,
-  );
+  const scopeReady = Boolean(session && workspaceId && agentId && walletBound);
   const stateScopeKey = [
     session?.user.id ?? "",
     workspaceId ?? "",
@@ -115,10 +109,13 @@ export function ProtectedSwapLanePanel({
   );
   const quoteSummary = useMemo(() => {
     if (!quoteContext) return null;
+    const { sellTokenSymbol, buyTokenSymbol } = quoteContext.quote;
+    const sellDecimals = getSwapTokenDecimals(sellTokenSymbol);
+    const buyDecimals = getSwapTokenDecimals(buyTokenSymbol);
     return {
-      sell: `${formatUnits(BigInt(quoteContext.quote.sellAmount), 18)} ${quoteContext.quote.sellTokenSymbol}`,
-      receive: `${formatUnits(BigInt(quoteContext.quote.buyAmount), 18)} ${quoteContext.quote.buyTokenSymbol}`,
-      minimum: `${formatUnits(BigInt(quoteContext.quote.minimumBuyAmount), 18)} ${quoteContext.quote.buyTokenSymbol}`,
+      sell: `${formatUnits(BigInt(quoteContext.quote.sellAmount), sellDecimals)} ${sellTokenSymbol}`,
+      receive: `${formatUnits(BigInt(quoteContext.quote.buyAmount), buyDecimals)} ${buyTokenSymbol}`,
+      minimum: `${formatUnits(BigInt(quoteContext.quote.minimumBuyAmount), buyDecimals)} ${buyTokenSymbol}`,
       expires: new Date(quoteContext.quote.expiresAt).toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
@@ -133,9 +130,7 @@ export function ProtectedSwapLanePanel({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stateScopeKey]);
 
-  function resetFlow(
-    nextMessage = pairAvailable ? initialMessage : unpublishedTokenMessage,
-  ) {
+  function resetFlow(nextMessage = initialMessage) {
     setLaneState("draft");
     setMessage(nextMessage);
     setQuoteContext(null);
@@ -150,9 +145,7 @@ export function ProtectedSwapLanePanel({
 
   async function handleQuote() {
     if (!session || !workspaceId || !agentId || !walletStatus.address || !scopeReady) {
-      resetFlow(pairAvailable
-        ? "Sign in, select a Robinhood Chain agent, and connect its wallet first."
-        : unpublishedTokenMessage);
+      resetFlow("Sign in, select a Robinhood Chain agent, and connect its wallet first.");
       return;
     }
     let requestId: string;
@@ -181,7 +174,7 @@ export function ProtectedSwapLanePanel({
     }
 
     setLaneState("quoting");
-    setMessage("Requesting a private Robinhood Chain quote from the protected backend...");
+    setMessage("Pricing every Uniswap pool on Robinhood Chain and simulating your swap...");
     setPrepared(null);
     setTxHash(null);
     setNextAction(null);
@@ -195,8 +188,8 @@ export function ProtectedSwapLanePanel({
     setQuoteContext({ request: reviewed.request, quote: result.quote });
     setLaneState("quoted");
     setMessage(result.quote.allowanceRequired
-      ? "Quote reviewed. KYRA needs one exact, limited allowance before a fresh swap quote can be requested."
-      : "Quote reviewed. Lock the exact swap before opening your wallet.");
+      ? "Quote reviewed. Uniswap first needs permission to spend exactly this much USDG. Lock that allowance, confirm it in your wallet, then get a fresh quote."
+      : "Quote reviewed and simulated. Lock the exact swap before opening your wallet.");
   }
 
   async function handlePrepare(step: SwapExecutionStep) {
@@ -276,13 +269,25 @@ export function ProtectedSwapLanePanel({
 
   async function syncCloseout(hash: `0x${string}`, intent: PreparedSwapExecution) {
     if (!session || !workspaceId || !agentId) return;
-    const result = await closeProtectedSwapResult(session, {
-      workspaceId,
-      agentId,
-      intentRecordId: intent.intentRecordId,
-      requestId: intent.requestId,
-      txHash: hash,
-    });
+    const closeout = () =>
+      closeProtectedSwapResult(session, {
+        workspaceId,
+        agentId,
+        intentRecordId: intent.intentRecordId,
+        requestId: intent.requestId,
+        txHash: hash,
+      });
+    // A freshly broadcast swap can take a moment to reach the verification
+    // RPC, so retry a few times before asking for a manual refresh.
+    let result = await closeout();
+    for (
+      let attempt = 1;
+      attempt < 4 && (!result.ok || result.status === "submitted");
+      attempt += 1
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 2_000 * attempt));
+      result = await closeout();
+    }
     if (!result.ok) {
       setLaneState("submitted");
       setMessage("Transaction submitted. Receipt verification is pending and can be refreshed safely.");
@@ -297,7 +302,7 @@ export function ProtectedSwapLanePanel({
     if (result.status === "failed") {
       setLaneState("error");
       setMessage(result.nextAction === "revoke_allowance"
-        ? "The swap failed. Revoke the temporary KYRA allowance before starting over."
+        ? "The swap failed. You can clean up the USDG allowance before starting over."
         : `The ${formatStep(result.step)} failed and can be reviewed again safely.`);
       return;
     }
@@ -343,10 +348,10 @@ export function ProtectedSwapLanePanel({
             <ArrowLeftRight size={15} />
             Protected swap lane
           </span>
-          <h3>Swap ETH and KYRA</h3>
+          <h3>Swap ETH and USDG</h3>
           <p>
-            Private quotes, exact token allowances, fresh calldata, and mandatory
-            allowance cleanup on Robinhood Chain.
+            Live Uniswap V3 quotes on Robinhood Chain, simulated before you sign,
+            with a minimum receive amount and exact USDG allowances only.
           </p>
         </div>
         <span className="transfer-lane-state">
@@ -362,17 +367,17 @@ export function ProtectedSwapLanePanel({
           onClick={() => { setSellToken("ETH"); resetFlow(); }}
           disabled={isBusy(laneState)}
         >
-          <span>ETH to KYRA</span>
-          <small>Native ETH into official KYRA</small>
+          <span>ETH to USDG</span>
+          <small>One step, signed in your wallet</small>
         </button>
         <button
-          className={sellToken === "KYRA" ? "is-selected" : ""}
+          className={sellToken === "USDG" ? "is-selected" : ""}
           type="button"
-          onClick={() => { setSellToken("KYRA"); resetFlow(); }}
+          onClick={() => { setSellToken("USDG"); resetFlow(); }}
           disabled={isBusy(laneState)}
         >
-          <span>KYRA to ETH</span>
-          <small>Exact allowance with cleanup</small>
+          <span>USDG to ETH</span>
+          <small>Exact allowance, then the swap</small>
         </button>
       </div>
 
@@ -383,7 +388,7 @@ export function ProtectedSwapLanePanel({
             <input
               autoComplete="off"
               inputMode="decimal"
-              placeholder={sellToken === "ETH" ? "0.001" : "100"}
+              placeholder={sellToken === "ETH" ? "0.0001" : "1"}
               value={amount}
               onChange={(event) => { setAmount(event.target.value); resetFlow(); }}
               disabled={isBusy(laneState)}
@@ -411,7 +416,8 @@ export function ProtectedSwapLanePanel({
 
       <div className="transfer-lane-limits">
         <span>Pair <strong>{sellToken}/{buyToken}</strong></span>
-        <span>Quote <strong>time-limited</strong></span>
+        <span>Per swap <strong>{getSwapTokenMaxSellLabel(sellToken)}</strong></span>
+        <span>Venue <strong>Uniswap V3</strong></span>
         <span>Network <strong>{currentProductChain.name}</strong></span>
       </div>
 
@@ -428,12 +434,19 @@ export function ProtectedSwapLanePanel({
       {prepared?.allowance ? (
         <div className="transfer-token-contract">
           <span>{prepared.step === "allowance_revoke" ? "Allowance cleanup" : "Exact allowance"}</span>
-          <code>{prepared.allowance.amountAtomic === "0" ? "Revoke to 0" : `${formatUnits(BigInt(prepared.allowance.amountAtomic), 18)} KYRA`}</code>
+          <code>{prepared.allowance.amountAtomic === "0" ? "Revoke to 0" : `${formatUnits(BigInt(prepared.allowance.amountAtomic), getSwapTokenDecimals("USDG"))} USDG`}</code>
         </div>
       ) : null}
 
       <p className="transfer-lane-message" aria-live="polite">{message}</p>
-      {txHash ? <small className="transfer-hash">Hash: {maskHash(txHash)}</small> : null}
+      {txHash ? (
+        <small className="transfer-hash">
+          Hash: {maskHash(txHash)}{" "}
+          <a href={`${currentProductChain.explorerUrl}/tx/${txHash}`} rel="noopener noreferrer" target="_blank">
+            View on explorer
+          </a>
+        </small>
+      ) : null}
 
       <div className="transfer-lane-actions">
         {(laneState === "draft" || (laneState === "error" && !nextAction)) ? (
@@ -494,12 +507,10 @@ export function ProtectedSwapLanePanel({
       </div>
 
       <small className="transfer-lane-boundary">
-        Private dashboard only. Exact allowance only, fresh quote after approval,
-        mandatory revoke, and no Telegram or public execution.
+        Private dashboard only. Exact allowances only, a fresh quote after any
+        approval, a daily cap per workspace, and no Telegram or public execution.
       </small>
-      {!pairAvailable ? (
-        <small className="transfer-lane-requirement">The official KYRA contract has not been published yet.</small>
-      ) : !scopeReady ? (
+      {!scopeReady ? (
         <small className="transfer-lane-requirement">Sign in, select a deployed agent, and connect its Robinhood Chain wallet.</small>
       ) : (
         <small className="transfer-lane-agent">Bound to {agentName || "selected agent"} and {maskAddress(walletStatus.address!)}.</small>
@@ -542,8 +553,8 @@ function formatState(state: SwapLaneState) {
 
 function messageForNextAction(action: SwapExecutionNextAction) {
   if (action === "request_fresh_quote") return "Exact allowance confirmed. Request the required fresh quote before swapping.";
-  if (action === "revoke_allowance") return "Swap receipt confirmed. Revoke the temporary KYRA allowance to finish safely.";
-  if (action === "complete") return "Protected swap flow completed and the private receipt was confirmed.";
+  if (action === "revoke_allowance") return "Swap receipt confirmed. You can revoke the USDG allowance to finish.";
+  if (action === "complete") return "Swap complete. The receipt was verified on Robinhood Chain.";
   return "The protected step was verified. Review the next server-authorized action.";
 }
 

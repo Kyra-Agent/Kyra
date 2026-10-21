@@ -3,6 +3,8 @@ import {
   type SwapQuoteRequest,
 } from "../_shared/swap-quote-policy.ts";
 
+const uniswapSwapProvider = "uniswap_v3_robinhood";
+
 export class HttpError extends Error {
   constructor(
     readonly statusCode: number,
@@ -56,7 +58,7 @@ export function matchesExistingSwapQuote(
     existing.sell_amount_atomic === request.sellAmount &&
     existing.slippage_bps === request.slippageBps &&
     existing.policy_version === request.policyVersion &&
-    existing.provider === "0x_swap_api_v2" &&
+    existing.provider === uniswapSwapProvider &&
     (existing.status === "quote_ready" ||
       existing.status === "allowance_required");
 }

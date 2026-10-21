@@ -8,10 +8,10 @@ import {
   type SwapExecutionTransaction,
 } from "../_shared/swap-execution-policy.ts";
 import {
-  getOfficialKyraTokenAddress,
   robinhoodMainnetChainId,
   robinhoodMainnetChainKey,
 } from "../_shared/transfer-transaction-policy.ts";
+import { usdgTokenAddress } from "../_shared/swap-quote-policy.ts";
 
 export class HttpError extends Error {
   constructor(
@@ -40,7 +40,7 @@ export interface StoredSwapQuote {
   chain_id: typeof robinhoodMainnetChainId;
   taker_address: string;
   sell_token_address: string;
-  sell_token_symbol: "ETH" | "KYRA";
+  sell_token_symbol: "ETH" | "USDG";
   buy_token_address: string;
   sell_amount_atomic: string;
   allowance_target: string | null;
@@ -48,7 +48,7 @@ export interface StoredSwapQuote {
   transaction_data: string;
   transaction_value_wei: string;
   status: "quote_ready" | "allowance_required";
-  policy_version: 1;
+  policy_version: typeof swapExecutionPolicyVersion;
   quote_issued_at: string;
   expires_at: string;
 }
@@ -220,17 +220,14 @@ function transactionForStep(
     };
   }
 
-  const officialTokenAddress = getOfficialKyraTokenAddress();
   if (
-    officialTokenAddress === null ||
-    quote.sell_token_address.toLowerCase() !==
-      officialTokenAddress.toLowerCase() ||
+    quote.sell_token_address.toLowerCase() !== usdgTokenAddress.toLowerCase() ||
     !quote.allowance_target
   ) {
     throw new HttpError(
       409,
       "allowance_step_not_applicable",
-      "This quote does not require a KYRA token allowance.",
+      "This quote does not require a USDG allowance.",
     );
   }
   if (step === "allowance_set" && quote.status !== "allowance_required") {

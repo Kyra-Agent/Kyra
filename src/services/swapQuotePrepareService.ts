@@ -3,17 +3,19 @@ import { appConfig } from "../config/appConfig";
 import {
   getSwapTokenSymbolForAddress,
   type ReviewedSwapQuoteRequest,
+  type SwapTokenSymbol,
 } from "../config/swapQuotePolicy";
 import { robinhoodChain } from "../config/productChains";
 import type { KyraAuthSession } from "./supabaseAuthService";
 import { getSupabaseApiKey } from "./supabaseRestClient";
 import { isServerExpiryWithinLifetime } from "./serverExpiry";
+import { readServerMessage } from "./serverMessage";
 
 export interface SwapQuoteSummary {
   quoteRecordId: string;
   status: "quote_ready" | "allowance_required";
-  sellTokenSymbol: "ETH" | "KYRA";
-  buyTokenSymbol: "ETH" | "KYRA";
+  sellTokenSymbol: SwapTokenSymbol;
+  buyTokenSymbol: SwapTokenSymbol;
   sellAmount: string;
   buyAmount: string;
   minimumBuyAmount: string;
@@ -46,9 +48,9 @@ interface SwapQuotePrepareResponse {
   chainId: typeof robinhoodChain.id;
   taker: `0x${string}`;
   sellToken: ReviewedSwapQuoteRequest["sellToken"];
-  sellTokenSymbol: "ETH" | "KYRA";
+  sellTokenSymbol: SwapTokenSymbol;
   buyToken: ReviewedSwapQuoteRequest["buyToken"];
-  buyTokenSymbol: "ETH" | "KYRA";
+  buyTokenSymbol: SwapTokenSymbol;
   sellAmount: string;
   buyAmount: string;
   minimumBuyAmount: string;
@@ -59,7 +61,8 @@ interface SwapQuotePrepareResponse {
   executionEnabled: false;
 }
 
-const swapQuoteClientTimeoutMs = 8_000;
+// The backend prices every pool and simulates the swap on chain first.
+const swapQuoteClientTimeoutMs = 15_000;
 const maxResponseBytes = 16 * 1024;
 
 const responseKeys = [
@@ -124,9 +127,11 @@ export async function prepareProtectedSwapQuote(
       return {
         ok: false,
         status: response.status === 429 ? "rate-limited" : "error",
-        message: response.status === 429
-          ? "The private swap quote limit has been reached. Wait before retrying."
-          : "Swap quote review failed safely.",
+        message: !response.ok
+          ? readServerMessage(payload) ?? (response.status === 429
+            ? "The private swap quote limit has been reached. Wait before retrying."
+            : "Swap quote review failed safely.")
+          : "Kyra could not verify the swap quote. Request a fresh one.",
       };
     }
     if (!matchesRequest(payload, request)) {

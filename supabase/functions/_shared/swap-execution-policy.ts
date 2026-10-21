@@ -5,12 +5,13 @@ import {
   isAddress,
 } from "npm:viem@2.57.7";
 import {
-  getOfficialKyraTokenAddress,
   robinhoodMainnetChainId,
   robinhoodMainnetChainKey,
 } from "./transfer-transaction-policy.ts";
+import { usdgTokenAddress } from "./swap-quote-policy.ts";
+import { uniswapSwapRouter02Address } from "./uniswap-robinhood.ts";
 
-export const swapExecutionPolicyVersion = 1 as const;
+export const swapExecutionPolicyVersion = 2 as const;
 export const swapExecutionIntentLifetimeMs = 10 * 60 * 1000;
 export const swapExecutionSteps = [
   "allowance_set",
@@ -39,11 +40,11 @@ export function createExactAllowanceTransaction(input: {
   const tokenAddress = readAddress(input.tokenAddress);
   const spenderAddress = readAddress(input.spenderAddress);
   const amount = readAtomicAmount(input.amountAtomic);
-  const officialTokenAddress = getOfficialKyraTokenAddress();
+  // USDG is the only token a swap sells besides native ETH, and only the
+  // Uniswap router may spend it.
   if (
-    officialTokenAddress === null ||
-    tokenAddress?.toLowerCase() !== officialTokenAddress.toLowerCase() ||
-    !spenderAddress ||
+    tokenAddress?.toLowerCase() !== usdgTokenAddress.toLowerCase() ||
+    spenderAddress?.toLowerCase() !== uniswapSwapRouter02Address.toLowerCase() ||
     amount === null
   ) {
     return null;

@@ -1,21 +1,24 @@
 import { getAddress, parseUnits } from "viem";
 import {
   type EvmAddress,
-  getOfficialKyraTokenAddress,
-  kyraTokenDecimals,
-  kyraTokenSymbol,
   nativeTransferMaxAtomic,
 } from "./transferTransactionPolicy";
 import { robinhoodChain } from "./productChains";
 
-export const swapQuotePolicyVersion = 1 as const;
-export const zeroExNativeTokenAddress =
+// Mirrors supabase/functions/_shared/swap-quote-policy.ts (version 2): ETH
+// and USDG through Uniswap V3 on Robinhood Chain.
+export const swapQuotePolicyVersion = 2 as const;
+export const nativeSwapTokenAddress =
   "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" as const;
+export const usdgTokenAddress =
+  "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" as const;
+export const uniswapSwapRouter02Address =
+  "0xCaf681a66D020601342297493863E78C959E5cb2" as const;
 export const swapQuoteMinimumSlippageBps = 10;
 export const swapQuoteMaximumSlippageBps = 300;
-export const kyraSwapMaxAtomic = 10_000n * 10n ** 18n;
+export const usdgSwapMaxAtomic = 12_500_000n;
 
-export type SwapTokenSymbol = "ETH" | typeof kyraTokenSymbol;
+export type SwapTokenSymbol = "ETH" | "USDG";
 export type SwapTokenAddress = EvmAddress;
 
 export interface ReviewedSwapQuoteRequest {
@@ -38,28 +41,32 @@ export type ReviewedSwapQuoteRequestResult =
 
 interface SwapTokenPolicy {
   address: SwapTokenAddress;
-  decimals: 18;
+  decimals: 18 | 6;
   maxSellAmountAtomic: bigint;
+  maxSellLabel: string;
 }
 
-function getSwapTokenPolicy(symbol: SwapTokenSymbol): SwapTokenPolicy | null {
-  if (symbol === "ETH") {
-    return {
-      address: zeroExNativeTokenAddress,
-      decimals: 18,
-      maxSellAmountAtomic: nativeTransferMaxAtomic,
-    };
-  }
-  const officialTokenAddress = getOfficialKyraTokenAddress();
-  return officialTokenAddress === null ? null : {
-    address: officialTokenAddress,
-    decimals: kyraTokenDecimals,
-    maxSellAmountAtomic: kyraSwapMaxAtomic,
-  };
+const swapTokenPolicies: Record<SwapTokenSymbol, SwapTokenPolicy> = {
+  ETH: {
+    address: nativeSwapTokenAddress,
+    decimals: 18,
+    maxSellAmountAtomic: nativeTransferMaxAtomic,
+    maxSellLabel: "0.005 ETH",
+  },
+  USDG: {
+    address: usdgTokenAddress,
+    decimals: 6,
+    maxSellAmountAtomic: usdgSwapMaxAtomic,
+    maxSellLabel: "12.5 USDG",
+  },
+};
+
+export function getSwapTokenDecimals(symbol: SwapTokenSymbol) {
+  return swapTokenPolicies[symbol].decimals;
 }
 
-export function isProtectedSwapPairAvailable() {
-  return getOfficialKyraTokenAddress() !== null;
+export function getSwapTokenMaxSellLabel(symbol: SwapTokenSymbol) {
+  return swapTokenPolicies[symbol].maxSellLabel;
 }
 
 export function getSwapTokenSymbolForAddress(
@@ -67,12 +74,8 @@ export function getSwapTokenSymbolForAddress(
 ): SwapTokenSymbol | null {
   if (typeof address !== "string") return null;
   const normalized = address.toLowerCase();
-  if (normalized === zeroExNativeTokenAddress) return "ETH";
-  const officialTokenAddress = getOfficialKyraTokenAddress();
-  if (
-    officialTokenAddress !== null &&
-    normalized === officialTokenAddress.toLowerCase()
-  ) return "KYRA";
+  if (normalized === nativeSwapTokenAddress) return "ETH";
+  if (normalized === usdgTokenAddress.toLowerCase()) return "USDG";
   return null;
 }
 
@@ -87,7 +90,7 @@ export function createReviewedSwapQuoteRequest(input: {
   slippageBps: number;
 }): ReviewedSwapQuoteRequestResult {
   if (input.sellTokenSymbol === input.buyTokenSymbol) {
-    return { ok: false, message: "Choose two different approved assets." };
+    return { ok: false, message: "Choose two different assets." };
   }
 
   let taker: `0x${string}`;
@@ -97,17 +100,24 @@ export function createReviewedSwapQuoteRequest(input: {
     return { ok: false, message: "Connect a valid Robinhood Chain wallet." };
   }
 
-  const sellToken = getSwapTokenPolicy(input.sellTokenSymbol);
-  const buyToken = getSwapTokenPolicy(input.buyTokenSymbol);
+  const sellToken = swapTokenPolicies[input.sellTokenSymbol];
+  const buyToken = swapTokenPolicies[input.buyTokenSymbol];
   if (!sellToken || !buyToken) {
+    return { ok: false, message: "Choose ETH or USDG." };
+  }
+  // parseUnits rounds extra decimals, which would swap a different amount
+  // than the one typed, so more precision than the token has is refused.
+  const typedAmount = input.sellAmount.trim();
+  const fraction = /^\d+(?:\.(\d+))?$/u.exec(typedAmount)?.[1] ?? "";
+  if (fraction.length > sellToken.decimals) {
     return {
       ok: false,
-      message: "Swaps open after the official KYRA contract is published.",
+      message: `${input.sellTokenSymbol} supports up to ${sellToken.decimals} decimal places.`,
     };
   }
   let sellAmountAtomic: bigint;
   try {
-    sellAmountAtomic = parseUnits(input.sellAmount.trim(), sellToken.decimals);
+    sellAmountAtomic = parseUnits(typedAmount, sellToken.decimals);
   } catch {
     return { ok: false, message: "Enter a valid positive sell amount." };
   }
@@ -118,9 +128,7 @@ export function createReviewedSwapQuoteRequest(input: {
   if (sellAmountAtomic > sellToken.maxSellAmountAtomic) {
     return {
       ok: false,
-      message: input.sellTokenSymbol === "ETH"
-        ? "ETH sell amount exceeds the 0.005 ETH review limit."
-        : "KYRA sell amount exceeds the 10,000 KYRA review limit.",
+      message: `${input.sellTokenSymbol} sell amount exceeds the ${sellToken.maxSellLabel} swap limit.`,
     };
   }
   if (

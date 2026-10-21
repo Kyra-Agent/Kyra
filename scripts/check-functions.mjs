@@ -121,70 +121,49 @@ const swapExecutionVerifier = readFileSync(
   "utf8",
 );
 const swapQuoteProvider = readFileSync(
-  "supabase/functions/swap-quote-prepare/provider.ts",
+  "supabase/functions/swap-quote-prepare/uniswap-provider.ts",
   "utf8",
 );
 const swapQuoteFunction = readFileSync(
   "supabase/functions/swap-quote-prepare/index.ts",
   "utf8",
 );
+const uniswapAddresses = readFileSync(
+  "supabase/functions/_shared/uniswap-robinhood.ts",
+  "utf8",
+);
 for (const boundary of [
-  "https://api.0x.org/swap/allowance-holder/quote",
-  'url.searchParams.set("chainId"',
-  '"0x-api-key": config.apiKey',
-  '"0x-version": "v2"',
-  "allowedTransactionTargets",
-  "allowedAllowanceTargets",
-  "allowedLiquiditySources",
-  "reviewTransactionEnvelope",
-  "readAddressAllowlist",
-  "readSourceAllowlist",
+  "uniswapQuoterV2Address",
+  "uniswapSwapRouter02Address",
+  "quoteExactInputSingle",
+  "swap_simulation_failed",
+  "insufficient_balance",
+  "allowance_required",
+  'redirect: "error"',
 ]) {
   if (!swapQuoteProvider.includes(boundary)) {
     throw new Error("Protected swap provider boundary missing: " + boundary);
   }
 }
 for (const boundary of [
-  "KYRA_ZEROX_API_KEY",
-  "KYRA_ZEROX_SWAP_ALLOWED_TARGETS",
-  "KYRA_ZEROX_ALLOWANCE_ALLOWED_TARGETS",
-  "KYRA_ZEROX_ALLOWED_SOURCES",
-  "KYRA_ZEROX_TIMEOUT_MS",
+  "0xCaf681a66D020601342297493863E78C959E5cb2",
+  "0x33e885eD0Ec9bF04EcfB19341582aADCb4c8A9E7",
+  "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
+]) {
+  if (!uniswapAddresses.includes(boundary)) {
+    throw new Error("Uniswap Robinhood address missing: " + boundary);
+  }
+}
+for (const boundary of [
+  "fetchReviewedUniswapQuote",
+  "readReceiptRpcConfig",
 ]) {
   if (!swapQuoteFunction.includes(boundary)) {
     throw new Error("Protected swap provider config missing: " + boundary);
   }
 }
-const swapQualificationHarness = readFileSync(
-  "scripts/protected-swap-provider-qualification.mjs",
-  "utf8",
-);
-const swapQualificationCli = readFileSync(
-  "scripts/qualify-protected-swap-provider.mjs",
-  "utf8",
-);
-for (const boundary of [
-  "https://api.0x.org/swap/allowance-holder/quote",
-  '"0x-api-key": apiKey',
-  '"0x-version": "v2"',
-  'redirect: "error"',
-  "readBoundedQualificationBody",
-  "executionEnabled: false",
-  'allowlistReview: issues.simulationIncomplete',
-]) {
-  if (!swapQualificationHarness.includes(boundary)) {
-    throw new Error("Protected swap qualification boundary missing: " + boundary);
-  }
-}
-for (const boundary of [
-  "KYRA_PROTECTED_SWAP_EXECUTION_ENABLED",
-  "VITE_KYRA_PROTECTED_SWAP_ENABLED",
-  "qualification_requires_default_off_gates",
-  "KYRA_ZEROX_QUALIFICATION_TAKER",
-]) {
-  if (!swapQualificationCli.includes(boundary)) {
-    throw new Error("Protected swap qualification CLI gate missing: " + boundary);
-  }
+if (/api\.0x\.org|KYRA_ZEROX_/u.test(swapQuoteFunction + swapQuoteProvider)) {
+  throw new Error("The retired 0x provider must not be referenced.");
 }
 for (const boundary of [
   "enable row level security",

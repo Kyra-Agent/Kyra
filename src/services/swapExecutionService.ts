@@ -1,10 +1,14 @@
 import { decodeFunctionData, erc20Abi, getAddress } from "viem";
 import { appConfig } from "../config/appConfig";
-import { getOfficialKyraTokenAddress } from "../config/transferTransactionPolicy";
+import {
+  uniswapSwapRouter02Address,
+  usdgTokenAddress,
+} from "../config/swapQuotePolicy";
 import { robinhoodChain } from "../config/productChains";
 import type { KyraAuthSession } from "./supabaseAuthService";
 import { getSupabaseApiKey } from "./supabaseRestClient";
 import { isServerExpiryWithinLifetime } from "./serverExpiry";
+import { readServerMessage } from "./serverMessage";
 
 export type SwapExecutionStep = "allowance_set" | "swap" | "allowance_revoke";
 export type SwapExecutionResultStatus = "submitted" | "confirmed" | "failed";
@@ -142,9 +146,11 @@ export async function prepareProtectedSwapExecution(
   if (!payload.ok || !isPreparedResponse(payload.value, input)) {
     return {
       ok: false,
-      message: payload.rateLimited
-        ? "The private swap execution limit was reached. Wait before retrying."
-        : "Protected swap preparation failed safely.",
+      message: !payload.ok
+        ? readServerMessage(payload.value) ?? (payload.rateLimited
+          ? "The private swap execution limit was reached. Wait before retrying."
+          : "Protected swap preparation failed safely.")
+        : "Kyra could not verify the locked swap step. Review it again.",
     };
   }
 
@@ -232,11 +238,16 @@ function isPreparedResponse(
     typeof value.transaction.valueWei !== "string" ||
     !/^(?:0|[1-9][0-9]*)$/u.test(value.transaction.valueWei) ||
     !isServerExpiryWithinLifetime(expiresAt, 10 * 60 * 1000, now) ||
-    value.policyVersion !== 1 ||
+    value.policyVersion !== 2 ||
     value.executionScope !== "private_account_wallet"
   ) return false;
 
-  if (input.step === "swap") return value.allowance === null;
+  // Swaps only ever call the Uniswap router; allowances only ever let that
+  // router spend USDG.
+  if (input.step === "swap") {
+    return value.allowance === null &&
+      to.toLowerCase() === uniswapSwapRouter02Address.toLowerCase();
+  }
   if (
     !isRecord(value.allowance) ||
     Object.keys(value.allowance).sort().join(",") !== allowanceKeys
@@ -244,11 +255,10 @@ function isPreparedResponse(
   const token = readChecksummedAddress(value.allowance.token);
   const spender = readChecksummedAddress(value.allowance.spender);
   const amount = value.allowance.amountAtomic;
-  const officialTokenAddress = getOfficialKyraTokenAddress()?.toLowerCase();
   if (
-    !officialTokenAddress ||
-    token?.toLowerCase() !== officialTokenAddress ||
-    to.toLowerCase() !== officialTokenAddress || !spender ||
+    token?.toLowerCase() !== usdgTokenAddress.toLowerCase() ||
+    to.toLowerCase() !== usdgTokenAddress.toLowerCase() || !spender ||
+    spender.toLowerCase() !== uniswapSwapRouter02Address.toLowerCase() ||
     typeof amount !== "string" || !/^(?:0|[1-9][0-9]*)$/u.test(amount) ||
     (input.step === "allowance_set" ? BigInt(amount) <= 0n : amount !== "0")
   ) return false;

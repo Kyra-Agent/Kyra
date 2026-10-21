@@ -19,8 +19,8 @@ import {
 import {
   createSwapQuoteRequest,
   readSwapToken,
+  nativeSwapTokenAddress,
   swapQuotePolicyVersion,
-  zeroExNativeTokenAddress,
 } from "./swap-quote-policy.ts";
 import { createExactAllowanceTransaction } from "./swap-execution-policy.ts";
 
@@ -74,13 +74,15 @@ Deno.test("accepts only checksummed official token test fixtures", () => {
 
 Deno.test("covers configured KYRA policy paths through the fixture", () => {
   assertEquals(createTransferTransactionShape(kyraTransferInput()).ok, true);
+  // Swaps run through Uniswap for ETH and USDG only; KYRA is never a swap
+  // token, even with a configured contract.
   assertEquals(
     createSwapQuoteRequest(
-      swapQuoteInput(zeroExNativeTokenAddress, testKyraTokenAddress),
-    ).ok,
-    true,
+      swapQuoteInput(nativeSwapTokenAddress, testKyraTokenAddress),
+    ),
+    { ok: false, error: "unsupported_token" },
   );
-  assertEquals(readSwapToken(testKyraTokenAddress)?.symbol, "KYRA");
+  assertEquals(readSwapToken(testKyraTokenAddress), null);
 });
 
 Deno.test("fails every KYRA path closed while the contract is unpublished", () => {
@@ -92,17 +94,17 @@ Deno.test("fails every KYRA path closed while the contract is unpublished", () =
 
     for (
       const [sellToken, buyToken] of [
-        [zeroExNativeTokenAddress, testKyraTokenAddress],
-        [testKyraTokenAddress, zeroExNativeTokenAddress],
+        [nativeSwapTokenAddress, testKyraTokenAddress],
+        [testKyraTokenAddress, nativeSwapTokenAddress],
       ]
     ) {
       assertEquals(
         createSwapQuoteRequest(swapQuoteInput(sellToken, buyToken)),
-        { ok: false, error: "official_token_unavailable" },
+        { ok: false, error: "unsupported_token" },
       );
     }
     assertEquals(readSwapToken(testKyraTokenAddress), null);
-    assertEquals(readSwapToken(zeroExNativeTokenAddress)?.symbol, "ETH");
+    assertEquals(readSwapToken(nativeSwapTokenAddress)?.symbol, "ETH");
 
     for (const amountAtomic of ["1", "0"]) {
       assertEquals(

@@ -42,15 +42,15 @@ export const actions: ActionDefinition[] = [
     id: "swap",
     name: "Swap Review",
     summary:
-      "Talk through a swap's route, size, and risks as a review draft. Telegram never executes swaps.",
-    tier: "demo",
+      "Review a swap in chat, then run ETH and USDG swaps on Uniswap from your dashboard, signed in your own wallet. Telegram never executes swaps.",
+    tier: "mvp",
   },
   {
     id: "send",
     name: "Transfer Review",
     summary:
-      "Check recipient, token, amount, and risk before you open your wallet.",
-    tier: "demo",
+      "Check recipient, amount, and risk, then send ETH from your dashboard's transfer lane, signed in your own wallet.",
+    tier: "mvp",
   },
   {
     id: "dca",

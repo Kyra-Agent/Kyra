@@ -189,7 +189,7 @@ Deno.test("closeout reconciliation is idempotent across duplicate requests", () 
   );
 });
 
-Deno.test("next actions require fresh quote and eventual allowance revoke", () => {
+Deno.test("next actions refresh the quote after an allowance and finish exact USDG swaps", () => {
   assert(
     nextSwapExecutionAction({
       step: "allowance_set",
@@ -203,16 +203,16 @@ Deno.test("next actions require fresh quote and eventual allowance revoke", () =
       step: "swap",
       status: "confirmed",
       erc20AllowanceLineage: true,
-    }) === "revoke_allowance",
-    "ERC20 swap confirmation must revoke allowance",
+    }) === "complete",
+    "an exact allowance is spent in full, so a confirmed USDG swap completes",
   );
   assert(
     nextSwapExecutionAction({
       step: "swap",
       status: "failed",
       erc20AllowanceLineage: true,
-    }) === "revoke_allowance",
-    "failed ERC20 swap must still revoke allowance",
+    }) === "retry_swap",
+    "a failed USDG swap can be reviewed again",
   );
   assert(
     nextSwapExecutionAction({

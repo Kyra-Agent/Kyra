@@ -1,37 +1,53 @@
 import { getAddress, isAddress } from "npm:viem@2.57.7";
 import {
-  getOfficialKyraTokenAddress,
-  kyraTokenDecimals,
-  kyraTokenSymbol,
   nativeTransferMaxAtomic,
   robinhoodMainnetChainId,
   robinhoodMainnetChainKey,
 } from "./transfer-transaction-policy.ts";
 
-export const swapQuotePolicyVersion = 1 as const;
-export const zeroExNativeTokenAddress =
+// Version 2 swaps ETH and USDG through Uniswap V3 on Robinhood Chain. The
+// browser names tokens by these addresses; ETH uses the usual native
+// sentinel, which never reaches a contract.
+export const swapQuotePolicyVersion = 2 as const;
+export const nativeSwapTokenAddress =
   "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" as const;
+export const usdgTokenAddress =
+  "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" as const;
 export const swapQuoteLifetimeMs = 75_000;
 export const swapQuoteMinimumSlippageBps = 10;
 export const swapQuoteMaximumSlippageBps = 300;
 
-export type SwapTokenSymbol = "ETH" | typeof kyraTokenSymbol;
+export type SwapTokenSymbol = "ETH" | "USDG";
 export type SwapTokenAddress = `0x${string}`;
 
 export interface SwapToken {
   address: SwapTokenAddress;
   symbol: SwapTokenSymbol;
-  decimals: 18;
+  decimals: 18 | 6;
   maxSellAmountAtomic: bigint;
+  dailySellLimitAtomic: bigint;
 }
 
-export const kyraSwapMaxSellAmountAtomic = 10_000n * 10n ** 18n;
+// Per-swap and per-workspace UTC-day caps. The database enforces the same
+// numbers when a swap step is prepared.
+export const usdgSwapMaxSellAmountAtomic = 12_500_000n;
+export const usdgSwapDailySellLimitAtomic = 50_000_000n;
+export const nativeSwapDailySellLimitAtomic = 20_000_000_000_000_000n;
 
 const nativeSwapToken: SwapToken = Object.freeze({
-  address: zeroExNativeTokenAddress,
+  address: nativeSwapTokenAddress,
   symbol: "ETH",
   decimals: 18,
   maxSellAmountAtomic: nativeTransferMaxAtomic,
+  dailySellLimitAtomic: nativeSwapDailySellLimitAtomic,
+});
+
+const usdgSwapToken: SwapToken = Object.freeze({
+  address: usdgTokenAddress,
+  symbol: "USDG",
+  decimals: 6,
+  maxSellAmountAtomic: usdgSwapMaxSellAmountAtomic,
+  dailySellLimitAtomic: usdgSwapDailySellLimitAtomic,
 });
 
 export interface SwapQuoteRequest {
@@ -50,7 +66,6 @@ export interface SwapQuoteRequest {
 
 export type SwapQuotePolicyError =
   | "invalid_scope"
-  | "official_token_unavailable"
   | "invalid_taker"
   | "unsupported_chain"
   | "unsupported_token"
@@ -99,9 +114,6 @@ export function createSwapQuoteRequest(input: {
   }
   if (input.policyVersion !== swapQuotePolicyVersion) {
     return { ok: false, error: "invalid_policy_version" };
-  }
-  if (getOfficialKyraTokenAddress() === null) {
-    return { ok: false, error: "official_token_unavailable" };
   }
 
   const taker = readChecksummedAddress(input.taker);
@@ -156,16 +168,8 @@ export function getSwapToken(address: SwapTokenAddress): SwapToken {
 }
 
 export function readSwapToken(value: unknown): SwapToken | null {
-  if (value === zeroExNativeTokenAddress) return nativeSwapToken;
-  const officialTokenAddress = getOfficialKyraTokenAddress();
-  if (officialTokenAddress !== null && value === officialTokenAddress) {
-    return {
-      address: officialTokenAddress,
-      symbol: kyraTokenSymbol,
-      decimals: kyraTokenDecimals,
-      maxSellAmountAtomic: kyraSwapMaxSellAmountAtomic,
-    };
-  }
+  if (value === nativeSwapTokenAddress) return nativeSwapToken;
+  if (value === usdgTokenAddress) return usdgSwapToken;
   return null;
 }
 

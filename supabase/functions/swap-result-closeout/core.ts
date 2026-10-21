@@ -292,7 +292,9 @@ export function nextSwapExecutionAction(input: {
   if (input.step === "allowance_revoke") {
     return input.status === "confirmed" ? "complete" : "retry_revoke";
   }
-  if (input.erc20AllowanceLineage) return "revoke_allowance";
+  // A USDG swap uses an exact allowance that the router spends in full, so a
+  // confirmed swap leaves nothing to revoke. A failed swap leaves it for the
+  // next swap through the same router; revoking stays available on request.
   return input.status === "confirmed" ? "complete" : "retry_swap";
 }
 
