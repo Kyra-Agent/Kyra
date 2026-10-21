@@ -3076,6 +3076,24 @@ h2 {
   font-size: 0.74rem;
 }
 
+.auth-forgot-link {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.auth-forgot-link:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .auth-primary-action {
   min-width: 11rem;
 }

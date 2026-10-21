@@ -24,6 +24,9 @@ const AUTH_CALLBACK_INDICATOR_KEYS = [
 ] as const;
 
 let authCallbackResultPromise: Promise<KyraAuthResult | null> | null = null;
+// Set when the session came from a password reset link, so the account
+// panel can ask for a new password right away.
+let passwordRecoveryActive = false;
 
 export type KyraAuthStatus =
   | "not-configured"
@@ -126,6 +129,17 @@ function getSafeAuthProviderMessage(message: string | null | undefined, fallback
     normalized.includes("email rate limit exceeded")
   ) {
     return "Too many email requests. Wait a moment and try again.";
+  }
+
+  if (normalized.includes("should be different")) {
+    return "Choose a password you have not used for this account.";
+  }
+
+  if (
+    normalized.includes("link is invalid or has expired") ||
+    normalized.includes("otp_expired")
+  ) {
+    return "This link expired or was already used. Request a new one.";
   }
 
   if (
@@ -280,6 +294,16 @@ async function processAuthCallbackSession(): Promise<KyraAuthResult | null> {
     };
 
     saveStoredAuthSession(session);
+
+    if (params.get("type") === "recovery") {
+      passwordRecoveryActive = true;
+      return makeResult(
+        "signed-in",
+        "Signed in from your reset link. Set a new password below.",
+        session,
+      );
+    }
+
     return makeResult("signed-in", "Email confirmed. Session active.", session);
   } catch {
     return makeResult("error", "Email confirmation session failed.");
@@ -435,6 +459,82 @@ export async function signUpWithPassword(email: string, password: string) {
       workspace_name: "Kyra workspace",
     },
   });
+}
+
+export function isPasswordRecoveryActive() {
+  return passwordRecoveryActive;
+}
+
+// Supabase answers the same way whether or not the email has an account, so
+// the message never reveals which addresses are registered.
+export async function requestPasswordReset(email: string): Promise<KyraAuthResult> {
+  if (!appConfig.supabase.configured) {
+    return makeResult("not-configured", "Backend environment is not configured.");
+  }
+
+  const redirectTo = typeof window === "undefined"
+    ? ""
+    : `?redirect_to=${encodeURIComponent(`${window.location.origin}/dashboard/auth`)}`;
+
+  try {
+    const response = await fetch(getAuthUrl(`recover${redirectTo}`), {
+      method: "POST",
+      headers: getPublicAuthHeaders(),
+      body: JSON.stringify({ email }),
+    });
+
+    if (response.status === 429) {
+      return makeResult(
+        "error",
+        "Too many reset emails were requested. Wait a few minutes, then try again.",
+      );
+    }
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => ({}))) as SupabaseAuthTokenResponse;
+      return makeResult("error", getAuthErrorMessage(payload, "The reset email could not be sent."));
+    }
+
+    return makeResult(
+      "signed-out",
+      "If that email has a Kyra account, a reset link is on its way. Open it on this device to set a new password.",
+    );
+  } catch {
+    return makeResult("error", "The reset email could not be sent.");
+  }
+}
+
+export async function updateAccountPassword(
+  session: KyraAuthSession,
+  password: string,
+): Promise<KyraAuthResult> {
+  if (!appConfig.supabase.configured) {
+    return makeResult("not-configured", "Backend environment is not configured.");
+  }
+
+  try {
+    const response = await fetch(getAuthUrl("user"), {
+      method: "PUT",
+      headers: getSessionAuthHeaders(session.accessToken),
+      body: JSON.stringify({ password }),
+    });
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => ({}))) as SupabaseAuthTokenResponse;
+      return {
+        ...makeResult("signed-in", getAuthErrorMessage(payload, "The password could not be changed."), session),
+        ok: false,
+      };
+    }
+
+    passwordRecoveryActive = false;
+    return makeResult("signed-in", "Password updated. Use it the next time you sign in.", session);
+  } catch {
+    return {
+      ...makeResult("signed-in", "The password could not be changed.", session),
+      ok: false,
+    };
+  }
 }
 
 export async function signInWithPassword(email: string, password: string) {

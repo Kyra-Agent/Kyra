@@ -47,6 +47,7 @@ import {
 import { kyraDataService } from "./services/kyraDataService";
 import {
   consumeAuthCallbackSession,
+  isPasswordRecoveryActive,
   ensureFreshAuthSession,
   getCurrentAuthUser,
   type KyraAuthSession,
@@ -463,6 +464,17 @@ function App() {
         return;
       }
 
+      // A password reset link lands on whatever page Supabase redirects to;
+      // open the account panel right away so the owner can choose a new
+      // password. This skips the view transition on purpose: a skipped
+      // transition (hidden tab, overlapping navigation) would drop it.
+      if (callbackResult?.session && isPasswordRecoveryActive()) {
+        setHomeSectionId(null);
+        setRoute("dashboard");
+        pushAppPath("/dashboard/auth");
+        window.scrollTo({ top: 0 });
+      }
+
       const sessionToValidate = callbackResult?.session ??
         loadStoredAuthSession();
 
@@ -497,7 +509,14 @@ function App() {
 
       setAuthSession(result.session);
       setAuthStatus(result.status);
-      setAuthMessage(result.message);
+
+      // A password reset link lands on whatever page Supabase redirects to;
+      // send the owner to the account panel to choose a new password.
+      setAuthMessage(
+        result.session && isPasswordRecoveryActive()
+          ? "Signed in from your reset link. Set a new password below."
+          : result.message,
+      );
     }
 
     void validateStoredSession();
