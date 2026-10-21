@@ -114,12 +114,23 @@ export function OwnerWalletConnectionPanel({
   const targetKey = target
     ? `${target.ownerUserId}:${target.workspaceId}:${target.agentId}:${target.sessionExpiresAt}`
     : "locked";
-  const walletConnectors = connectors.filter((item) =>
+  const injectedConnectors = connectors.filter((item) =>
     item.type === ownerWalletConnectorType
   );
-  const connector = walletConnectors.find((item) =>
-    item.id === selectedConnectorId
-  ) ?? walletConnectors[0];
+  // Wallets that announce themselves (EIP-6963) carry their own name and
+  // icon. The generic injected connector only duplicates whichever extension
+  // took over window.ethereum, so it is listed only when nothing announced.
+  const announcedConnectors = injectedConnectors.filter((item) =>
+    item.id !== "injected"
+  );
+  const walletConnectors = announcedConnectors.length
+    ? announcedConnectors
+    : injectedConnectors;
+  // With several wallets installed the owner picks one; nothing is chosen
+  // for them.
+  const connector = walletConnectors.length === 1
+    ? walletConnectors[0]
+    : walletConnectors.find((item) => item.id === selectedConnectorId) ?? null;
   const activeProviderName = binding
     ? formatWalletProviderName(connection.connector?.name ?? connector?.name)
     : null;
@@ -133,16 +144,11 @@ export function OwnerWalletConnectionPanel({
   );
 
   useEffect(() => {
-    if (!selectedConnectorId && walletConnectors[0]) {
-      setSelectedConnectorId(walletConnectors[0].id);
-      return;
-    }
-
     if (
       selectedConnectorId &&
       !walletConnectors.some((item) => item.id === selectedConnectorId)
     ) {
-      setSelectedConnectorId(walletConnectors[0]?.id ?? null);
+      setSelectedConnectorId(null);
     }
   }, [selectedConnectorId, walletConnectors]);
 
@@ -403,7 +409,9 @@ export function OwnerWalletConnectionPanel({
         <div className="owner-wallet-provider-select">
           <div className="owner-wallet-provider-heading">
             <span>Wallet provider</span>
-            <small>Choose an installed wallet.</small>
+            <small>
+              {connector ? "Choose an installed wallet." : "Choose an installed wallet to connect."}
+            </small>
           </div>
           <div
             className="owner-wallet-provider-options"
@@ -424,7 +432,9 @@ export function OwnerWalletConnectionPanel({
                     disconnectMutation.isPending}
                 >
                   <span className="owner-wallet-provider-icon" aria-hidden="true">
-                    <WalletCards size={16} />
+                    {isSafeWalletIcon(item.icon)
+                      ? <img src={item.icon} alt="" width={18} height={18} />
+                      : <WalletCards size={16} />}
                   </span>
                   <span className="owner-wallet-provider-copy">
                     <strong>{formatWalletProviderName(item.name)}</strong>
@@ -469,7 +479,9 @@ export function OwnerWalletConnectionPanel({
               {connectMutation.isPending
                 ? <LoaderCircle className="spin-icon" size={16} />
                 : <Link2 size={16} />}
-              Connect wallet
+              {connector
+                ? `Connect ${formatWalletProviderName(connector.name)}`
+                : "Connect wallet"}
             </button>
           )}
         <small>No signing, token approval, or transaction request is made.</small>
@@ -505,6 +517,13 @@ function classifyConnectionError(
 
 function formatUiState(state: ConnectionUiState) {
   return state.replace(/_/gu, " ");
+}
+
+// EIP-6963 icons are data URIs supplied by the installed extension.
+function isSafeWalletIcon(value: unknown): value is string {
+  return typeof value === "string" &&
+    /^data:image\/(?:svg\+xml|png|webp|jpeg)[;,]/u.test(value) &&
+    value.length < 100_000;
 }
 
 function formatWalletProviderName(value: unknown) {
