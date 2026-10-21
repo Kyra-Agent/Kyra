@@ -7,6 +7,7 @@ import {
 import { robinhoodChain } from "../config/productChains";
 import type { KyraAuthSession } from "./supabaseAuthService";
 import { getSupabaseApiKey } from "./supabaseRestClient";
+import { isServerExpiryWithinLifetime } from "./serverExpiry";
 
 export interface SwapQuoteSummary {
   quoteRecordId: string;
@@ -204,9 +205,7 @@ function isSwapQuotePrepareResponse(
     typeof value.routeSummary === "string" &&
     value.routeSummary.length > 0 &&
     value.routeSummary.length <= 240 &&
-    Number.isFinite(expiresAt) &&
-    expiresAt > now &&
-    expiresAt <= now + 90_000 &&
+    isServerExpiryWithinLifetime(expiresAt, 90_000, now) &&
     value.allowanceRequired === (value.status === "allowance_required") &&
     value.executionEnabled === false;
 }

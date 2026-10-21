@@ -4,6 +4,7 @@ import { getOfficialKyraTokenAddress } from "../config/transferTransactionPolicy
 import { robinhoodChain } from "../config/productChains";
 import type { KyraAuthSession } from "./supabaseAuthService";
 import { getSupabaseApiKey } from "./supabaseRestClient";
+import { isServerExpiryWithinLifetime } from "./serverExpiry";
 
 export type SwapExecutionStep = "allowance_set" | "swap" | "allowance_revoke";
 export type SwapExecutionResultStatus = "submitted" | "confirmed" | "failed";
@@ -230,8 +231,7 @@ function isPreparedResponse(
     !/^0x(?:[0-9a-f]{2})+$/u.test(value.transaction.data) ||
     typeof value.transaction.valueWei !== "string" ||
     !/^(?:0|[1-9][0-9]*)$/u.test(value.transaction.valueWei) ||
-    !Number.isFinite(expiresAt) || expiresAt <= now ||
-    expiresAt > now + 10 * 60 * 1000 ||
+    !isServerExpiryWithinLifetime(expiresAt, 10 * 60 * 1000, now) ||
     value.policyVersion !== 1 ||
     value.executionScope !== "private_account_wallet"
   ) return false;

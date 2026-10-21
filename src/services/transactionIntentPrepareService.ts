@@ -7,6 +7,7 @@ import {
 import { productChainId } from "../types/unsignedTransactionHandoff";
 import type { KyraAuthSession } from "./supabaseAuthService";
 import { getSupabaseApiKey } from "./supabaseRestClient";
+import { isServerExpiryWithinLifetime } from "./serverExpiry";
 
 export interface TransactionIntentPrepareInput {
   workspaceId: string;
@@ -60,8 +61,7 @@ function isPreparedResponse(value: unknown): value is Required<PrepareResponse> 
     value.ok === true && value.status === "prepared" &&
     typeof value.preparedActionId === "string" &&
     isCanonicalUuid(value.preparedActionRecordId) &&
-    Number.isFinite(expiresAt) && expiresAt > now &&
-    expiresAt <= now + 10 * 60 * 1000 &&
+    isServerExpiryWithinLifetime(expiresAt, 10 * 60 * 1000, now) &&
     value.chainKey === "robinhood_mainnet" &&
     value.chainId === productChainId &&
     typeof value.recipient === "string" &&

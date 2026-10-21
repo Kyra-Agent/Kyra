@@ -7,6 +7,7 @@ import {
 import { productChainId } from "../types/unsignedTransactionHandoff";
 import type { KyraAuthSession } from "./supabaseAuthService";
 import { getSupabaseApiKey } from "./supabaseRestClient";
+import { isServerExpiryWithinLifetime } from "./serverExpiry";
 
 export interface TransferTransactionIntentPrepareInput {
   workspaceId: string;
@@ -120,7 +121,9 @@ export async function prepareTransferTransactionIntent(
           ? `You've reached today's ${input.transaction.tokenSymbol} transfer limit for this workspace. It resets at 00:00 UTC.`
           : response.status === 429
           ? "Too many transfer requests in a short time. Wait a few minutes before trying again."
-          : "Transfer preparation failed safely.",
+          : !response.ok
+          ? readServerMessage(payload) ?? "Transfer preparation failed safely."
+          : "Kyra could not verify the prepared transfer. Review it again.",
       };
     }
 
@@ -168,9 +171,7 @@ function isPreparedTransferResponse(
     value.status === "prepared" &&
     typeof value.preparedActionId === "string" &&
     isCanonicalUuid(value.preparedActionRecordId) &&
-    Number.isFinite(expiresAt) &&
-    expiresAt > now &&
-    expiresAt <= now + 10 * 60 * 1000 &&
+    isServerExpiryWithinLifetime(expiresAt, 10 * 60 * 1000, now) &&
     value.chainKey === "robinhood_mainnet" &&
     value.chainId === productChainId &&
     sender !== null &&
@@ -224,6 +225,14 @@ function isCanonicalUuid(value: unknown): value is string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+// transaction-intent-prepare only returns fixed, user-facing messages.
+function readServerMessage(payload: unknown) {
+  const message = isRecord(payload) ? payload.message : null;
+  return typeof message === "string" && message.length > 0 && message.length <= 200
+    ? message
+    : null;
 }
 
 async function readResponse(response: Response): Promise<unknown> {

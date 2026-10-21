@@ -95,6 +95,7 @@
     "test:transaction-result-closeout": "deno test --reporter=tap supabase/functions/transaction-result-closeout/core_test.ts supabase/functions/transaction-result-closeout/receipt-verifier_test.ts",
     "test:edge-functions": "deno test supabase/functions",
     "test:swap-frontend-policy": "deno test --no-check tests/swapQuotePolicy_test.ts",
+    "test:server-expiry": "deno test --no-check tests/serverExpiry_test.ts",
     "test:swap-quote-core": "deno test --no-check supabase/functions/swap-quote-prepare/core_test.ts",
     "test:swap-quote-provider": "deno test --no-check supabase/functions/swap-quote-prepare/provider_test.ts",
     "test:swap-quote-prepare": "npm run test:swap-quote-core && npm run test:swap-quote-provider",
