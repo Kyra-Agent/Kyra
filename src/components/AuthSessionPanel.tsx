@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, KeyRound, Loader2, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import {
   clearStoredAuthSession,
@@ -63,11 +63,31 @@ export function AuthSessionPanel({
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const passwordFormRef = useRef<HTMLFormElement>(null);
+
   useEffect(() => {
-    // The reset link can finish signing in after this panel mounted.
-    if (session && isPasswordRecoveryActive()) {
-      setChangingPassword(true);
+    // The reset link can finish signing in after this panel mounted. The
+    // panel sits below the agent overview, so bring the form into view once
+    // the dashboard has laid out, and put the cursor in it.
+    if (!session || !isPasswordRecoveryActive()) {
+      return;
     }
+
+    setChangingPassword(true);
+    const timer = window.setTimeout(() => {
+      passwordFormRef.current?.scrollIntoView({ behavior: "instant", block: "center" });
+      passwordFormRef.current?.querySelector("input")?.focus({ preventScroll: true });
+    }, 900);
+    // Agent records can still be loading and push the panel down; "nearest"
+    // only moves the page if the form has slid out of view.
+    const settleTimer = window.setTimeout(() => {
+      passwordFormRef.current?.scrollIntoView({ behavior: "instant", block: "nearest" });
+    }, 2_500);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.clearTimeout(settleTimer);
+    };
   }, [session]);
 
   const busy = busyAction !== null;
@@ -210,6 +230,7 @@ export function AuthSessionPanel({
         <form
           className="auth-form-grid"
           id="kyra-account-password-form"
+          ref={passwordFormRef}
           onSubmit={(event) => {
             event.preventDefault();
             void handlePasswordChange();
