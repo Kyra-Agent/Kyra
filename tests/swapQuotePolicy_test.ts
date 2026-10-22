@@ -1,6 +1,7 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   createReviewedSwapQuoteRequest,
+  formatSwapAmount,
   getSwapTokenDecimals,
   getSwapTokenSymbolForAddress,
   nativeSwapTokenAddress,
@@ -94,4 +95,13 @@ Deno.test("maps only ETH and USDG addresses to swap symbols", () => {
   assertEquals(getSwapTokenSymbolForAddress(usdgTokenAddress.toLowerCase()), "USDG");
   assertEquals(getSwapTokenSymbolForAddress("0x11bceD4Ed1b20eAE8aA4Ff840a5dCEB078C9cb53"), null);
   assertEquals(getSwapTokenSymbolForAddress(42), null);
+});
+
+Deno.test("shortens swap amounts without ever rounding them up", () => {
+  assertEquals(formatSwapAmount("84263068703674", 18), "0.000084263");
+  assertEquals(formatSwapAmount("83420438016637", 18), "0.0000834204");
+  assertEquals(formatSwapAmount("237367", 6), "0.237367");
+  assertEquals(formatSwapAmount("12500000", 6), "12.5");
+  assertEquals(formatSwapAmount("1999999999999999999", 18), "1.999999");
+  assertEquals(formatSwapAmount("5000000000000000", 18), "0.005");
 });

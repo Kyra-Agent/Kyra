@@ -8,11 +8,11 @@ import {
   WalletCards,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { formatUnits } from "viem";
 import { useConnection, useSendTransaction } from "wagmi";
 import { currentProductChain, type ProductChainKey } from "../config/productChains";
 import {
   createReviewedSwapQuoteRequest,
+  formatSwapAmount,
   getSwapTokenDecimals,
   getSwapTokenMaxSellLabel,
   type ReviewedSwapQuoteRequest,
@@ -113,9 +113,9 @@ export function ProtectedSwapLanePanel({
     const sellDecimals = getSwapTokenDecimals(sellTokenSymbol);
     const buyDecimals = getSwapTokenDecimals(buyTokenSymbol);
     return {
-      sell: `${formatUnits(BigInt(quoteContext.quote.sellAmount), sellDecimals)} ${sellTokenSymbol}`,
-      receive: `${formatUnits(BigInt(quoteContext.quote.buyAmount), buyDecimals)} ${buyTokenSymbol}`,
-      minimum: `${formatUnits(BigInt(quoteContext.quote.minimumBuyAmount), buyDecimals)} ${buyTokenSymbol}`,
+      sell: `${formatSwapAmount(quoteContext.quote.sellAmount, sellDecimals)} ${sellTokenSymbol}`,
+      receive: `${formatSwapAmount(quoteContext.quote.buyAmount, buyDecimals)} ${buyTokenSymbol}`,
+      minimum: `${formatSwapAmount(quoteContext.quote.minimumBuyAmount, buyDecimals)} ${buyTokenSymbol}`,
       expires: new Date(quoteContext.quote.expiresAt).toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
@@ -306,6 +306,12 @@ export function ProtectedSwapLanePanel({
         : `The ${formatStep(result.step)} failed and can be reviewed again safely.`);
       return;
     }
+    if (result.nextAction === "request_fresh_quote") {
+      // The allowance is on chain now, so fetch the fresh quote right away
+      // instead of making the owner click for it. It opens no wallet prompt.
+      await handleQuote();
+      return;
+    }
     setLaneState(result.nextAction === "complete" ? "complete" : "confirmed");
     setMessage(messageForNextAction(result.nextAction));
   }
@@ -434,7 +440,7 @@ export function ProtectedSwapLanePanel({
       {prepared?.allowance ? (
         <div className="transfer-token-contract">
           <span>{prepared.step === "allowance_revoke" ? "Allowance cleanup" : "Exact allowance"}</span>
-          <code>{prepared.allowance.amountAtomic === "0" ? "Revoke to 0" : `${formatUnits(BigInt(prepared.allowance.amountAtomic), getSwapTokenDecimals("USDG"))} USDG`}</code>
+          <code>{prepared.allowance.amountAtomic === "0" ? "Revoke to 0" : `${formatSwapAmount(prepared.allowance.amountAtomic, getSwapTokenDecimals("USDG"))} USDG`}</code>
         </div>
       ) : null}
 

@@ -1,4 +1,4 @@
-import { getAddress, parseUnits } from "viem";
+import { formatUnits, getAddress, parseUnits } from "viem";
 import {
   type EvmAddress,
   nativeTransferMaxAtomic,
@@ -158,4 +158,15 @@ export function createReviewedSwapQuoteRequest(input: {
       policyVersion: swapQuotePolicyVersion,
     },
   };
+}
+
+// Shows up to six significant digits after any leading zeros, cut off rather
+// than rounded so an amount never looks larger than it is.
+export function formatSwapAmount(atomic: string, decimals: number) {
+  const [whole, fraction = ""] = formatUnits(BigInt(atomic), decimals).split(".");
+  if (!fraction) return whole;
+  const firstSignificant = fraction.search(/[1-9]/u);
+  const keep = whole !== "0" ? 6 : firstSignificant < 0 ? 0 : firstSignificant + 6;
+  const shortened = fraction.slice(0, keep).replace(/0+$/u, "");
+  return shortened ? `${whole}.${shortened}` : whole;
 }
