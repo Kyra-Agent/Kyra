@@ -6,7 +6,7 @@ import {
 } from "../config/swapQuotePolicy";
 import { robinhoodChain } from "../config/productChains";
 import type { KyraAuthSession } from "./supabaseAuthService";
-import { getSupabaseApiKey } from "./supabaseRestClient";
+import { createSessionSwapPost, type SwapPost } from "./swapTransport";
 import { isServerExpiryWithinLifetime } from "./serverExpiry";
 import { readServerMessage } from "./serverMessage";
 
@@ -54,7 +54,7 @@ export type SwapExecutionCloseoutResult =
   }
   | { ok: false; message: string };
 
-interface PrepareInput {
+export interface SwapExecutionPrepareInput {
   workspaceId: string;
   agentId: string;
   quoteRecordId: string;
@@ -63,7 +63,7 @@ interface PrepareInput {
   sender: `0x${string}`;
 }
 
-interface CloseoutInput {
+export interface SwapCloseoutInput {
   workspaceId: string;
   agentId: string;
   intentRecordId: string;
@@ -72,7 +72,6 @@ interface CloseoutInput {
 }
 
 const clientTimeoutMs = 8_000;
-const maxResponseBytes = 16 * 1024;
 const prepareKeys = [
   "allowance",
   "chainId",
@@ -122,7 +121,7 @@ const nextActions: readonly SwapExecutionNextAction[] = [
 
 export async function prepareProtectedSwapExecution(
   session: KyraAuthSession | null,
-  input: PrepareInput,
+  input: SwapExecutionPrepareInput,
 ): Promise<SwapExecutionPrepareResult> {
   if (
     appConfig.chain.currentKey !== "robinhood_mainnet" ||
@@ -131,23 +130,34 @@ export async function prepareProtectedSwapExecution(
   ) {
     return { ok: false, message: "Protected swap execution is unavailable." };
   }
-
-  const payload = await postPrivateJson(
-    appConfig.functions.swapExecutionPrepareUrl,
-    session,
-    {
-      workspaceId: input.workspaceId,
-      agentId: input.agentId,
-      quoteRecordId: input.quoteRecordId,
-      requestId: input.requestId,
-      step: input.step,
-    },
+  return await requestSwapExecutionStep(
+    createSessionSwapPost(
+      appConfig.functions.swapExecutionPrepareUrl,
+      session,
+      clientTimeoutMs,
+    ),
+    input,
   );
+}
+
+// Asks the backend to lock one swap step over any transport and accepts only
+// a transaction that matches the reviewed router and token rules.
+export async function requestSwapExecutionStep(
+  post: SwapPost,
+  input: SwapExecutionPrepareInput,
+): Promise<SwapExecutionPrepareResult> {
+  const payload = await post({
+    workspaceId: input.workspaceId,
+    agentId: input.agentId,
+    quoteRecordId: input.quoteRecordId,
+    requestId: input.requestId,
+    step: input.step,
+  });
   if (!payload.ok || !isPreparedResponse(payload.value, input)) {
     return {
       ok: false,
       message: !payload.ok
-        ? readServerMessage(payload.value) ?? (payload.rateLimited
+        ? readServerMessage(payload.value) ?? (payload.status === 429
           ? "The private swap execution limit was reached. Wait before retrying."
           : "Protected swap preparation failed safely.")
         : "Kyra could not verify the locked swap step. Review it again.",
@@ -171,7 +181,7 @@ export async function prepareProtectedSwapExecution(
 
 export async function closeProtectedSwapResult(
   session: KyraAuthSession | null,
-  input: CloseoutInput,
+  input: SwapCloseoutInput,
 ): Promise<SwapExecutionCloseoutResult> {
   if (!session || !appConfig.functions.swapResultCloseoutConfigured) {
     return {
@@ -179,11 +189,21 @@ export async function closeProtectedSwapResult(
       message: "Private swap receipt verification is unavailable.",
     };
   }
-  const payload = await postPrivateJson(
-    appConfig.functions.swapResultCloseoutUrl,
-    session,
+  return await requestSwapCloseout(
+    createSessionSwapPost(
+      appConfig.functions.swapResultCloseoutUrl,
+      session,
+      clientTimeoutMs,
+    ),
     input,
   );
+}
+
+export async function requestSwapCloseout(
+  post: SwapPost,
+  input: SwapCloseoutInput,
+): Promise<SwapExecutionCloseoutResult> {
+  const payload = await post({ ...input });
   if (!payload.ok || !isCloseoutResponse(payload.value)) {
     return {
       ok: false,
@@ -205,13 +225,13 @@ interface PreparedResponse extends Omit<PreparedSwapExecution, "requestId"> {
   intentId: string;
   chainKey: "robinhood_mainnet";
   chainId: typeof robinhoodChain.id;
-  policyVersion: 1;
+  policyVersion: 2;
   executionScope: "private_account_wallet";
 }
 
 function isPreparedResponse(
   value: unknown,
-  input: PrepareInput,
+  input: SwapExecutionPrepareInput,
 ): value is PreparedResponse {
   if (!isRecord(value) || Object.keys(value).sort().join(",") !== prepareKeys) {
     return false;
@@ -299,43 +319,6 @@ function isCloseoutResponse(value: unknown): value is CloseoutResponse {
     value.visibility === "owner-only";
 }
 
-async function postPrivateJson(
-  url: string,
-  session: KyraAuthSession,
-  body: unknown,
-): Promise<
-  { ok: true; value: unknown; rateLimited: false } | {
-    ok: false;
-    value: unknown;
-    rateLimited: boolean;
-  }
-> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), clientTimeoutMs);
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        apikey: getSupabaseApiKey(),
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-      body: JSON.stringify(body),
-      redirect: "error",
-      signal: controller.signal,
-    });
-    const value = await readResponse(response);
-    return response.ok
-      ? { ok: true, value, rateLimited: false }
-      : { ok: false, value, rateLimited: response.status === 429 };
-  } catch {
-    return { ok: false, value: {}, rateLimited: false };
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
 function readChecksummedAddress(value: unknown): `0x${string}` | null {
   if (typeof value !== "string") return null;
   try {
@@ -354,35 +337,4 @@ function isCanonicalUuid(value: unknown): value is string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-async function readResponse(response: Response): Promise<unknown> {
-  const declared = Number(response.headers.get("Content-Length") ?? "0");
-  if (Number.isFinite(declared) && declared > maxResponseBytes) {
-    await response.body?.cancel().catch(() => undefined);
-    return {};
-  }
-  const reader = response.body?.getReader();
-  if (!reader) return {};
-  const decoder = new TextDecoder("utf-8", { fatal: true });
-  let bytes = 0;
-  let text = "";
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      bytes += value.byteLength;
-      if (bytes > maxResponseBytes) {
-        await reader.cancel().catch(() => undefined);
-        return {};
-      }
-      text += decoder.decode(value, { stream: true });
-    }
-    text += decoder.decode();
-    return text ? JSON.parse(text) as unknown : {};
-  } catch {
-    return {};
-  } finally {
-    reader.releaseLock();
-  }
 }

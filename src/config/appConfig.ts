@@ -47,6 +47,8 @@ const swapExecutionPrepareFunctionUrl =
   supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/swap-execution-prepare` : "";
 const swapResultCloseoutFunctionUrl =
   supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/swap-result-closeout` : "";
+const telegramMiniAppFunctionUrl =
+  supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/telegram-miniapp` : "";
 const telegramConnectTokenInputEnabled =
   readEnv("VITE_KYRA_ENABLE_TELEGRAM_CONNECT_TOKEN_INPUT").toLowerCase() === "true";
 const telegramDashboardStatusReadModelEnabled =
@@ -136,6 +138,10 @@ export const appConfig = {
     swapResultCloseoutUrl: swapResultCloseoutFunctionUrl,
     swapResultCloseoutConfigured: Boolean(
       swapResultCloseoutFunctionUrl && supabaseConfigured,
+    ),
+    telegramMiniAppUrl: telegramMiniAppFunctionUrl,
+    telegramMiniAppConfigured: Boolean(
+      telegramMiniAppFunctionUrl && supabaseConfigured,
     ),
   },
   featureFlags: {

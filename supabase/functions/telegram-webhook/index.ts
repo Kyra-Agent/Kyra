@@ -76,6 +76,16 @@ import {
   type TelegramCommunitySetResult,
 } from "./community.ts";
 import {
+  defaultMiniAppUrl,
+  handleTradingCommand,
+  isTradingCommand,
+  type MiniAppButton,
+  type TradingCommand,
+  type TradingCommandReply,
+  type TradingRpcClient,
+  tradingTexts,
+} from "./trading-commands.ts";
+import {
   consumeTelegramOwnerBrainQuota,
   ownerQuotaTexts,
   type TelegramOwnerBrainQuotaResult,
@@ -382,6 +392,7 @@ export interface TelegramWebhookDependencies {
     telegramChatId: string;
     response: TelegramReadOnlyCommandResponse;
     replyToMessageId?: string;
+    miniAppButton?: MiniAppButton;
   }) => Promise<unknown>;
   consumeTelegramOwnerLinkChallenge?: (input: {
     telegramSessionId: string;
@@ -436,6 +447,11 @@ export interface TelegramWebhookDependencies {
     args: string;
     agentId: string;
   }) => Promise<string>;
+  runTradingCommand?: (input: {
+    command: TradingCommand;
+    args: string;
+    agentId: string;
+  }) => Promise<TradingCommandReply>;
 }
 
 const disabledTelegramWebhookLookupRuntimeConfig:
@@ -761,6 +777,7 @@ export function createTelegramWebhookDependencies(
           telegramChatId: input.telegramChatId,
           response: input.response,
           replyToMessageId: input.replyToMessageId,
+          miniAppButton: input.miniAppButton,
         },
         {
           fetch: options.fetchTelegram,
@@ -793,6 +810,13 @@ export function createTelegramWebhookDependencies(
         rpcClient: getRpcClient() as unknown as MonitoringRpcClient,
         chainRpcUrl: chainDataRpcConfig?.rpcUrl ?? null,
         fetchImpl: options.fetchChainData,
+      });
+    };
+    dependencies.runTradingCommand = async (input) => {
+      return await handleTradingCommand({
+        ...input,
+        rpcClient: getRpcClient() as unknown as TradingRpcClient,
+        miniAppUrl: readOptionalEnv("KYRA_MINIAPP_URL")?.trim() || defaultMiniAppUrl,
       });
     };
   }
@@ -1170,6 +1194,34 @@ export async function handleTelegramWebhookRequest(
         response = { command: parsedUpdate.command, text };
       }
 
+      // Swap commands are owner-only and private: the Mini App button
+      // they return cannot open in groups.
+      let miniAppButton: MiniAppButton | undefined;
+      if (isTradingCommand(parsedUpdate.command)) {
+        let text = tradingTexts.failed;
+
+        if (isCommunityMember || isGroupChat) {
+          text = tradingTexts.ownerOnly;
+        } else if (dependencies.runTradingCommand) {
+          try {
+            const reply = await dependencies.runTradingCommand({
+              command: parsedUpdate.command,
+              args: parsedUpdate.text ?? "",
+              agentId: lookupSession.agentId,
+            });
+            text = reply.text;
+            miniAppButton = reply.button;
+          } catch (error) {
+            logSafeEvent(
+              "telegram_trading_fallback",
+              error instanceof HttpError ? error.code : "unexpected_error",
+            );
+          }
+        }
+
+        response = { command: parsedUpdate.command, text };
+      }
+
       if (isCommunityMember && parsedUpdate.command === "help") {
         response = {
           command: "help",
@@ -1463,6 +1515,7 @@ export async function handleTelegramWebhookRequest(
           telegramChatId: parsedUpdate.telegramChatId,
           response,
           ...(isGroupChat ? { replyToMessageId: parsedUpdate.messageId } : {}),
+          ...(miniAppButton && !isGroupChat ? { miniAppButton } : {}),
         });
       } catch (error) {
         if (error instanceof HttpError) {

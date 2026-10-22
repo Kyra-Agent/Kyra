@@ -62,6 +62,18 @@ export interface TokenMeta {
   decimals: number;
 }
 
+export interface TradeRule {
+  id: string;
+  agentId: string;
+  kind: "dca" | "stop_loss" | "take_profit";
+  sell: "ETH" | "USDG";
+  buy: "ETH" | "USDG";
+  amountAtomic: string;
+  intervalHours: number | null;
+  triggerPriceUsd: number | null;
+  nextRunAt: string | null;
+}
+
 export interface MonitorStore {
   getCursor(key: string): Promise<number | null>;
   setCursor(key: string, blockNumber: number): Promise<void>;
@@ -77,6 +89,13 @@ export interface MonitorStore {
   activeAlerts(limit: number): Promise<PriceAlert[]>;
   claimAlert(id: string, priceUsd: number): Promise<boolean>;
   releaseAlert(id: string): Promise<void>;
+  // Enabled DCA rules that are due, plus every enabled price trigger.
+  activeTradeRules(now: string, limit: number): Promise<TradeRule[]>;
+  // Moves a due DCA rule to its next run only if nothing else already did.
+  claimDcaRule(id: string, expectedNextRunAt: string, nextRunAt: string): Promise<boolean>;
+  // Turns a price rule off once it fires, so it prompts exactly once.
+  claimPriceRule(id: string, at: string): Promise<boolean>;
+  releaseTradeRule(rule: TradeRule): Promise<void>;
 }
 
 export interface MonitorChain {
@@ -89,13 +108,19 @@ export interface MonitorChain {
 
 // Sends one message to the agent owner's private chat; false when the agent
 // has no linked owner chat or delivery failed.
-export type MonitorSend = (agentId: string, kind: "launches" | "watchlist" | "alerts", text: string) =>
-  Promise<boolean>;
+export type MonitorSend = (
+  agentId: string,
+  kind: "launches" | "watchlist" | "alerts" | "trades",
+  text: string,
+  button?: { text: string; url: string },
+) => Promise<boolean>;
 
 export interface MonitorCycleOptions {
   now?: Date;
   deadlineMs?: number;
   clock?: () => number;
+  // Base URL of the Kyra Mini App that swap prompts open.
+  miniAppUrl?: string;
 }
 
 export interface MonitorCycleReport {
@@ -103,6 +128,7 @@ export interface MonitorCycleReport {
   digestsSent: number;
   watchAlertsSent: number;
   priceAlertsSent: number;
+  tradePromptsSent: number;
   skipped: string[];
 }
 
@@ -138,15 +164,16 @@ export async function runMonitorCycle(
     digestsSent: 0,
     watchAlertsSent: 0,
     priceAlertsSent: 0,
+    tradePromptsSent: 0,
     skipped: [],
   };
 
-  const sendCapped: MonitorSend = async (agentId, kind, text) => {
+  const sendCapped: MonitorSend = async (agentId, kind, text, button) => {
     const sent = sentPerAgent.get(agentId) ?? 0;
     if (sent >= maxMessagesPerAgent) {
       return false;
     }
-    const ok = await send(agentId, kind, text);
+    const ok = await send(agentId, kind, text, button);
     if (ok) {
       sentPerAgent.set(agentId, sent + 1);
     }
@@ -331,7 +358,99 @@ export async function runMonitorCycle(
     }
   }
 
+  // 5. Swap rules: DCA schedules and ETH price triggers. Each sends a
+  // button to review and sign the swap; nothing trades on its own.
+  if (timeLeft()) {
+    try {
+      const rules = await store.activeTradeRules(now.toISOString(), maxTradeRules);
+      const needsPrice = rules.some((rule) => rule.kind !== "dca");
+      const ethPrice = needsPrice
+        ? (await chain.pricesUsd([{ address: wethAddress, decimals: 18 }])).get(wethAddress) ?? null
+        : null;
+
+      for (const rule of rules) {
+        if (!timeLeft()) {
+          break;
+        }
+        const button = {
+          text: "Review & swap",
+          url: buildSwapPromptUrl(options.miniAppUrl ?? defaultMiniAppBase, rule),
+        };
+
+        if (rule.kind === "dca") {
+          if (!rule.nextRunAt || !rule.intervalHours) continue;
+          const nextRunMs = Math.max(
+            Date.parse(rule.nextRunAt) + rule.intervalHours * 3_600_000,
+            now.getTime() + 60_000,
+          );
+          if (!await store.claimDcaRule(rule.id, rule.nextRunAt, new Date(nextRunMs).toISOString())) {
+            continue;
+          }
+          const ok = await sendCapped(rule.agentId, "trades", formatDcaPrompt(rule), button);
+          if (ok) {
+            report.tradePromptsSent += 1;
+          } else {
+            await store.releaseTradeRule(rule);
+          }
+          continue;
+        }
+
+        if (ethPrice === null || rule.triggerPriceUsd === null) continue;
+        const crossed = rule.kind === "stop_loss"
+          ? ethPrice <= rule.triggerPriceUsd
+          : ethPrice >= rule.triggerPriceUsd;
+        if (!crossed || !await store.claimPriceRule(rule.id, now.toISOString())) {
+          continue;
+        }
+        const ok = await sendCapped(rule.agentId, "trades", formatPriceRulePrompt(rule, ethPrice), button);
+        if (ok) {
+          report.tradePromptsSent += 1;
+        } else {
+          await store.releaseTradeRule(rule);
+        }
+      }
+    } catch {
+      report.skipped.push("trade_rules");
+    }
+  }
+
   return report;
+}
+
+const maxTradeRules = 200;
+const defaultMiniAppBase = "https://kyraagent.xyz/tg";
+
+export function buildSwapPromptUrl(base: string, rule: TradeRule) {
+  const url = new URL(base);
+  url.searchParams.set("agent", rule.agentId);
+  url.searchParams.set("sell", rule.sell);
+  url.searchParams.set("amount", rule.amountAtomic);
+  url.searchParams.set("rule", rule.id);
+  return url.toString();
+}
+
+function formatRuleAmount(rule: TradeRule) {
+  const decimals = rule.sell === "USDG" ? 6 : 18;
+  const padded = rule.amountAtomic.padStart(decimals + 1, "0");
+  const fraction = padded.slice(-decimals).replace(/0+$/u, "");
+  const whole = padded.slice(0, -decimals);
+  return `${fraction ? `${whole}.${fraction}` : whole} ${rule.sell}`;
+}
+
+export function formatDcaPrompt(rule: TradeRule) {
+  return [
+    `DCA due: swap ${formatRuleAmount(rule)} to ${rule.buy} on Uniswap.`,
+    "Tap Review & swap for a live quote, then confirm it in your wallet. Skipping is fine; the next one comes on schedule.",
+  ].join("\n");
+}
+
+export function formatPriceRulePrompt(rule: TradeRule, ethPriceUsd: number) {
+  const label = rule.kind === "stop_loss" ? "Stop-loss" : "Take-profit";
+  const direction = rule.kind === "stop_loss" ? "at or below" : "at or above";
+  return [
+    `${label} hit: ETH is ${formatUsd(ethPriceUsd)}, ${direction} your ${formatUsd(rule.triggerPriceUsd ?? 0)} trigger.`,
+    `Tap Review & swap to sell ${formatRuleAmount(rule)} for ${rule.buy} at a live quote, confirmed in your wallet. This rule is now done.`,
+  ].join("\n");
 }
 
 export function isAlertCrossed(alert: Pick<PriceAlert, "direction" | "targetUsd">, price: number) {

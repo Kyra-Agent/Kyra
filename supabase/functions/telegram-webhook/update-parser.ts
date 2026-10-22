@@ -17,6 +17,12 @@ export type TelegramWebhookParsedCommandName =
   | "alerts"
   | "alerts_clear"
   | "launches"
+  | "swap"
+  | "dca"
+  | "stoploss"
+  | "takeprofit"
+  | "rules"
+  | "rules_clear"
   | "chat";
 
 export type TelegramChatType = "private" | "group" | "supergroup" | "other";
@@ -55,6 +61,8 @@ const supportedCommands = new Set<TelegramWebhookParsedCommandName>([
   "watchlist",
   "alerts",
   "alerts_clear",
+  "rules",
+  "rules_clear",
 ]);
 // Monitoring commands that carry arguments ("/watch 0x...", "/launches on").
 const argumentCommands = new Set<TelegramWebhookParsedCommandName>([
@@ -62,6 +70,10 @@ const argumentCommands = new Set<TelegramWebhookParsedCommandName>([
   "unwatch",
   "alert",
   "launches",
+  "swap",
+  "dca",
+  "stoploss",
+  "takeprofit",
 ]);
 const telegramCommandPattern =
   /^\/([A-Za-z][A-Za-z0-9_]*)(?:@([A-Za-z0-9_]{5,32}))?$/;

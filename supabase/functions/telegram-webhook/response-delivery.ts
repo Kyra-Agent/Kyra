@@ -12,6 +12,8 @@ export interface TelegramResponseDeliveryInput {
   response: unknown;
   // In groups the answer is threaded under the member's question.
   replyToMessageId?: unknown;
+  // Owner chats only: one button that opens the Kyra Mini App.
+  miniAppButton?: unknown;
 }
 
 export interface TelegramResponseDeliveryOptions {
@@ -36,6 +38,7 @@ export async function deliverTelegramReadOnlyResponse(
   const chatId = assertTelegramDeliveryChatId(input.telegramChatId);
   const response = assertTelegramDeliveryResponse(input.response);
   const replyToMessageId = readReplyToMessageId(input.replyToMessageId);
+  const miniAppButton = readMiniAppButton(input.miniAppButton);
   const fetchTelegram = options.fetch ?? fetch;
   const controller = new AbortController();
   const timeoutId = setTimeout(
@@ -61,6 +64,16 @@ export async function deliverTelegramReadOnlyResponse(
               reply_parameters: {
                 message_id: replyToMessageId,
                 allow_sending_without_reply: true,
+              },
+            }
+            : {}),
+          ...(miniAppButton
+            ? {
+              reply_markup: {
+                inline_keyboard: [[{
+                  text: miniAppButton.text,
+                  web_app: { url: miniAppButton.url },
+                }]],
               },
             }
             : {}),
@@ -184,6 +197,12 @@ export function assertTelegramDeliveryResponse(
     response.command !== "alerts" &&
     response.command !== "alerts_clear" &&
     response.command !== "launches" &&
+    response.command !== "swap" &&
+    response.command !== "dca" &&
+    response.command !== "stoploss" &&
+    response.command !== "takeprofit" &&
+    response.command !== "rules" &&
+    response.command !== "rules_clear" &&
     response.command !== "chat"
   ) {
     throw invalidTelegramDeliveryResponse();
@@ -265,4 +284,32 @@ function readReplyToMessageId(value: unknown) {
   const id = typeof value === "string" ? Number(value) : value;
 
   return typeof id === "number" && Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
+const miniAppHosts = new Set(["kyraagent.xyz", "www.kyraagent.xyz"]);
+
+// Buttons may only open the Kyra Mini App page; anything else is refused
+// so a bot message can never carry an arbitrary web app.
+export function readMiniAppButton(value: unknown): { text: string; url: string } | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw invalidTelegramDeliveryResponse();
+  }
+  const button = value as Record<string, unknown>;
+  if (
+    typeof button.text !== "string" || !button.text.trim() || button.text.length > 64 ||
+    typeof button.url !== "string" || button.url.length > 512
+  ) {
+    throw invalidTelegramDeliveryResponse();
+  }
+  let url: URL;
+  try {
+    url = new URL(button.url);
+  } catch {
+    throw invalidTelegramDeliveryResponse();
+  }
+  if (url.protocol !== "https:" || !miniAppHosts.has(url.hostname) || url.pathname !== "/tg" || url.username || url.password) {
+    throw invalidTelegramDeliveryResponse();
+  }
+  return { text: button.text.trim(), url: url.toString() };
 }

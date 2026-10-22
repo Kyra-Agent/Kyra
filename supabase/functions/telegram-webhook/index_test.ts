@@ -4159,7 +4159,7 @@ Deno.test("telegram-webhook /help leads with the owner's template and falls back
   const stewardHelp = String((deliveries[0]?.response as Record<string, unknown>)?.text);
   assert(stewardHelp.includes("Steward tip:"), stewardHelp);
   assert(stewardHelp.includes("/community_on"), stewardHelp);
-  assert(stewardHelp.endsWith("Boundary: wallet and onchain execution are disabled."), stewardHelp);
+  assert(stewardHelp.endsWith("Boundary: Kyra never signs; you confirm every swap in your wallet."), stewardHelp);
 
   await handleTelegramWebhookRequest(
     createJsonWebhookRequest(createWebhookUpdate("/help")),

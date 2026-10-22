@@ -1,0 +1,320 @@
+/* Kyra Telegram Mini App. A phone-first single column inside Telegram's
+   webview; it uses the site's color tokens so it follows the Kyra theme. */
+
+.tg-app {
+  min-height: 100dvh;
+  max-width: 460px;
+  margin: 0 auto;
+  padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.tg-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tg-head img {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  object-fit: cover;
+  filter: grayscale(1) contrast(1.1);
+  border: 1px solid var(--line);
+}
+
+.tg-head div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tg-head strong {
+  font-size: 16px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tg-head span {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.tg-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--panel-strong);
+  box-shadow: var(--surface-highlight);
+}
+
+.tg-leg {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tg-leg span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.tg-leg strong {
+  font-family: "Geist Mono Variable", ui-monospace, monospace;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.tg-leg em {
+  font-style: normal;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.tg-arrow {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.tg-facts {
+  margin: 4px 0 0;
+  display: grid;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.tg-facts div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.tg-facts dt {
+  color: var(--muted);
+}
+
+.tg-facts dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.tg-slippage {
+  margin: 4px 0 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tg-slippage legend {
+  float: left;
+  margin-right: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.tg-slippage button {
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tg-slippage button.is-selected {
+  border-color: var(--line-strong);
+  background: rgba(122, 168, 255, 0.14);
+}
+
+.tg-slippage:disabled button {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.tg-message {
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.tg-message svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.tg-stage-complete .tg-message {
+  color: var(--green);
+}
+
+.tg-stage-error .tg-message,
+.tg-stage-blocked .tg-message {
+  color: var(--amber);
+}
+
+.tg-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tg-primary,
+.tg-secondary {
+  min-height: 50px;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 160ms var(--motion-ease), opacity 160ms var(--motion-ease);
+}
+
+.tg-primary {
+  border: 0;
+  background: var(--blue-strong);
+  color: #fff;
+}
+
+.tg-secondary {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+}
+
+.tg-primary:active,
+.tg-secondary:active {
+  transform: scale(0.985);
+}
+
+.tg-primary:focus-visible,
+.tg-secondary:focus-visible,
+.tg-slippage button:focus-visible,
+.tg-link:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.tg-pairing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.tg-wallets {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+}
+
+.tg-qr {
+  width: min(220px, 70vw);
+  height: auto;
+  border-radius: var(--radius);
+}
+
+.tg-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px;
+  border: 0;
+  background: none;
+  color: var(--blue);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tg-cancel {
+  align-self: center;
+  color: var(--muted);
+}
+
+.tg-foot-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tg-foot-note svg {
+  flex: none;
+}
+
+.tg-foot .tg-link {
+  margin-left: auto;
+  padding: 0;
+  font-family: "Geist Mono Variable", ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.tg-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.tg-foot {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.tg-spin {
+  animation: tg-spin 900ms linear infinite;
+}
+
+@keyframes tg-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tg-spin {
+    animation: none;
+  }
+
+  .tg-primary,
+  .tg-secondary {
+    transition: none;
+  }
+}

@@ -7,7 +7,7 @@ import {
 } from "../config/swapQuotePolicy";
 import { robinhoodChain } from "../config/productChains";
 import type { KyraAuthSession } from "./supabaseAuthService";
-import { getSupabaseApiKey } from "./supabaseRestClient";
+import { createSessionSwapPost, type SwapPost } from "./swapTransport";
 import { isServerExpiryWithinLifetime } from "./serverExpiry";
 import { readServerMessage } from "./serverMessage";
 
@@ -63,7 +63,6 @@ interface SwapQuotePrepareResponse {
 
 // The backend prices every pool and simulates the swap on chain first.
 const swapQuoteClientTimeoutMs = 15_000;
-const maxResponseBytes = 16 * 1024;
 
 const responseKeys = [
   "allowanceRequired",
@@ -102,78 +101,67 @@ export async function prepareProtectedSwapQuote(
       message: "Protected Robinhood Chain swap quotes are unavailable.",
     };
   }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(),
-    swapQuoteClientTimeoutMs,
+  return await requestSwapQuote(
+    createSessionSwapPost(
+      appConfig.functions.swapQuotePrepareUrl,
+      session,
+      swapQuoteClientTimeoutMs,
+    ),
+    request,
   );
-  try {
-    const response = await fetch(appConfig.functions.swapQuotePrepareUrl, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        apikey: getSupabaseApiKey(),
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-      body: JSON.stringify(request),
-      redirect: "error",
-      signal: controller.signal,
-    });
-    const payload = await readResponse(response);
+}
 
-    if (!response.ok || !isSwapQuotePrepareResponse(payload)) {
-      return {
-        ok: false,
-        status: response.status === 429 ? "rate-limited" : "error",
-        message: !response.ok
-          ? readServerMessage(payload) ?? (response.status === 429
-            ? "The private swap quote limit has been reached. Wait before retrying."
-            : "Swap quote review failed safely.")
-          : "Kyra could not verify the swap quote. Request a fresh one.",
-      };
-    }
-    if (!matchesRequest(payload, request)) {
-      return {
-        ok: false,
-        status: "error",
-        message: "The reviewed quote does not match the requested swap.",
-      };
-    }
+// Sends a reviewed quote request over any transport and accepts only a
+// response that matches it exactly.
+export async function requestSwapQuote(
+  post: SwapPost,
+  request: ReviewedSwapQuoteRequest,
+): Promise<SwapQuotePrepareResult> {
+  const response = await post({ ...request });
+  const payload = response.value;
 
+  if (!response.ok || !isSwapQuotePrepareResponse(payload)) {
     return {
-      ok: true,
-      status: payload.status === "quote_ready"
-        ? "quote-ready"
-        : "allowance-required",
-      message: payload.status === "quote_ready"
-        ? "Quote review is ready. Swap execution remains locked."
-        : "An exact token allowance would be required. Execution remains locked.",
-      quote: {
-        quoteRecordId: payload.quoteRecordId,
-        status: payload.status,
-        sellTokenSymbol: payload.sellTokenSymbol,
-        buyTokenSymbol: payload.buyTokenSymbol,
-        sellAmount: payload.sellAmount,
-        buyAmount: payload.buyAmount,
-        minimumBuyAmount: payload.minimumBuyAmount,
-        slippageBps: payload.slippageBps,
-        routeSummary: payload.routeSummary,
-        expiresAt: payload.expiresAt,
-        allowanceRequired: payload.allowanceRequired,
-        executionEnabled: false,
-      },
+      ok: false,
+      status: response.status === 429 ? "rate-limited" : "error",
+      message: !response.ok
+        ? readServerMessage(payload) ?? (response.status === 429
+          ? "The private swap quote limit has been reached. Wait before retrying."
+          : "Swap quote review failed safely.")
+        : "Kyra could not verify the swap quote. Request a fresh one.",
     };
-  } catch {
+  }
+  if (!matchesRequest(payload, request)) {
     return {
       ok: false,
       status: "error",
-      message: "Swap quote review failed safely.",
+      message: "The reviewed quote does not match the requested swap.",
     };
-  } finally {
-    clearTimeout(timeout);
   }
+
+  return {
+    ok: true,
+    status: payload.status === "quote_ready"
+      ? "quote-ready"
+      : "allowance-required",
+    message: payload.status === "quote_ready"
+      ? "Quote review is ready. Swap execution remains locked."
+      : "An exact token allowance would be required. Execution remains locked.",
+    quote: {
+      quoteRecordId: payload.quoteRecordId,
+      status: payload.status,
+      sellTokenSymbol: payload.sellTokenSymbol,
+      buyTokenSymbol: payload.buyTokenSymbol,
+      sellAmount: payload.sellAmount,
+      buyAmount: payload.buyAmount,
+      minimumBuyAmount: payload.minimumBuyAmount,
+      slippageBps: payload.slippageBps,
+      routeSummary: payload.routeSummary,
+      expiresAt: payload.expiresAt,
+      allowanceRequired: payload.allowanceRequired,
+      executionEnabled: false,
+    },
+  };
 }
 
 function isSwapQuotePrepareResponse(
@@ -249,59 +237,4 @@ function isCanonicalUuid(value: unknown): value is string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-async function readResponse(response: Response): Promise<unknown> {
-  const declaredLength = Number(response.headers.get("Content-Length") ?? "0");
-  if (Number.isFinite(declaredLength) && declaredLength > maxResponseBytes) {
-    try {
-      await response.body?.cancel("response_too_large");
-    } catch {
-      // Best-effort cancellation; the response is rejected either way.
-    }
-    return {};
-  }
-
-  const reader = response.body?.getReader();
-  if (!reader) return {};
-
-  const decoder = new TextDecoder("utf-8", { fatal: true });
-  let byteLength = 0;
-  let text = "";
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      byteLength += value.byteLength;
-      if (byteLength > maxResponseBytes) {
-        try {
-          await reader.cancel("response_too_large");
-        } catch {
-          // Best-effort cancellation; the response is rejected either way.
-        }
-        return {};
-      }
-      try {
-        text += decoder.decode(value, { stream: true });
-      } catch {
-        return {};
-      }
-    }
-    try {
-      text += decoder.decode();
-    } catch {
-      return {};
-    }
-  } catch {
-    return {};
-  } finally {
-    reader.releaseLock();
-  }
-
-  if (!text) return {};
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    return {};
-  }
 }

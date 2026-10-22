@@ -25,6 +25,7 @@ import {
   type RawPoolLog,
   runMonitorCycle,
   type TokenMeta,
+  type TradeRule,
   type TransferLog,
 } from "./core.ts";
 
@@ -323,14 +324,61 @@ function createStore(client: any): MonitorStore {
         .update({ triggered_at: null, triggered_price_usd: null })
         .eq("id", id));
     },
+    async activeTradeRules(now, limit) {
+      const result = await client.from("agent_trade_rules")
+        .select("id,agent_id,kind,sell_token_symbol,buy_token_symbol,sell_amount_atomic,interval_hours,trigger_price_usd,next_run_at")
+        .eq("enabled", true)
+        .or(`kind.neq.dca,next_run_at.lte.${now}`)
+        .order("created_at", { ascending: true })
+        .limit(limit);
+      check(result);
+      return (result.data ?? []).map((row: Record<string, unknown>): TradeRule => ({
+        id: String(row.id),
+        agentId: String(row.agent_id),
+        kind: row.kind === "stop_loss" ? "stop_loss" : row.kind === "take_profit" ? "take_profit" : "dca",
+        sell: row.sell_token_symbol === "USDG" ? "USDG" : "ETH",
+        buy: row.buy_token_symbol === "USDG" ? "USDG" : "ETH",
+        amountAtomic: String(row.sell_amount_atomic),
+        intervalHours: typeof row.interval_hours === "number" ? row.interval_hours : null,
+        triggerPriceUsd: row.trigger_price_usd === null ? null : Number(row.trigger_price_usd),
+        nextRunAt: row.next_run_at ? String(row.next_run_at) : null,
+      }));
+    },
+    async claimDcaRule(id, expectedNextRunAt, nextRunAt) {
+      const result = await client.from("agent_trade_rules")
+        .update({ next_run_at: nextRunAt, last_triggered_at: new Date().toISOString() })
+        .eq("id", id)
+        .eq("enabled", true)
+        .eq("next_run_at", expectedNextRunAt)
+        .select("id");
+      check(result);
+      return Array.isArray(result.data) && result.data.length === 1;
+    },
+    async claimPriceRule(id, at) {
+      const result = await client.from("agent_trade_rules")
+        .update({ enabled: false, last_triggered_at: at })
+        .eq("id", id)
+        .eq("enabled", true)
+        .select("id");
+      check(result);
+      return Array.isArray(result.data) && result.data.length === 1;
+    },
+    async releaseTradeRule(rule) {
+      check(await client.from("agent_trade_rules")
+        .update(rule.kind === "dca"
+          ? { next_run_at: rule.nextRunAt }
+          : { enabled: true, last_triggered_at: null })
+        .eq("id", rule.id));
+    },
   };
 }
 
 // deno-lint-ignore no-explicit-any
 function createSender(client: any): MonitorSend {
-  const routes = new Map<string, { sessionId: string; chatId: string; botToken: string } | null>();
+  type Route = { sessionId: string; chatId: string; botToken: string };
+  const routes = new Map<string, { latest: Route | null; private: Route | null }>();
 
-  return async (agentId, kind, text) => {
+  return async (agentId, kind, text, button) => {
     try {
       if (!routes.has(agentId)) {
         const session = await client.from("telegram_sessions")
@@ -340,31 +388,43 @@ function createSender(client: any): MonitorSend {
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-        const owner = await client.from("telegram_chat_authorizations")
-          .select("telegram_chat_id")
+        const owners = await client.from("telegram_chat_authorizations")
+          .select("telegram_user_id,telegram_chat_id")
           .eq("agent_id", agentId)
           .eq("role", "owner")
           .is("revoked_at", null)
           .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        let route = null;
-        if (session.data?.id && owner.data?.telegram_chat_id) {
+          .limit(10);
+        const rows: Array<{ telegram_user_id: unknown; telegram_chat_id: unknown }> =
+          Array.isArray(owners.data) ? owners.data : [];
+        const latest = rows.find((row) => row.telegram_chat_id);
+        // Mini App buttons only work in a private chat, where the chat id is
+        // the owner's own Telegram id.
+        const privateChat = rows.find((row) =>
+          row.telegram_chat_id && String(row.telegram_chat_id) === String(row.telegram_user_id)
+        );
+        let entry: { latest: Route | null; private: Route | null } = { latest: null, private: null };
+        if (session.data?.id && latest) {
           const token = await client.rpc("resolve_telegram_delivery_token", {
             p_telegram_session_id: session.data.id,
           });
           if (!token.error && typeof token.data === "string" && token.data) {
-            route = {
+            const route = (chatId: unknown) => ({
               sessionId: String(session.data.id),
-              chatId: String(owner.data.telegram_chat_id),
+              chatId: String(chatId),
               botToken: token.data,
+            });
+            entry = {
+              latest: route(latest.telegram_chat_id),
+              private: privateChat ? route(privateChat.telegram_chat_id) : null,
             };
           }
         }
-        routes.set(agentId, route);
+        routes.set(agentId, entry);
       }
 
-      const route = routes.get(agentId);
+      const entry = routes.get(agentId);
+      const route = button ? entry?.private : entry?.latest;
       if (!route) {
         return false;
       }
@@ -372,7 +432,10 @@ function createSender(client: any): MonitorSend {
       await deliverTelegramReadOnlyResponse({
         botToken: route.botToken,
         telegramChatId: route.chatId,
-        response: { command: kind, text },
+        // Swap prompts travel as /swap replies; that is the delivery
+        // command the Mini App button belongs to.
+        response: { command: kind === "trades" ? "swap" : kind, text },
+        ...(button ? { miniAppButton: button } : {}),
       });
       return true;
     } catch {
@@ -423,6 +486,7 @@ Deno.serve(async (request) => {
         }
       }),
       createSender(client),
+      { miniAppUrl: Deno.env.get("KYRA_MINIAPP_URL")?.trim() || undefined },
     );
     for (const step of report.skipped) {
       logSafeEvent("telegram_monitor_step_skipped", step);

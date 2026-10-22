@@ -15,6 +15,7 @@ const entrypoints = [
   "telegram-dashboard-status",
   "telegram-disconnect",
   "telegram-link",
+  "telegram-miniapp",
   "telegram-monitor",
   "telegram-webhook",
   "transaction-result-closeout",
@@ -33,6 +34,7 @@ const expectedJwt = new Map([
   ["telegram-dashboard-status", true],
   ["telegram-disconnect", true],
   ["telegram-link", true],
+  ["telegram-miniapp", false],
   ["telegram-monitor", false],
   ["telegram-webhook", false],
   ["transaction-result-closeout", true],
@@ -65,12 +67,20 @@ const swapExecutionCore = readFileSync(
   "supabase/functions/swap-execution-prepare/core.ts",
   "utf8",
 );
+// Each swap endpoint's owner-scoped logic lives in a flow module shared
+// with the Telegram Mini App, so the checks read both files.
 const swapExecutionFunction = readFileSync(
   "supabase/functions/swap-execution-prepare/index.ts",
+  "utf8",
+) + readFileSync(
+  "supabase/functions/swap-execution-prepare/execution-flow.ts",
   "utf8",
 );
 const swapCloseoutFunction = readFileSync(
   "supabase/functions/swap-result-closeout/index.ts",
+  "utf8",
+) + readFileSync(
+  "supabase/functions/swap-result-closeout/closeout-flow.ts",
   "utf8",
 );
 const swapReceiptVerifier = readFileSync(
@@ -126,6 +136,9 @@ const swapQuoteProvider = readFileSync(
 );
 const swapQuoteFunction = readFileSync(
   "supabase/functions/swap-quote-prepare/index.ts",
+  "utf8",
+) + readFileSync(
+  "supabase/functions/swap-quote-prepare/quote-flow.ts",
   "utf8",
 );
 const uniswapAddresses = readFileSync(

@@ -6,6 +6,7 @@ import {
   type MonitorStore,
   type PriceAlert,
   runMonitorCycle,
+  type TradeRule,
   type WatchItem,
   wethAddress,
 } from "./core.ts";
@@ -32,6 +33,7 @@ function createStore(options: {
   watch?: WatchItem[];
   alerts?: PriceAlert[];
   subscriptions?: Array<{ agentId: string; lastDigestAt: string | null }>;
+  rules?: TradeRule[];
 } = {}) {
   const state = {
     cursor: options.cursor ?? null as number | null,
@@ -43,6 +45,7 @@ function createStore(options: {
     digestMarked: [] as string[],
     digestAttempted: [] as string[],
     checked: [] as string[],
+    rules: options.rules ?? [],
   };
 
   const store: MonitorStore = {
@@ -95,6 +98,26 @@ function createStore(options: {
     async releaseAlert(id) {
       state.claimed.delete(id);
       state.released.push(id);
+    },
+    async activeTradeRules(now) {
+      return state.rules.filter((rule) =>
+        rule.kind !== "dca" || (rule.nextRunAt !== null && rule.nextRunAt <= now)
+      );
+    },
+    async claimDcaRule(id, expected, next) {
+      const rule = state.rules.find((item) => item.id === id);
+      if (!rule || rule.nextRunAt !== expected) return false;
+      rule.nextRunAt = next;
+      return true;
+    },
+    async claimPriceRule(id) {
+      const index = state.rules.findIndex((item) => item.id === id);
+      if (index < 0) return false;
+      state.rules.splice(index, 1);
+      return true;
+    },
+    async releaseTradeRule(rule) {
+      state.released.push(`rule:${rule.id}`);
     },
   };
 
@@ -290,4 +313,48 @@ Deno.test("monitor alert crossing and digest wording", () => {
   assert(text.includes("7 new DEX pools"), text);
   assert(text.includes("...and 6 more."), text);
   assert(text.includes("/launches off"), text);
+});
+
+Deno.test("monitor sends DCA and price-trigger swap prompts with a Mini App button", async () => {
+  const rules: TradeRule[] = [
+    { id: "r1", agentId: agent, kind: "dca", sell: "ETH", buy: "USDG", amountAtomic: "500000000000000", intervalHours: 24, triggerPriceUsd: null, nextRunAt: "2026-10-23T00:00:00.000Z" },
+    { id: "r2", agentId: agent, kind: "dca", sell: "ETH", buy: "USDG", amountAtomic: "500000000000000", intervalHours: 24, triggerPriceUsd: null, nextRunAt: "2026-10-30T00:00:00.000Z" },
+    { id: "r3", agentId: agent, kind: "stop_loss", sell: "ETH", buy: "USDG", amountAtomic: "2000000000000000", intervalHours: null, triggerPriceUsd: 2300, nextRunAt: null },
+    { id: "r4", agentId: agent, kind: "take_profit", sell: "ETH", buy: "USDG", amountAtomic: "1000000000000000", intervalHours: null, triggerPriceUsd: 3000, nextRunAt: null },
+  ];
+  const { store, state } = createStore({ cursor: 1_000_000, rules });
+  const sent: Array<{ text: string; url?: string }> = [];
+
+  const report = await runMonitorCycle(
+    store,
+    createChain({ prices: { [wethAddress]: 2250 } }),
+    async (_agent, kind, text, button) => {
+      assertEquals(kind, "trades");
+      sent.push({ text, url: button?.url });
+      return true;
+    },
+    { now: new Date("2026-10-23T06:00:00.000Z"), miniAppUrl: "https://kyraagent.xyz/tg" },
+  );
+
+  assertEquals(report.tradePromptsSent, 2, "Only the due DCA rule and the crossed stop-loss fire.");
+  assert(sent[0].text.startsWith("DCA due: swap 0.0005 ETH to USDG on Uniswap."), sent[0].text);
+  const url = new URL(sent[0].url!);
+  assertEquals(url.searchParams.get("rule"), "r1");
+  assertEquals(url.searchParams.get("amount"), "500000000000000");
+  assertEquals(state.rules.find((rule) => rule.id === "r1")?.nextRunAt, "2026-10-24T00:00:00.000Z");
+  assert(sent[1].text.startsWith("Stop-loss hit: ETH is $2,250"), sent[1].text);
+  assert(!state.rules.some((rule) => rule.id === "r3"), "A fired stop-loss is turned off.");
+  assert(state.rules.some((rule) => rule.id === "r4"), "A take-profit above the price stays armed.");
+});
+
+Deno.test("monitor puts a swap prompt back when delivery fails", async () => {
+  const rules: TradeRule[] = [
+    { id: "r1", agentId: agent, kind: "dca", sell: "USDG", buy: "ETH", amountAtomic: "1000000", intervalHours: 168, triggerPriceUsd: null, nextRunAt: "2026-10-23T00:00:00.000Z" },
+  ];
+  const { store, state } = createStore({ cursor: 1_000_000, rules });
+  const report = await runMonitorCycle(store, createChain(), async () => false, {
+    now: new Date("2026-10-23T06:00:00.000Z"),
+  });
+  assertEquals(report.tradePromptsSent, 0);
+  assertEquals(state.released[0], "rule:r1");
 });

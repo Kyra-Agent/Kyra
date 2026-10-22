@@ -10,8 +10,9 @@ const helpText = [
   "Kyra Telegram",
   "Commands: /help /status /agent /actions /modules /policy /forget",
   "Monitor: /watch /watchlist /alert /alerts /launches",
+  "Swap: /swap /dca /stoploss /takeprofit /rules",
   "Plain text: ask for a brief, review, or plan.",
-  "Boundary: wallet and onchain execution are disabled.",
+  "Boundary: Kyra never signs; you confirm every swap in your wallet.",
 ].join("\n");
 
 // Replies used in Telegram groups with community mode (Steward and others).
@@ -47,7 +48,7 @@ const templateHelpTips: Record<string, string> = {
   steward:
     "Steward tip: add project facts in the dashboard settings, then add me to your group and send /community_on there.",
   executor:
-    "Executor tip: ask me to review a swap or draft DCA and stop-loss rules, then run ETH and USDG swaps yourself from the swap lane in your dashboard.",
+    "Executor tip: /dca 0.0005 ETH daily or /stoploss 2300 0.002 sets a rule. When it comes due I send a button; you confirm the swap in your wallet.",
   strategist:
     "Strategist tip: add your project knowledge in the dashboard, then ask for a campaign plan or a launch thread.",
   custom:
@@ -175,7 +176,9 @@ export function buildTelegramReadOnlyCommandResponse(
   if (
     command === "watch" || command === "unwatch" || command === "watchlist" ||
     command === "alert" || command === "alerts" || command === "alerts_clear" ||
-    command === "launches"
+    command === "launches" || command === "swap" || command === "dca" ||
+    command === "stoploss" || command === "takeprofit" || command === "rules" ||
+    command === "rules_clear"
   ) {
     return { command, text: monitoringUnavailableText };
   }

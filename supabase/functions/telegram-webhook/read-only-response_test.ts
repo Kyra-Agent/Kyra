@@ -53,7 +53,7 @@ function assertSafeStaticResponse(text: string) {
   ];
 
   assert(text.length > 0, "Response text must not be empty.");
-  assert(text.length <= 240, "Response text must remain bounded.");
+  assert(text.length <= 320, "Response text must remain bounded.");
 
   for (const pattern of forbiddenPatterns) {
     assert(!pattern.test(text), `Response text matched forbidden ${pattern}.`);
@@ -78,9 +78,10 @@ Deno.test("telegram read-only help response is static and limited", () => {
   );
   assert(response.text.includes("/policy"), "Help response must list /policy.");
   assert(
-    response.text.includes("execution are disabled"),
-    "Help response must state disabled actions.",
+    response.text.includes("Kyra never signs"),
+    "Help response must state that Kyra never signs.",
   );
+  assert(response.text.includes("/swap"), "Help response must list /swap.");
   assert(
     response.text.includes("Plain text:"),
     "Help response must show natural chat examples.",
