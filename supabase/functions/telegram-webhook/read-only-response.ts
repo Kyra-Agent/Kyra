@@ -84,7 +84,7 @@ const walletStatusText = [
 const ownerLinkedText = [
   "Kyra: this chat is now linked as your agent's owner chat.",
   "Try /help or /status, or just ask in plain language.",
-  "Wallet and onchain actions still need your approval in the Kyra dashboard.",
+  "Swaps and transfers are always confirmed in your own wallet, from /swap or your Kyra dashboard.",
 ].join("\n");
 
 const ownerLinkRejectedText = [
@@ -333,9 +333,9 @@ function buildTelegramReadOnlyChatFallbackText(text: unknown) {
 
   if (intent === "unsafe_execution") {
     return [
-      "Kyra cannot execute that from Telegram.",
-      "Wallet signing, approvals, and onchain execution are disabled.",
-      "I can turn it into a read-only risk review or checklist.",
+      "Kyra cannot execute that from Telegram chat; onchain execution from chat is disabled.",
+      "For an ETH or USDG swap, send /swap 0.0005 ETH: you get a live quote and confirm it in your own wallet.",
+      "I can also turn it into a read-only risk review or checklist.",
     ].join("\n");
   }
 

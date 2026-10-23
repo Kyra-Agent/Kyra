@@ -334,6 +334,12 @@
   transform: scale(1.06);
 }
 
+.sim-trace li.is-swap_prompt > svg {
+  border-color: color-mix(in srgb, var(--blue) 55%, transparent);
+  color: var(--blue);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--blue) 14%, transparent);
+}
+
 .sim-trace li.is-read_only > svg {
   border-color: color-mix(in srgb, var(--green) 55%, transparent);
   color: var(--green);

@@ -1,4 +1,5 @@
 import { HttpError } from "./core.ts";
+import { formatUsd } from "./prices.ts";
 import type { TelegramWebhookParsedCommandName } from "./update-parser.ts";
 
 // Owner-only Telegram commands for swaps. Nothing here trades: /swap and
@@ -39,6 +40,9 @@ export interface TradingCommandInput {
   agentId: string;
   rpcClient: TradingRpcClient;
   miniAppUrl: string;
+  // The live ETH price the monitor triggers on; null or a failure when the
+  // chain cannot be read, in which case the rule is stored unchecked.
+  ethPriceUsd?: () => Promise<number | null>;
 }
 
 type SwapSymbol = "ETH" | "USDG";
@@ -95,6 +99,16 @@ export function formatAtomic(amountAtomic: string, symbol: SwapSymbol) {
   return fraction ? `${whole}.${fraction}` : whole;
 }
 
+async function readEthPrice(input: TradingCommandInput) {
+  if (!input.ethPriceUsd) return null;
+  try {
+    const price = await input.ethPriceUsd();
+    return typeof price === "number" && Number.isFinite(price) && price > 0 ? price : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function handleTradingCommand(input: TradingCommandInput): Promise<TradingCommandReply> {
   const parts = input.args.trim().split(/\s+/u).filter(Boolean);
 
@@ -143,6 +157,23 @@ export async function handleTradingCommand(input: TradingCommandInput): Promise<
       const amount = readAmount(parts[1], "ETH");
       if (!Number.isFinite(price) || price <= 0 || price >= 1_000_000 || typeof amount === "string") {
         return { text: typeof amount === "string" && amount && parts[1] ? amount : usage };
+      }
+      // A trigger the price has already crossed would send a sell prompt on
+      // the next monitor run, so it is refused like an exchange would.
+      const current = await readEthPrice(input);
+      if (current !== null) {
+        if (input.command === "stoploss" && current <= price) {
+          return {
+            text: `ETH is at ${formatUsd(current)} now, already at or below $${price.toLocaleString("en-US")}. ` +
+              "Set a stop-loss below the current price.",
+          };
+        }
+        if (input.command === "takeprofit" && current >= price) {
+          return {
+            text: `ETH is at ${formatUsd(current)} now, already at or above $${price.toLocaleString("en-US")}. ` +
+              "Set a take-profit above the current price.",
+          };
+        }
       }
       const result = await addRule(input, {
         kind: input.command === "stoploss" ? "stop_loss" : "take_profit",

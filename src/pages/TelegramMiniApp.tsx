@@ -60,6 +60,7 @@ import {
   switchBrowserWalletChain,
   watchBrowserWallet,
 } from "../services/telegramBrowserWallet";
+import type { SwapPost } from "../services/swapTransport";
 import "../telegram-miniapp.css";
 
 // The Kyra Telegram Mini App: the owner taps a button their agent's bot sent
@@ -138,6 +139,7 @@ export function TelegramMiniApp() {
   // Each connect attempt gets a number; cancelling moves on to the next one so
   // a late answer from an abandoned pairing is ignored.
   const pairingAttempt = useRef(0);
+  const sessionRejected = useRef(false);
 
   // The server's rule wins over the button's query string when both exist.
   const sell: SwapTokenSymbol | null = rule?.sell ?? launch.sell;
@@ -256,8 +258,23 @@ export function TelegramMiniApp() {
   }
 
   function fail(text: string) {
+    // A Telegram session that expired or no longer verifies cannot recover
+    // in this window; only a fresh button from the bot can.
+    if (sessionRejected.current) {
+      block(text);
+      return;
+    }
     setStage("error");
     setMessage(text);
+  }
+
+  function post(session: MiniAppSession, action: "quote" | "prepare" | "closeout"): SwapPost {
+    const send = createMiniAppSwapPost(session, action);
+    return async (body) => {
+      const result = await send(body);
+      if (result.status === 401) sessionRejected.current = true;
+      return result;
+    };
   }
 
   async function connect() {
@@ -386,7 +403,7 @@ export function TelegramMiniApp() {
     setStage("quoting");
     setMessage("Pricing every Uniswap pool and simulating your swap...");
     const result = await requestSwapQuote(
-      createMiniAppSwapPost(session, "quote"),
+      post(session, "quote"),
       reviewed.request,
     );
     if (!result.ok) {
@@ -417,7 +434,7 @@ export function TelegramMiniApp() {
       setStage("locking");
       setMessage(`Locking the exact ${formatStep(step)}...`);
       const prepared = await requestSwapExecutionStep(
-        createMiniAppSwapPost(session, "prepare"),
+        post(session, "prepare"),
         {
           workspaceId: "",
           agentId: session.agentId,
@@ -467,7 +484,7 @@ export function TelegramMiniApp() {
     if (!session) return;
     setPending(null);
     const check = () =>
-      requestSwapCloseout(createMiniAppSwapPost(session, "closeout"), {
+      requestSwapCloseout(post(session, "closeout"), {
         workspaceId: "",
         agentId: session.agentId,
         intentRecordId: intent.intentRecordId,

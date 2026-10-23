@@ -100,12 +100,14 @@ import {
 } from "./monitoring-commands.ts";
 import {
   type ChainDataTargets,
+  createBatchRpc,
   extractChainDataTargets,
   hasChainDataTargets,
   readChainDataRpcConfig,
   readLiveChainData,
   robinhoodLogsRpcUrl,
 } from "./chain-data.ts";
+import { readTokenPricesUsd, wethAddress } from "./prices.ts";
 import {
   createOpenAiCompatibleTelegramAgentBrainProvider,
   type TelegramAgentBrainProviderFetch,
@@ -817,6 +819,15 @@ export function createTelegramWebhookDependencies(
         ...input,
         rpcClient: getRpcClient() as unknown as TradingRpcClient,
         miniAppUrl: readOptionalEnv("KYRA_MINIAPP_URL")?.trim() || defaultMiniAppUrl,
+        ...(chainDataRpcConfig
+          ? {
+            ethPriceUsd: async () => {
+              const rpc = createBatchRpc(chainDataRpcConfig.rpcUrl, options.fetchChainData ?? fetch, 6_000);
+              const prices = await readTokenPricesUsd(rpc, [{ address: wethAddress, decimals: 18 }]);
+              return prices.get(wethAddress)?.usd ?? null;
+            },
+          }
+          : {}),
       });
     };
   }

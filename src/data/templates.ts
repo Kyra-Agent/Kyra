@@ -63,12 +63,12 @@ export const agentTemplates: AgentTemplate[] = [
   {
     id: "executor",
     name: "Executor",
-    role: "Rule-based action readiness agent",
+    role: "Rule-based swap agent",
     status: "advanced",
     summary:
-      "An advanced agent for conditional swap reviews, DCA plans, stop loss checks, and controlled automation drafts with hard approval limits.",
+      "A swap agent for ETH and USDG on Uniswap: /swap from Telegram, DCA schedules, and stop-loss or take-profit prompts, each confirmed in your own wallet within hard limits.",
     bestFor:
-      "Power users who want rule-driven planning with strict safety controls before any future execution path.",
+      "Owners who want rule-driven swaps without handing over keys: Kyra prompts, your wallet decides.",
     actions: [
       "conditional review",
       "dca plan",
@@ -77,7 +77,7 @@ export const agentTemplates: AgentTemplate[] = [
       "lend review",
     ],
     modules: ["NIRA-01", "NOVA-04", "NYX-05"],
-    terminalSeed: "set dca 25 USDC into ETH daily",
+    terminalSeed: "/dca 0.001 ETH daily",
   },
   {
     id: "strategist",

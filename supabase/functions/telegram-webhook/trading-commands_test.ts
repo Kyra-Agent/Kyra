@@ -124,3 +124,29 @@ Deno.test("Mini App buttons may only open the Kyra Mini App over https", () => {
     assert(refused, `${url} must be refused`);
   }
 });
+
+Deno.test("/stoploss and /takeprofit refuse a price the market has already crossed", async () => {
+  const { client, calls } = rpc({ add_agent_trade_rule: "added" });
+  const ethPriceUsd = () => Promise.resolve(2384.12);
+
+  const stop = await handleTradingCommand({
+    command: "stoploss", args: "3000 0.001", agentId, rpcClient: client, miniAppUrl, ethPriceUsd,
+  });
+  assert(stop.text.startsWith("ETH is at $2,384"), stop.text);
+  assert(stop.text.includes("below the current price"), stop.text);
+
+  const take = await handleTradingCommand({
+    command: "takeprofit", args: "2000 0.001", agentId, rpcClient: client, miniAppUrl, ethPriceUsd,
+  });
+  assert(take.text.includes("above the current price"), take.text);
+  assertEquals(calls.length, 0, "Crossed triggers are never stored.");
+
+  await handleTradingCommand({
+    command: "stoploss", args: "2000 0.001", agentId, rpcClient: client, miniAppUrl, ethPriceUsd,
+  });
+  await handleTradingCommand({
+    command: "takeprofit", args: "3000 0.001", agentId, rpcClient: client, miniAppUrl,
+    ethPriceUsd: () => Promise.reject(new Error("rpc down")),
+  });
+  assertEquals(calls.length, 2, "Valid triggers, and triggers checked while the price is unreadable, are stored.");
+});

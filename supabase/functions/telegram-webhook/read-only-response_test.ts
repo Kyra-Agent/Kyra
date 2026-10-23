@@ -288,7 +288,8 @@ Deno.test("telegram read-only chat fallback refuses execution safely", () => {
     "Chat fallback must refuse execution.",
   );
   assert(
-    response.text.includes("onchain execution are disabled"),
+    response.text.includes("onchain execution from chat is disabled") &&
+      response.text.includes("/swap"),
     "Chat fallback must preserve onchain boundary.",
   );
   assert(

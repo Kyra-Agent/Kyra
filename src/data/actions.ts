@@ -42,7 +42,7 @@ export const actions: ActionDefinition[] = [
     id: "swap",
     name: "Swap Review",
     summary:
-      "Review a swap in chat, then run ETH and USDG swaps on Uniswap from your dashboard, signed in your own wallet. Telegram never executes swaps.",
+      "Swap ETH and USDG on Uniswap with /swap in Telegram or from your dashboard. You see a live, simulated quote and confirm it in your own wallet; Kyra never signs.",
     tier: "mvp",
   },
   {
@@ -54,10 +54,10 @@ export const actions: ActionDefinition[] = [
   },
   {
     id: "dca",
-    name: "DCA Rules",
+    name: "DCA and Price Rules",
     summary:
-      "Design recurring-rule drafts with limits, risk checks, and approval policy. You run them from your own wallet.",
-    tier: "demo",
+      "Set /dca, /stoploss, or /takeprofit in Telegram. When a rule comes due, your bot sends a live Uniswap quote and you confirm it in your own wallet.",
+    tier: "mvp",
   },
   {
     id: "launch-monitor",

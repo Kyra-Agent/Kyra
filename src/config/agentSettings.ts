@@ -86,7 +86,7 @@ export const templateStarts: Record<string, string> = {
   operator: "wallet checks, /watch and /alert, balanced risk",
   scout: "launch digests on, token checks, concise replies",
   steward: "friendly tone, project knowledge, community mode for your group",
-  executor: "conservative risk, DCA and stop-loss rule drafts",
+  executor: "conservative risk, DCA and stop-loss swap prompts",
   strategist: "bold tone, campaign plans and launch copy",
   custom: "your own prompt, modules, and safety limits",
 };

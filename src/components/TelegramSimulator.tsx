@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ArrowLeftRight,
   Ban,
   Bot,
   CheckCircle2,
@@ -13,7 +14,7 @@ import type { AgentTemplate } from "../types/agent";
 import { currentProductChain } from "../config/productChains";
 import { RevealHeading } from "./RevealHeading";
 
-type Verdict = "read_only" | "wallet" | "dashboard" | "secret";
+type Verdict = "read_only" | "wallet" | "dashboard" | "secret" | "swap_prompt";
 
 interface ChatMessage {
   id: number;
@@ -29,10 +30,11 @@ interface SimulatedReply {
 const maxInputLength = 200;
 const suggestions = [
   "/help",
+  "/swap 0.0005 ETH",
   "What can you do?",
   "Check my wallet",
-  "Review a swap of 500 USDC to ETH",
-  "Swap 10 USDC to ETH now",
+  "Review a swap of 5 USDG to ETH",
+  "Swap 10 USDG to ETH now",
   "Draft a launch plan",
   "Here is my seed phrase",
 ] as const;
@@ -47,6 +49,8 @@ const walletPattern =
   /\b(wallet|balance|portfolio|holdings?|tx|transactions?|history|onchain)\b/i;
 const helpPattern = /^\/help\b|\b(help|what can you do|commands?|capabilities)\b/i;
 const statusPattern = /^\/status\b/i;
+const swapCommandPattern = /^\/swap\s+(\d+(?:\.\d+)?)\s+(eth|usdg)\s*$/i;
+const ruleCommandPattern = /^\/(swap|dca|stoploss|takeprofit|rules|rules_clear)\b/i;
 // Mirrors the live bot: a question or review about a wallet action gets a
 // read-only review; a bare "do it" command is refused.
 const reviewCuePattern =
@@ -60,7 +64,51 @@ function formatList(items: readonly string[]) {
   return items.slice(0, 5).join(", ");
 }
 
+// Mirrors the live /swap reply and its caps (0.005 ETH or 12.5 USDG).
+function buildSwapCommandReply(text: string): SimulatedReply | null {
+  if (!ruleCommandPattern.test(text)) return null;
+  const swap = swapCommandPattern.exec(text);
+  if (swap) {
+    const amount = Number(swap[1]);
+    const symbol = swap[2].toUpperCase();
+    const cap = symbol === "ETH" ? 0.005 : 12.5;
+    if (amount > 0 && amount <= cap) {
+      return {
+        verdict: "swap_prompt",
+        text: [
+          `Swap ${swap[1]} ${symbol} to ${symbol === "ETH" ? "USDG" : "ETH"} on Uniswap. ` +
+          "Tap Review & swap for a live quote, then confirm it in your own wallet.",
+          "[ Review & swap ]",
+        ].join("\n"),
+      };
+    }
+    return {
+      verdict: "read_only",
+      text: `The most one swap can sell is ${symbol === "ETH" ? "0.005 ETH" : "12.5 USDG"}.`,
+    };
+  }
+  if (/^\/swap\b/i.test(text)) {
+    return {
+      verdict: "read_only",
+      text: "Send /swap, an amount, and ETH or USDG. Example: /swap 0.0005 ETH",
+    };
+  }
+  return {
+    verdict: "swap_prompt",
+    text: [
+      "The agent owner sets swap rules in a private chat with the bot:",
+      "/dca 0.0005 ETH daily, /stoploss 2300 0.002, /takeprofit 3000 0.002, /rules",
+      "When a rule comes due, the bot sends a Review & swap button. Nothing trades until the owner confirms in their wallet.",
+    ].join("\n"),
+  };
+}
+
 function buildReply(text: string, template: AgentTemplate): SimulatedReply {
+  const swapReply = buildSwapCommandReply(text.trim());
+  if (swapReply && !secretPattern.test(text)) {
+    return swapReply;
+  }
+
   if (secretPattern.test(text)) {
     return {
       verdict: "secret",
@@ -92,9 +140,9 @@ function buildReply(text: string, template: AgentTemplate): SimulatedReply {
     return {
       verdict: "dashboard",
       text: [
-        "Kyra cannot execute that from Telegram. It never moves funds from chat.",
-        'Ask me to review it instead, for example "review a swap of 10 USDC to ETH".',
-        "When you are ready, you sign it yourself in your own wallet.",
+        "Kyra cannot execute that from Telegram chat; onchain execution from chat is disabled.",
+        "For an ETH or USDG swap, send /swap 0.0005 ETH: you get a live quote and confirm it in your own wallet.",
+        "I can also turn it into a read-only risk review or checklist.",
       ].join("\n"),
     };
   }
@@ -105,9 +153,10 @@ function buildReply(text: string, template: AgentTemplate): SimulatedReply {
       text: [
         "Kyra Telegram",
         "Commands: /help /status /agent /actions /modules /policy /forget",
+        "Monitor: /watch /watchlist /alert /alerts /launches",
+        "Swap: /swap /dca /stoploss /takeprofit /rules",
         "Plain text: ask for a brief, review, or plan.",
-        "Memory: last 6 messages, 24h. /forget clears it.",
-        "Boundary: wallet and onchain execution are disabled.",
+        "Boundary: Kyra never signs; you confirm every swap in your wallet.",
       ].join("\n"),
     };
   }
@@ -190,6 +239,10 @@ const verdictCopy: Record<Verdict, { label: string; detail: string }> = {
   dashboard: {
     label: "Refused: needs your wallet",
     detail: "Telegram never executes. Ask for a review; only your wallet signature sends it.",
+  },
+  swap_prompt: {
+    label: "Swap prompt",
+    detail: "The live bot adds a Review & swap button. Your wallet confirms; Kyra never signs.",
   },
   secret: {
     label: "Blocked: secret material",
@@ -312,6 +365,8 @@ export function TelegramSimulator({ template }: TelegramSimulatorProps) {
     ? LockKeyhole
     : verdict === "wallet"
     ? Wallet
+    : verdict === "swap_prompt"
+    ? ArrowLeftRight
     : CheckCircle2;
 
   return (
