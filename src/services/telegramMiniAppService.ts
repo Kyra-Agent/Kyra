@@ -88,6 +88,8 @@ export function readMiniAppLaunch(location: Pick<Location, "search" | "hash">) {
   const ruleId = query.get("rule")?.toLowerCase() ?? null;
   return {
     initData: hash.get("tgWebAppData") ?? "",
+    // Telegram's client name, such as tdesktop, macos, android, or ios.
+    platform: hash.get("tgWebAppPlatform")?.slice(0, 20) ?? null,
     agentId: uuidPattern.test(agentId) ? agentId : "",
     sell: sell === "ETH" || sell === "USDG" ? sell as SwapTokenSymbol : null,
     amountAtomic: /^[1-9][0-9]{0,30}$/u.test(amountAtomic) ? amountAtomic : null,

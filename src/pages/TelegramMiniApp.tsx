@@ -51,6 +51,15 @@ import {
   type WalletDeepLink,
   walletDeepLinks,
 } from "../services/telegramWalletConnect";
+import {
+  type BrowserWalletOption,
+  connectBrowserWallet,
+  discoverBrowserWallets,
+  readBrowserWallet,
+  sendBrowserTransaction,
+  switchBrowserWalletChain,
+  watchBrowserWallet,
+} from "../services/telegramBrowserWallet";
 import "../telegram-miniapp.css";
 
 // The Kyra Telegram Mini App: the owner taps a button their agent's bot sent
@@ -85,8 +94,20 @@ const ruleLabels: Record<MiniAppRule["kind"], string> = {
   take_profit: "Take-profit",
 };
 
+// Telegram clients that run on a computer, where the owner's wallet is a
+// browser extension or a phone that scans a code.
+const desktopPlatforms = ["tdesktop", "macos", "unigram"];
+
 export function TelegramMiniApp() {
   const launch = useMemo(() => readMiniAppLaunch(window.location), []);
+  // Inside Telegram's own window, or opened in the owner's browser through
+  // "Open in browser" (same signed session, extensions available).
+  const inTelegram = useMemo(() => isInsideTelegram(), []);
+  const desktopTelegram = inTelegram && (
+    launch.platform
+      ? desktopPlatforms.includes(launch.platform)
+      : window.matchMedia?.("(pointer: fine)").matches === true
+  );
   const session = useMemo<MiniAppSession | null>(
     () =>
       launch.initData && launch.agentId
@@ -101,6 +122,8 @@ export function TelegramMiniApp() {
   const [rule, setRule] = useState<MiniAppRule | null>(null);
   const [wallet, setWallet] = useState<MiniAppWallet | null>(null);
   const [pairingUri, setPairingUri] = useState<string | null>(null);
+  const [browserWallets, setBrowserWallets] = useState<BrowserWalletOption[]>([]);
+  const browserWallet = useRef<BrowserWalletOption | null>(null);
   const [slippageBps, setSlippageBps] = useState<number>(100);
   const [quoteContext, setQuoteContext] = useState<QuoteContext | null>(null);
   const [txHash, setTxHash] = useState<`0x${string}` | null>(null);
@@ -147,15 +170,19 @@ export function TelegramMiniApp() {
         block("This swap link is incomplete. Send /swap to your bot again.");
         return;
       }
-      if (!walletConnectProjectId) {
+      if (inTelegram && !desktopTelegram && !walletConnectProjectId) {
         block("Wallet connection is not set up yet. Try again later.");
         return;
       }
+      // In the owner's browser the extension is the wallet; a phone session
+      // from Telegram's window is only reused inside Telegram.
       let restored: MiniAppWallet | null = null;
-      try {
-        restored = await restoreWallet();
-      } catch {
-        restored = null;
+      if (inTelegram) {
+        try {
+          restored = await restoreWallet();
+        } catch {
+          restored = null;
+        }
       }
       if (cancelled) return;
       setWallet(restored);
@@ -165,10 +192,37 @@ export function TelegramMiniApp() {
     return () => {
       cancelled = true;
     };
-  }, [launch, session]);
+  }, [launch, session, inTelegram, desktopTelegram]);
 
   useEffect(() => {
-    if (!wallet) return;
+    if (inTelegram) return;
+    return discoverBrowserWallets(setBrowserWallets);
+  }, [inTelegram]);
+
+  // An extension can switch account or chain at any time; a quote belongs to
+  // one address on Robinhood Chain, so any change discards it.
+  useEffect(() => {
+    const option = browserWallet.current;
+    if (!option || wallet?.source !== "browser") return;
+    return watchBrowserWallet(option, () => {
+      void readBrowserWallet(option).then((next) => {
+        setWallet(next);
+        if (busy.current) return;
+        setQuoteContext(null);
+        setStage("connect");
+        setMessage(next.onTargetChain ? connectMessage : chainMessage(next));
+      }).catch(() => {
+        browserWallet.current = null;
+        setWallet(null);
+        setQuoteContext(null);
+        setStage("connect");
+        setMessage("Your wallet disconnected. Connect it again to continue.");
+      });
+    });
+  }, [wallet?.source]);
+
+  useEffect(() => {
+    if (!wallet || wallet.source !== "walletconnect") return;
     let stop: (() => void) | null = null;
     let cancelled = false;
     void onWalletSessionEnd(() => {
@@ -232,6 +286,29 @@ export function TelegramMiniApp() {
     }
   }
 
+  async function connectExtension(option: BrowserWalletOption) {
+    if (busy.current) return;
+    busy.current = true;
+    setMessage(`Waiting for ${option.name}...`);
+    try {
+      const connected = await connectBrowserWallet(option);
+      browserWallet.current = option;
+      setWallet(connected);
+      setMessage(connected.onTargetChain ? connectMessage : chainMessage(connected));
+    } catch (error) {
+      setMessage(isUserRejection(error)
+        ? "Connection was cancelled. Nothing was shared."
+        : `${option.name} could not connect. Unlock it and try again.`);
+    } finally {
+      busy.current = false;
+    }
+  }
+
+  function openInBrowser() {
+    window.open(window.location.href, "_blank", "noopener,noreferrer");
+    setMessage("Opened in your browser. Finish the swap there with your wallet extension. This window expires in an hour.");
+  }
+
   function cancelPairing() {
     pairingAttempt.current += 1;
     setPairingUri(null);
@@ -243,7 +320,14 @@ export function TelegramMiniApp() {
     if (busy.current) return;
     busy.current = true;
     try {
-      setMessage(`Approve adding ${currentProductChain.name} in your wallet...`);
+      setMessage(`Approve ${currentProductChain.name} in your wallet...`);
+      if (wallet?.source === "browser" && browserWallet.current) {
+        await switchBrowserWalletChain(browserWallet.current);
+        const next = await readBrowserWallet(browserWallet.current);
+        setWallet(next);
+        setMessage(next.onTargetChain ? connectMessage : chainMessage(next));
+        return;
+      }
       await addRobinhoodChain();
       setWallet(null);
       setMessage(`${currentProductChain.name} added. Connect again to finish.`);
@@ -255,7 +339,10 @@ export function TelegramMiniApp() {
   }
 
   async function changeWallet() {
-    await disconnectWallet();
+    // An extension stays connected to the site; forgetting it here is enough
+    // to pick another wallet.
+    if (wallet?.source === "browser") browserWallet.current = null;
+    else await disconnectWallet();
     setWallet(null);
     setQuoteContext(null);
     setStage("connect");
@@ -341,16 +428,21 @@ export function TelegramMiniApp() {
       setMessage(`Open ${wallet?.walletName ?? "your wallet"} and confirm the ${formatStep(step)}.`);
       let hash: `0x${string}`;
       try {
-        hash = await sendWalletTransaction({
+        const transaction = {
           from: prepared.prepared.sender,
           to: prepared.prepared.transaction.to,
           data: prepared.prepared.transaction.data,
           valueWei: prepared.prepared.transaction.valueWei,
-        });
+        };
+        hash = wallet?.source === "browser" && browserWallet.current
+          ? await sendBrowserTransaction(browserWallet.current, transaction)
+          : await sendWalletTransaction(transaction);
       } catch (error) {
         setStage("quoted");
         setMessage(isUserRejection(error)
           ? `You rejected the ${formatStep(step)}. Nothing was sent.`
+          : error instanceof Error && error.message === "wallet_wrong_chain"
+          ? `Switch ${wallet?.walletName ?? "your wallet"} to ${currentProductChain.name}, then confirm again.`
           : `Your wallet could not send the ${formatStep(step)}. Check it is on ${currentProductChain.name} and try again.`);
         return;
       }
@@ -435,6 +527,8 @@ export function TelegramMiniApp() {
   const nextStep: SwapExecutionStep | null = quoteContext
     ? quoteContext.quote.allowanceRequired ? "allowance_set" : "swap"
     : null;
+  // No phone wallet apps on a computer: show the code to scan first.
+  const onComputer = desktopTelegram || !inTelegram;
   const canChangeSlippage = stage === "connect" || stage === "quoted" || stage === "error";
 
   return (
@@ -503,7 +597,8 @@ export function TelegramMiniApp() {
       {stage === "pairing" && pairingUri
         ? (
           <section className="tg-pairing" aria-label="Connect a wallet">
-            <div className="tg-wallets">
+            {onComputer ? <PairingCode uri={pairingUri} /> : null}
+            <div className="tg-wallets" hidden={onComputer}>
               {walletDeepLinks.map((item) => (
                 <button
                   key={item.name}
@@ -516,7 +611,7 @@ export function TelegramMiniApp() {
                 </button>
               ))}
             </div>
-            <PairingCode uri={pairingUri} />
+            {onComputer ? null : <PairingCode uri={pairingUri} />}
             <button type="button" className="tg-link" onClick={() => void copyPairingLink()}>
               <Copy size={14} />
               Copy WalletConnect link
@@ -534,11 +629,44 @@ export function TelegramMiniApp() {
         : null}
 
       <div className="tg-actions">
-        {stage === "connect" && !wallet
+        {stage === "connect" && !wallet && desktopTelegram
           ? (
-            <button type="button" className="tg-primary" onClick={() => void connect()}>
+            <button type="button" className="tg-primary" onClick={openInBrowser}>
+              <ExternalLink size={17} />
+              Open in browser to use your extension
+            </button>
+          )
+          : null}
+
+        {stage === "connect" && !wallet && !inTelegram
+          ? browserWallets.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              className="tg-primary"
+              onClick={() => void connectExtension(option)}
+            >
+              {option.icon
+                ? <img className="tg-wallet-icon" src={option.icon} alt="" width={18} height={18} />
+                : <WalletCards size={17} />}
+              Connect {option.name}
+            </button>
+          ))
+          : null}
+
+        {stage === "connect" && !wallet && !inTelegram && !browserWallets.length
+          ? <p className="tg-note">No wallet extension found in this browser. Install or unlock one, then reload.</p>
+          : null}
+
+        {stage === "connect" && !wallet && walletConnectProjectId
+          ? (
+            <button
+              type="button"
+              className={inTelegram && !desktopTelegram ? "tg-primary" : "tg-secondary"}
+              onClick={() => void connect()}
+            >
               <WalletCards size={17} />
-              Connect wallet
+              {inTelegram && !desktopTelegram ? "Connect wallet" : "Connect a phone wallet"}
             </button>
           )
           : null}
@@ -546,7 +674,9 @@ export function TelegramMiniApp() {
         {stage === "connect" && wallet && !wallet.onTargetChain
           ? (
             <button type="button" className="tg-primary" onClick={() => void addChain()}>
-              Add {currentProductChain.name} to {wallet.walletName}
+              {wallet.source === "browser"
+                ? `Switch to ${currentProductChain.name}`
+                : `Add ${currentProductChain.name} to ${wallet.walletName}`}
             </button>
           )
           : null}
@@ -607,7 +737,7 @@ export function TelegramMiniApp() {
           )
           : null}
 
-        {stage === "complete" && !revokeNeeded
+        {stage === "complete" && !revokeNeeded && inTelegram
           ? (
             <button type="button" className="tg-secondary" onClick={() => postTelegramEvent("web_app_close")}>
               Done
@@ -656,7 +786,9 @@ function PairingCode({ uri }: { uri: string }) {
 }
 
 function chainMessage(wallet: MiniAppWallet) {
-  return `${wallet.walletName} connected without ${currentProductChain.name}. Add the chain, then connect again.`;
+  return wallet.source === "browser"
+    ? `${wallet.walletName} is on another network. Switch it to ${currentProductChain.name} to continue.`
+    : `${wallet.walletName} connected without ${currentProductChain.name}. Add the chain, then connect again.`;
 }
 
 // Telegram's Mini App bridge without loading its script: native clients
@@ -686,11 +818,14 @@ async function openWalletApp(wallet: WalletDeepLink, pairingUri: string) {
   }
 }
 
-function openLink(url: string) {
-  const insideTelegram = Boolean(
+function isInsideTelegram() {
+  return Boolean(
     (window as unknown as { TelegramWebviewProxy?: unknown }).TelegramWebviewProxy,
-  );
-  if (insideTelegram) {
+  ) || window.parent !== window;
+}
+
+function openLink(url: string) {
+  if (isInsideTelegram()) {
     postTelegramEvent("web_app_open_link", { url });
     return;
   }

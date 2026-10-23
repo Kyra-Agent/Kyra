@@ -12,6 +12,8 @@ export interface MiniAppWallet {
   address: `0x${string}`;
   onTargetChain: boolean;
   walletName: string;
+  // WalletConnect for a phone wallet, or an extension in the owner's browser.
+  source: "walletconnect" | "browser";
 }
 
 export interface MiniAppTransaction {
@@ -215,5 +217,6 @@ function readWallet(provider: UniversalProvider): MiniAppWallet | null {
     address,
     onTargetChain: Boolean(target),
     walletName: session.peer.metadata.name.slice(0, 40) || "Your wallet",
+    source: "walletconnect",
   };
 }

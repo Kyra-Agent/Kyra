@@ -282,6 +282,12 @@
   font-size: 12px;
 }
 
+.tg-wallet-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+}
+
 .tg-note {
   margin: 0;
   font-size: 13px;
@@ -317,4 +323,8 @@
   .tg-secondary {
     transition: none;
   }
+}
+
+.tg-wallets[hidden] {
+  display: none;
 }
