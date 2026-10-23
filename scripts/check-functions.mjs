@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 
 const entrypoints = [
   "agent-settings",
+  "agent-trade-rules",
   "chain-action-prepare",
   "chain-status-provider",
   "deploy-agent",
@@ -24,6 +25,7 @@ const entrypoints = [
 
 const expectedJwt = new Map([
   ["agent-settings", true],
+  ["agent-trade-rules", true],
   ["chain-action-prepare", true],
   ["chain-status-provider", false],
   ["remove-agent", true],

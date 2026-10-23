@@ -97,6 +97,9 @@ const ruleLabels: Record<MiniAppRule["kind"], string> = {
 // Telegram clients that run on a computer, where the owner's wallet is a
 // browser extension or a phone that scans a code.
 const desktopPlatforms = ["tdesktop", "macos", "unigram"];
+// Telegram Web (web.telegram.org /a and /k) runs in a browser tab on a
+// computer too; it frames the Mini App and may sandbox its popups.
+const webPlatforms = ["weba", "webk", "web"];
 
 export function TelegramMiniApp() {
   const launch = useMemo(() => readMiniAppLaunch(window.location), []);
@@ -105,7 +108,7 @@ export function TelegramMiniApp() {
   const inTelegram = useMemo(() => isInsideTelegram(), []);
   const desktopTelegram = inTelegram && (
     launch.platform
-      ? desktopPlatforms.includes(launch.platform)
+      ? desktopPlatforms.includes(launch.platform) || webPlatforms.includes(launch.platform)
       : window.matchMedia?.("(pointer: fine)").matches === true
   );
   const session = useMemo<MiniAppSession | null>(
@@ -305,7 +308,12 @@ export function TelegramMiniApp() {
   }
 
   function openInBrowser() {
-    window.open(window.location.href, "_blank", "noopener,noreferrer");
+    // Telegram Web opens the tab itself, outside its sandboxed frame.
+    if (launch.platform && webPlatforms.includes(launch.platform)) {
+      postTelegramEvent("web_app_open_link", { url: window.location.href });
+    } else {
+      window.open(window.location.href, "_blank", "noopener,noreferrer");
+    }
     setMessage("Opened in your browser. Finish the swap there with your wallet extension. This window expires in an hour.");
   }
 

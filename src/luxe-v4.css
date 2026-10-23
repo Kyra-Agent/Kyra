@@ -744,3 +744,96 @@
 .wizard-template-brief small {
   color: var(--muted);
 }
+
+/* Trade rules panel: one row per DCA or price rule. */
+.trade-rule-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.trade-rule-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.trade-rule-list li.is-paused {
+  opacity: 0.7;
+}
+
+.trade-rule-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--blue);
+}
+
+.trade-rule-text {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.trade-rule-text strong {
+  font-size: 0.86rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.trade-rule-text small {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.trade-rule-actions {
+  display: flex;
+  flex: none;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+.trade-rule-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 32px;
+  padding: 0 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.trade-rule-actions button:hover:not(:disabled) {
+  border-color: var(--line-strong);
+}
+
+.trade-rule-actions button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.trade-rule-actions .trade-rule-danger {
+  border-color: color-mix(in srgb, var(--red) 55%, transparent);
+  color: var(--red);
+}
+
+@media (max-width: 560px) {
+  .trade-rule-list li {
+    flex-wrap: wrap;
+  }
+
+  .trade-rule-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

@@ -47,6 +47,8 @@ const swapExecutionPrepareFunctionUrl =
   supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/swap-execution-prepare` : "";
 const swapResultCloseoutFunctionUrl =
   supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/swap-result-closeout` : "";
+const agentTradeRulesFunctionUrl =
+  supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/agent-trade-rules` : "";
 const telegramMiniAppFunctionUrl =
   supabaseUrl ? `${supabaseUrl.replace(/\/$/, "")}/functions/v1/telegram-miniapp` : "";
 const telegramConnectTokenInputEnabled =
@@ -138,6 +140,10 @@ export const appConfig = {
     swapResultCloseoutUrl: swapResultCloseoutFunctionUrl,
     swapResultCloseoutConfigured: Boolean(
       swapResultCloseoutFunctionUrl && supabaseConfigured,
+    ),
+    agentTradeRulesUrl: agentTradeRulesFunctionUrl,
+    agentTradeRulesConfigured: Boolean(
+      agentTradeRulesFunctionUrl && supabaseConfigured,
     ),
     telegramMiniAppUrl: telegramMiniAppFunctionUrl,
     telegramMiniAppConfigured: Boolean(
